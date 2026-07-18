@@ -1,0 +1,14 @@
+Forensic Face & Skin Consistency Workbench — complete two-run workflow v3
+Entry point 1: run_calibration.py (raw same-day photos -> Stage1 -> pose/zone/Skan -> leak-safe calibration/validation/test -> held-out acceptance -> calibration_profile.json)
+Entry point 2: run_main_analysis.py (dated main dataset -> Stage1 -> calibrated wrinkle chronology -> Stage2)
+Calibration: 9 pose bins × 13 anatomical zones, pHash near-duplicate grouping, per-zone quality/noise/source-resolution gates, robust metric limits, branch correspondence, held-out false-anomaly check.
+UV: observed-only analytical texture and separately marked synthetic morphing texture.
+Robustness: raw/NLM consensus, multiscale oriented Hessian ridges, Skan topology, source-pixel resolution gates.
+Safety: main workflow refuses failed calibration unless explicitly overridden.
+Validation: Python compilation, 41 unit/regression tests, CLI help smoke tests, and Stage2 Stage1-calibration bridge smoke passed.
+Limit: licensed 3DDFA weights and the user's photos are not present, so empirical calibration values are intentionally generated on the user's first run rather than fabricated in advance.
+UI design phase: ui/FUNCTIONAL_SPEC_RU.md, ui/ARCHITECTURE_RU.md, ui/NAVIGATION_AND_STATES.json define the complete React product scope before component implementation.
+UI scope correction v2: React UI is limited to calibration config work, arbitrary-person A/B geometry/skin testing, and mandatory fixed-topology 3D/UV morphing. Main investigation browsing/timeline/reporting are explicitly excluded.
+Final UI implementation: React/TypeScript source, prebuilt dist bundle, local Python API, Calibration Studio, Comparison Lab, Kabsch geometry metrics, WebGL fixed-topology geometry/texture morph controls, dual Analysis/Synthetic UV presentation, jobs and launcher.
+Launch: source .venv/bin/activate && python ui/launcher.py
+Validation: 41 Python tests passed; UI bundle/API compile smoke passed; calibration and morph screens rendered at 1440x1000 with zero console/resource/overflow errors and were visually inspected.

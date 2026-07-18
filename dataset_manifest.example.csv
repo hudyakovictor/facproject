@@ -1,0 +1,2 @@
+photo_id,date,capture_time_known,source_url,source_archive,declared_pose,rights_status,notes
+sha256-prefix,1999-01-01,false,https://example.invalid,archive-name,frontal,review_required,
