@@ -19,11 +19,8 @@ uv_module/_cache/
 *.ckpt
 # Large example/binary assets (kept local, not in git)
 3ddfav3/examples/
-3ddfav3/data/
-calibration_dataset/
 testphoto/
 tests/
-ui_workspace/
 *.jpg
 *.jpeg
 *.png

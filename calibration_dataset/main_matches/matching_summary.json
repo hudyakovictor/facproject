@@ -1,0 +1,14 @@
+{
+  "main_photos": 1912,
+  "datasets": 7,
+  "best_rows": 13384,
+  "topk_rows": 121202,
+  "top_k": 10,
+  "distance_scales": {
+    "yaw": 1.0,
+    "pitch": 2.0,
+    "roll": 2.0
+  },
+  "bin_fallback_rows": 0,
+  "note": "Top-K is retained for future joint A/B delta-pose pair selection; rank 1 is only the single-photo nearest match."
+}

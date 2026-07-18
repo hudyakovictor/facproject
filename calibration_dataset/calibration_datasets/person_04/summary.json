@@ -1,0 +1,15 @@
+{
+  "dataset_id": "person_04",
+  "retained_frames": 168,
+  "pose_bin_counts": {
+    "left_profile": 52,
+    "frontal": 40,
+    "right_profile": 24,
+    "right_light": 12,
+    "left_mid": 9,
+    "left_light": 9,
+    "right_mid": 9,
+    "right_deep": 8,
+    "left_deep": 5
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "error_count": 0,
+  "errors": [],
+  "main_photos": 1912,
+  "datasets": 7,
+  "calibration_records": 943,
+  "best_match_rows": 13384,
+  "topk_rows": 121202
+}
