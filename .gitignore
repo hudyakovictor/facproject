@@ -1,0 +1,43 @@
+# Created by pytest automatically.
+__pycache__/
+*.pyc
+.DS_Store
+._*
+.env
+.venv/
+venv/
+3ddfav3/assets/
+uv_module/_cache/
+**/__pycache__/
+.pytest_cache/
+.vscode/
+*.npz
+*.pth
+*.npy
+*.onnx
+*.pt
+*.ckpt
+# Large example/binary assets (kept local, not in git)
+3ddfav3/examples/
+testphoto/
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.bmp
+*.tif
+*.tiff
+# Build artifacts
+build/
+**/build/
+*.o
+*.so
+*.cpp
+*.c
+*.h
+__pycache__/
+
+# Allow generated UV test artifacts to be committed (override *.png above)
+!test_results/
+!test_results/**/*.png
+
