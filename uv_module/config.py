@@ -33,7 +33,7 @@ MAX_UV_SIZE = 1000
 class HDUVConfig:
     # --- contract fields used by app/stage1/assets.py ---
     uv_size: int = 1000                     # final atlas size, hard-capped at 1000
-    super_sample: int = 2                   # sampling grid = uv_size * super_sample, then INTER_AREA
+    super_sample: int = 3                   # UPGRADED: higher sampling grid for better detail
     enable_delighting: bool = False         # experimental SH de-lighting (OFF for evidence textures)
     force_all_triangles_visible: bool = False
     device: str = "cpu"                     # kept for interface compatibility; module is CPU-only
@@ -41,15 +41,15 @@ class HDUVConfig:
     # --- sampling ---
     interpolation: str = "lanczos4"         # lanczos4 | cubic | linear
     # --- visibility ---
-    zbuffer_size: int = 768                 # raster size for self-occlusion depth test
+    zbuffer_size: int = 1024                # UPGRADED: higher resolution for cleaner masks
     depth_tolerance: float = 0.015          # fraction of face depth range
     angle_soft_lo: float = 0.05             # n_z where angle weight starts rising from 0
-    angle_soft_hi: float = 0.35             # n_z where angle weight saturates to 1
-    observed_threshold: float = 0.5         # texel counts as "observed" above this visibility
-    observed_erode_px: int = 2              # erode observed mask: drop mixed boundary texels
+    angle_soft_hi: float = 0.45             # UPGRADED: more generous angle for profile shots
+    observed_threshold: float = 0.4         # UPGRADED: lower threshold to keep more real pixels
+    observed_erode_px: int = 1              # UPGRADED: less erosion to keep edge details
     # --- optional source-space skin mask (recon["skin_mask"]) ---
     use_skin_mask: bool = True              # if recon provides it, gate visibility with it
-    skin_mask_threshold: float = 0.5
+    skin_mask_threshold: float = 0.3        # UPGRADED: more inclusive skin mask
     # --- morph texture (symmetric synthesis) ---
     mirror_fill: bool = True
     mirror_color_match: bool = True         # LAB median/std match of mirrored half in the bilateral overlap
@@ -57,14 +57,14 @@ class HDUVConfig:
     inpaint_remaining: bool = True          # TELEA for texels not covered by either side
     inpaint_radius: int = 6
     detail_enhance: bool = True             # morph-only mild sharpening + CLAHE (NEVER applied to analysis)
-    detail_blend: float = 0.35              # blend weight of enhanced detail pass
-    detail_clahe_clip: float = 2.2          # CLAHE clip limit
-    detail_sigma: float = 1.2               # Gaussian sigma for unsharp masking
+    detail_blend: float = 0.65              # UPGRADED: stronger enhancement for visual clarity
+    detail_clahe_clip: float = 3.5          # UPGRADED: higher contrast for micro-wrinkles
+    detail_sigma: float = 1.0               # UPGRADED: tighter focus for sharpening
     background: str = "median_skin"         # median_skin | black
     # --- optional human-inspection copy of the analysis texture ---
     analysis_view: bool = True              # put an enhanced VIEW copy in aux["analysis_view"] (never for metrics)
     # --- confidence ---
-    footprint_target_px: float = 1.0        # source image px per texel for confidence=1
+    footprint_target_px: float = 0.8        # UPGRADED: more sensitive to low-res photos
     # --- cache ---
     cache_dir: str | None = None            # default: <this package>/_cache
 

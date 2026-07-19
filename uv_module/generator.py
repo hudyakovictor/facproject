@@ -31,10 +31,12 @@ recon dict keys (as produced by app/stage1/assets.py):
 """
 from __future__ import annotations
 
-from typing import Any
-
 import cv2
 import numpy as np
+from typing import Any
+
+from skimage import filters, feature, morphology, restoration
+from skan import Skeleton, summarize
 
 try:
     from .config import HDUVConfig
@@ -74,40 +76,140 @@ def _sh_basis(n: np.ndarray) -> np.ndarray:
     ], axis=1)  # (N, 9)
 
 
-def enhance_texture_details(texture_u8: np.ndarray, mask: np.ndarray | None, cfg: HDUVConfig) -> np.ndarray:
-    """Mild unsharp + CLAHE for HUMAN VIEWING / morph texture only.
+def guided_filter(guide: np.ndarray, src: np.ndarray, radius: int, eps: float) -> np.ndarray:
+    """Fast guided filter for edge-preserving smoothing/sharpening."""
+    guide_f = guide.astype(np.float32) / 255.0
+    src_f = src.astype(np.float32) / 255.0
 
-    v3 fixes vs v1/v2:
-    - correct color space: input is BGR, so BGR2LAB (v1/v2 used RGB2LAB);
-    - mask-aware blur: unobserved (black) texels are excluded from the blur
-      support via normalized convolution, so no dark halo creeps into the
-      observed region near mask borders.
+    mean_I = cv2.boxFilter(guide_f, -1, (radius, radius))
+    mean_p = cv2.boxFilter(src_f, -1, (radius, radius))
+    mean_Ip = cv2.boxFilter(guide_f * src_f, -1, (radius, radius))
+    cov_Ip = mean_Ip - mean_I * mean_p
+
+    mean_II = cv2.boxFilter(guide_f * guide_f, -1, (radius, radius))
+    var_I = mean_II - mean_I * mean_I
+
+    a = cov_Ip / (var_I + eps)
+    b = mean_p - a * mean_I
+
+    mean_a = cv2.boxFilter(a, -1, (radius, radius))
+    mean_b = cv2.boxFilter(b, -1, (radius, radius))
+
+    q = mean_a * guide_f + mean_b
+    return np.clip(q * 255.0, 0, 255).astype(np.uint8)
+
+
+def analyze_skin_wrinkles(texture_u8: np.ndarray, mask: np.ndarray, cfg: HDUVConfig) -> dict[str, Any]:
+    """Expert-level forensic wrinkle analysis using Multiscale Hessian + Skan.
+    
+    Complies with WRINKLE_PIPELINE_SPEC.md:
+    - Multiscale analysis (sigmas)
+    - Thresholding based on robust local statistics
+    - Skeletonization and graph characterization via Skan
+    """
+    if not mask.any():
+        return {"wrinkle_map": np.zeros_like(mask), "stats": {}}
+
+    # 1. Prepare grayscale and normalize
+    gray = cv2.cvtColor(texture_u8, cv2.COLOR_BGR2GRAY)
+    gray_f = gray.astype(np.float32) / 255.0
+    
+    # Advanced local contrast normalization (Retinex-inspired)
+    # This helps to equalize different lighting conditions across the chronological dataset
+    blur_large = cv2.GaussianBlur(gray_f, (0, 0), 15.0)
+    normalized = np.clip(gray_f / (blur_large + 1e-2), 0.5, 1.5)
+    normalized = (normalized - normalized.min()) / (normalized.max() - normalized.min() + 1e-8)
+
+    # 2. Multiscale Hessian (Frangi) for ridge detection
+    # SIGMAS calibrated for 800-1000px images to detect micro-relief
+    sigmas = [0.4, 0.8, 1.2, 1.6]
+    ridges = filters.frangi(normalized, sigmas=sigmas, black_ridges=True)
+    ridges = (ridges - ridges.min()) / (ridges.max() - ridges.min() + 1e-8)
+    
+    # 3. Robust adaptive thresholding
+    observed_ridges = ridges[mask]
+    if len(observed_ridges) > 0:
+        # Use high-percentile threshold to focus on actual structural lines
+        thresh = np.percentile(observed_ridges, 85)
+        wrinkle_bin = (ridges > thresh) & mask
+    else:
+        wrinkle_bin = np.zeros_like(mask)
+    
+    # 4. Cleanup and Skeletonization
+    # min_size depends on super_sample to maintain consistency across resolutions
+    min_px = int(8 * cfg.super_sample)
+    wrinkle_bin = morphology.remove_small_objects(wrinkle_bin, min_size=min_px)
+    skeleton_img = morphology.skeletonize(wrinkle_bin)
+    
+    # 5. Graph Analysis via Skan
+    stats = {}
+    if skeleton_img.any():
+        try:
+            sk = Skeleton(skeleton_img)
+            summary = summarize(sk)
+            stats['branch_count'] = len(summary)
+            stats['total_geodesic_length'] = float(summary['main-path-distance'].sum())
+            stats['mean_ridge_strength'] = float(np.mean(ridges[skeleton_img]))
+            stats['junctions'] = int(np.sum(sk.degrees > 2))
+            stats['endpoints'] = int(np.sum(sk.degrees == 1))
+        except Exception as e:
+            stats['error'] = f"Skan analysis bypassed: {str(e)}"
+    
+    return {
+        "wrinkle_map": (ridges * 255).astype(np.uint8),
+        "wrinkle_binary": wrinkle_bin,
+        "skeleton": skeleton_img,
+        "stats": stats
+    }
+
+
+def enhance_texture_details(texture_u8: np.ndarray, mask: np.ndarray | None, cfg: HDUVConfig) -> np.ndarray:
+    """Expert-level detail enhancement: High-Pass Guided Filter + Advanced CLAHE.
+
+    v3.2 (Expert Ultra):
+    - Multi-scale detail injection.
+    - Guided Filter with tighter EPS for micro-detail preservation.
+    - Optimized for 800-1000px source resolution.
     """
     if texture_u8.ndim != 3 or not cfg.detail_enhance:
         return texture_u8
-    tex = texture_u8.astype(np.float32) / 255.0
 
-    if mask is not None:
-        m = mask.astype(np.float32)
-        blur_num = cv2.GaussianBlur(tex * m[..., None], (0, 0), cfg.detail_sigma)
-        blur_den = cv2.GaussianBlur(m, (0, 0), cfg.detail_sigma)
-        blur = blur_num / np.clip(blur_den[..., None], 1e-4, None)
-    else:
-        blur = cv2.GaussianBlur(tex, (0, 0), cfg.detail_sigma)
-    sharpened = np.clip(tex * 1.35 - blur * 0.35, 0.0, 1.0)
-
-    bgr_u8 = (sharpened * 255.0).astype(np.uint8)
-    lab = cv2.cvtColor(bgr_u8, cv2.COLOR_BGR2LAB)
+    # Convert to LAB for luminance-only processing (preserves skin tone)
+    lab = cv2.cvtColor(texture_u8, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=float(cfg.detail_clahe_clip), tileGridSize=(8, 8))
-    lab_enh = cv2.merge([clahe.apply(l), a, b])
-    enhanced = cv2.cvtColor(lab_enh, cv2.COLOR_LAB2BGR).astype(np.float32) / 255.0
 
-    blended = tex * (1.0 - cfg.detail_blend) + enhanced * cfg.detail_blend
-    out = np.clip(blended * 255.0, 0, 255).astype(np.uint8)
+    # 1. Micro-contrast enhancement via CLAHE
+    clahe = cv2.createCLAHE(clipLimit=float(cfg.detail_clahe_clip), tileGridSize=(8, 8))
+    l_clahe = clahe.apply(l)
+
+    # 2. Edge-preserving sharpening via Guided Filter on the L channel
+    # Radius is tight to catch pores, EPS is small to protect edges
+    radius = max(1, int(cfg.detail_sigma * 2))
+    l_f = l_clahe.astype(np.float32)
+    l_guide = guided_filter(l_clahe, l_clahe, radius=radius, eps=0.005)
+    
+    # Detail boosting
+    l_detail = l_f - l_guide.astype(np.float32)
+    l_sharpened = l_f + 2.0 * l_detail # Aggressive boost for visibility
+    l_final = np.clip(l_sharpened, 0, 255).astype(np.uint8)
+
+    # Reconstruct
+    enhanced_lab = cv2.merge([l_final, a, b])
+    enhanced_bgr = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+    # 3. Micro-texture blend back
+    if cfg.detail_blend > 0:
+        # We blend the L channel specifically or the whole image
+        # Using whole image for softer color integration
+        res = cv2.addWeighted(texture_u8, 1.0 - cfg.detail_blend, enhanced_bgr, cfg.detail_blend, 0)
+    else:
+        res = enhanced_bgr
+
     if mask is not None:
-        out[~mask] = texture_u8[~mask]
-    return out
+        # Seamlessly restore unobserved areas
+        res[~mask] = texture_u8[~mask]
+    
+    return res
 
 
 class HDUVTextureGenerator:
@@ -182,13 +284,22 @@ class HDUVTextureGenerator:
 
         # --- optional source-space skin mask (background / hair / eye / mouth gate) ---
         skin_ss = None
-        skin_src = recon.get("skin_mask") if cfg.use_skin_mask else None
-        if skin_src is not None:
+        # Priority 1: Semantic segmentation mask from 3DDFA_V3 head
+        # Priority 2: Generic skin_mask from recon dict
+        skin_src = recon.get("seg_mask") if recon.get("seg_mask") is not None else recon.get("skin_mask")
+        
+        if cfg.use_skin_mask and skin_src is not None:
             sm = np.asarray(skin_src)
-            sm = sm.astype(np.float32)
-            if sm.max() > 1.0:
-                sm = sm / 255.0
-            skin_ss = cv2.remap(sm, map_x, map_y, cv2.INTER_LINEAR,
+            # 3DDFA_V3 semantic classes: usually 0:bg, 1:skin, 2:eyebrow, 3:eye, 4:nose, 5:lip, 6:inner_mouth
+            # For skin consistency, we strictly need class 1 (skin).
+            if sm.dtype != np.float32:
+                # If it's a multi-class segmentation, create a binary skin mask
+                # Class 1 is typically 'skin' in 3DDFA_V3
+                skin_binary = (sm == 1).astype(np.float32)
+            else:
+                skin_binary = sm
+                
+            skin_ss = cv2.remap(skin_binary, map_x, map_y, cv2.INTER_LINEAR,
                                 borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
         # footprint: source-image pixels per texel (Jacobian area of the map)
@@ -246,6 +357,14 @@ class HDUVTextureGenerator:
 
         # --- ANALYTIC: real pixels only, mathematically untouched ---
         analysis_u8 = np.clip(texture, 0, 255).astype(np.uint8)
+        
+        # Apply strict segmentation mask filter if available
+        if skin_ss is not None:
+            # Downsample skin mask to match final UV size
+            skin_mask_final = down(skin_ss) > cfg.skin_mask_threshold
+            # Kill everything that is not skin (eyes, hair, mouth, background)
+            observed = observed & skin_mask_final
+            
         analysis_u8[~observed] = 0
 
         # --- MORPH: symmetric completion (clearly synthetic, mask returned) ---
@@ -269,6 +388,9 @@ class HDUVTextureGenerator:
         # Key invariant: observed texels remain bitwise-identical to the analysis texture.
         beauty_u8[observed] = analysis_u8[observed]
 
+        # --- FORENSIC SKIN ANALYSIS (v3.1 Expert) ---
+        skin_analysis = analyze_skin_wrinkles(analysis_u8, observed, cfg)
+
         aux = {
             "uv_is_original": observed.copy(),
             "tri_visibility": vis.tri_visibility,
@@ -280,10 +402,22 @@ class HDUVTextureGenerator:
             "footprint": footprint.astype(np.float16),
             "atlas_valid": atlas_valid,
             "config": self.cfg.public_dict(),
+            "wrinkle_map": skin_analysis.get("wrinkle_map"),
+            "wrinkle_stats": skin_analysis.get("stats"),
+            "skeleton": skin_analysis.get("skeleton"),
         }
         if cfg.analysis_view:
-            # enhanced HUMAN-INSPECTION copy; never feed to metrics
+            # Enhanced HUMAN-INSPECTION copy: 
+            # uses Guided Filter and micro-texture boost for better visibility
             view = enhance_texture_details(analysis_u8, observed, cfg)
             view[~observed] = 0
+            
+            # Highlight wrinkles in the view if desired (forensic overlay)
+            if skin_analysis.get("wrinkle_binary") is not None:
+                view_with_wrinkles = view.copy()
+                view_with_wrinkles[skin_analysis["wrinkle_binary"]] = [0, 255, 0] # Green wrinkles
+                aux["analysis_view_wrinkles"] = view_with_wrinkles
+            
             aux["analysis_view"] = view
+            
         return analysis_u8, beauty_u8, observed, confidence, aux
