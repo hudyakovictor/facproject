@@ -8,6 +8,7 @@ __pycache__/
 venv/
 3ddfav3/assets/
 uv_module/_cache/
+/FFHQ-detect-face-wrinkles/res
 **/__pycache__/
 .pytest_cache/
 .vscode/
@@ -40,4 +41,10 @@ __pycache__/
 # Allow generated UV test artifacts to be committed (override *.png above)
 !test_results/
 !test_results/**/*.png
+
+# Local run outputs and large binary assets (kept local, not in git)
+runs/
+assets/
+# Symlink to 3ddfav3/assets (absolute path, not portable)
+assets
 

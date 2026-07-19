@@ -1,0 +1,8 @@
+numpy>=1.26,<3
+opencv-python>=4.9,<5
+scipy>=1.11,<2
+scikit-image>=0.22,<1
+skan>=0.12,<1
+torch>=2.2
+torchvision>=0.17
+potpourri3d>=1.0,<2

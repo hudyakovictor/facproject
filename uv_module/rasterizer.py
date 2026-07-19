@@ -15,6 +15,8 @@ itself, which is exactly what a forensic texture needs.
 from __future__ import annotations
 
 import hashlib
+import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -130,9 +132,19 @@ def load_or_build_uv_raster(
                 f.unlink(missing_ok=True)
     raster = build_uv_raster(uv_coords, triangles, size)
     if cache_dir is not None:
-        tmp = cache_dir / f".tmp_uv_raster_{size}_{key}.npz"
-        np.savez_compressed(tmp, tri_map=raster.tri_map, bary=raster.bary)
-        tmp.replace(cache_dir / f"uv_raster_{size}_{key}.npz")
+        target = cache_dir / f"uv_raster_{size}_{key}.npz"
+        # A per-process temporary name avoids races when calibration workers
+        # build the same static UV cache concurrently.
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=f".tmp_uv_raster_{size}_{key}_", suffix=".npz", dir=cache_dir,
+        )
+        os.close(fd)
+        tmp = Path(tmp_name)
+        try:
+            np.savez_compressed(tmp, tri_map=raster.tri_map, bary=raster.bary)
+            os.replace(tmp, target)
+        finally:
+            tmp.unlink(missing_ok=True)
     return raster
 
 
