@@ -1,0 +1,6 @@
+{
+  "schema_version": "deeputin-calibration-seven-datasets-v7",
+  "dataset_count": 7,
+  "record_count": 943,
+  "deduplication": "disabled; input declared manually cleaned"
+}
