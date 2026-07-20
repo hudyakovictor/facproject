@@ -42,20 +42,22 @@ def parse_photo_name(path: Path) -> PhotoName:
     
     suffix_match = _COPY_SUFFIX.search(stem[date_end_pos:])
     seq = int((suffix_match.group("n1") or suffix_match.group("n2")) if suffix_match else 1)
+    # Весь остаток имени после даты (кроме расширения) идёт в canonical_stem,
+    # чтобы папка называлась ТОЧНО как фото (напр. 2025_03_27_y5p10r0).
+    # Пробелы и скобки нормализуются в подчёркивания.
+    rest = stem[date_end_pos:]
+    rest = re.sub(r"[\s()]", "_", rest)
+    rest = re.sub(r"_+", "_", rest).strip("_")
     canonical_stem = f"{parsed.year:04d}_{parsed.month:02d}_{parsed.day:02d}"
-    if seq > 1:
-        canonical_stem += f"_{seq}"
+    if rest:
+        canonical_stem += rest if rest.startswith("_") else f"_{rest}"
     return PhotoName(parsed.isoformat(), parsed.year, parsed.month, parsed.day, seq, canonical_stem)
 
 
 def make_photo_id(parsed: PhotoName, source_sha256: str) -> str:
-    """Unique photo ID incorporating date, sequence, and source hash.
+    """Photo ID = canonical stem (YYYY_MM_DD[_N]), без хеш-суффикса.
 
-    Without the hash, two photos from different sources on the same date and
-    same sequence number would collide (e.g. same-day reshoots from different
-    cameras). The first 8 hex chars of SHA-256 provide enough entropy to
-    disambiguate without inflating the ID.
+    Имя папки совпадает с именем фото. Хеш пишется внутрь файлов при необходимости,
+    но не в имя папки.
     """
-    if source_sha256:
-        return f"{parsed.canonical_stem}__{source_sha256[:8]}"
     return parsed.canonical_stem

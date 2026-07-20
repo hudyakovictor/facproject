@@ -1,155 +1,167 @@
-"""Per-vertex visibility for texture extraction (CPU only, no renderer).
-
-Two independent signals, both required:
-1. front-facing test from posed normals (camera-space n_z), used as a SOFT
-   angle weight so grazing texels get low confidence instead of a hard cut;
-2. self-occlusion test via a triangle-id z-buffer rasterized with OpenCV in
-   image space.
-
-v3 upgrade vs v1/v2: instead of painting a *constant* depth per triangle
-(painter's algorithm), we paint triangle IDs back-to-front and then evaluate
-the *barycentric-interpolated* depth of the covering triangle at every vertex
-pixel. Constant-depth painting misclassifies vertices on steep geometry (nose
-flanks, brow ridge, eye sockets) and produced the ragged false-occlusion holes
-seen in v1/v2 analysis textures. A vertex is also trivially visible when the
-covering triangle contains that vertex itself.
-
-v3.2 upgrade vs v3: depth tolerance is scaled per-vertex by the cover triangle
-footprint (fraction of the cover pixel actually covered by the triangle). On
-profile shots the far-side forehead vertex sits behind a sliver-thin near-side
-cheek triangle whose zbuffer pixel is only ~10% covered; the v3 constant
-tolerance falsely occluded those vertices. Scaling tol by coverage fraction
-makes occlusion tighter only when the cover is truly solid.
-
-The camera-space depth sign convention of 3DDFA_V3 is auto-detected: whichever
-direction makes front-facing vertices closer to the camera is used.
-"""
+"""Utilities for estimating visibility weights for 3DDFA_V3 triangles."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+import logging
+from typing import Optional
 
-import cv2
 import numpy as np
 
+__all__ = ["compute_triangle_visibility", "compute_vertex_visibility"]
 
-@dataclass(frozen=True)
-class VisibilityBundle:
-    front_facing: np.ndarray       # (N,) bool
-    occlusion_visible: np.ndarray  # (N,) bool (True = not occluded)
-    combined: np.ndarray           # (N,) bool
-    angle_weight: np.ndarray       # (N,) float32 in [0,1], soft grazing-angle weight
-    tri_visibility: np.ndarray     # (M,) float32 fraction of visible corners
+logger = logging.getLogger(__name__)
 
 
-def _soft_step(x: np.ndarray, lo: float, hi: float) -> np.ndarray:
-    return np.clip((x - lo) / max(hi - lo, 1e-6), 0.0, 1.0).astype(np.float32)
-
-
-def _auto_depth_sign(depth: np.ndarray, front: np.ndarray) -> np.ndarray:
-    """Return depth remapped so that LARGER value == closer to camera."""
-    if front.any() and (~front).any():
-        if float(np.mean(depth[front])) >= float(np.mean(depth[~front])):
-            return depth
-        return -depth
-    return depth
-
-
-def compute_visibility(
-    vertices_2d: np.ndarray,
-    depth: np.ndarray,
-    normals_posed: np.ndarray,
+def compute_triangle_visibility(
+    vertices_3d: np.ndarray,
     triangles: np.ndarray,
-    zbuffer_size: int = 768,
-    depth_tolerance: float = 0.015,
-    angle_soft_lo: float = 0.05,
-    angle_soft_hi: float = 0.35,
-    force_all_visible: bool = False,
-) -> VisibilityBundle:
-    v2d = np.asarray(vertices_2d, np.float64)[:, :2]
-    tri = np.asarray(triangles, np.int64)
-    n = np.asarray(normals_posed, np.float32)
-    nz = n[:, 2]
-    front = nz >= 0.0
-    angle_w = _soft_step(nz, angle_soft_lo, angle_soft_hi)
+    view_dir: Optional[np.ndarray] = None,
+    angle_threshold_deg: float = 85.0,
+    gamma: float = 1.5,
+    use_zbuffer: bool = False,
+    vertices_2d: Optional[np.ndarray] = None,
+    image_size: Optional[tuple[int, int]] = None,
+    z_tolerance: float = 1e-3,
+    occlusion_falloff: float = 0.1,
+) -> np.ndarray:
+    """Return per-triangle visibility weights in the [0, 1] range.
 
-    if force_all_visible:
-        ones = np.ones(v2d.shape[0], bool)
-        return VisibilityBundle(
-            front_facing=ones, occlusion_visible=ones, combined=ones,
-            angle_weight=np.ones(v2d.shape[0], np.float32),
-            tri_visibility=np.ones(tri.shape[0], np.float32),
-        )
+    Args:
+        vertices_3d: (N, 3) vertex positions in camera space.
+        triangles: (T, 3) triangle indices.
+        view_dir: Optional (3,) view direction. Defaults to +Z.
+        angle_threshold_deg: Maximum allowed angle between normal and view dir.
+        gamma: Falloff exponent applied to cos(angle).
+        use_zbuffer: Enable lightweight centroid z-buffer test.
+        vertices_2d: (N, 2) projected vertices (required for z-buffer mode).
+        image_size: (H, W) image resolution for z-buffer grid.
+        z_tolerance: Allowed depth slack before marking as occluded.
+        occlusion_falloff: Multiplier applied to occluded triangles.
 
-    z = _auto_depth_sign(np.asarray(depth, np.float64).reshape(-1), front)
+    Returns:
+        (T,) float32 weights.
+    """
 
-    # --- rasterize triangle-id buffer in a face-tight frame ---
-    lo = v2d.min(axis=0)
-    hi = v2d.max(axis=0)
-    span = max(float((hi - lo).max()), 1e-6)
-    scale = (zbuffer_size - 1) / span
-    pix = (v2d - lo) * scale
-    W = int(np.ceil((hi[0] - lo[0]) * scale)) + 2
-    H = int(np.ceil((hi[1] - lo[1]) * scale)) + 2
-    W, H = max(W, 4), max(H, 4)
+    verts = np.asarray(vertices_3d, dtype=np.float32)
+    tris = np.asarray(triangles, dtype=np.int64)
+    if tris.ndim != 2 or tris.shape[1] != 3:
+        raise ValueError("triangles must have shape (T, 3)")
 
-    tri_depth = z[tri].mean(axis=1)
-    order = np.argsort(tri_depth)  # far first, near last (near overwrites)
-    id_buf = np.full((H, W), -1, np.int32)
-    pts_all = np.round(pix[tri]).astype(np.int32)
-    for i in order:
-        cv2.fillConvexPoly(id_buf, pts_all[i], int(i))
+    if view_dir is None:
+        view_dir = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+    else:
+        view_dir = np.asarray(view_dir, dtype=np.float32)
 
-    px = np.clip(np.round(pix[:, 0]).astype(np.int64), 0, W - 1)
-    py = np.clip(np.round(pix[:, 1]).astype(np.int64), 0, H - 1)
-    cover = id_buf[py, px].astype(np.int64)          # covering (nearest) triangle per vertex pixel
+    view_norm = np.linalg.norm(view_dir)
+    if view_norm < 1e-8:
+        raise ValueError("view_dir magnitude is too small")
+    view = view_dir / view_norm
 
-    zrange = max(float(z.max() - z.min()), 1e-6)
-    base_tol = depth_tolerance * zrange
+    v0 = verts[tris[:, 0]]
+    v1 = verts[tris[:, 1]]
+    v2 = verts[tris[:, 2]]
 
-    N = v2d.shape[0]
-    occ_visible = np.ones(N, bool)
-    has_cover = cover >= 0
-    if np.any(has_cover):
-        c = cover[has_cover]
-        vidx = np.nonzero(has_cover)[0]
-        # trivially visible when the covering triangle contains the vertex itself
-        own = (tri[c] == vidx[:, None]).any(axis=1)
-        # barycentric-interpolated depth of covering triangle at the vertex pixel
-        a2, b2, c2 = pix[tri[c, 0]], pix[tri[c, 1]], pix[tri[c, 2]]
-        p = pix[vidx]
-        v0 = b2 - a2
-        v1 = c2 - a2
-        v2 = p - a2
-        d00 = np.einsum("ij,ij->i", v0, v0)
-        d01 = np.einsum("ij,ij->i", v0, v1)
-        d11 = np.einsum("ij,ij->i", v1, v1)
-        d20 = np.einsum("ij,ij->i", v2, v0)
-        d21 = np.einsum("ij,ij->i", v2, v1)
-        denom = d00 * d11 - d01 * d01
-        denom = np.where(np.abs(denom) < 1e-12, 1e-12, denom)
-        w1 = (d11 * d20 - d01 * d21) / denom
-        w2 = (d00 * d21 - d01 * d20) / denom
-        w0 = 1.0 - w1 - w2
-        w = np.clip(np.stack([w0, w1, w2], axis=1), 0.0, 1.0)
-        s = np.sum(w, axis=1, keepdims=True)
-        w = w / np.where(s < 1e-12, 1.0, s)
-        z_cover = (
-            z[tri[c, 0]] * w[:, 0] + z[tri[c, 1]] * w[:, 1] + z[tri[c, 2]] * w[:, 2]
-        )
-        # v3.2: scale tolerance by barycentric footprint of the cover pixel
-        # inside the cover triangle. min(w) tells how close the vertex pixel is
-        # to the triangle edge; near 1 means the cover pixel lies fully inside
-        # the triangle (solid cover), near 0 means just an edge sliver.
-        coverage = np.clip(np.minimum(np.minimum(w[:, 0], w[:, 1]), w[:, 2]) * 3.0, 0.0, 1.0)
-        tol = base_tol * (0.25 + 0.75 * coverage)
-        occ_visible[vidx] = own | (z[vidx] >= (z_cover - tol))
-
-    combined = front & occ_visible
-    tri_vis = combined[tri].mean(axis=1).astype(np.float32)
-    return VisibilityBundle(
-        front_facing=front,
-        occlusion_visible=occ_visible,
-        combined=combined,
-        angle_weight=angle_w * occ_visible.astype(np.float32),
-        tri_visibility=tri_vis,
+    normals = np.cross(v1 - v0, v2 - v0)
+    norm_len = np.linalg.norm(normals, axis=1, keepdims=True)
+    valid_normals = norm_len.squeeze(-1) > 1e-8
+    normals = np.divide(
+        normals,
+        np.maximum(norm_len, 1e-8),
+        out=np.zeros_like(normals),
+        where=norm_len > 1e-8,
     )
+
+    cos_angle = np.clip((normals @ view).astype(np.float32), -1.0, 1.0)
+    mask = valid_normals
+
+    weights = np.zeros(tris.shape[0], dtype=np.float32)
+    # Даем базовый минимальный вес 0.001 даже почти перпендикулярным или отвернутым участкам (чтобы избежать дыр в сетке)
+    weights[mask] = np.maximum(np.power(np.maximum(cos_angle[mask], 0.0), gamma), 0.001).astype(
+        np.float32
+    )
+
+    if use_zbuffer:
+        if vertices_2d is None or image_size is None:
+            logger.warning("Z-buffer requested but vertices_2d/image_size missing")
+        else:
+            _apply_centroid_zbuffer(
+                weights=weights,
+                mask=mask,
+                verts=verts,
+                tris=tris,
+                vertices_2d=vertices_2d,
+                image_size=image_size,
+                z_tolerance=z_tolerance,
+                occlusion_falloff=occlusion_falloff,
+            )
+
+    logger.debug(
+        "Visibility: %d/%d total valid normal tris processed for occlusion",
+        int(mask.sum()),
+        tris.shape[0],
+    )
+
+    return weights
+
+
+def _apply_centroid_zbuffer(
+    weights: np.ndarray,
+    mask: np.ndarray,
+    verts: np.ndarray,
+    tris: np.ndarray,
+    vertices_2d: np.ndarray,
+    image_size: tuple[int, int],
+    z_tolerance: float,
+    occlusion_falloff: float,
+) -> None:
+    """Lightweight centroid-based occlusion test."""
+
+    h, w = int(image_size[0]), int(image_size[1])
+    if h <= 0 or w <= 0:
+        return
+
+    verts_2d = np.asarray(vertices_2d, dtype=np.float32)
+    centroids_2d = verts_2d[tris].mean(axis=1)
+    centroids_z = verts[tris].mean(axis=1)[:, 2]
+
+    cx = np.clip(np.rint(centroids_2d[:, 0]).astype(int), 0, w - 1)
+    cy = np.clip(np.rint(centroids_2d[:, 1]).astype(int), 0, h - 1)
+
+    zbuffer = np.full((h, w), np.inf, dtype=np.float32)
+
+    for idx in np.where(mask)[0]:
+        z = centroids_z[idx]
+        x, y = cx[idx], cy[idx]
+        if z < zbuffer[y, x]:
+            zbuffer[y, x] = z
+
+    for idx in np.where(mask)[0]:
+        z = centroids_z[idx]
+        x, y = cx[idx], cy[idx]
+        if z > zbuffer[y, x] + z_tolerance:
+            weights[idx] *= occlusion_falloff
+
+
+def compute_vertex_visibility(
+    triangles: np.ndarray,
+    tri_weights: np.ndarray,
+    num_vertices: Optional[int] = None,
+) -> np.ndarray:
+    """Map per-triangle weights to per-vertex visibility via averaging."""
+
+    tris = np.asarray(triangles, dtype=np.int64)
+    weights = np.asarray(tri_weights, dtype=np.float32).reshape(-1)
+    if tris.shape[0] != weights.shape[0]:
+        raise ValueError("triangles and tri_weights must have the same length")
+
+    if num_vertices is None:
+        num_vertices = int(tris.max()) + 1 if tris.size > 0 else 0
+
+    vert_sum = np.zeros(num_vertices, dtype=np.float64)
+    vert_count = np.zeros(num_vertices, dtype=np.float64)
+
+    for j in range(3):
+        np.add.at(vert_sum, tris[:, j], weights)
+        np.add.at(vert_count, tris[:, j], 1.0)
+
+    vert_count = np.maximum(vert_count, 1e-6)
+    return (vert_sum / vert_count).astype(np.float32)

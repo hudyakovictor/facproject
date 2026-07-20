@@ -1,5 +1,7 @@
 from __future__ import annotations
 from .masks import CHANNEL_NAMES
+from .skin_zone_atlas_final import load_canonical_atlas, project_atlas_to_photo
+import json
 import shutil
 from pathlib import Path
 from typing import Any
@@ -8,6 +10,9 @@ import cv2
 import numpy as np
 
 from .geometry import to_original_image
+
+# Канонический атлас зон — финальная версия (единый источник истины).
+_ATLAS_DIR = Path(__file__).resolve().parents[1] / "atlas"
 
 CROP_WIDTH = 424
 CROP_HEIGHT = 500
@@ -92,48 +97,28 @@ def _wrinkle_report_from_uv_geometry(
     """Build wrinkle_zones report from SkinAnalyzer UV geometry results.
 
     This replaces the deprecated analyze_pose_zones() call while producing
-    the same output artifacts (wrinkle_zones.json, wrinkle_zones.npz,
-    uv_wrinkle_skeletons.png) for downstream compatibility.
+    the output artifacts (wrinkle_zones.json, wrinkle_zones.npz) for
+    downstream compatibility.
+
+    NOTE: uv_module.zones / SkinAnalyzer are no longer bundled. We keep the
+    artifact files (wrinkle_zones.json / .npz) so downstream stage2 code does
+    not break, but they are now empty placeholders. uv_wrinkle_skeletons.png
+    is no longer generated.
     """
     import json
-
-    zones = uv_geom.get("zones", {})
-    zone_results = {}
-    usable_zone_count = 0
-    for name, zm in zones.items():
-        if zm.get("observed_px", 0) < 400:
-            continue
-        zone_results[name] = {
-            "weight": zm.get("weight", 0.0),
-            "features": {k: v for k, v in zm.items() if k != "weight"},
-        }
-        usable_zone_count += 1
 
     report = {
         "schema": "wrinkle_v3",
         "pose_bin": pose_bin,
-        "usable_zone_count": usable_zone_count,
-        "zones": zone_results,
-        "uv_available": uv_geom.get("available", False),
+        "usable_zone_count": 0,
+        "zones": {},
+        "uv_available": bool(np.any(observed_mask)),
+        "note": "zone analysis disabled: uv_module.zones/SkinAnalyzer removed; only UV texture is generated",
     }
 
-    # Save artifacts for downstream compatibility
     (out / "wrinkle_zones.json").write_text(
         json.dumps(report, indent=2, default=_json_default), encoding="utf-8"
     )
-    # Skeleton preview: draw zone boxes on dimmed texture
-    h, w = analysis_bgr.shape[:2]
-    skeleton_preview = np.zeros((h, w, 3), dtype=np.uint8)
-    skeleton_preview[observed_mask] = (analysis_bgr[observed_mask] * 0.3).astype(np.uint8)
-    from uv_module.zones import ZONE_SPECS
-    for spec in ZONE_SPECS:
-        if spec.name not in zone_results:
-            continue
-        umin, vmin, umax, vmax = spec.uv_box
-        py1, py2 = max(0, int((1.0 - vmax) * h)), min(h, int((1.0 - vmin) * h))
-        px1, px2 = max(0, int(umin * w)), min(w, int(umax * w))
-        cv2.rectangle(skeleton_preview, (px1, py1), (px2, py2), (0, 255, 0), 1)
-    cv2.imwrite(str(out / "uv_wrinkle_skeletons.png"), skeleton_preview)
     np.savez_compressed(out / "wrinkle_zones.npz", report=np.array([json.dumps(report, default=_json_default)]))
     return report
 
@@ -152,8 +137,7 @@ def _json_default(obj):
 
 
 def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
-    from uv_module import HDUVConfig, HDUVTextureGenerator, SkinAnalyzer
-    from uv_module.forensics import extract_texture_forensics
+    from uv_module import HDUVConfig, HDUVTextureGenerator
 
     vertices_2d = to_original_image(bundle.vertices_image_224, bundle.trans_params)
     recon = {
@@ -169,27 +153,34 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     cfg = HDUVConfig(uv_size=int(uv_size), super_sample=super_sample, enable_delighting=False, force_all_triangles_visible=False, device="cpu")
     analysis, synthetic, observed, confidence, aux = HDUVTextureGenerator(cfg).generate(bgr, recon)
     out.mkdir(parents=True, exist_ok=True)
-    for name, arr in [("uv_analysis.png", analysis), ("uv_synthetic.png", synthetic), ("uv_preview.png", synthetic), ("uv_texture.png", synthetic)]:
-        if not cv2.imwrite(str(out / name), arr):
-            raise OSError(f"failed to write {name} to {out / name}")
-    forensic_report, _ = extract_texture_forensics(analysis, np.asarray(observed, bool), out,
-                                                     original_bgr=bgr, skin_mask=skin_mask,
-                                                     pose_bin=str(bundle.pose_bin), cfg=cfg)
-    # Re-use UV geometry result from extract_texture_forensics instead of
-    # computing it a second time.  extract_texture_forensics() already calls
-    # SkinAnalyzer.analyze_uv_geometry() internally and stores the result
-    # in report["uv_geometry"].  If the key is missing (e.g. skin_mask was
-    # None so the extended two-space path was skipped), fall back to a
-    # single explicit call.
-    uv_geom = forensic_report.get("uv_geometry")
-    if uv_geom is None:
-        analyzer = SkinAnalyzer(cfg)
-        uv_geom = analyzer.analyze_uv_geometry(analysis, np.asarray(observed, bool), str(bundle.pose_bin))
-    wrinkle_report = _wrinkle_report_from_uv_geometry(uv_geom, str(bundle.pose_bin), analysis, np.asarray(observed, bool), out)
+    if not cv2.imwrite(str(out / "uv_texture.png"), synthetic):
+        raise OSError(f"failed to write uv_texture.png to {out / 'uv_texture.png'}")
+    # Zone/wrinkle analysis (SkinAnalyzer/forensics) removed: keep placeholder
+    # artifacts so downstream stage2 still finds the files.
+    wrinkle_report = _wrinkle_report_from_uv_geometry({}, str(bundle.pose_bin), analysis, np.asarray(observed, bool), out)
+    # texture_forensics.json placeholder (forensic analysis removed with uv_module.forensics)
+    (out / "texture_forensics.json").write_text(
+        json.dumps({"schema": "forensics-disabled", "note": "uv_module.forensics removed; only UV texture generated"}, indent=2),
+        encoding="utf-8",
+    )
 
-    # Confidence is stored twice:
-    # 1) uv_confidence.png as a black/white visual valid-mask preview;
-    # 2) uv.npz with exact arrays for future analysis.
+    # Skin zone atlas: канонический атлас генерируется ОДИН РАЗ (см. generate_canonical_atlas),
+    # здесь применяется его проекция к конкретному фото:
+    #   канон зона ∩ segmentation mask кожи ∩ 3D visibility ∩ boundary safe ∩ quality gates
+    try:
+        atlas = load_canonical_atlas(_ATLAS_DIR)
+        projection_files = project_atlas_to_photo(
+            atlas, bgr, bundle.uv_coords, bundle.triangles,
+            skin_mask, bundle.combined_visible, bundle.trans_params, bundle.pose_bin, out,
+            png_size=int(uv_size), vertices_2d=vertices_2d,
+        )
+    except Exception as exc:  # projection is non-critical; never block the photo
+        import logging
+        logging.getLogger(__name__).warning("skin zone atlas projection failed: %s", exc)
+        projection_files = {}
+
+    # Confidence is stored in uv.npz with exact arrays for future analysis.
+    # (uv_confidence.png visual preview is no longer generated.)
     observed_bool = np.asarray(observed, bool)
     is_original_bool = np.asarray(aux.get("uv_is_original", observed), bool)
     confidence_f32 = np.asarray(confidence, np.float32)
@@ -203,14 +194,11 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     valid_threshold = 0.50
     valid_mask = observed_bool & is_original_bool & (confidence_01 >= valid_threshold)
 
-    # Visual output is intentionally one black/white mask with the established name.
-    # Exact continuous confidence and component masks are kept in uv.npz.
-    if not cv2.imwrite(str(out / "uv_confidence.png"), valid_mask.astype(np.uint8) * 255):
-        raise OSError(f"failed to write uv_confidence.png to {out / 'uv_confidence.png'}")
-
     tri_visibility = np.asarray(aux.get("tri_visibility", []), np.float16)
     # Full UV numeric bundle for future analysis. PNG is only a visual/render artifact;
     # uv.npz is the lossless contract for masks, confidence and texture pixels.
+    # NOTE: new uv_module does not expose separate synthetic masks; synthetic == observed
+    # (beauty postprocessing only fills, never removes texels), so we reuse observed masks.
     np.savez_compressed(
         out / "uv.npz",
         texture_bgr=np.asarray(synthetic, np.uint8),
@@ -220,9 +208,9 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         confidence_u8=confidence_u8,
         observed_mask=observed_bool,
         is_original_mask=is_original_bool,
-        synthetic_mask=np.asarray(aux["uv_synthetic_mask"], bool),
-        synthetic_valid_mask=np.asarray(aux["uv_synthetic_valid"], bool),
-        synthetic_confidence=np.asarray(aux["uv_synthetic_confidence"], np.float16),
+        synthetic_mask=observed_bool,
+        synthetic_valid_mask=observed_bool,
+        synthetic_confidence=confidence_01.astype(np.float16),
         valid_mask=valid_mask,
         tri_visibility=tri_visibility,
         uv_shape=np.asarray(observed_bool.shape, np.int32),
@@ -251,28 +239,21 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "mean_confidence_observed": float(np.mean(confidence_01[observed_bool])) if np.any(observed_bool) else 0.0,
         "confidence_semantics": "uv_confidence.png is a binary visual valid mask; uv.npz stores UV texture pixels, continuous 0..1 confidence, component masks, UV coords and triangle visibility; valid_mask = observed AND original AND confidence >= threshold",
         "synthetic_policy": "contralateral mirror plus tiny-hole inpaint; excluded from analytics",
-        "forensics_schema": forensic_report["schema"],
+        "forensics_schema": "forensics-disabled",
         "wrinkle_schema": wrinkle_report["schema"],
         "wrinkle_usable_zone_count": int(wrinkle_report["usable_zone_count"]),
     }
-    _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_synthetic.png")
-    _write_obj(out / "mesh_analysis.obj", out / "mesh_analysis.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_analysis.png")
+    _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_texture.png")
     files = {
         "uv_texture": "uv_texture.png",
-        "uv_analysis": "uv_analysis.png",
-        "uv_synthetic": "uv_synthetic.png",
-        "uv_preview": "uv_preview.png",
-        "uv_confidence": "uv_confidence.png",
         "uv_data": "uv.npz",
         "mesh": "mesh.obj",
         "mesh_material": "mesh.mtl",
-        "mesh_analysis": "mesh_analysis.obj",
-        "mesh_analysis_material": "mesh_analysis.mtl",
         "texture_forensics": "texture_forensics.json",
         "wrinkle_zones": "wrinkle_zones.json",
         "wrinkle_zones_data": "wrinkle_zones.npz",
-        "wrinkle_skeleton_preview": "uv_wrinkle_skeletons.png",
     }
+    files.update(projection_files)
     return files, uv_arrays, uv_meta
 
 
