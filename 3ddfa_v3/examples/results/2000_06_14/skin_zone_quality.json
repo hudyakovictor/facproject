@@ -1,0 +1,553 @@
+{
+  "schema_version": "skin-zone-atlas-v4.0",
+  "pose_bin": "frontal",
+  "skin_mask_coverage": 0.4641484375,
+  "zones": {
+    "forehead_center": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9806060606060606,
+      "skin_pixels": 29801,
+      "quality": 0.9806,
+      "bbox_original": [
+        342,
+        127,
+        173,
+        215
+      ]
+    },
+    "forehead_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9857142857142858,
+      "skin_pixels": 24334,
+      "quality": 0.9857,
+      "bbox_original": [
+        185,
+        127,
+        166,
+        190
+      ]
+    },
+    "forehead_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9822380106571936,
+      "skin_pixels": 23437,
+      "quality": 0.9822,
+      "bbox_original": [
+        492,
+        135,
+        169,
+        199
+      ]
+    },
+    "temple_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.8154981549815498,
+      "skin_pixels": 9414,
+      "quality": 0.8155,
+      "bbox_original": [
+        100,
+        148,
+        100,
+        202
+      ]
+    },
+    "temple_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.6714193130265717,
+      "skin_pixels": 5579,
+      "quality": 0.6714,
+      "bbox_original": [
+        640,
+        168,
+        74,
+        184
+      ]
+    },
+    "glabella": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.7371794871794872,
+      "skin_pixels": 3388,
+      "quality": 0.7372,
+      "bbox_original": [
+        367,
+        328,
+        95,
+        70
+      ]
+    },
+    "nasion": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.7699530516431925,
+      "skin_pixels": 3068,
+      "quality": 0.77,
+      "bbox_original": [
+        382,
+        378,
+        72,
+        71
+      ]
+    },
+    "nose_dorsum": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9189655172413793,
+      "skin_pixels": 7135,
+      "quality": 0.919,
+      "bbox_original": [
+        358,
+        426,
+        121,
+        98
+      ]
+    },
+    "nose_tip": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.789308176100629,
+      "skin_pixels": 4617,
+      "quality": 0.7893,
+      "bbox_original": [
+        350,
+        493,
+        131,
+        75
+      ]
+    },
+    "ala_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.7095435684647303,
+      "skin_pixels": 2018,
+      "quality": 0.7095,
+      "bbox_original": [
+        319,
+        471,
+        47,
+        83
+      ]
+    },
+    "ala_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.7510373443983402,
+      "skin_pixels": 2537,
+      "quality": 0.751,
+      "bbox_original": [
+        466,
+        478,
+        52,
+        77
+      ]
+    },
+    "columella": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "low_3d_visibility"
+      ],
+      "visible_fraction": 0.48936170212765956,
+      "skin_pixels": 642,
+      "quality": 0.1571,
+      "bbox_original": [
+        371,
+        535,
+        96,
+        36
+      ]
+    },
+    "upper_eyelid_left": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "excluded_by_segmentation"
+      ],
+      "visible_fraction": 0.6763803680981595,
+      "skin_pixels": 2954,
+      "quality": 0.6764,
+      "bbox_original": [
+        202,
+        318,
+        173,
+        41
+      ]
+    },
+    "upper_eyelid_right": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "excluded_by_segmentation"
+      ],
+      "visible_fraction": 0.5429447852760736,
+      "skin_pixels": 1925,
+      "quality": 0.5226,
+      "bbox_original": [
+        466,
+        334,
+        172,
+        30
+      ]
+    },
+    "lower_eyelid_left": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "excluded_by_segmentation"
+      ],
+      "visible_fraction": 0.82996632996633,
+      "skin_pixels": 1527,
+      "quality": 0.6337,
+      "bbox_original": [
+        232,
+        347,
+        155,
+        58
+      ]
+    },
+    "lower_eyelid_right": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "excluded_by_segmentation"
+      ],
+      "visible_fraction": 0.835016835016835,
+      "skin_pixels": 1373,
+      "quality": 0.5732,
+      "bbox_original": [
+        450,
+        360,
+        156,
+        49
+      ]
+    },
+    "infraorbital_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9745331069609507,
+      "skin_pixels": 7487,
+      "quality": 0.9745,
+      "bbox_original": [
+        222,
+        374,
+        160,
+        88
+      ]
+    },
+    "infraorbital_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9796264855687606,
+      "skin_pixels": 7569,
+      "quality": 0.9796,
+      "bbox_original": [
+        456,
+        383,
+        155,
+        84
+      ]
+    },
+    "zygomatic_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.6942215088282504,
+      "skin_pixels": 4578,
+      "quality": 0.6942,
+      "bbox_original": [
+        127,
+        326,
+        110,
+        85
+      ]
+    },
+    "zygomatic_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.6377510040160642,
+      "skin_pixels": 3824,
+      "quality": 0.6378,
+      "bbox_original": [
+        599,
+        333,
+        95,
+        88
+      ]
+    },
+    "upper_cheek_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.909437559580553,
+      "skin_pixels": 11072,
+      "quality": 0.9094,
+      "bbox_original": [
+        126,
+        352,
+        230,
+        160
+      ]
+    },
+    "upper_cheek_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.8568702290076335,
+      "skin_pixels": 10294,
+      "quality": 0.8569,
+      "bbox_original": [
+        483,
+        367,
+        211,
+        159
+      ]
+    },
+    "mid_cheek_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.5894511760513186,
+      "skin_pixels": 4345,
+      "quality": 0.5895,
+      "bbox_original": [
+        111,
+        327,
+        129,
+        283
+      ]
+    },
+    "mid_cheek_right": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "low_3d_visibility"
+      ],
+      "visible_fraction": 0.35667870036101085,
+      "skin_pixels": 2339,
+      "quality": 0.3567,
+      "bbox_original": [
+        589,
+        344,
+        114,
+        271
+      ]
+    },
+    "nasolabial_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9760191846522782,
+      "skin_pixels": 7851,
+      "quality": 0.976,
+      "bbox_original": [
+        225,
+        479,
+        134,
+        108
+      ]
+    },
+    "nasolabial_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9928057553956835,
+      "skin_pixels": 7263,
+      "quality": 0.9928,
+      "bbox_original": [
+        477,
+        488,
+        128,
+        108
+      ]
+    },
+    "philtrum": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.921875,
+      "skin_pixels": 4183,
+      "quality": 0.9219,
+      "bbox_original": [
+        347,
+        559,
+        143,
+        45
+      ]
+    },
+    "upper_lip": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "excluded_by_segmentation"
+      ],
+      "visible_fraction": 0.9885496183206107,
+      "skin_pixels": 4474,
+      "quality": 0.9885,
+      "bbox_original": [
+        321,
+        586,
+        188,
+        51
+      ]
+    },
+    "lower_lip": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "excluded_by_segmentation"
+      ],
+      "visible_fraction": 0.8494318181818182,
+      "skin_pixels": 2924,
+      "quality": 0.8494,
+      "bbox_original": [
+        302,
+        609,
+        225,
+        40
+      ]
+    },
+    "mouth_corner_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9902597402597403,
+      "skin_pixels": 4287,
+      "quality": 0.9903,
+      "bbox_original": [
+        222,
+        548,
+        95,
+        72
+      ]
+    },
+    "mouth_corner_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9837662337662337,
+      "skin_pixels": 3662,
+      "quality": 0.9838,
+      "bbox_original": [
+        514,
+        561,
+        92,
+        68
+      ]
+    },
+    "below_lip": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.514575411913815,
+      "skin_pixels": 3197,
+      "quality": 0.5146,
+      "bbox_original": [
+        240,
+        614,
+        347,
+        42
+      ]
+    },
+    "chin_center": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.9402597402597402,
+      "skin_pixels": 10791,
+      "quality": 0.9403,
+      "bbox_original": [
+        293,
+        651,
+        251,
+        95
+      ]
+    },
+    "chin_left": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.906832298136646,
+      "skin_pixels": 6168,
+      "quality": 0.9068,
+      "bbox_original": [
+        203,
+        614,
+        121,
+        123
+      ]
+    },
+    "chin_right": {
+      "status": "active",
+      "exclusion_reasons": [],
+      "visible_fraction": 0.853416149068323,
+      "skin_pixels": 4963,
+      "quality": 0.8534,
+      "bbox_original": [
+        493,
+        618,
+        126,
+        118
+      ]
+    },
+    "jawline_left": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "low_3d_visibility"
+      ],
+      "visible_fraction": 0.339817880794702,
+      "skin_pixels": 3440,
+      "quality": 0.3398,
+      "bbox_original": [
+        135,
+        413,
+        102,
+        203
+      ]
+    },
+    "jawline_right": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "low_3d_visibility"
+      ],
+      "visible_fraction": 0.2821718683197948,
+      "skin_pixels": 2265,
+      "quality": 0.2822,
+      "bbox_original": [
+        589,
+        410,
+        93,
+        208
+      ]
+    },
+    "lower_jaw_left": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "low_3d_visibility"
+      ],
+      "visible_fraction": 0.35147817925856406,
+      "skin_pixels": 3158,
+      "quality": 0.3515,
+      "bbox_original": [
+        159,
+        595,
+        140,
+        142
+      ]
+    },
+    "lower_jaw_right": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "low_3d_visibility"
+      ],
+      "visible_fraction": 0.2527525131641934,
+      "skin_pixels": 1800,
+      "quality": 0.2275,
+      "bbox_original": [
+        518,
+        604,
+        135,
+        131
+      ]
+    },
+    "submental": {
+      "status": "excluded",
+      "exclusion_reasons": [
+        "low_3d_visibility"
+      ],
+      "visible_fraction": 0.46405228758169936,
+      "skin_pixels": 8028,
+      "quality": 0.4641,
+      "bbox_original": [
+        258,
+        727,
+        284,
+        66
+      ]
+    }
+  }
+}

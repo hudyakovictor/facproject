@@ -1,2 +1,0 @@
-# Optional; the current lab uses potpourri3d and does not require libigl.
-libigl>=2.5
