@@ -1,0 +1,792 @@
+{
+  "schema": "3ddfa-v3-texture-zones/v3",
+  "compatibility": "A20 labels byte-identical to v2",
+  "layers": {
+    "A": 20,
+    "S": 40,
+    "W": 14,
+    "Q": [
+      "core0",
+      "core3",
+      "core5",
+      "boundary_distance"
+    ]
+  },
+  "subzones": [
+    {
+      "index": 0,
+      "code": "S01",
+      "parent": "A01",
+      "name_en": "left forehead",
+      "name_ru": "лоб слева",
+      "triangles": 1770
+    },
+    {
+      "index": 1,
+      "code": "S02",
+      "parent": "A02",
+      "name_en": "central forehead",
+      "name_ru": "лоб центр",
+      "triangles": 1250
+    },
+    {
+      "index": 2,
+      "code": "S03",
+      "parent": "A03",
+      "name_en": "right forehead",
+      "name_ru": "лоб справа",
+      "triangles": 1787
+    },
+    {
+      "index": 3,
+      "code": "S04",
+      "parent": "A04",
+      "name_en": "left temple",
+      "name_ru": "левый висок",
+      "triangles": 2723
+    },
+    {
+      "index": 4,
+      "code": "S05",
+      "parent": "A05",
+      "name_en": "right temple",
+      "name_ru": "правый висок",
+      "triangles": 2703
+    },
+    {
+      "index": 5,
+      "code": "S06",
+      "parent": "A06",
+      "name_en": "left upper eyelid skin",
+      "name_ru": "кожа верхнего века слева",
+      "triangles": 768
+    },
+    {
+      "index": 6,
+      "code": "S07",
+      "parent": "A06",
+      "name_en": "left lower eyelid skin",
+      "name_ru": "кожа нижнего века слева",
+      "triangles": 1078
+    },
+    {
+      "index": 7,
+      "code": "S08",
+      "parent": "A06",
+      "name_en": "left infraorbital",
+      "name_ru": "подглазье слева",
+      "triangles": 1234
+    },
+    {
+      "index": 8,
+      "code": "S09",
+      "parent": "A06",
+      "name_en": "left lateral canthal",
+      "name_ru": "наружный угол левого глаза",
+      "triangles": 1656
+    },
+    {
+      "index": 9,
+      "code": "S10",
+      "parent": "A07",
+      "name_en": "right upper eyelid skin",
+      "name_ru": "кожа верхнего века справа",
+      "triangles": 799
+    },
+    {
+      "index": 10,
+      "code": "S11",
+      "parent": "A07",
+      "name_en": "right lower eyelid skin",
+      "name_ru": "кожа нижнего века справа",
+      "triangles": 1145
+    },
+    {
+      "index": 11,
+      "code": "S12",
+      "parent": "A07",
+      "name_en": "right infraorbital",
+      "name_ru": "подглазье справа",
+      "triangles": 1160
+    },
+    {
+      "index": 12,
+      "code": "S13",
+      "parent": "A07",
+      "name_en": "right lateral canthal",
+      "name_ru": "наружный угол правого глаза",
+      "triangles": 1666
+    },
+    {
+      "index": 13,
+      "code": "S14",
+      "parent": "A08",
+      "name_en": "upper nasal bridge",
+      "name_ru": "верхняя переносица",
+      "triangles": 1409
+    },
+    {
+      "index": 14,
+      "code": "S15",
+      "parent": "A08",
+      "name_en": "lower nasal bridge",
+      "name_ru": "нижняя переносица",
+      "triangles": 1056
+    },
+    {
+      "index": 15,
+      "code": "S16",
+      "parent": "A09",
+      "name_en": "left medial upper cheek",
+      "name_ru": "медиальная верхняя щека слева",
+      "triangles": 1684
+    },
+    {
+      "index": 16,
+      "code": "S17",
+      "parent": "A09",
+      "name_en": "left zygomatic",
+      "name_ru": "скула слева",
+      "triangles": 2030
+    },
+    {
+      "index": 17,
+      "code": "S18",
+      "parent": "A10",
+      "name_en": "right medial upper cheek",
+      "name_ru": "медиальная верхняя щека справа",
+      "triangles": 1678
+    },
+    {
+      "index": 18,
+      "code": "S19",
+      "parent": "A10",
+      "name_en": "right zygomatic",
+      "name_ru": "скула справа",
+      "triangles": 2011
+    },
+    {
+      "index": 19,
+      "code": "S20",
+      "parent": "A11",
+      "name_en": "left nasal sidewall",
+      "name_ru": "боковая стенка носа слева",
+      "triangles": 541
+    },
+    {
+      "index": 20,
+      "code": "S21",
+      "parent": "A11",
+      "name_en": "left ala",
+      "name_ru": "крыло носа слева",
+      "triangles": 322
+    },
+    {
+      "index": 21,
+      "code": "S22",
+      "parent": "A11",
+      "name_en": "left half of nasal tip",
+      "name_ru": "кончик носа слева",
+      "triangles": 307
+    },
+    {
+      "index": 22,
+      "code": "S23",
+      "parent": "A12",
+      "name_en": "right nasal sidewall",
+      "name_ru": "боковая стенка носа справа",
+      "triangles": 543
+    },
+    {
+      "index": 23,
+      "code": "S24",
+      "parent": "A12",
+      "name_en": "right ala",
+      "name_ru": "крыло носа справа",
+      "triangles": 350
+    },
+    {
+      "index": 24,
+      "code": "S25",
+      "parent": "A12",
+      "name_en": "right half of nasal tip",
+      "name_ru": "кончик носа справа",
+      "triangles": 284
+    },
+    {
+      "index": 25,
+      "code": "S26",
+      "parent": "A13",
+      "name_en": "left middle cheek",
+      "name_ru": "средняя щека слева",
+      "triangles": 4440
+    },
+    {
+      "index": 26,
+      "code": "S27",
+      "parent": "A14",
+      "name_en": "right middle cheek",
+      "name_ru": "средняя щека справа",
+      "triangles": 4402
+    },
+    {
+      "index": 27,
+      "code": "S28",
+      "parent": "A15",
+      "name_en": "left upper nasolabial",
+      "name_ru": "верхняя носогубная область слева",
+      "triangles": 1011
+    },
+    {
+      "index": 28,
+      "code": "S29",
+      "parent": "A15",
+      "name_en": "left lower nasolabial",
+      "name_ru": "нижняя носогубная область слева",
+      "triangles": 1448
+    },
+    {
+      "index": 29,
+      "code": "S30",
+      "parent": "A16",
+      "name_en": "right upper nasolabial",
+      "name_ru": "верхняя носогубная область справа",
+      "triangles": 994
+    },
+    {
+      "index": 30,
+      "code": "S31",
+      "parent": "A16",
+      "name_en": "right lower nasolabial",
+      "name_ru": "нижняя носогубная область справа",
+      "triangles": 1465
+    },
+    {
+      "index": 31,
+      "code": "S32",
+      "parent": "A17",
+      "name_en": "left lower cheek",
+      "name_ru": "нижняя щека слева",
+      "triangles": 3567
+    },
+    {
+      "index": 32,
+      "code": "S33",
+      "parent": "A17",
+      "name_en": "left jawline",
+      "name_ru": "линия челюсти слева",
+      "triangles": 2471
+    },
+    {
+      "index": 33,
+      "code": "S34",
+      "parent": "A18",
+      "name_en": "right lower cheek",
+      "name_ru": "нижняя щека справа",
+      "triangles": 3601
+    },
+    {
+      "index": 34,
+      "code": "S35",
+      "parent": "A18",
+      "name_en": "right jawline",
+      "name_ru": "линия челюсти справа",
+      "triangles": 2469
+    },
+    {
+      "index": 35,
+      "code": "S36",
+      "parent": "A19",
+      "name_en": "upper perioral / philtral field",
+      "name_ru": "верхняя околоротовая/фильтральная зона",
+      "triangles": 460
+    },
+    {
+      "index": 36,
+      "code": "S37",
+      "parent": "A19",
+      "name_en": "left mouth corner skin",
+      "name_ru": "кожа левого угла рта",
+      "triangles": 1351
+    },
+    {
+      "index": 37,
+      "code": "S38",
+      "parent": "A19",
+      "name_en": "right mouth corner skin",
+      "name_ru": "кожа правого угла рта",
+      "triangles": 1356
+    },
+    {
+      "index": 38,
+      "code": "S39",
+      "parent": "A19",
+      "name_en": "lower perioral skin",
+      "name_ru": "нижняя околоротовая кожа",
+      "triangles": 453
+    },
+    {
+      "index": 39,
+      "code": "S40",
+      "parent": "A20",
+      "name_en": "chin / mental field",
+      "name_ru": "подбородочная область",
+      "triangles": 914
+    }
+  ],
+  "focus": [
+    {
+      "index": 0,
+      "code": "W01",
+      "name_ru": "лоб слева",
+      "triangles": 1634
+    },
+    {
+      "index": 1,
+      "code": "W02",
+      "name_ru": "лоб центр",
+      "triangles": 1226
+    },
+    {
+      "index": 2,
+      "code": "W03",
+      "name_ru": "лоб справа",
+      "triangles": 1646
+    },
+    {
+      "index": 3,
+      "code": "W04",
+      "name_ru": "межбровье",
+      "triangles": 1887
+    },
+    {
+      "index": 4,
+      "code": "W05",
+      "name_ru": "гусиные лапки слева",
+      "triangles": 1871
+    },
+    {
+      "index": 5,
+      "code": "W06",
+      "name_ru": "под левым глазом",
+      "triangles": 904
+    },
+    {
+      "index": 6,
+      "code": "W07",
+      "name_ru": "под правым глазом",
+      "triangles": 916
+    },
+    {
+      "index": 7,
+      "code": "W08",
+      "name_ru": "гусиные лапки справа",
+      "triangles": 1877
+    },
+    {
+      "index": 8,
+      "code": "W09",
+      "name_ru": "носогубная складка слева",
+      "triangles": 641
+    },
+    {
+      "index": 9,
+      "code": "W10",
+      "name_ru": "носогубная складка справа",
+      "triangles": 629
+    },
+    {
+      "index": 10,
+      "code": "W11",
+      "name_ru": "марионеточная линия слева",
+      "triangles": 475
+    },
+    {
+      "index": 11,
+      "code": "W12",
+      "name_ru": "марионеточная линия справа",
+      "triangles": 487
+    },
+    {
+      "index": 12,
+      "code": "W13",
+      "name_ru": "подбородочная складка",
+      "triangles": 780
+    },
+    {
+      "index": 13,
+      "code": "W14",
+      "name_ru": "bunny lines носа",
+      "triangles": 384
+    }
+  ],
+  "landmark_anchors": [
+    {
+      "code": "S01",
+      "parent": "A01",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.68,
+        0.86
+      ]
+    },
+    {
+      "code": "S02",
+      "parent": "A02",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.5,
+        0.86
+      ]
+    },
+    {
+      "code": "S03",
+      "parent": "A03",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.32,
+        0.86
+      ]
+    },
+    {
+      "code": "S04",
+      "parent": "A04",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.84,
+        0.68
+      ]
+    },
+    {
+      "code": "S05",
+      "parent": "A05",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.16,
+        0.68
+      ]
+    },
+    {
+      "code": "S06",
+      "parent": "A06",
+      "anchor_vertex": 11737,
+      "prototype_uv": [
+        0.63,
+        0.71
+      ]
+    },
+    {
+      "code": "S07",
+      "parent": "A06",
+      "anchor_vertex": 11881,
+      "prototype_uv": [
+        0.63,
+        0.62
+      ]
+    },
+    {
+      "code": "S08",
+      "parent": "A06",
+      "anchor_vertex": 9626,
+      "prototype_uv": [
+        0.61,
+        0.56
+      ]
+    },
+    {
+      "code": "S09",
+      "parent": "A06",
+      "anchor_vertex": 14192,
+      "prototype_uv": [
+        0.74,
+        0.65
+      ]
+    },
+    {
+      "code": "S10",
+      "parent": "A07",
+      "anchor_vertex": 4530,
+      "prototype_uv": [
+        0.37,
+        0.71
+      ]
+    },
+    {
+      "code": "S11",
+      "parent": "A07",
+      "anchor_vertex": 4417,
+      "prototype_uv": [
+        0.37,
+        0.62
+      ]
+    },
+    {
+      "code": "S12",
+      "parent": "A07",
+      "anchor_vertex": 6743,
+      "prototype_uv": [
+        0.39,
+        0.56
+      ]
+    },
+    {
+      "code": "S13",
+      "parent": "A07",
+      "anchor_vertex": 1955,
+      "prototype_uv": [
+        0.26,
+        0.65
+      ]
+    },
+    {
+      "code": "S14",
+      "parent": "A08",
+      "anchor_vertex": 8174,
+      "prototype_uv": [
+        0.5,
+        0.66
+      ]
+    },
+    {
+      "code": "S15",
+      "parent": "A08",
+      "anchor_vertex": 8190,
+      "prototype_uv": [
+        0.5,
+        0.52
+      ]
+    },
+    {
+      "code": "S16",
+      "parent": "A09",
+      "anchor_vertex": 10886,
+      "prototype_uv": [
+        0.61,
+        0.52
+      ]
+    },
+    {
+      "code": "S17",
+      "parent": "A09",
+      "anchor_vertex": 13298,
+      "prototype_uv": [
+        0.75,
+        0.53
+      ]
+    },
+    {
+      "code": "S18",
+      "parent": "A10",
+      "anchor_vertex": 5485,
+      "prototype_uv": [
+        0.39,
+        0.52
+      ]
+    },
+    {
+      "code": "S19",
+      "parent": "A10",
+      "anchor_vertex": 2476,
+      "prototype_uv": [
+        0.25,
+        0.53
+      ]
+    },
+    {
+      "code": "S20",
+      "parent": "A11",
+      "anchor_vertex": 9762,
+      "prototype_uv": [
+        0.53,
+        0.47
+      ]
+    },
+    {
+      "code": "S21",
+      "parent": "A11",
+      "anchor_vertex": 8562,
+      "prototype_uv": [
+        0.55,
+        0.4
+      ]
+    },
+    {
+      "code": "S22",
+      "parent": "A11",
+      "anchor_vertex": 8204,
+      "prototype_uv": [
+        0.515,
+        0.39
+      ]
+    },
+    {
+      "code": "S23",
+      "parent": "A12",
+      "anchor_vertex": 6637,
+      "prototype_uv": [
+        0.47,
+        0.47
+      ]
+    },
+    {
+      "code": "S24",
+      "parent": "A12",
+      "anchor_vertex": 7842,
+      "prototype_uv": [
+        0.45,
+        0.4
+      ]
+    },
+    {
+      "code": "S25",
+      "parent": "A12",
+      "anchor_vertex": 8204,
+      "prototype_uv": [
+        0.485,
+        0.39
+      ]
+    },
+    {
+      "code": "S26",
+      "parent": "A13",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.74,
+        0.39
+      ]
+    },
+    {
+      "code": "S27",
+      "parent": "A14",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.26,
+        0.39
+      ]
+    },
+    {
+      "code": "S28",
+      "parent": "A15",
+      "anchor_vertex": 10141,
+      "prototype_uv": [
+        0.56,
+        0.37
+      ]
+    },
+    {
+      "code": "S29",
+      "parent": "A15",
+      "anchor_vertex": 10795,
+      "prototype_uv": [
+        0.6,
+        0.27
+      ]
+    },
+    {
+      "code": "S30",
+      "parent": "A16",
+      "anchor_vertex": 6279,
+      "prototype_uv": [
+        0.44,
+        0.37
+      ]
+    },
+    {
+      "code": "S31",
+      "parent": "A16",
+      "anchor_vertex": 5522,
+      "prototype_uv": [
+        0.4,
+        0.27
+      ]
+    },
+    {
+      "code": "S32",
+      "parent": "A17",
+      "anchor_vertex": 10795,
+      "prototype_uv": [
+        0.72,
+        0.23
+      ]
+    },
+    {
+      "code": "S33",
+      "parent": "A17",
+      "anchor_vertex": 34561,
+      "prototype_uv": [
+        0.7,
+        0.1
+      ]
+    },
+    {
+      "code": "S34",
+      "parent": "A18",
+      "anchor_vertex": 5522,
+      "prototype_uv": [
+        0.28,
+        0.23
+      ]
+    },
+    {
+      "code": "S35",
+      "parent": "A18",
+      "anchor_vertex": 33141,
+      "prototype_uv": [
+        0.3,
+        0.1
+      ]
+    },
+    {
+      "code": "S36",
+      "parent": "A19",
+      "anchor_vertex": 8225,
+      "prototype_uv": [
+        0.5,
+        0.31
+      ]
+    },
+    {
+      "code": "S37",
+      "parent": "A19",
+      "anchor_vertex": 10795,
+      "prototype_uv": [
+        0.6,
+        0.27
+      ]
+    },
+    {
+      "code": "S38",
+      "parent": "A19",
+      "anchor_vertex": 5522,
+      "prototype_uv": [
+        0.4,
+        0.27
+      ]
+    },
+    {
+      "code": "S39",
+      "parent": "A19",
+      "anchor_vertex": 8236,
+      "prototype_uv": [
+        0.5,
+        0.2
+      ]
+    },
+    {
+      "code": "S40",
+      "parent": "A20",
+      "anchor_vertex": null,
+      "prototype_uv": [
+        0.5,
+        0.1
+      ]
+    }
+  ],
+  "laterality": "anatomical; subject-left is UV x>0.5",
+  "geodesic": "multi-source Dijkstra on neutral-mean face adjacency; 3D centroid edge length",
+  "core_counts": {
+    "core0": 62356,
+    "core3": 53132,
+    "core5": 47569
+  }
+}

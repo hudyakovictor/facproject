@@ -1,7 +1,5 @@
 from __future__ import annotations
 from .masks import CHANNEL_NAMES
-from .skin_zone_atlas_final import load_canonical_atlas, project_atlas_to_photo
-import json
 import shutil
 from pathlib import Path
 from typing import Any
@@ -10,9 +8,6 @@ import cv2
 import numpy as np
 
 from .geometry import to_original_image
-
-# Канонический атлас зон — финальная версия (единый источник истины).
-_ATLAS_DIR = Path(__file__).resolve().parents[1] / "atlas"
 
 CROP_WIDTH = 424
 CROP_HEIGHT = 500
@@ -87,55 +82,6 @@ def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | 
     return out
 
 
-def _wrinkle_report_from_uv_geometry(
-    uv_geom: dict[str, Any],
-    pose_bin: str,
-    analysis_bgr: np.ndarray,
-    observed_mask: np.ndarray,
-    out: Path,
-) -> dict[str, Any]:
-    """Build wrinkle_zones report from SkinAnalyzer UV geometry results.
-
-    This replaces the deprecated analyze_pose_zones() call while producing
-    the output artifacts (wrinkle_zones.json, wrinkle_zones.npz) for
-    downstream compatibility.
-
-    NOTE: uv_module.zones / SkinAnalyzer are no longer bundled. We keep the
-    artifact files (wrinkle_zones.json / .npz) so downstream stage2 code does
-    not break, but they are now empty placeholders. uv_wrinkle_skeletons.png
-    is no longer generated.
-    """
-    import json
-
-    report = {
-        "schema": "wrinkle_v3",
-        "pose_bin": pose_bin,
-        "usable_zone_count": 0,
-        "zones": {},
-        "uv_available": bool(np.any(observed_mask)),
-        "note": "zone analysis disabled: uv_module.zones/SkinAnalyzer removed; only UV texture is generated",
-    }
-
-    (out / "wrinkle_zones.json").write_text(
-        json.dumps(report, indent=2, default=_json_default), encoding="utf-8"
-    )
-    np.savez_compressed(out / "wrinkle_zones.npz", report=np.array([json.dumps(report, default=_json_default)]))
-    return report
-
-
-def _json_default(obj):
-    """JSON serializer for numpy types."""
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return float(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, (np.bool_,)):
-        return bool(obj)
-    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-
-
 def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
     from uv_module import HDUVConfig, HDUVTextureGenerator
 
@@ -151,33 +97,13 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "skin_mask": skin_mask,  # Pass skin_mask INSIDE recon dict (generator reads from here)
     }
     cfg = HDUVConfig(uv_size=int(uv_size), super_sample=super_sample, enable_delighting=False, force_all_triangles_visible=False, device="cpu")
-    analysis, synthetic, observed, confidence, aux = HDUVTextureGenerator(cfg).generate(bgr, recon)
+    uv_render, observed, confidence, aux = HDUVTextureGenerator(cfg).generate(bgr, recon)
     out.mkdir(parents=True, exist_ok=True)
-    if not cv2.imwrite(str(out / "uv_texture.png"), synthetic):
+    if not cv2.imwrite(str(out / "uv_texture.png"), uv_render):
         raise OSError(f"failed to write uv_texture.png to {out / 'uv_texture.png'}")
-    # Zone/wrinkle analysis (SkinAnalyzer/forensics) removed: keep placeholder
-    # artifacts so downstream stage2 still finds the files.
-    wrinkle_report = _wrinkle_report_from_uv_geometry({}, str(bundle.pose_bin), analysis, np.asarray(observed, bool), out)
-    # texture_forensics.json placeholder (forensic analysis removed with uv_module.forensics)
-    (out / "texture_forensics.json").write_text(
-        json.dumps({"schema": "forensics-disabled", "note": "uv_module.forensics removed; only UV texture generated"}, indent=2),
-        encoding="utf-8",
-    )
-
-    # Skin zone atlas: канонический атлас генерируется ОДИН РАЗ (см. generate_canonical_atlas),
-    # здесь применяется его проекция к конкретному фото:
-    #   канон зона ∩ segmentation mask кожи ∩ 3D visibility ∩ boundary safe ∩ quality gates
-    try:
-        atlas = load_canonical_atlas(_ATLAS_DIR)
-        projection_files = project_atlas_to_photo(
-            atlas, bgr, bundle.uv_coords, bundle.triangles,
-            skin_mask, bundle.combined_visible, bundle.trans_params, bundle.pose_bin, out,
-            png_size=int(uv_size), vertices_2d=vertices_2d,
-        )
-    except Exception as exc:  # projection is non-critical; never block the photo
-        import logging
-        logging.getLogger(__name__).warning("skin zone atlas projection failed: %s", exc)
-        projection_files = {}
+    # UV is visualization/correspondence only. Anatomical zones, wrinkles and
+    # forensic evidence are produced by app6.stage1.skin.pipeline in native
+    # photo space; no disabled placeholder and no silent legacy-atlas fallback.
 
     # Confidence is stored in uv.npz with exact arrays for future analysis.
     # (uv_confidence.png visual preview is no longer generated.)
@@ -195,31 +121,24 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     valid_mask = observed_bool & is_original_bool & (confidence_01 >= valid_threshold)
 
     tri_visibility = np.asarray(aux.get("tri_visibility", []), np.float16)
-    # Full UV numeric bundle for future analysis. PNG is only a visual/render artifact;
-    # uv.npz is the lossless contract for masks, confidence and texture pixels.
-    # NOTE: new uv_module does not expose separate synthetic masks; synthetic == observed
-    # (beauty postprocessing only fills, never removes texels), so we reuse observed masks.
+    # Exactly one UV render is serialized. Provenance masks identify observed
+    # and visually filled texels, but neither is used by skin analyzers.
+    filled_mask = np.asarray(aux.get("uv_synthetic_mask", np.zeros_like(observed_bool)), bool)
     np.savez_compressed(
         out / "uv.npz",
-        texture_bgr=np.asarray(synthetic, np.uint8),
-        analysis_bgr=np.asarray(analysis, np.uint8),
-        synthetic_bgr=np.asarray(synthetic, np.uint8),
+        texture_bgr=np.asarray(uv_render, np.uint8),
         confidence=confidence_01.astype(np.float16),
-        confidence_u8=confidence_u8,
         observed_mask=observed_bool,
+        filled_mask=filled_mask,
         is_original_mask=is_original_bool,
-        synthetic_mask=observed_bool,
-        synthetic_valid_mask=observed_bool,
-        synthetic_confidence=confidence_01.astype(np.float16),
         valid_mask=valid_mask,
         tri_visibility=tri_visibility,
         uv_shape=np.asarray(observed_bool.shape, np.int32),
         valid_threshold=np.asarray([valid_threshold], np.float32),
         uv_coords=np.asarray(bundle.uv_coords, np.float32),
         semantics=np.asarray(
-            "uv.npz: analysis_bgr contains observed evidence only; synthetic_bgr is visual-only; "
-            "confidence is continuous 0..1; valid_mask = observed_mask AND "
-            "is_original_mask AND confidence >= valid_threshold"
+            "single visual UV render for 3D/morphing only; skin evidence is measured "
+            "on original photo pixels through face_mask and native surface projection"
         ),
     )
 
@@ -238,10 +157,9 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "valid_threshold": float(valid_threshold),
         "mean_confidence_observed": float(np.mean(confidence_01[observed_bool])) if np.any(observed_bool) else 0.0,
         "confidence_semantics": "uv_confidence.png is a binary visual valid mask; uv.npz stores UV texture pixels, continuous 0..1 confidence, component masks, UV coords and triangle visibility; valid_mask = observed AND original AND confidence >= threshold",
-        "synthetic_policy": "contralateral mirror plus tiny-hole inpaint; excluded from analytics",
-        "forensics_schema": "forensics-disabled",
-        "wrinkle_schema": wrinkle_report["schema"],
-        "wrinkle_usable_zone_count": int(wrinkle_report["usable_zone_count"]),
+        "render_fill_policy": "contralateral mirror plus tiny-hole inpaint inside the single visualization render; never evidence",
+        "uv_product_count": 1,
+        "native_skin_contract": "all skin evidence uses original photo pixels through face_mask in app6.stage1.skin.pipeline",
     }
     _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_texture.png")
     files = {
@@ -249,11 +167,7 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "uv_data": "uv.npz",
         "mesh": "mesh.obj",
         "mesh_material": "mesh.mtl",
-        "texture_forensics": "texture_forensics.json",
-        "wrinkle_zones": "wrinkle_zones.json",
-        "wrinkle_zones_data": "wrinkle_zones.npz",
     }
-    files.update(projection_files)
     return files, uv_arrays, uv_meta
 
 

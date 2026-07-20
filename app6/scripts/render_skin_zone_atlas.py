@@ -34,7 +34,7 @@ def main() -> None:
     ap.add_argument("--png-size", type=int, default=1024)
     args = ap.parse_args()
 
-    recon = np.load(args.recon, allow_pickle=True)
+    recon = np.load(args.recon, allow_pickle=False)
     uv_coords = recon["uv_coords"].astype(np.float32)
     triangles = recon["triangles"].astype(np.int64)
 

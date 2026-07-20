@@ -54,10 +54,15 @@ def parse_photo_name(path: Path) -> PhotoName:
     return PhotoName(parsed.isoformat(), parsed.year, parsed.month, parsed.day, seq, canonical_stem)
 
 
-def make_photo_id(parsed: PhotoName, source_sha256: str) -> str:
-    """Photo ID = canonical stem (YYYY_MM_DD[_N]), без хеш-суффикса.
+def make_photo_id(parsed: PhotoName, source_sha256: str | None) -> str:
+    """Collision-safe controlled slug plus source-byte hash prefix.
 
-    Имя папки совпадает с именем фото. Хеш пишется внутрь файлов при необходимости,
-    но не в имя папки.
+    Copy spellings normalised by ``parse_photo_name`` remain identical, while
+    different bytes can never silently publish to the same photo directory.
     """
-    return parsed.canonical_stem
+    if not source_sha256:
+        return parsed.canonical_stem
+    digest = str(source_sha256).lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("source_sha256 must be 64 lowercase/uppercase hex characters")
+    return f"{parsed.canonical_stem}__{digest[:12]}"

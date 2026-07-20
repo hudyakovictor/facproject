@@ -1,0 +1,1 @@
+{"schema":"skin-machine-profile-v1","device_3ddfa":"cpu","device_ffhq":"cpu","opencv_threads":1,"blas_threads":1,"workers_cpu_features":2,"rasterizer":"numpy_reference_until_parity_approval","potpourri3d":"preferred_with_scipy_fallback"}

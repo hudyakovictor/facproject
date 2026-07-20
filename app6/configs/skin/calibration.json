@@ -1,0 +1,1 @@
+{"schema":"skin-calibration-profile-config-v1","target_false_anomaly":0.01,"split_unit":"capture_event_and_duplicate_cluster","min_photos":180,"planned_photos":200,"test_untouched_until_freeze":true,"min_metric_model_n":8,"difference_z_candidate":3.5}
