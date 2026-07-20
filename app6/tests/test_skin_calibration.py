@@ -1,8 +1,8 @@
 import tempfile, unittest
 from pathlib import Path
 from unittest.mock import patch
-from uv_module.calibration import calibrate
-from uv_module.chronology import analyze_records
+from app6.stage2.skin.calibration import calibrate
+from app6.stage2.skin.chronology import analyze_records
 
 
 def branch(i,dx=0.0):
@@ -27,7 +27,7 @@ def records():
 
 class SkinCalibrationTests(unittest.TestCase):
     def test_calibration_builds_held_out_profile(self):
-        with tempfile.TemporaryDirectory() as td, patch('uv_module.calibration.load_records',return_value=records()):
+        with tempfile.TemporaryDirectory() as td, patch('app6.stage2.skin.calibration.load_records',return_value=records()):
             profile,report=calibrate(Path(td)/'stage1',Path(td)/'out',.01)
             self.assertEqual(profile['photo_count'],90)
             self.assertGreaterEqual(report['reliable_model_count'],3)
@@ -37,7 +37,7 @@ class SkinCalibrationTests(unittest.TestCase):
 
     def test_profile_is_applied_to_main_chronology(self):
         recs=records()[:2]
-        with tempfile.TemporaryDirectory() as td, patch('uv_module.calibration.load_records',return_value=records()):
+        with tempfile.TemporaryDirectory() as td, patch('app6.stage2.skin.calibration.load_records',return_value=records()):
             profile,_=calibrate(Path(td)/'stage1',Path(td)/'out',.01)
             report=analyze_records(recs,profile)
             self.assertTrue(report['calibrated'])

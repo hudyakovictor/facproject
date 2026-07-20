@@ -123,13 +123,17 @@ class ReconstructionEngine:
             value = value.detach().cpu().numpy()
         return np.asarray(value)
 
-    def process(self, path: Path) -> ReconstructionBundle:
+    def process(self, path: Path, oriented_rgb: np.ndarray | None = None) -> ReconstructionBundle:
         import torch
-        from PIL import Image
+        from PIL import Image, ImageOps
 
         if not path.is_file():
             raise FileNotFoundError(f"input file not found: {path}")
-        image = Image.open(path).convert("RGB")
+        if oriented_rgb is None:
+            with Image.open(path) as source:
+                image = ImageOps.exif_transpose(source).convert("RGB")
+        else:
+            image = Image.fromarray(np.asarray(oriented_rgb, np.uint8), mode="RGB")
         trans, tensor = self.detector(image)
         if tensor is None or trans is None:
             raise RuntimeError("face detector returned no aligned crop")

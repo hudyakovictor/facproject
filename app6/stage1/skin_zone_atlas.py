@@ -386,7 +386,7 @@ def write_pose_policy_csv(policy: dict[str, dict[str, float]], out_dir: Path) ->
 def load_canonical_atlas(atlas_dir: Path) -> dict[str, Any]:
     """Загрузить канонический атлас из диска (без пересчёта)."""
     atlas_dir = Path(atlas_dir)
-    with np.load(atlas_dir / "skin_zone_atlas_triangles.npz", allow_pickle=True) as z:
+    with np.load(atlas_dir / "skin_zone_atlas_triangles.npz", allow_pickle=False) as z:
         return {
             "primary_triangle_zone": z["primary_triangle_zone"].astype(np.int64),
             "zone_names": z["zone_names"],

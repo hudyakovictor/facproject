@@ -47,12 +47,19 @@ def build_mask_bundle(channels: np.ndarray, trans_params: np.ndarray, image_shap
     try:
         from util.io import back_resize_crop_img
         h, w = image_shape[:2]
-        soft_u8 = np.clip(soft * 255.0, 0, 255).astype(np.uint8)
-        rgb = np.repeat(soft_u8[:, :, None], 3, axis=2)
+        skin_u8 = np.clip(face_skin * 255.0, 0, 255).astype(np.uint8)
+        excluded_u8 = np.clip(excluded * 255.0, 0, 255).astype(np.uint8)
         blank = np.zeros((h, w, 3), np.uint8)
-        projected = back_resize_crop_img(rgb, trans_params, blank, resample_method=Image.BILINEAR)
-        full_soft = np.asarray(projected[:, :, 0], np.uint8)
-        full_hard = full_soft >= 128
+        skin_projected = back_resize_crop_img(np.repeat(skin_u8[:, :, None], 3, axis=2), trans_params, blank, resample_method=Image.BILINEAR)
+        excluded_projected = back_resize_crop_img(np.repeat(excluded_u8[:, :, None], 3, axis=2), trans_params, blank, resample_method=Image.NEAREST)
+        full_skin = np.asarray(skin_projected[:, :, 0], np.uint8)
+        full_excluded = np.asarray(excluded_projected[:, :, 0], np.uint8)
+        # One-pixel safety dilation prevents eye/brow/lip boundary leakage into
+        # texture measurements. It only removes evidence; it never adds skin.
+        full_excluded = cv2.dilate((full_excluded >= 32).astype(np.uint8), np.ones((3, 3), np.uint8), iterations=1).astype(bool)
+        full_soft = np.where(full_excluded, 0, full_skin).astype(np.uint8)
+        full_hard = (full_skin >= 128) & ~full_excluded
+        meta["original_exclusion_policy"] = "eye+brow+upper_lip+lower_lip nearest projection, threshold 32/255, dilate 1px"
         meta["soft_area_fraction_original"] = float(np.mean(full_soft > 10))
         meta["hard_area_fraction_original"] = float(np.mean(full_hard))
         return MaskBundle(a.astype(np.float16), soft, hard, full_soft, full_hard, "valid", None, meta)

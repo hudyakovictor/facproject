@@ -16,11 +16,12 @@ from .config import IMAGE_EXTENSIONS, PHOTO_SCHEMA_VERSION, SCHEMA_VERSION, Stag
 from .geometry import pack_mask, to_original_image
 from .masks import build_mask_bundle
 from .naming import make_photo_id, parse_photo_name
-from .quality_zones import build_quality_files
 from .reconstruction import ReconstructionBundle, ReconstructionEngine
 from .storage import atomic_photo_directory, clean_incomplete, write_failure
 from .utils import atomic_json, runtime_versions, sha256_file, sha256_json, sha256_paths, write_csv
 from .validator import is_resumable, validate_photo
+from .skin.pipeline import build_skin_package
+from .skin.input_provenance import decode_oriented
 
 
 def _utc() -> str:
@@ -51,7 +52,7 @@ class Stage1Engine:
         )
         self.code_hash = sha256_paths(code_files, self.root)
         weight = "net_recon.pth" if config.backbone == "resnet50" else "net_recon_mbnet.pth"
-        model_files = [self.root / "assets" / "face_model.npy", self.root / "assets" / weight, self.root / "assets" / "large_base_net.pth"]
+        model_files = [self.root / "assets" / "face_model.npy", self.root / "assets" / weight, self.root / "assets" / "large_base_net.pth", self.root / "app6" / "atlas" / "texture_zones_bfm35709_v3.npz"]
         missing = [p for p in model_files if not p.is_file()]
         if missing:
             raise FileNotFoundError("missing required model assets: " + ", ".join(map(str, missing)))
@@ -122,10 +123,11 @@ class Stage1Engine:
             okay, info = is_resumable(final, source_hash, self.code_hash, self.config_hash, self.model_hash)
             if okay and info is not None:
                 return info, True
-        bgr = cv2.imread(str(path), cv2.IMREAD_COLOR)
-        if bgr is None:
-            raise RuntimeError("cannot decode image")
-        rec = self.recon.process(path)
+        try:
+            bgr, decode_meta = decode_oriented(path)
+        except Exception as exc:
+            raise RuntimeError(f"cannot decode/orient image: {exc}") from exc
+        rec = self.recon.process(path, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         ldm = rec.landmark_arrays()
         ldm106_original = to_original_image(ldm["ldm106_image_224"], rec.trans_params)
         ldm134_original = to_original_image(ldm["ldm134_image_224"], rec.trans_params)
@@ -153,20 +155,10 @@ class Stage1Engine:
 
             pose_payload = {"pitch": float(rec.angles_deg[0]), "yaw": float(rec.angles_deg[1]), "roll": float(rec.angles_deg[2]),
                             "pose_bin": rec.pose_bin, "canonical_yaw": rec.canonical_yaw}
-            try:
-                quality_files, quality_summary = build_quality_files(
-                    bgr=bgr,
-                    hard_mask_original=mask.hard_original,
-                    crop_meta=crop_meta,
-                    pose=pose_payload,
-                    photo_id=photo_id,
-                    out=out,
-                )
-                files.update(quality_files)
-            except Exception as exc:
-                quality_summary = {"status": "failed", "error": str(exc)}
-                files["quality"] = None
-                files["quality_zones"] = None
+            # Legacy forehead-fallback quality zones are intentionally not run.
+            # Family-level applicability is produced later in the native skin
+            # package from A20/S40/W14/Q projection and decomposed quality maps.
+            quality_summary = {"status": "migrated_to_skin_quality_v1"}
 
             write_csv(out / "ldm106_raw.csv", _landmark_rows(ldm["ldm106_object"], ldm["ldm106_visible"], rec.ldm106_indices))
             write_csv(out / "ldm106_aligned.csv", _landmark_rows(ldm["ldm106_bin_canonical"], ldm["ldm106_visible"], rec.ldm106_indices))
@@ -202,6 +194,29 @@ class Stage1Engine:
             np.savez_compressed(out / "reconstruction.npz", **arrays)
             files["reconstruction"] = "reconstruction.npz"
 
+            # Native-photo skin evidence package. This consumes the already computed
+            # reconstruction and therefore never performs a second 3DDFA inference.
+            vertices_original_xy = to_original_image(rec.vertices_image_224, rec.trans_params)
+            try:
+                build_skin_package(
+                    photo_id=photo_id, input_path=path, bgr=bgr, out_dir=out,
+                    triangles=rec.triangles, vertices_original_xy=vertices_original_xy,
+                    vertices_depth=rec.vertices_camera[:, 2], normals=rec.normals_posed,
+                    surface_vertices=rec.vertices_object_normalized,
+                    vertex_visibility=rec.combined_visible,
+                    face_mask_data_path=out / "face_mask.npz",
+                    atlas_path=self.root / "app6" / "atlas" / "texture_zones_bfm35709_v3.npz",
+                    coordinate_chain={"encoded_to_oriented":decode_meta,"original_to_model_224":"3ddfa_trans_params_v1","model_224_to_original":"app6.geometry.to_original_image","trans_params":np.asarray(rec.trans_params).tolist(),"display_crop":crop_meta,"source_xy":"explicit_original_oriented_pixels"},
+                    models={"3ddfa_model_hash":self.model_hash},
+                    config={**self.cfg.extraction_payload(),"skin_contract":"A20-S40-W14-Q-v3"}, pose=pose_payload,
+                )
+                files["skin_manifest"] = "skin/manifest.json"; skin_status={"state":"success"}
+            except Exception as exc:
+                # Preserve expensive reconstruction. run_skin_stage1.py retries this
+                # package without a second 3DDFA call.
+                skin_status={"state":"failed_retryable","error":str(exc)}
+                atomic_json(out / "skin_failure.json", skin_status);files["skin_failure"]="skin_failure.json"
+
             info = {
                 "schema_version": PHOTO_SCHEMA_VERSION, "photo_id": photo_id,
                 "source_filename": path.name, "source_relative_path": self._relative(path), "source_sha256": source_hash,
@@ -209,7 +224,7 @@ class Stage1Engine:
                 "date_day": parsed.day, "same_date_sequence": parsed.sequence,
                 "extraction_timestamp": _utc(), "code_hash": self.code_hash,
                 "config_hash": self.config_hash, "model_hash": self.model_hash,
-                "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower()},
+                "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower(), "decode": decode_meta},
                 "pose": pose_payload,
                 "camera": {"projection": "perspective", "focal": 1015.0, "principal_point": [112.0, 112.0],
                            "camera_distance": 10.0, "render_size": [224, 224]},
@@ -218,7 +233,7 @@ class Stage1Engine:
                 "landmark_contract": {"raw": "object identity+expression", "aligned": "full-mesh RMS normalized then pose-bin canonical yaw"},
                 "mask": {"status": mask.status, "error": mask.error, **mask.metadata},
                 "uv": {"status": "valid", **uv_meta}, "quality_inputs": quality,
-                "quality_summary": quality_summary,
+                "quality_summary": quality_summary, "skin": skin_status,
                 "reprojection": rec.reprojection, "crop": crop_meta, "files": files,
             }
             atomic_json(out / "info.json", info)

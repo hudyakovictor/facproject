@@ -4,9 +4,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "deeputin-stage1-v2.1"
-PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.1"
-VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.1"
+SCHEMA_VERSION = "deeputin-stage1-v2.3-native-skin-single-uv"
+PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.3-native-skin-single-uv"
+VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.3-native-skin-single-uv"
 SEMANTIC_POLICY = "3ddfa-semantic-skin-plus-nose-v1"
 POSE_BINS = (
     ("left_profile", -95.0, -50.0, -70.0),

@@ -178,9 +178,12 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
 
         if files.get("uv_data"):
             with np.load(directory / str(files["uv_data"]), allow_pickle=False) as uvz:
-                for key in ("texture_bgr", "confidence", "observed_mask", "is_original_mask", "valid_mask", "uv_shape", "uv_coords"):
+                for key in ("texture_bgr", "confidence", "observed_mask", "filled_mask", "is_original_mask", "valid_mask", "uv_shape", "uv_coords"):
                     if key not in uvz:
                         raise ValidationError(f"uv.npz missing {key}")
+                forbidden = {"analysis_bgr", "synthetic_bgr", "beauty_bgr"} & set(uvz.files)
+                if forbidden:
+                    raise ValidationError(f"multiple UV texture versions forbidden: {sorted(forbidden)}")
                 uv_shape2 = tuple(int(x) for x in uvz["uv_shape"])
                 for key in ("confidence", "observed_mask", "is_original_mask", "valid_mask"):
                     if uvz[key].shape != uv_shape2:
@@ -209,6 +212,57 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                         raise ValidationError(f"quality_zones.npz missing {key}")
                 if qz["zone_texture_pixels"].shape[0] != qz["zone_names"].shape[0]:
                     raise ValidationError("quality_zones zone count mismatch")
+
+        if files.get("skin_manifest"):
+            skin_root = directory / "skin"
+            sm = json.loads((skin_root / "manifest.json").read_text(encoding="utf-8"))
+            if sm.get("schema") != "skin-manifest-v1" or sm.get("state") != "success":
+                raise ValidationError("skin manifest is not successful skin-manifest-v1")
+            if not (skin_root / "SUCCESS").is_file():
+                raise ValidationError("skin SUCCESS marker absent")
+            from .skin.serialization import sha256_file
+            source_mask = sm.get("source_mask") or {}
+            if source_mask.get("sha256") != sha256_file(directory / "face_mask.npz") or source_mask.get("array") != "mask_original":
+                raise ValidationError("skin source-mask provenance mismatch")
+            for relative, meta in sm.get("products", {}).items():
+                product = skin_root / relative
+                if not product.is_file() or sha256_file(product) != meta.get("sha256"):
+                    raise ValidationError(f"skin product checksum mismatch: {relative}")
+            with np.load(skin_root / "surface_observations.npz", allow_pickle=False) as sz:
+                original_shape = tuple(map(int, sz["original_shape"]))
+                if original_shape != tuple(info["image"][k] for k in ("height", "width")):
+                    raise ValidationError("skin original_shape differs from source photo")
+                if sz["triangle_id"].shape != sz["source_xy"].shape[:2]:
+                    raise ValidationError("skin cropped map shapes differ")
+                if sz["surface_vertices"].shape != (mesh_count,3) or sz["triangles"].shape != (tri_count,3) or sz["triangle_surface_area"].shape != (tri_count,):
+                    raise ValidationError("skin surface geometry contract invalid")
+                surface_map_shape = sz["triangle_id"].shape
+                surface_origin = tuple(map(int, sz["map_origin_xy"]))
+                valid = sz["triangle_id"] >= 0
+                if np.any(valid):
+                    xy = sz["source_xy"][valid]
+                    if xy[:, 0].min() < 0 or xy[:, 0].max() >= original_shape[1] or xy[:, 1].min() < 0 or xy[:, 1].max() >= original_shape[0]:
+                        raise ValidationError("skin source_xy outside original photo")
+                if np.any(valid) and not np.allclose(sz["barycentric"][valid].sum(1), 1, atol=2e-3):
+                    raise ValidationError("skin barycentric sum invariant failed")
+            with np.load(directory / "face_mask.npz", allow_pickle=False) as fm:
+                mask_original = fm["mask_original"].astype(bool)
+            x0,y0=surface_origin;hmap,wmap=surface_map_shape;face_mask_native=mask_original[y0:y0+hmap,x0:x0+wmap]
+            if face_mask_native.shape != surface_map_shape:
+                raise ValidationError("face_mask crop/surface map shape mismatch")
+            with np.load(skin_root / "atlas_projection.npz", allow_pickle=False) as az:
+                if np.any(az["zone_id_a20"] < -1) or np.any(az["zone_id_s40"] < -1):
+                    raise ValidationError("invalid skin zone sentinel")
+                if az["zone_id_a20"].shape != face_mask_native.shape or az["wrinkle_bits_w14"].shape != (2, *face_mask_native.shape):
+                    raise ValidationError("skin atlas/mask shape mismatch")
+                if np.any((az["zone_id_a20"] >= 0) & ~face_mask_native):
+                    raise ValidationError("skin evidence leaves canonical face_mask")
+            with np.load(skin_root / "features/texture.npz", allow_pickle=False) as ft:
+                if ft["values"].shape[0] != 60 or ft["values"].shape[1] != ft["columns"].shape[0]:
+                    raise ValidationError("texture feature contract invalid")
+            with np.load(skin_root / "wrinkles/classical.npz", allow_pickle=False) as wz:
+                if wz["ridge_probability"].shape != face_mask_native.shape:
+                    raise ValidationError("wrinkle map shape invalid")
 
         for key in ("face_crop", "uv_texture"):
             p = directory / str(files[key])

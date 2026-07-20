@@ -1,0 +1,20 @@
+{
+  "schema": "skin-production-profile-v1",
+  "requires_frozen_calibration": true,
+  "requires_release_gate": "main",
+  "allow_threshold_override": false,
+  "allow_uv_evidence": false,
+  "allow_missing_to_zero": false,
+  "allow_inplace_rewrite": false,
+  "report_language": "evidence_not_verdict",
+  "experimental_modules_approved": false,
+  "approval_required_for": [
+    "quality_effective_resolution",
+    "texture_multiscale",
+    "wrinkle_surface_matching",
+    "quality_matching",
+    "chronology",
+    "material_model",
+    "stage3_report"
+  ]
+}
