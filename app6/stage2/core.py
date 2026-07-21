@@ -151,11 +151,21 @@ def compare_landmarks(
     distance106 = np.linalg.norm(residual106, axis=1)
     distance134 = np.linalg.norm(residual134, axis=1)
     s106, s134 = _stats(distance106), _stats(distance134)
+    def _alpha_l2(x: np.ndarray, y: np.ndarray) -> float:
+        xa = np.asarray(x, np.float64).reshape(-1)
+        ya = np.asarray(y, np.float64).reshape(-1)
+        if xa.size == 0 or ya.size == 0 or xa.shape != ya.shape:
+            return float("nan")
+        if not (np.isfinite(xa).all() and np.isfinite(ya).all()):
+            # Missing/disabled alpha must not become zeros or crash JSON later.
+            return float("nan")
+        return float(np.linalg.norm(xa - ya))
+
     metrics = {
         **{f"ldm106_{k}": v for k, v in s106.items()},
         **{f"ldm134_{k}": v for k, v in s134.items()},
-        "alpha_id_l2": float(np.linalg.norm(a.alpha_id - b.alpha_id)),
-        "alpha_exp_l2": float(np.linalg.norm(a.alpha_exp - b.alpha_exp)),
+        "alpha_id_l2": _alpha_l2(a.alpha_id, b.alpha_id),
+        "alpha_exp_l2": _alpha_l2(a.alpha_exp, b.alpha_exp),
     }
     if a.identity_only134 is not None and b.identity_only134 is not None:
         _, ir, it, _ = robust_rigid_align(b.identity_only134[anchor134], a.identity_only134[anchor134])

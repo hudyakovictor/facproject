@@ -23,17 +23,33 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     for pose,group in by.items():
         rates=[]; coherent=[]
         for r in group:
-            d=_days(r.get('date_a'),r.get('date_b')); eff=max(1,d or 1)
+            d=_days(r.get('date_a'),r.get('date_b'))
+            if d is None:
+                # Missing dates must not silently become a 1-day rate denominator.
+                r['days_delta']=None
+                r['time_weighted_jump_rate']=float('nan')
+                r['date_status']='date_missing'
+                continue
+            r['date_status']='ok'
+            eff=max(1,int(d))
             weighted=float(r.get('p95_point_z',0.0))*max(float(r.get('coherent_motion_fraction',0.0)),0.1)/math.sqrt(eff)
             rates.append(weighted); coherent.append(float(r.get('coherent_motion_fraction',0.0)))
-            r['days_delta']=d if d is not None else -1; r['time_weighted_jump_rate']=weighted
+            r['days_delta']=int(d); r['time_weighted_jump_rate']=weighted
         med,mad,p95=_robust(rates); cmed,cmad,cp95=_robust(coherent)
         refs[pose]={'rate_median':med,'rate_mad':mad,'rate_p95':p95,'coherence_median':cmed,'coherence_mad':cmad,'coherence_p95':cp95,'count':len(rates)}
         floor=max(1.4826*mad,0.05)
         seq=sorted(group,key=lambda x:(x.get('date_b') or '',x.get('pair_index',0)))
         for i,r in enumerate(seq):
-            d=r.get('days_delta',-1); weighted=float(r.get('time_weighted_jump_rate',0.0)); pz=float(r.get('p95_point_z',0.0)); coh=float(r.get('coherent_motion_fraction',0.0)); sig=float(r.get('significant_point_fraction',0.0))
-            rate_z=(weighted-med)/floor if floor>0 else 0.0
+            if r.get('date_status')=='date_missing' or r.get('days_delta') is None:
+                r['chronology_rate_z']=float('nan')
+                r['chronology_rate_status']='date_missing'
+                r['chronology_rate_reason']='missing_or_unparseable_pair_dates'
+                r['biological_rate_z']=r['chronology_rate_z']
+                r['biological_rate_status']=r['chronology_rate_status']
+                r['biological_reason']=r['chronology_rate_reason']
+                continue
+            d=r.get('days_delta'); weighted=float(r.get('time_weighted_jump_rate',0.0)); pz=float(r.get('p95_point_z',0.0)); coh=float(r.get('coherent_motion_fraction',0.0)); sig=float(r.get('significant_point_fraction',0.0))
+            rate_z=(weighted-med)/floor if floor>0 and np.isfinite(weighted) else 0.0
             r['chronology_rate_z']=rate_z; r['chronology_rate_status']='within_expected_rate'; r['chronology_rate_reason']=''
             same_day=(d==0 and pz>=4.5 and coh>=0.35)
             fast=(d is not None and 0<d<=60 and pz>=4.5 and sig>=0.15 and coh>=0.45 and rate_z>=3.0)

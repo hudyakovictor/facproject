@@ -1,5 +1,5 @@
 from __future__ import annotations
-import hashlib,sys
+import hashlib
 from pathlib import Path
 import cv2,numpy as np
 class FaceParsingAdapter:
@@ -9,8 +9,12 @@ class FaceParsingAdapter:
   self.sha256=hashlib.sha256(self.checkpoint.read_bytes()).hexdigest()
  def _load(self):
   if self.net is not None:return
-  import torch
-  d=self.repo/'face-parsing.PyTorch';sys.path.insert(0,str(d)) if str(d) not in sys.path else None
+  import torch,sys
+  pp=self.repo/'face-parsing.PyTorch'
+  # remove any conflicting 'model' import (3ddfa_v3/model/ namespace package)
+  sys.path=[p for p in sys.path if not (Path(p)/'model').is_dir()]
+  sys.path.insert(0,str(pp)) if str(pp) not in sys.path else None
+  if 'model' in sys.modules:del sys.modules['model']
   from model import BiSeNet
   self.net=BiSeNet(n_classes=19).to(self.device).eval();self.net.load_state_dict(torch.load(self.checkpoint,map_location=self.device,weights_only=True))
  def predict(self,bgr):
