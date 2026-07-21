@@ -2,10 +2,15 @@
 from __future__ import annotations
 import cv2,numpy as np
 from ..contracts import EvidenceState
-def _weighted_quantile(x,w,q):
- o=np.argsort(x);x=x[o];w=w[o];s=w.sum()
- if s<=0:return np.nan
- return float(x[np.searchsorted(np.cumsum(w),q*s,side='left')])
+def _weighted_quantile(x, w, q):
+    o = np.argsort(x)
+    x = x[o]
+    w = w[o]
+    s = w.sum()
+    if s <= 0:
+        return np.nan
+    idx = min(int(np.searchsorted(np.cumsum(w), q * s, side='left')), x.size - 1)
+    return float(x[idx])
 def extract_basic(bgr,weight,A,S,min_support=50.):
  gray=cv2.cvtColor(np.asarray(bgr),cv2.COLOR_BGR2GRAY).astype(np.float32)/255.;records=[];arrays=[]
  for level,zmap,count,prefix in [('A20',A,20,'A'),('S40',S,40,'S')]:

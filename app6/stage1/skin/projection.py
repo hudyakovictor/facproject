@@ -129,9 +129,19 @@ def rasterize_surface(vertices_xy, vertices_z, normals, triangles, image_shape, 
     valid = ~bg
     ft = f[np.clip(tid,0,len(f)-1)]
     vis[valid] = np.min(vv[ft[valid]], axis=1)
-    edge = np.clip(3*np.min(bar, axis=2), 0, 1)
-    conf = (vis*np.sqrt(inc)*edge).astype(np.float32)
+    edge = np.clip(3.0 * np.min(bar, axis=2), 0.0, 1.0).astype(np.float32)
+    # NOTE: do NOT multiply conf by barycentric edge — it imprints triangle mesh onto quality renders.
+    conf = (vis * np.sqrt(np.clip(inc, 0.0, 1.0))).astype(np.float32)
     conf[bg] = 0
+    
+    try:
+        import cv2 as _cv2
+        _m = ~bg
+        if np.any(_m):
+            _cs = _cv2.GaussianBlur(conf, (0, 0), 1.2)
+            conf = np.where(_m, _cs, 0.0).astype(np.float32)
+    except Exception:
+        pass
     yy,xx = np.mgrid[:H,:W]
     source = np.stack((xx,yy), axis=2).astype(np.int32)
     source[bg] = -1

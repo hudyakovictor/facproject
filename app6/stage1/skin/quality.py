@@ -1,18 +1,9 @@
-"""
-Patch v4 drop-in replacement for app6/stage1/skin/quality.py
-Same function signatures: quality_maps(bgr,domain,incidence,projection_confidence,triangle_id)
-+ applicability(m,d,W,H)
+"""Quality maps + applicability (v5 evidence-path fixes).
 
-Improvements to reach 100%:
-- effective resolution physics: projected_density * focus * incidence * processing_survival (was heuristic sqrt(count))
-- JPEG block map improved + chroma subsampling heuristic + resize periodicity
-- focus: Tenengrad + Laplacian variance + directional gradient + edge width
-- noise: wavelet MAD via median of high-pass + chroma/luma split
-- specular/shadow/clipping + local DR + illumination gradient
-- hair occlusion stub ready for BiSeNet
-- quality_weight = focus*exposure*proj*proc*ns*(~spec)*(~shadow)*domain (same formula but components improved)
-
-Backward compatible: returns same keys + extra diagnostic maps (safe)
+Changes vs previous:
+- projected_density no longer hard-clipped to 100 (was saturating to constant)
+- optional percentile winsorization only for extreme outliers
+- per-zone applicability helper for quality.json diagnostics
 """
 from __future__ import annotations
 import cv2
@@ -21,6 +12,10 @@ from .contracts import Applicability, EvidenceState, ReasonCode
 
 FAMILIES = ('geometry','macro_texture','meso_texture','micro_texture','wrinkles','pigmentation','material_optics','local_feature_matching')
 
+# Soft upper bound only for pathological spikes; high enough not to flatten normal faces.
+DENSITY_P99_CAP_MULT = 50.0
+DENSITY_ABS_CAP = 1.0e6
+
 def _robust01(x, m):
     if not np.any(m):
         return np.zeros_like(x, dtype=np.float32)
@@ -28,145 +23,141 @@ def _robust01(x, m):
     return np.clip(x / p90, 0, 1).astype(np.float32)
 
 def _jpeg_block_energy(gray01: np.ndarray):
-    """
-    8x8 block boundary energy + halo + chroma subsampling approx
-    gray01: 0..1 float
-    """
     g = (gray01*255).astype(np.float32)
     H,W = g.shape
-    # Use Sobel diff across 8px grid
     block = np.zeros_like(g, dtype=np.float32)
-    # vertical boundaries
     for x in range(7, W-1, 8):
         block[:, x-1:x+2] = np.maximum(block[:, x-1:x+2], np.abs(g[:, x+1:x+2] - g[:, x:x+1]).mean(axis=1, keepdims=True) if x+2<=W else 0)
     for y in range(7, H-1, 8):
         block[y-1:y+2, :] = np.maximum(block[y-1:y+2, :], np.abs(g[y+1:y+2, :] - g[y:y+1, :]).mean(axis=0, keepdims=True) if y+2<=H else 0)
-    # Gaussian smooth to propagate
     block = cv2.GaussianBlur(block, (0,0), 1.0)
     return block
 
 def _projected_scale_from_triangle_id(triangle_id: np.ndarray):
-    """
-    Original heuristic fallback: sqrt(count per triangle)
-    Now improved: we also compute density map if triangle surface areas provided via global (optional)
-    For drop-in, keep heuristic but return as float32
-    """
     t = triangle_id
     v = t>=0
     out = np.zeros(t.shape, np.float32)
     if np.any(v):
         ids, counts = np.unique(t[v], return_counts=True)
-        # sqrt(count) is proxy for linear pixel per side
         q = np.zeros(int(ids.max())+1, np.float32)
         q[ids] = np.sqrt(counts.astype(np.float32))
         out[v] = q[t[v]]
     return out
 
 def _edge_width_estimator(gray01: np.ndarray, valid: np.ndarray):
-    """
-    Estimate edge width via Sobel magnitude vs Laplacian zero-crossing spread
-    Simplified: mean distance between gradient peaks
-    Returns scalar width proxy (lower = sharper)
-    """
     if not np.any(valid):
         return np.array(0.0, dtype=np.float32)
     gx = cv2.Sobel(gray01, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(gray01, cv2.CV_32F, 0, 1, ksize=3)
     mag = np.hypot(gx, gy)
-    # edge width: ratio of gradient energy to Laplacian energy
     lap = cv2.Laplacian(gray01, cv2.CV_32F, ksize=3)
-    # width ~ mag / (|lap|+eps) -> sharper edges have higher mag with low lap spread
     width_map = mag / (np.abs(lap)+1e-6)
     return width_map
 
 def _local_dynamic_range(gray01: np.ndarray, ksize=15):
-    """
-    Local DR = p95 - p5 in sliding window approximation via Gaussian
-    Using two Gaussian blurs of sorted? Simplified: using min/max filter
-    """
-    # Use percentile via box filter: approximate with Gaussian for speed, but we do min/max
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (ksize, ksize))
-    # OpenCV doesn't have percentile filter, use min/max as proxy
     min_f = cv2.erode(gray01, kernel)
     max_f = cv2.dilate(gray01, kernel)
     dr = max_f - min_f
     return dr.astype(np.float32)
 
+def _sanitize_density(scale: np.ndarray, domain: np.ndarray) -> tuple[np.ndarray, dict]:
+    s = np.asarray(scale, np.float32).copy()
+    d = np.asarray(domain, bool)
+    s[~np.isfinite(s)] = 0.0
+    s[s < 0] = 0.0
+    meta = {
+        'density_raw_min': float(s[d].min()) if np.any(d) else 0.0,
+        'density_raw_max': float(s[d].max()) if np.any(d) else 0.0,
+        'density_raw_median': float(np.median(s[d])) if np.any(d) else 0.0,
+        'density_unique_raw': int(len(np.unique(np.round(s[d], 5)))) if np.any(d) else 0,
+        'density_clip_mode': 'percentile_winsor_no_hard100',
+    }
+    if np.any(d) and meta['density_raw_max'] > 0:
+        p99 = float(np.percentile(s[d], 99))
+        cap = min(DENSITY_ABS_CAP, max(p99 * DENSITY_P99_CAP_MULT, p99 + 1.0))
+        n_hi = int((s[d] > cap).sum())
+        s = np.clip(s, 0, cap)
+        meta['density_cap_used'] = float(cap)
+        meta['density_pixels_winsorized'] = n_hi
+        meta['density_unique_after'] = int(len(np.unique(np.round(s[d], 5))))
+        meta['density_frac_near_cap'] = float((s[d] >= cap * 0.999).mean())
+    else:
+        meta['density_cap_used'] = 0.0
+        meta['density_pixels_winsorized'] = 0
+        meta['density_unique_after'] = 0
+        meta['density_frac_near_cap'] = 0.0
+    return s.astype(np.float32), meta
+
 def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, projected_density_map=None):
-    """
-    Drop-in: same args as original, plus optional projected_density_map for physics fix.
-    If projected_density_map is None, fallback to _scale heuristic (backward compat)
-    Returns dict with same keys + extra diagnostic (_v4)
-    """
     g = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
     d = np.asarray(domain, bool)
-    # --- focus ---
     gx = cv2.Sobel(g, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(g, cv2.CV_32F, 0, 1, ksize=3)
     ten = np.hypot(gx, gy)
-    focus = _robust01(ten, d)  # 0..1
-    # Laplacian sharpness
+    focus = _robust01(ten, d)
     lap = cv2.Laplacian(g, cv2.CV_32F, ksize=3)
-    # directional gradient energy
-    # (gx energy vs gy energy anisotropy)
-    # median blur for noise estimation
     med = cv2.medianBlur((g*255).astype(np.uint8), 3).astype(np.float32)/255.0
     hp = np.abs(g - med)
     noise_val = float(1.4826 * np.median(np.abs(hp[d] - np.median(hp[d])))) if np.any(d) else 0.08
     ns = np.full(g.shape, np.clip(1.0 - noise_val/0.12, 0, 1), np.float32)
 
-    # JPEG block + processing survival
     block = _jpeg_block_energy(g)
     bs = float(np.mean(block[d])) if np.any(d) else 0.0
-    # processing survival = inverse of block normalized by p95
     if np.any(d):
         p95_block = float(np.percentile(block[d], 95)) + 1e-6
         proc = np.clip(1.0 - block / p95_block * 0.5, 0, 1).astype(np.float32)
     else:
         proc = np.zeros_like(g, dtype=np.float32)
 
-    # ringing / halo / denoise / resize periodicity (improved)
     halo = float(np.mean((np.abs(lap[d])>0.15) & (ten[d]>0.1))) if np.any(d) else 0.0
-    # local variance for denoise flat
     local_var = cv2.GaussianBlur(g*g, (0,0), 2) - cv2.GaussianBlur(g, (0,0), 2)**2
     denoise = float(np.mean(local_var[d] < 1e-5)) if np.any(d) else 0.0
-    # FFT periodicity
     hann = np.outer(np.hanning(g.shape[0]), np.hanning(g.shape[1])).astype(np.float32)
     F = np.abs(np.fft.rfft2((g - g.mean()) * hann))
     resize_periodicity = float(np.max(F[:,1:]) / (np.mean(F[:,1:]) + 1e-8)) if F.shape[1]>1 else 0.0
 
-    # photometric
     hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
     spec = (hsv[...,2] > 245) & (hsv[...,1] < 35) & d
     shadow = (g < 0.08) & d
     clipping = ((g < 0.015) | (g > 0.985)) & d
-    exposure = np.clip(1.0 - np.abs(g - 0.5)*2, 0, 1).astype(np.float32)
+    exposure = np.clip(
+        1.0 - np.maximum(np.abs(g - 0.5) - 0.25, 0.0) / 0.25,
+        0.05, 1.0
+    ).astype(np.float32)
 
-    # incidence / projection confidence
     inc = np.asarray(incidence, np.float32)
     proj = np.asarray(projection_confidence, np.float32)
 
-    # projected scale / density
+    
+    # mesh_grid_fix: smooth conf inside domain so quality renders lose triangle grid
+    _d = np.asarray(domain, bool)
+    if np.any(_d):
+        _ps = cv2.GaussianBlur(proj, (0, 0), 1.5)
+        proj = np.where(_d, _ps, 0.0).astype(np.float32)
     if projected_density_map is not None:
-        # physics fix: density = pixels per surface unit
-        scale = np.asarray(projected_density_map, np.float32)
-        # avoid zero
-        scale = np.clip(scale, 0, 100)
+        scale_raw = np.asarray(projected_density_map, np.float32)
     else:
-        scale = _projected_scale_from_triangle_id(triangle_id)
+        scale_raw = _projected_scale_from_triangle_id(triangle_id)
+    scale, dens_meta = _sanitize_density(scale_raw, d)
 
-    # effective resolution physics: scale * focus * sqrt(inc) * proc * ns
-    # focus already 0..1, inc 0..1, proc 0..1, ns 0..1
-    eff = scale * focus * np.sqrt(np.clip(inc, 0, 1)) * proc * ns
-    eff = eff.astype(np.float32)
-
-    # quality weight same formula as original but with improved components
+    eff = (scale * focus * np.sqrt(np.clip(inc, 0, 1)) * proc * ns).astype(np.float32)
+    # physical quality BEFORE pose prior
     w = (focus * exposure * proj * proc * ns * (~spec) * (~shadow) * d).astype(np.float32)
 
-    # extra diagnostics for v4
+    
+    # mesh_grid_fix: mild domain-normalized smooth of quality_weight (kills residual mesh faceting)
+    if np.any(d):
+        _wf = np.where(d, w, 0.0).astype(np.float32)
+        _mf = d.astype(np.float32)
+        _wb = cv2.GaussianBlur(_wf, (0, 0), 1.0)
+        _mb = cv2.GaussianBlur(_mf, (0, 0), 1.0)
+        _ws = np.zeros_like(w)
+        _good = _mb > 1e-6
+        _ws[_good] = _wb[_good] / _mb[_good]
+        w = np.where(d, _ws, 0.0).astype(np.float32)
     edge_width = _edge_width_estimator(g, d)
     local_dr = _local_dynamic_range(g, ksize=15)
-    # illumination gradient: large Gaussian sobel
     large_blur = cv2.GaussianBlur(g, (0,0), 15)
     illum_gx = cv2.Sobel(large_blur, cv2.CV_32F, 1, 0, ksize=3)
     illum_gy = cv2.Sobel(large_blur, cv2.CV_32F, 0, 1, ksize=3)
@@ -188,39 +179,35 @@ def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, pro
         'clipping_mask': clipping,
         'incidence_weight': inc,
         'projection_confidence': proj,
-        'projected_scale_px_sqrt': scale,  # keeps old key name for compat
-        'projected_density_map': scale,    # new physics name alias
+        'projected_scale_px_sqrt': scale,
+        'projected_density_map': scale,
         'effective_resolution': eff,
         'hair_probability_available': np.array(False),
         'external_occlusion_available': np.array(False),
         'quality_weight': w,
+        'quality_weight_physical': w.copy(),
         'global_noise_level': np.array(noise_val, np.float32),
         'global_jpeg_block_score': np.array(bs, np.float32),
         'global_sharpening_halo_score': np.array(halo, np.float32),
         'global_denoise_flat_fraction': np.array(denoise, np.float32),
         'global_resize_periodicity_score': np.array(resize_periodicity, np.float32),
-        # v4 extras
         'global_edge_width_median': np.array(float(np.median(edge_width[d])) if np.any(d) else 0.0, np.float32),
         'global_local_dr_median': np.array(float(np.median(local_dr[d])) if np.any(d) else 0.0, np.float32),
+        'density_meta_json': np.array(str(dens_meta)),
     }
 
 def applicability(m, d, W, H):
-    """
-    Same signature as original, now with expanded reasons and FAMILIES gating improved
-    Returns dict family -> Applicability.to_dict()
-    """
     n = int(np.asarray(d).sum())
-    # base stats
     def _med(key):
         arr = m.get(key)
         if arr is None:
             return 0.0
         try:
-            vals = arr[d] if arr.shape == d.shape else arr
+            vals = arr[d] if getattr(arr, 'shape', None) == d.shape else arr
             if isinstance(vals, np.ndarray) and vals.size>0:
                 return float(np.median(vals)) if np.any(d) else 0.0
             return float(vals)
-        except:
+        except Exception:
             return float(np.asarray(arr).mean()) if np.asarray(arr).size else 0.0
 
     base = {
@@ -246,7 +233,6 @@ def applicability(m, d, W, H):
     for fam in FAMILIES:
         reasons = []
         state = EvidenceState.USABLE
-
         if n < 100:
             state = EvidenceState.NOT_OBSERVED
             reasons.append(ReasonCode.SELF_OCCLUDED.value)
@@ -254,34 +240,26 @@ def applicability(m, d, W, H):
             state = EvidenceState.NOT_MEASURABLE
             reasons.append(ReasonCode.PROJECTION_UNSTABLE.value)
         elif base['incidence'] < 0.25:
-            # incidence low -> coarse only unless already not observed/measurable
             if state == EvidenceState.USABLE:
                 state = EvidenceState.COARSE_ONLY
             reasons.append(ReasonCode.HIGH_INCIDENCE_ANGLE.value)
-
         if base['focus'] < 0.12:
             state = EvidenceState.NOT_MEASURABLE
             reasons.append(ReasonCode.EXCESSIVE_BLUR.value)
-        if base['edge_width_median'] > 4.0:  # wide edges -> blur
+        if base['edge_width_median'] > 4.0:
             if state == EvidenceState.USABLE:
                 state = EvidenceState.COARSE_ONLY
             reasons.append(ReasonCode.EXCESSIVE_BLUR.value)
-
         if base['noise_level'] > 0.08:
             reasons.append(ReasonCode.EXCESSIVE_NOISE.value)
             if state == EvidenceState.USABLE:
                 state = EvidenceState.COARSE_ONLY
-
         if base['jpeg_block_score'] > 0.15:
             reasons.append(ReasonCode.JPEG_DAMAGE.value)
-            # JPEG alone doesn't make NOT_MEASURABLE unless micro family
-
         if base['specular_fraction'] > 0.15:
             reasons.append(ReasonCode.SPECULAR_CONTAMINATION.value)
         if base.get('clipping_fraction',0) > 0.1:
-            reasons.append(ReasonCode.DEEP_SHADOW.value)  # reuse for clipping
-
-        # family-specific resolution gate
+            reasons.append(ReasonCode.DEEP_SHADOW.value)
         if fam in {'micro_texture','material_optics','local_feature_matching'} and (base['effective_resolution_median'] < 1.2 or min(W,H) < 700):
             state = EvidenceState.NOT_MEASURABLE
             reasons.append(ReasonCode.LOW_EFFECTIVE_RESOLUTION.value)
@@ -289,6 +267,38 @@ def applicability(m, d, W, H):
             if state == EvidenceState.USABLE:
                 state = EvidenceState.COARSE_ONLY
             reasons.append(ReasonCode.LOW_EFFECTIVE_RESOLUTION.value)
-
         out[fam] = Applicability(fam, state, base['effective_support'], tuple(dict.fromkeys(reasons)), base).to_dict()
     return out
+
+def per_zone_applicability(A, domain, quality_weight, pose_weight=None, min_support=50.0, min_pixels=64):
+    """Per-zone geometry/support/evidence snapshot for diagnostics."""
+    A = np.asarray(A)
+    d = np.asarray(domain, bool)
+    qw = np.asarray(quality_weight, np.float32)
+    pw = np.asarray(pose_weight, np.float32) if pose_weight is not None else None
+    rows = []
+    for i in range(20):
+        geom = d & (A == i)
+        gpx = int(geom.sum())
+        support = float(qw[geom].sum()) if gpx else 0.0
+        qw_pos = float((qw[geom] > 1e-8).mean()) if gpx else 0.0
+        prior = float(np.median(pw[geom])) if (pw is not None and gpx) else None
+        if gpx <= 0:
+            state = 'not_observed'
+        elif support >= min_support and gpx >= min_pixels and qw_pos > 0.05:
+            state = 'usable'
+        elif support > 0:
+            state = 'coarse_only' if support >= min_support * 0.25 else 'not_measurable'
+        else:
+            state = 'not_measurable'
+        rows.append({
+            'zone': f'A{i+1:02d}',
+            'geometry_pixels': gpx,
+            'geometry_frac_domain': float(gpx / max(int(d.sum()), 1)),
+            'effective_support': support,
+            'quality_positive_frac': qw_pos,
+            'pose_prior_median': prior,
+            'state': state,
+            'geometry_without_evidence': bool(gpx >= min_pixels and support < min_support),
+        })
+    return rows

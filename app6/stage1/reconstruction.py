@@ -75,6 +75,10 @@ class ReconstructionEngine:
         self._check_assets()
         cwd = Path.cwd()
         try:
+            import sys as _sys
+            _3ddfa_dir = str(self.project_root / "3ddfa_v3")
+            if _3ddfa_dir not in _sys.path:
+                _sys.path.insert(0, _3ddfa_dir)
             os.chdir(self.project_root)
             from face_box import face_box
             from model.recon import face_model

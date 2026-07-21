@@ -99,7 +99,7 @@ def _branch_paths(sk: np.ndarray):
         n,_ = cv2.connectedComponents(sk.astype(np.uint8), 8)
         return [], 'unavailable_without_skan', max(0,n-1), None
 
-def detect(bgr, w, tid, bary, triangles, vertices, w14, er_median=None):
+def detect(bgr, w, tid, bary, triangles, vertices, w14):
     """
     Original signature preserved
     bgr: HxW BGR uint8 crop
@@ -114,11 +114,13 @@ def detect(bgr, w, tid, bary, triangles, vertices, w14, er_median=None):
     """
     gray01 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
     valid = np.asarray(w) > 0.15
-    # er_median is supplied by pipeline.py from quality_maps['effective_resolution'].
-    # Keep a safe fallback so old callers/tests still work.
-    if er_median is None or not np.isfinite(er_median) or float(er_median) <= 0:
-        er_median = 1.2
-    er_median = float(er_median)
+    # effective resolution median from quality weight? we don't have er map here, estimate from focus proxy
+    # Use valid pixel count as proxy for er if not provided via w? Better: assume 1.2 if unknown, but try to infer from w mean
+    # w is quality_weight 0..1, not er. We can approximate er_median = 1.2 / (1 - w.mean + eps) ??? For now use 1.2 default
+    # In pipeline.py we will soon pass er map — this detect() should accept optional kw but keep signature, so we detect er via extra global? For drop-in we use 1.2
+    # However, if pipeline passes er via w14? No. So we keep 1.2 fallback, but pipeline_v4 will call response_map_scale_adaptive with er median from quality_maps
+    er_median = 1.2
+    # attempt to estimate er median from bary/triangle density? skip for now
     ridge, resp_meta = response_map_scale_adaptive(gray01, valid, er_median)
 
     # hysteresis thresholds
@@ -284,10 +286,17 @@ def detect(bgr, w, tid, bary, triangles, vertices, w14, er_median=None):
         orient_entropy = 0.0
         dominant = -1
 
-    # endpoint/junction counts from skeleton degree map.
-    # degree = number of 8-neighbours because center pixel is subtracted above.
-    endpoint_count = int(np.sum(sk & (degree == 1)))
-    junction_count = int(np.sum(sk & (degree >= 3)))
+    # endpoint/junction counts from degree map + graph
+    endpoint_count = 0
+    junction_count = 0
+    if skan_graph is not None:
+        try:
+            # skan provides degree? approximate via path endpoints
+            endpoint_count = len(branches) * 2  # each path 2 endpoints (rough)
+            # junction: estimate via overlapping coordinates? For simplicity count degree>=3 pixels in degree map within skeleton
+            junction_count = int(np.sum((degree>=4) & sk))  # degree map includes center, so 4 means 3 neighbors + center
+        except:
+            pass
 
     meta = {
         'backend': f'frangi_blackhat_meijering_skeletonize_{backend}_scale_adaptive_v4',
