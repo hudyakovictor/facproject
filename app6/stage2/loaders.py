@@ -56,6 +56,82 @@ def load_main(stage1_root: Path) -> list[Record]:
     return sorted(out, key=lambda r: (r.date or "9999", r.sequence, r.record_id))
 
 
+def _read_landmark_csv(path: Path, count: int) -> np.ndarray:
+    """Load landmark_id,x,y,z CSV into (count,3) float32 ordered by landmark_id."""
+    rows = _rows(path)
+    if not rows:
+        raise ValueError(f"empty landmark CSV: {path}")
+    by_id: dict[int, list[float]] = {}
+    for row in rows:
+        lid = int(float(row["landmark_id"]))
+        by_id[lid] = [float(row["x"]), float(row["y"]), float(row["z"])]
+    out = np.full((count, 3), np.nan, np.float32)
+    for lid, xyz in by_id.items():
+        if 0 <= lid < count:
+            out[lid] = np.asarray(xyz, np.float32)
+    return out
+
+
+def _missing_alpha(count: int) -> np.ndarray:
+    """Explicit NaN vector for unavailable alpha channels (never fabricated zeros)."""
+    return np.full((count,), np.nan, np.float32)
+
+
+def load_calibration_from_sidecar(root: Path) -> list[Record]:
+    """Recover Records from metadata.json + ldm*_raw.csv when record.npz is absent.
+
+    Space contract:
+      object_normalized = (raw_object - center) / scale
+    Never treat aligned/bin_canonical CSV as object_normalized.
+    Alpha is unavailable in the published sidecar layout → NaN vectors.
+    """
+    out: list[Record] = []
+    for meta_path in sorted(root.glob("*/frame_*/metadata.json")):
+        directory = meta_path.parent
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        arrays = meta.get("arrays") or {}
+        raw106_path = directory / "ldm106_raw.csv"
+        raw134_path = directory / "ldm134_raw.csv"
+        if not raw106_path.is_file() or not raw134_path.is_file():
+            continue
+        center = np.asarray(arrays.get("object_normalization_center"), np.float64).reshape(-1)
+        scale_arr = np.asarray(arrays.get("object_normalization_scale"), np.float64).reshape(-1)
+        if center.size != 3 or scale_arr.size < 1:
+            raise ValueError(f"sidecar missing object_normalization center/scale: {directory}")
+        scale = float(scale_arr[0])
+        if not np.isfinite(scale) or abs(scale) < 1e-12:
+            raise ValueError(f"invalid object_normalization_scale in {directory}")
+        raw106 = _read_landmark_csv(raw106_path, 106)
+        raw134 = _read_landmark_csv(raw134_path, 134)
+        ldm106 = ((raw106.astype(np.float64) - center.reshape(1, 3)) / scale).astype(np.float32)
+        ldm134 = ((raw134.astype(np.float64) - center.reshape(1, 3)) / scale).astype(np.float32)
+        vis106 = np.asarray(arrays.get("ldm106_visible_original"), bool).reshape(-1)
+        vis134 = np.asarray(arrays.get("ldm134_visible_original"), bool).reshape(-1)
+        if vis106.size != 106 or vis134.size != 134:
+            raise ValueError(f"sidecar visibility length mismatch: {directory}")
+        angles = np.asarray(arrays.get("angle_deg_pitch_yaw_roll"), np.float32).reshape(3)
+        out.append(Record(
+            record_id=str(meta.get("record_id") or directory.name),
+            dataset_id=str(meta.get("dataset_id") or directory.parent.name),
+            date=None,
+            sequence=int(meta.get("frame_index", 0)),
+            pose_bin=str(meta.get("pose_bin") or "unknown"),
+            angles=angles,
+            ldm106=ldm106,
+            ldm134=ldm134,
+            visible106=vis106,
+            visible134=vis134,
+            alpha_id=_missing_alpha(80),
+            alpha_exp=_missing_alpha(64),
+            record_dir=str(directory),
+            source_group=str(meta.get("dataset_id") or directory.parent.name),
+            source_sha256=meta.get("source_sha256"),
+        ))
+    if not out:
+        raise FileNotFoundError(f"no sidecar calibration frames under {root}")
+    return out
+
+
 def load_calibration(calibration_root: Path) -> list[Record]:
     root = calibration_root
     # Native app6 Stage-1 same-day calibration output. This is the format
@@ -75,22 +151,24 @@ def load_calibration(calibration_root: Path) -> list[Record]:
         directory = npz_path.parent
         meta = json.loads((directory / "metadata.json").read_text(encoding="utf-8"))
         with np.load(npz_path, allow_pickle=False) as z:
+            alpha_id = z["alpha_id"].astype(np.float32) if "alpha_id" in z.files else _missing_alpha(80)
+            alpha_exp = z["alpha_exp"].astype(np.float32) if "alpha_exp" in z.files else _missing_alpha(64)
             out.append(Record(
                 record_id=meta["record_id"], dataset_id=meta["dataset_id"], date=None, sequence=int(meta.get("frame_index", 0)),
                 pose_bin=meta["pose_bin"], angles=z["angle_deg_pitch_yaw_roll"].astype(np.float32),
                 ldm106=z.get("ldm106_object_norm", z.get("ldm106_object_normalized")).astype(np.float32),
                 ldm134=z.get("ldm134_object_norm", z.get("ldm134_object_normalized")).astype(np.float32),
                 visible106=z["ldm106_visible_original"].astype(bool), visible134=z["ldm134_visible_original"].astype(bool),
-                alpha_id=z["alpha_id"].astype(np.float32), alpha_exp=z["alpha_exp"].astype(np.float32),
+                alpha_id=alpha_id, alpha_exp=alpha_exp,
                 record_dir=str(directory),
             ))
-    if not out:
-        raise FileNotFoundError(f"no calibration records under {root}")
-    # Validate that landmark fields were found
-    for rec in out:
-        if rec.ldm106 is None or rec.ldm134 is None:
-            raise ValueError(
-                f"Calibration record {rec.record_id} has no landmark data. "
-                "Expected 'ldm106_object_norm' or 'ldm106_object_normalized' in record.npz"
-            )
-    return out
+    if out:
+        for rec in out:
+            if rec.ldm106 is None or rec.ldm134 is None:
+                raise ValueError(
+                    f"Calibration record {rec.record_id} has no landmark data. "
+                    "Expected 'ldm106_object_norm' or 'ldm106_object_normalized' in record.npz"
+                )
+        return out
+    # Published archive often ships metadata+CSV sidecars only.
+    return load_calibration_from_sidecar(root)

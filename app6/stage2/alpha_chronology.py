@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
+
 from .core import calibrated_score
 
 ALPHA_SCHEMA = "deeputin-stage2-alpha-chronology-v1.0"
@@ -18,10 +20,21 @@ def apply_alpha_chronology(rows: list[dict[str, Any]], model: Any) -> dict[str, 
         pose = str(r.get("pose_bin") or "")
         aid = r.get("alpha_id_l2")
         aexp = r.get("alpha_exp_l2")
-        if aid is None:
+        try:
+            aid_f = float(aid) if aid is not None else float("nan")
+        except (TypeError, ValueError):
+            aid_f = float("nan")
+        try:
+            aexp_f = float(aexp) if aexp is not None else float("nan")
+        except (TypeError, ValueError):
+            aexp_f = float("nan")
+        if not np.isfinite(aid_f):
+            r["alpha_id_status"] = "unavailable"
+            r["alpha_exp_status"] = "unavailable" if not np.isfinite(aexp_f) else r.get("alpha_exp_status")
+            r["alpha_channel_status"] = "disabled_or_missing"
             continue
-        alpha_id_score = calibrated_score(float(aid), model.reference(pose, "alpha_id_l2"), [])
-        alpha_exp_score = calibrated_score(float(aexp or 0.0), model.reference(pose, "alpha_exp_l2"), [])
+        alpha_id_score = calibrated_score(aid_f, model.reference(pose, "alpha_id_l2"), [])
+        alpha_exp_score = calibrated_score(aexp_f if np.isfinite(aexp_f) else 0.0, model.reference(pose, "alpha_exp_l2"), [])
         r["alpha_id_status"] = alpha_id_score["status"]
         r["alpha_id_robust_z"] = alpha_id_score["robust_z"]
         r["alpha_id_calibration_p95"] = alpha_id_score["calibration_p95"]

@@ -7,6 +7,23 @@ import warnings
 from .anchor_policy import stable_anchor_mask
 from .core import Record,robust_rigid_align
 
+PROFILE_POSE_BINS = {
+    "left_profile", "right_profile",
+    "left_profile_soft", "right_profile_soft",
+}
+UNSUPPORTED_POSE_BINS = {"out_of_supported_range", "unknown", ""}
+
+
+def pose_motion_support(pose_bin: str) -> str:
+    """Return support tier for point-motion claims on this pose bin."""
+    p = str(pose_bin or "")
+    if p in UNSUPPORTED_POSE_BINS:
+        return "unsupported_pose"
+    if p in PROFILE_POSE_BINS or "profile" in p:
+        return "profile_limited"
+    return "supported"
+
+
 
 def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->dict[str,np.ndarray|int|str]:
     if count==106:
@@ -57,8 +74,10 @@ class PointNoiseModel:
             cnt=np.sum(np.isfinite(stack),axis=0);template=np.nanmedian(np.stack(templates[key][:200]),axis=0)
             self.references[key]=PointNoiseReference(median.astype(np.float32),mad.astype(np.float32),p95.astype(np.float32),cnt.astype(np.int32),template.astype(np.float32))
     def score(self,pose:str,count:int,motion:dict[str,Any])->dict[str,Any]:
+        support=pose_motion_support(pose)
         ref=self.references.get((pose,count));mag=np.asarray(motion['magnitude'],np.float32);z=np.full(count,np.nan,np.float32);sig=np.zeros(count,bool)
-        if ref is None:return {'status':'insufficient_calibration','z':z,'significant':sig,'summary':{'calibrated_point_count':0}}
+        if support=='unsupported_pose':return {'status':'unsupported_pose','pose_support':support,'z':z,'significant':sig,'summary':{'calibrated_point_count':0}}
+        if ref is None:return {'status':'insufficient_calibration','pose_support':support,'z':z,'significant':sig,'summary':{'calibrated_point_count':0}}
         floor=max(float(np.nanmedian(ref.mad))*0.25,1e-6);den=np.maximum(1.4826*ref.mad,floor);valid=np.isfinite(mag)&(ref.count>=7)&np.isfinite(ref.p95);z[valid]=(mag[valid]-ref.median[valid])/den[valid];sig[valid]=(mag[valid]>ref.p95[valid])&(z[valid]>=3.0)
         coh=self._coherence(ref.template,np.asarray(motion['vectors']),valid,sig)
         zv=z[np.isfinite(z)];summary={'calibrated_point_count':int(valid.sum()),'significant_point_count':int(sig.sum()),'significant_fraction':float(sig.sum()/max(valid.sum(),1)),'coherent_fraction':float(coh),'median_point_z':float(np.median(zv)) if zv.size else 0.,'p95_point_z':float(np.percentile(zv,95)) if zv.size else 0.}
@@ -66,7 +85,13 @@ class PointNoiseModel:
         elif summary['significant_fraction']<.08:status='within_reconstruction_noise'
         elif summary['significant_fraction']>=.15 and coh>=.45 and summary['p95_point_z']>=3.5:status='coherent_jump_candidate'
         else:status='scattered_or_uncertain'
-        return {'status':status,'z':z,'significant':sig,'summary':summary}
+        if support=='profile_limited' and status in ('coherent_jump_candidate','scattered_or_uncertain'):
+            # Profiles have weaker same-person null coverage; keep metrics but demote claim tier.
+            status='profile_support_limited' if status=='scattered_or_uncertain' else status
+            summary=dict(summary); summary['pose_support']=support; summary['profile_gate']='metrics_ok_claim_limited'
+        else:
+            summary=dict(summary); summary['pose_support']=support
+        return {'status':status,'pose_support':support,'z':z,'significant':sig,'summary':summary}
     @staticmethod
     def _coherence(template,vectors,valid,significant,k=6):
         ids=np.flatnonzero(valid);sids=np.flatnonzero(significant)

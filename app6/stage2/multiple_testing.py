@@ -42,15 +42,20 @@ def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_
     significant = 0
     for i, q in qmap.items():
         rows[i]["mt_q_value"] = q
-        rows[i]["mt_significant_fdr10"] = bool(q <= q_threshold)
-        significant += int(q <= q_threshold)
+        flag = bool(q <= q_threshold)
+        rows[i]["mt_significant_fdr10"] = flag  # legacy alias
+        rows[i]["mt_fdr10_diagnostic_flag"] = flag  # explicit: not a verdict
+        rows[i]["mt_role"] = "diagnostic_only"
+        significant += int(flag)
     return {
         "schema": MT_SCHEMA,
         "scope": "pair_metrics",
         "test_count": len(tests),
         "q_threshold": q_threshold,
         "significant_count": significant,
-        "method": "Benjamini-Hochberg on approximate two-sided normal p from robust z-like score",
+        "diagnostic_only": True,
+        "not_a_verdict": True,
+        "method": "Benjamini-Hochberg on approximate two-sided normal p from robust z-like score (DIAGNOSTIC ONLY; do not use as identity/material verdict)",
     }
 
 
@@ -69,13 +74,18 @@ def apply_zone_fdr(zones: list[dict[str, Any]], *, z_key: str = "robust_z", q_th
     significant = 0
     for i, q in qmap.items():
         zones[i]["mt_q_value"] = q
-        zones[i]["mt_significant_fdr10"] = bool(q <= q_threshold)
-        significant += int(q <= q_threshold)
+        flag = bool(q <= q_threshold)
+        zones[i]["mt_significant_fdr10"] = flag
+        zones[i]["mt_fdr10_diagnostic_flag"] = flag
+        zones[i]["mt_role"] = "diagnostic_only"
+        significant += int(flag)
     return {
         "schema": MT_SCHEMA,
         "scope": "zone_metrics",
         "test_count": len(tests),
         "q_threshold": q_threshold,
         "significant_count": significant,
-        "method": "Benjamini-Hochberg on approximate p-values",
+        "diagnostic_only": True,
+        "not_a_verdict": True,
+        "method": "Benjamini-Hochberg on approximate p-values (DIAGNOSTIC ONLY)",
     }

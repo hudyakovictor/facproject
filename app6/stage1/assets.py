@@ -97,10 +97,11 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "skin_mask": skin_mask,  # Pass skin_mask INSIDE recon dict (generator reads from here)
     }
     cfg = HDUVConfig(uv_size=int(uv_size), super_sample=super_sample, enable_delighting=False, force_all_triangles_visible=False, device="cpu")
-    uv_render, observed, confidence, aux = HDUVTextureGenerator(cfg).generate(bgr, recon)
+    uv_render, uv_beauty, observed, confidence, aux = HDUVTextureGenerator(cfg).generate(bgr, recon)
     out.mkdir(parents=True, exist_ok=True)
     if not cv2.imwrite(str(out / "uv_texture.png"), uv_render):
         raise OSError(f"failed to write uv_texture.png to {out / 'uv_texture.png'}")
+    cv2.imwrite(str(out / "uv_texture_beauty.png"), uv_beauty)
     # UV is visualization/correspondence only. Anatomical zones, wrinkles and
     # forensic evidence are produced by app6.stage1.skin.pipeline in native
     # photo space; no disabled placeholder and no silent legacy-atlas fallback.
@@ -164,6 +165,7 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_texture.png")
     files = {
         "uv_texture": "uv_texture.png",
+        "uv_texture_beauty": "uv_texture_beauty.png",
         "uv_data": "uv.npz",
         "mesh": "mesh.obj",
         "mesh_material": "mesh.mtl",

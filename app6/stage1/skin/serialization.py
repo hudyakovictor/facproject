@@ -10,11 +10,19 @@ def sha256_file(path):
  with open(path,'rb') as f:
   for b in iter(lambda:f.read(1<<20),b''):h.update(b)
  return h.hexdigest()
-def canonical_hash(payload)->str:return hashlib.sha256(json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
+class _SafeEncoder(json.JSONEncoder):
+ def default(self,o):
+  if isinstance(o,np.integer):return int(o)
+  if isinstance(o,np.floating):
+   if np.isnan(o) or np.isinf(o):return None
+   return float(o)
+  if isinstance(o,np.ndarray):return o.tolist()
+  return super().default(o)
+def canonical_hash(payload)->str:return hashlib.sha256(json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False,cls=_SafeEncoder).encode()).hexdigest()
 def atomic_json(path,payload):
  p=Path(path);p.parent.mkdir(parents=True,exist_ok=True);fd,tmp=tempfile.mkstemp(dir=p.parent,prefix=p.name+'.',suffix='.tmp')
  try:
-  with os.fdopen(fd,'w',encoding='utf8') as f:json.dump(payload,f,ensure_ascii=False,indent=2,allow_nan=False);f.flush();os.fsync(f.fileno())
+  with os.fdopen(fd,'w',encoding='utf8') as f:json.dump(payload,f,ensure_ascii=False,indent=2,allow_nan=False,cls=_SafeEncoder);f.flush();os.fsync(f.fileno())
   os.replace(tmp,p)
  finally:
   if os.path.exists(tmp):os.unlink(tmp)

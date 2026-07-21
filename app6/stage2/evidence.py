@@ -12,7 +12,7 @@ STATUS_TO_EVIDENCE_STATE = {
     "within_calibration_noise": "within_noise",
     "scattered_or_uncertain": "elevated_uncertain",
     "elevated_but_uncertain": "elevated_uncertain",
-    "coherent_jump_candidate": "persistent_geometric_change_candidate",
+    "coherent_jump_candidate": "coherent_jump_candidate",  # one-off jump != durable persistence
     "persistent_geometric_change": "persistent_geometric_change",
     "baseline_return_candidate": "reversible_change_candidate",
     "alpha_id_jump_candidate": "alpha_id_change_candidate",

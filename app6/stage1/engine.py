@@ -142,9 +142,23 @@ class Stage1Engine:
                 else:
                     files["face_mask"] = None
                     files["face_mask_data"] = None
-            except Exception:
+                    atomic_json(out / "face_mask_failure.json", {
+                        "status": "unavailable",
+                        "reason": "save_face_mask_returned_none",
+                        "mask_status": getattr(mask, "status", None),
+                        "mask_error": getattr(mask, "error", None),
+                    })
+                    files["face_mask_failure"] = "face_mask_failure.json"
+            except Exception as face_mask_exc:
                 files["face_mask"] = None
                 files["face_mask_data"] = None
+                atomic_json(out / "face_mask_failure.json", {
+                    "status": "failed",
+                    "error": str(face_mask_exc),
+                    "mask_status": getattr(mask, "status", None),
+                    "mask_error": getattr(mask, "error", None),
+                })
+                files["face_mask_failure"] = "face_mask_failure.json"
             files["semantic_channels"] = save_semantic_channels(mask, out)
             uv_files, uv_arrays, uv_meta = save_uv_and_mesh(
                 bgr, rec, out, self.cfg.uv_size, skin_mask=mask.hard_original

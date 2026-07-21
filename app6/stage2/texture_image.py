@@ -44,6 +44,48 @@ def _image_path(record: Any) -> Path | None:
     return p if p.is_file() else None
 
 
+def _load_face_mask_texture(d: Path, img: np.ndarray) -> dict[str, Any] | None:
+    """Fallback when quality_zones.npz is absent (main Stage1 migrated to skin_quality_v1)."""
+    npz_path = d / "face_mask.npz"
+    png_path = d / "face_mask.png"
+    mask = None
+    if npz_path.is_file():
+        try:
+            with np.load(npz_path, allow_pickle=False) as z:
+                for key in ("mask_original", "mask", "hard_original", "face_mask"):
+                    if key in z.files:
+                        mask = np.asarray(z[key])
+                        break
+        except Exception:
+            mask = None
+    if mask is None and png_path.is_file():
+        raw = cv2.imread(str(png_path), cv2.IMREAD_GRAYSCALE)
+        if raw is not None:
+            mask = raw
+    if mask is None:
+        return None
+    m = np.asarray(mask)
+    if m.ndim == 3:
+        m = m[..., 0]
+    m = m.astype(bool) if m.dtype == bool else (m > 0)
+    if m.shape[:2] != img.shape[:2]:
+        return {"status": "shape_mismatch", "image_shape": img.shape[:2], "zone_shape": m.shape[:2]}
+    name = "face_mask_full"
+    pixels = np.asarray([int(m.sum())], np.int64)
+    score = np.asarray([1.0 if pixels[0] >= 2500 else 0.0], np.float32)
+    status = "ok" if pixels[0] >= 2500 else "insufficient_pixels"
+    return {
+        "status": "ok",
+        "image": img,
+        "zone_names": [name],
+        "zone_status": [status],
+        "zone_pixels": pixels,
+        "zone_score": score,
+        "masks": {name: m},
+        "texture_mask_source": "face_mask",
+    }
+
+
 def _load_texture(record: Any) -> dict[str, Any]:
     d = getattr(record, "record_dir", None)
     if d is None:
@@ -51,25 +93,46 @@ def _load_texture(record: Any) -> dict[str, Any]:
     d = Path(d)
     qz_path = d / "quality_zones.npz"
     img_path = _image_path(record)
-    if img_path is None or not qz_path.is_file():
+    if img_path is None:
+        # still allow face_mask-only if image path recoverable via sibling names
+        for cand in ("original.png", "original.jpg", "source.jpg", "face_crop.png"):
+            p = d / cand
+            if p.is_file():
+                img_path = p
+                break
+    if img_path is None:
         return {"status": "missing_image_or_quality_zones"}
     img = cv2.imread(str(img_path), cv2.IMREAD_COLOR)
     if img is None:
         return {"status": "cannot_decode_image"}
-    try:
-        with np.load(qz_path, allow_pickle=False) as z:
-            shape = tuple(int(x) for x in z["original_shape"])
-            if img.shape[:2] != shape:
-                return {"status": "shape_mismatch", "image_shape": img.shape[:2], "zone_shape": shape}
-            names = [str(x) for x in z["zone_names"]]
-            statuses = [str(x) for x in z["zone_status"]]
-            pixels = z["zone_texture_pixels"].astype(np.int64)
-            score = z["zone_texture_score"].astype(np.float32)
-            bits = z["zone_texture_roi_original_packbits"]
-            masks = {name: _unpack_mask(bits[i], shape) for i, name in enumerate(names)}
-        return {"status": "ok", "image": img, "zone_names": names, "zone_status": statuses, "zone_pixels": pixels, "zone_score": score, "masks": masks}
-    except Exception as exc:
-        return {"status": "load_error", "error": str(exc)}
+    if qz_path.is_file():
+        try:
+            with np.load(qz_path, allow_pickle=False) as z:
+                shape = tuple(int(x) for x in z["original_shape"])
+                if img.shape[:2] != shape:
+                    return {"status": "shape_mismatch", "image_shape": img.shape[:2], "zone_shape": shape}
+                names = [str(x) for x in z["zone_names"]]
+                statuses = [str(x) for x in z["zone_status"]]
+                pixels = z["zone_texture_pixels"].astype(np.int64)
+                score = z["zone_texture_score"].astype(np.float32)
+                bits = z["zone_texture_roi_original_packbits"]
+                masks = {name: _unpack_mask(bits[i], shape) for i, name in enumerate(names)}
+            return {
+                "status": "ok",
+                "image": img,
+                "zone_names": names,
+                "zone_status": statuses,
+                "zone_pixels": pixels,
+                "zone_score": score,
+                "masks": masks,
+                "texture_mask_source": "quality_zones",
+            }
+        except Exception as exc:
+            return {"status": "load_error", "error": str(exc)}
+    fb = _load_face_mask_texture(d, img)
+    if fb is not None:
+        return fb
+    return {"status": "missing_image_or_quality_zones"}
 
 
 def _lbp_histogram(gray: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -115,8 +178,10 @@ def _glcm_stats(gray: np.ndarray, mask: np.ndarray) -> dict[str, float]:
     if roi.size == 0 or int(roi_mask.sum()) < 64:
         return {"glcm_contrast": 0.0, "glcm_homogeneity": 0.0, "glcm_energy": 0.0, "glcm_correlation": 0.0}
     quant = np.clip((roi.astype(np.float32) / 256.0 * GLCM_LEVELS).astype(np.uint8), 0, GLCM_LEVELS - 1)
-    if _HAS_SKIMAGE and graycomatrix is not None and graycoprops is not None:
-        # Masked pixels are filled with the zone median to avoid measuring the bbox edge.
+    # Prefer masked co-occurrence only. Median-fill outside the ROI confounds GLCM
+    # with artificial edge pairs and can look like "flat measured texture".
+    # Keep skimage path disabled; fall through to masked-pair numpy implementation.
+    if False and _HAS_SKIMAGE and graycomatrix is not None and graycoprops is not None:
         filled = quant.copy()
         filled[~roi_mask] = int(np.median(quant[roi_mask]))
         glcm = graycomatrix(filled, distances=[1, 2], angles=[0, np.pi / 4, np.pi / 2, 3 * np.pi / 4], levels=GLCM_LEVELS, symmetric=True, normed=True)

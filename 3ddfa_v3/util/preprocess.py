@@ -31,13 +31,12 @@ def get_data_path(root):
 def back_resize_ldms(ldms, trans_params):
     
     w0, h0, s, t, target_size = trans_params[0], trans_params[1], trans_params[2], [trans_params[3],trans_params[4]], 224
-
-    w = (w0*s).astype(np.int32)
-    h = (h0*s).astype(np.int32)
-    left = (w/2 - target_size/2 + float((t[0] - w0/2)*s)).astype(np.int32)
-    right = left + target_size
-    up = (h/2 - target_size/2 + float((h0/2 - t[1])*s)).astype(np.int32)
-    below = up + target_size
+    w = int(round((w0*s).item()))
+    h = int(round((h0*s).item()))
+    left = int(round((w/2 - target_size/2 + (t[0] - w0/2)*s).item()))
+    right = left + int(target_size)
+    up = int(round((h/2 - target_size/2 + (h0/2 - t[1])*s).item()))
+    below = up + int(target_size)
 
     ldms[:, 0] = ldms[:, 0] + left
     ldms[:, 1] = ldms[:, 1] + up
@@ -47,24 +46,25 @@ def back_resize_ldms(ldms, trans_params):
 
     return ldms
 
+
 def back_resize_crop_img(img, trans_params, ori_img, resample_method = Image.BICUBIC):
     
     w0, h0, s, t, target_size = trans_params[0], trans_params[1], trans_params[2], [trans_params[3],trans_params[4]], 224
     
     img=Image.fromarray(img)
     ori_img=Image.fromarray(ori_img)
-    w = (w0*s).astype(np.int32)
-    h = (h0*s).astype(np.int32)
-    left = (w/2 - target_size/2 + float((t[0] - w0/2)*s)).astype(np.int32)
-    right = left + target_size
-    up = (h/2 - target_size/2 + float((h0/2 - t[1])*s)).astype(np.int32)
+    w = int(round((w0*s).item()))
+    h = int(round((h0*s).item()))
+    left = int(round((w/2 - target_size/2 + (t[0] - w0/2)*s).item()))
+    right = left + int(target_size)
+    up = int(round((h/2 - target_size/2 + (h0/2 - t[1])*s).item()))
     below = up + target_size
 
     old_img = ori_img
     old_img = old_img.resize((w, h), resample=resample_method)
 
     old_img.paste(img, (left, up, right, below))
-    old_img = old_img.resize((int(w0), int(h0)), resample=resample_method)
+    old_img = old_img.resize((w0.item(), h0.item()), resample=resample_method)
 
     old_img = np.array(old_img)
     return old_img
@@ -98,12 +98,12 @@ def POS(xp, x):
 # resize and crop images for face reconstruction
 def resize_n_crop_img(img, lm, t, s, target_size=224., mask=None):
     w0, h0 = img.size
-    w = (w0*s).astype(np.int32)
-    h = (h0*s).astype(np.int32)
-    left = (w/2 - target_size/2 + float((t[0] - w0/2)*s)).astype(np.int32)
-    right = left + target_size
-    up = (h/2 - target_size/2 + float((h0/2 - t[1])*s)).astype(np.int32)
-    below = up + target_size
+    w = int(round((w0*s).item()))
+    h = int(round((h0*s).item()))
+    left = int(round((w/2 - target_size/2 + (t[0] - w0/2)*s).item()))
+    right = left + int(target_size)
+    up = int(round((h/2 - target_size/2 + (h0/2 - t[1])*s).item()))
+    below = up + int(target_size)
 
     img = img.resize((w, h), resample=RESAMPLING_METHOD)
     img = img.crop((left, up, right, below))
@@ -112,8 +112,8 @@ def resize_n_crop_img(img, lm, t, s, target_size=224., mask=None):
         mask = mask.resize((w, h), resample=RESAMPLING_METHOD)
         mask = mask.crop((left, up, right, below))
 
-    lm = np.stack([lm[:, 0] - t[0] + w0/2, lm[:, 1] -
-                  t[1] + h0/2], axis=1)*s
+    lm = np.stack([lm[:, 0] - t[0].item() + w0/2, lm[:, 1] -
+                  t[1].item() + h0/2], axis=1)*s
     lm = lm - np.reshape(
             np.array([(w/2 - target_size/2), (h/2-target_size/2)]), [1, 2])
 
