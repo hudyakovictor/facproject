@@ -13,17 +13,13 @@ Original functions to keep same names:
 Enhancements:
 - rasterize_surface returns RasterResult with additional projected_density_map (screen pixels per surface area)
 - Need triangle surface areas: compute from surface_vertices if provided? We add optional param surface_vertices + triangles to rasterize for density.
-from ..status_logger import log_status, log_blocker, log_warning
-
-For drop-in, we keep original signature but add **kwargs to accept surface_vertices, triangles, triangle_surface_areas.
-If not provided, fallback to heuristic _scale.
-
-Also project_atlas now also returns projected_density_map for quality.
-
 🎯 CONVENTIONS v2 → растеризация/проекция поверхности; статус: ⚠️ IN PROGRESS
 """
 
 from __future__ import annotations
+# 🚨 AUDIT-8: строка импорта логера жила ВНУТРИ docstring (PR-дамп) — реальный
+# импорт отсутствовал → NameError при любом вызове rasterize_surface/project_atlas.
+from ..status_logger import log_status
 from dataclasses import dataclass
 import numpy as np
 

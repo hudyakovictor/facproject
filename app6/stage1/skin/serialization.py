@@ -9,12 +9,12 @@ from typing import Mapping
 import numpy as np
 
 # 📊 sha256 файла (контроль целостности)
-# 💡 NOTE (AUDIT-7): реализация дедуплицирована → эта функция делегирует
-# канонической utils.sha256_file (ранее существовали 3 копии алгоритма).
-from ..utils import sha256_file as _utils_sha256_file
-
+# 💡 NOTE: автономная локальная реализация (осознанно; без делегирования в utils).
 def sha256_file(path):
- return _utils_sha256_file(Path(path) if not isinstance(path, Path) else path)
+ h=hashlib.sha256()
+ with open(path,'rb') as f:
+  for b in iter(lambda:f.read(1<<20),b''):h.update(b)
+ return h.hexdigest()
 class _SafeEncoder(json.JSONEncoder):
  # 🔄 JSON fallback-сериализатор (numpy→python)
  def default(self,o):
