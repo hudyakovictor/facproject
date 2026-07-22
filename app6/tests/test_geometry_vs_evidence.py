@@ -1,4 +1,7 @@
-"""Regression tests for geometry vs evidence evidence-path fixes."""
+"""Regression tests for geometry vs evidence evidence-path fixes.
+
+🔄 CONVENTIONS v2 → CALLBACK (pytest): геометрия vs evidence-слой
+"""
 from __future__ import annotations
 import tempfile
 import unittest

@@ -1,7 +1,11 @@
-"""Preview writers: no mesh-grid imprint on analysis heatmaps."""
+"""Preview writers: no mesh-grid imprint on analysis heatmaps.
+
+📤 CONVENTIONS v2 → превью-рендеры; статус: ✅ VERIFIED
+"""
 from __future__ import annotations
 import cv2
 import numpy as np
+from ..status_logger import log_status
 
 
 def _zone_colors(n=20):
@@ -40,6 +44,7 @@ def _smooth_map(x, mask, sigma=1.2):
 
 def save_previews(root, bgr, A, mask, quality, usable_mask=None):
     """Write geometry atlas + smooth quality heatmap + usable-only atlas."""
+    log_status("save_previews", "complete")
     root.mkdir(parents=True, exist_ok=True)
     A = np.asarray(A)
     geom = np.asarray(mask, bool)
@@ -77,6 +82,7 @@ def save_previews(root, bgr, A, mask, quality, usable_mask=None):
 
 
 def save_wrinkle_overlay(root, bgr, skeleton, ridge_prob, ffhq_prob, mask, usable_mask=None):
+    log_status("save_wrinkle_overlay", "complete")
     root.mkdir(parents=True, exist_ok=True)
     geom = np.asarray(mask, bool)
     use = np.asarray(usable_mask, bool) if usable_mask is not None else geom

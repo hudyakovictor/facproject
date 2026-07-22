@@ -12,6 +12,7 @@ Usage:
 
 If no reconstruction.npz is provided, it attempts to find one in the
 output directory.
+🏭 CONVENTIONS v2 → генератор mesh_zone_indices.json; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 
@@ -72,6 +73,7 @@ ZONE_PRIORITY = [
 ]
 
 
+# 🏭 FACTORY → анатомические зоны вершин из UV-координат
 def generate_zones(uv_coords: np.ndarray) -> dict[str, list[int]]:
     """Generate anatomical zone vertex assignments from UV coordinates.
 
@@ -115,12 +117,13 @@ def generate_zones(uv_coords: np.ndarray) -> dict[str, list[int]]:
     print()
     for name in ZONE_PRIORITY:
         count = len(zones.get(name, []))
-        status = "⚠ TOO FEW" if count < 40 else "✓"
+        status = "⚠️ TOO FEW" if count < 40 else "✅"
         print(f"  {name:30s}  {count:5d} vertices  {status}")
 
     return zones
 
 
+# 🚪 ENTRY POINT генератора зон
 def main():
     if len(sys.argv) > 1:
         npz_path = Path(sys.argv[1])

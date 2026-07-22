@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage2.texture_image: текстурные дельты, маски, LBP/GLCM.
+"""
 from __future__ import annotations
 
 import unittest

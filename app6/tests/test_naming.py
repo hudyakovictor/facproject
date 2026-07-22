@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage1.naming: parse_photo_name, даты из имён, photo_id.
+"""
 from __future__ import annotations
 
 import unittest

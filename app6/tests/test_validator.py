@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage1.validator: контракты npz/csv (43 ключа, 6 CSV).
+"""
 from __future__ import annotations
 
 import csv
@@ -26,7 +28,9 @@ def _fixture(root: Path) -> None:
     idx106 = np.arange(106, dtype=np.int64); idx134 = np.arange(134, dtype=np.int64)
     p106 = np.zeros((106, 3), np.float32); p134 = np.zeros((134, 3), np.float32)
     for name, n, pts, idx in (("ldm106_raw.csv", 106, p106, idx106), ("ldm106_aligned.csv", 106, p106, idx106),
-                              ("ldm134_raw.csv", 134, p134, idx134), ("ldm134_aligned.csv", 134, p134, idx134)):
+                              ("ldm106_chronology.csv", 106, p106, idx106),
+                              ("ldm134_raw.csv", 134, p134, idx134), ("ldm134_aligned.csv", 134, p134, idx134),
+                              ("ldm134_chronology.csv", 134, p134, idx134)):
         _csv(root / name, n, pts, idx)
     image = np.full((16, 16, 3), 127, np.uint8)
     for name in ("face_crop.jpg", "uv_texture.png"):
@@ -50,7 +54,9 @@ def _fixture(root: Path) -> None:
         "face_crop": "face_crop.jpg", "uv_texture": "uv_texture.png",
         "semantic_channels": "semantic_channels.npz", "reconstruction": "reconstruction.npz",
         "ldm106_raw": "ldm106_raw.csv", "ldm106_aligned": "ldm106_aligned.csv",
+        "ldm106_chronology": "ldm106_chronology.csv",
         "ldm134_raw": "ldm134_raw.csv", "ldm134_aligned": "ldm134_aligned.csv",
+        "ldm134_chronology": "ldm134_chronology.csv",
     }
     (root / "info.json").write_text(json.dumps({"schema_version": PHOTO_SCHEMA_VERSION, "photo_id": "p", "mask": {"status": "projection_failed"}, "files": files}))
 

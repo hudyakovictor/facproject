@@ -1,4 +1,9 @@
+"""🏭 FACTORY → Пост-отчёты Stage 2: manual-review queue, public-safety, summary.
+🚪 API: write_postprocess_reports()
+🔗 DEPENDS ON: все evidence/quality структуры финализированного прогона.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -200,6 +205,7 @@ def write_postprocess_reports(
     changes: list[dict[str, Any]],
     evidence_packets: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    log_status("write_postprocess_reports", "complete")
     review_count = _write_manual_review_queue(out, rows)
     public_safety = _write_public_safety(out, evidence_packets)
     degraded = _write_degraded_modules(out, rows)

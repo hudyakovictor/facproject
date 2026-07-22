@@ -1,5 +1,10 @@
+"""📊 METRIC → Текстурная симметрия лица (left↔right) по skin-каналам.
+🚪 API: texture_symmetry()
+💡 NOTE: корректна только на фронтальных и мягких бинах (|yaw| ≤ 32.5°).
+"""
 import numpy as np
 A_PAIRS=(('A01','A03'),('A04','A05'),('A06','A07'),('A09','A10'),('A11','A12'),('A13','A14'),('A15','A16'),('A17','A18'))
+# 📊 Симметрия текстур (только фронтальные бины)
 def texture_symmetry(package):
  with package.npz('features/texture.npz') as z:codes=list(map(str,z['zone_id']));vals=z['values'];states=z['state'];cols=list(map(str,z['columns']))
  rows=[]

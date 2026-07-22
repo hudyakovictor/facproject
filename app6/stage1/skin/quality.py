@@ -4,11 +4,13 @@ Changes vs previous:
 - projected_density no longer hard-clipped to 100 (was saturating to constant)
 - optional percentile winsorization only for extreme outliers
 - per-zone applicability helper for quality.json diagnostics
+📊 CONVENTIONS v2 → per-zone applicability; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 import cv2
 import numpy as np
 from .contracts import Applicability, EvidenceState, ReasonCode
+from ..status_logger import log_status
 
 FAMILIES = ('geometry','macro_texture','meso_texture','micro_texture','wrinkles','pigmentation','material_optics','local_feature_matching')
 
@@ -90,6 +92,7 @@ def _sanitize_density(scale: np.ndarray, domain: np.ndarray) -> tuple[np.ndarray
     return s.astype(np.float32), meta
 
 def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, projected_density_map=None):
+    log_status("quality_maps", "complete")
     g = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
     d = np.asarray(domain, bool)
     gx = cv2.Sobel(g, cv2.CV_32F, 1, 0, ksize=3)
@@ -129,7 +132,7 @@ def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, pro
     inc = np.asarray(incidence, np.float32)
     proj = np.asarray(projection_confidence, np.float32)
 
-    
+
     # mesh_grid_fix: smooth conf inside domain so quality renders lose triangle grid
     _d = np.asarray(domain, bool)
     if np.any(_d):
@@ -145,7 +148,7 @@ def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, pro
     # physical quality BEFORE pose prior
     w = (focus * exposure * proj * proc * ns * (~spec) * (~shadow) * d).astype(np.float32)
 
-    
+
     # mesh_grid_fix: mild domain-normalized smooth of quality_weight (kills residual mesh faceting)
     if np.any(d):
         _wf = np.where(d, w, 0.0).astype(np.float32)
@@ -197,6 +200,7 @@ def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, pro
     }
 
 def applicability(m, d, W, H):
+    log_status("applicability", "complete")
     n = int(np.asarray(d).sum())
     def _med(key):
         arr = m.get(key)
@@ -272,6 +276,7 @@ def applicability(m, d, W, H):
 
 def per_zone_applicability(A, domain, quality_weight, pose_weight=None, min_support=50.0, min_pixels=64):
     """Per-zone geometry/support/evidence snapshot for diagnostics."""
+    log_status("per_zone_applicability", "complete")
     A = np.asarray(A)
     d = np.asarray(domain, bool)
     qw = np.asarray(quality_weight, np.float32)

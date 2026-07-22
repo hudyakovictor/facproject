@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage2.texture_structure: SSIM/skeleton по зонам.
+"""
 from __future__ import annotations
 
 import unittest

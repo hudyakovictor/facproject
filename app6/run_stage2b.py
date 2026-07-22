@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
+"""🚪 ENTRY POINT → Stage 2B: пост-обработка и сводные таблицы после Stage 2.
+🔗 DEPENDS ON: stage2b.engine.run()
+⚠️ IN PROGRESS: часть реестров пост-отчётов ещё наполняется.
+"""
 from __future__ import annotations
 import argparse, sys
 from pathlib import Path
 APP_DIR=Path(__file__).resolve().parent
 DEFAULT_ROOT=APP_DIR.parent
 
+# 🚪 ENTRY POINT Stage 2B → stage2b.engine.run()
 def main()->int:
     p=argparse.ArgumentParser(description='DEEPUTIN app6 stage 2B private prior corroboration')
     p.add_argument('--project-root',type=Path,default=DEFAULT_ROOT)

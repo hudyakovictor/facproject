@@ -1,4 +1,9 @@
+"""📊 METRIC → Бутстрап-интервалы неопределённости для skin-скоров.
+🚪 API: bootstrap_interval()
+💡 NOTE: детерминированный seed — интервалы воспроизводимы между прогонами.
+"""
 import numpy as np
+# 📊 Детерминированный бутстрап-интервал
 def bootstrap_interval(values,n_boot=1000,seed=0):
  x=np.asarray(values,float);x=x[np.isfinite(x)]
  if len(x)<3:return {'status':'insufficient_evidence','estimate':None}

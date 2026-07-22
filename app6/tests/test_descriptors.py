@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → локальные парные дескрипторы stage2.descriptors ( neighbor-агрегация ).
+"""
 from __future__ import annotations
 import unittest,numpy as np
 from app6.stage2.core import Record

@@ -4,6 +4,7 @@ BREAKING behavior vs old silent fallback:
 - missing/unreadable CSV raises FileNotFoundError/ValueError (no silent default)
 - weights() still returns CSV prior map
 - soft_evidence_weights() never hard-zeros observed visible pixels solely because CSV says exclude
+🎯 CONVENTIONS v2 → политика pose-бинов skin-слоя; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 import csv
@@ -26,6 +27,7 @@ MIN_COMMON_USABLE_ZONES = 4
 MIN_COVERAGE_SYM = 0.35
 
 
+# 📊 yaw → pose bin (согласовано с config.POSE_BINS)
 def yaw_to_bin(yaw_deg: float) -> int:
     diffs = [abs(float(yaw_deg) - b) for b in YAW_BINS]
     return YAW_BINS[int(np.argmin(diffs))]
@@ -120,6 +122,7 @@ class PosePolicy:
                     role, w = 'primary', 1.0
                 self.rows[(zone, yaw)] = (role, w)
 
+    # 🔍 Получить политику для бина
     def get(self, zone_id: str, yaw_deg: float) -> Tuple[str, float]:
         bin_yaw = yaw_to_bin(yaw_deg)
         return self.rows.get((zone_id, bin_yaw), ('exclude', 0.0))
@@ -130,6 +133,7 @@ class PosePolicy:
         except Exception:
             return int(yaw_to_bin(yaw))
 
+    # 📊 CSV-приор весов (может содержать нули = hard prior)
     def weights(self, A, yaw):
         """CSV prior weight map (may contain zeros). Used as comparison prior."""
         c = self._selected_center(yaw)
@@ -164,6 +168,7 @@ class PosePolicy:
         }
         return w_map, meta
 
+    # 📊 Мягкий приор: без обнуления наблюдаемых доказательств
     def soft_evidence_weights(
         self,
         A,
@@ -224,6 +229,7 @@ class PosePolicy:
         })
         return soft, meta, observed
 
+    # ✅ Совместимость бина с правилом политики
     def is_compatible(self, zone_id: str, yaw_a: float, yaw_b: float) -> Tuple[bool, float, str]:
         bin_a = yaw_to_bin(yaw_a)
         bin_b = yaw_to_bin(yaw_b)
@@ -245,6 +251,7 @@ class PosePolicy:
             return False, combined, f'low combined weight {combined:.2f}'
         return True, combined, f'ok {role_a}({w_a})+{role_b}({w_b})=>{combined:.2f}'
 
+    # 🚧 Гейт совместной наблюдаемости зоны на паре бинов
     def common_observed_gate(self, coverage_sym: float, weight_combined: float) -> Tuple[str, float]:
         effective = float(coverage_sym * weight_combined)
         if coverage_sym < MIN_COVERAGE_SYM:
@@ -255,6 +262,7 @@ class PosePolicy:
             return 'COARSE_ONLY', effective
         return 'USABLE', effective
 
+    # 🚧 Гейт по разнице yaw между бинами
     @staticmethod
     def pose_delta_gate(
         yaw_a: float, pitch_a: float, roll_a: float,

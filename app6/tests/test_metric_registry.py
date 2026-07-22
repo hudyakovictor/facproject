@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage2.metric_registry: валидация 100 каналов, metric_channel().
+"""
 from __future__ import annotations
 
 import re

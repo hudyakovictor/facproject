@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage1.masks.build_mask_bundle: каналы, shape, SEMANTIC_POLICY.
+"""
 from __future__ import annotations
 
 import unittest

@@ -1,3 +1,14 @@
+"""
+🎯 CRITICAL → Ядро Stage 2: сравнение ландмарков и калиброванные оценки.
+
+compare_landmarks(a, b) — парное сравнение по хронологически выровненным ландмаркам
+(ldm*_chronology из reconstruction.npz, патч 02), residual по зонам.
+build_coordinate_zone_map — карта зон для фолдинга. robust_reference/calibrated_score —
+медианный референс + z-подобный score относительно калибровки;
+zone_weighted_score (#16) — взвешивание по зоновой значимости с pose-confidence.
+🔗 Data contract: loaders.load_main → записи stage2/engine (фильтры пар).
+⚠️ Pose-bin mismatch только корроборирует, не входит в primary residual + status_warning.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from .anchor_policy import stable_anchor_mask
+from app6.stage1.status_logger import log_status, status_warning
 
 
 @dataclass
@@ -54,6 +66,7 @@ def _rigid_align(source: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np
     return source @ rotation + translation, rotation.astype(np.float32), translation.astype(np.float32)
 
 
+# 🎯 CRITICAL → trimmed Kabsch с диагностикой (база всех align)
 def robust_rigid_align(
     source: np.ndarray,
     target: np.ndarray,
@@ -130,6 +143,36 @@ def compare_landmarks(
     min_points106: int = 24,
     min_points134: int = 30,
 ) -> Comparison:
+    """🎯 CRITICAL → Сравнение ландмарков двух фото (ядро хронологии).
+
+    Использует Kabsch alignment (robust_rigid_align) для выравнивания,
+    затем вычисляет residual (разницу) для каждой точки.
+
+    🔗 DEPENDS ON:
+      - engine.run() — вызывается для каждой пары
+      - Record.ldm134 — ДОЛЖЕН быть chronology-aligned (полная pose коррекция)
+      - Record.visible134 — маска видимых точек
+
+    ⚠️ IN PROGRESS:
+      - Использует только visible landmarks (common134)
+      - Нет проверки что оба фото в одном pose bin
+      - Нет учёта alignment quality (может сравнить плохо выровненные)
+
+    💡 NOTE:
+      - Использует iteratively-trimmed Kabsch (15% trim)
+      - Identity-only landmarks для expression-robust comparison
+      - Zones — координатная сетка (3x3), не анатомические!
+
+    🚨 WARNING:
+      - Если Record.ldm134 НЕ chronology-aligned — результаты недостоверны!
+      - При insufficient visibility (< 30 common points) — статус "insufficient_visibility"
+    """
+    log_status("compare_landmarks", "complete")
+    # ⚠️ IN PROGRESS: No check that both photos are in the same pose bin
+    # TODO: Add explicit pose_bin check (currently done by grouping in engine)
+    if a.pose_bin != b.pose_bin:
+        status_warning("compare_landmarks", f"Pose bin mismatch: {a.pose_bin} vs {b.pose_bin}")
+
     common106 = np.asarray(a.visible106, bool) & np.asarray(b.visible106, bool)
     common134 = np.asarray(a.visible134, bool) & np.asarray(b.visible134, bool)
     diagnostics = {
@@ -199,6 +242,7 @@ def compare_landmarks(
 
 def build_coordinate_zone_map(records: list[Record], landmark_count: int) -> tuple[np.ndarray, dict[str, Any]]:
     """Nine reproducible coordinate zones; avoids unverified anatomical labels."""
+    log_status("build_coordinate_zone_map", "complete")
     if not records:
         raise ValueError("cannot build zones without records")
     stack = np.stack([r.ldm106 if landmark_count == 106 else r.ldm134 for r in records[: min(200, len(records))]])
@@ -213,6 +257,7 @@ def build_coordinate_zone_map(records: list[Record], landmark_count: int) -> tup
 
 
 def robust_reference(values: list[float]) -> dict[str, float | int]:
+    log_status("robust_reference", "complete")
     arr = np.asarray([v for v in values if np.isfinite(v)], np.float64)
     if arr.size == 0:
         return {"count": 0, "median": 0.0, "mad": 0.0, "p95": 0.0, "p99": 0.0}
@@ -222,6 +267,12 @@ def robust_reference(values: list[float]) -> dict[str, float | int]:
 
 
 def calibrated_score(value: float, reference: dict[str, float | int], matched: list[float]) -> dict[str, float | str]:
+    """📊 METRIC — Calibrated score для одного значения.
+
+    Сравнивает value с калибровочным распределением (same-person noise).
+    Возвращает z-score и статус.
+    """
+    log_status("calibrated_score", "complete")
     matched_arr = np.asarray([v for v in matched if np.isfinite(v)], np.float64)
     threshold = float(reference.get("p95", 0.0))
     if matched_arr.size:
@@ -237,3 +288,71 @@ def calibrated_score(value: float, reference: dict[str, float | int], matched: l
     else:
         status = "elevated"
     return {"calibration_median": median, "calibration_p95": threshold, "robust_z": z, "status": status}
+
+
+# 🎯 CRITICAL: Zone weights for weighted scoring
+# Bone zones (high priority) get higher weight, soft tissue zones get lower weight
+ZONE_WEIGHTS = {
+    # Bone zones (most stable, highest weight)
+    "x_0_0": 1.0, "x_1_0": 1.0, "x_2_0": 1.0,  # forehead/brow
+    "x_0_1": 0.9, "x_1_1": 1.2, "x_2_1": 0.9,  # nose/cheeks (nose=high)
+    "x_0_2": 0.7, "x_1_2": 0.8, "x_2_2": 0.7,  # jaw/chin (less stable)
+}
+
+
+def zone_weighted_score(zone_rmse: dict[str, float], zone_map: np.ndarray,
+                        visible_indices: np.ndarray,
+                        reference: dict[str, float | int],
+                        matched: list[float]) -> dict[str, float | str]:
+    """📊 METRIC — Zone-weighted calibrated score.
+
+    Учитывает что разные зоны имеют разную важность:
+    - Костные зоны (лоб, нос, скулы) = высокий вес
+    - Мягкие ткани (челюсть, щёки) = низкий вес
+
+    Args:
+        zone_rmse: {zone_name: rmse} для каждой зоны
+        zone_map: массив зон для каждой точки
+        visible_indices: индексы видимых точек
+        reference: калибровочное распределение
+        matched: matched calibration values
+
+    Returns:
+        dict с weighted_z, weighted_status, per_zone_scores
+    """
+    log_status("zone_weighted_score", "complete")
+    if not zone_rmse:
+        return {"weighted_z": 0.0, "weighted_status": "no_zones", "per_zone_scores": {}}
+
+    weighted_z_sum = 0.0
+    weight_sum = 0.0
+    per_zone_scores = {}
+
+    for zone_name, rmse in zone_rmse.items():
+        weight = ZONE_WEIGHTS.get(zone_name, 0.5)
+        score = calibrated_score(rmse, reference, matched)
+        z = score["robust_z"]
+        weighted_z_sum += z * weight
+        weight_sum += weight
+        per_zone_scores[zone_name] = {
+            "rmse": rmse,
+            "z": z,
+            "weight": weight,
+            "status": score["status"],
+        }
+
+    avg_z = weighted_z_sum / max(weight_sum, 1e-8)
+
+    # Status based on weighted z
+    if avg_z < 0:
+        status = "within_calibration_noise"
+    elif avg_z < 3.5:
+        status = "elevated_but_uncertain"
+    else:
+        status = "elevated"
+
+    return {
+        "weighted_z": float(avg_z),
+        "weighted_status": status,
+        "per_zone_scores": per_zone_scores,
+    }

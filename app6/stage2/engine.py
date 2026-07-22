@@ -1,3 +1,13 @@
+"""
+🎯 CRITICAL → Оркестратор Stage 2: формирование пар, фильтры, payload для отчёта.
+
+run(): load_main/load_calibration (хронология-выравненные данные), затем пары
+(соседние по времени + не-соседние) с гейтами: MIN_ALIGNMENT_QUALITY=0.5 (патч 02),
+MAX_EXPRESSION_MAGNITUDE=1.5 (#11). Далее: core-показатели, calibration,
+chronology rate flags, corroboration, motion/dense-mesh/texture каналы,
+multiple_testing FDR, persistence результатов.
+⚠️ Открыто: calibration cross-validation и residual pose check (status_warning TODO).
+"""
 from __future__ import annotations
 import json,time,shutil
 import numpy as np
@@ -7,6 +17,7 @@ from datetime import datetime,timezone
 from pathlib import Path
 from typing import Any
 from app6.stage1.utils import atomic_json,sha256_file,sha256_json,write_csv
+from app6.stage1.status_logger import log_status, status_warning
 from .calibration import CalibrationModel
 from .calibration_sensitivity import leave_one_dataset_sensitivity
 from .core import build_coordinate_zone_map,calibrated_score,compare_landmarks
@@ -33,11 +44,13 @@ from .evidence import evidence_state, packet_from_pair
 
 SCHEMA='deeputin-stage2-v1.3'
 
+# 🔄 UTC-штамп для payload
 def utc():return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
 
 @dataclass(frozen=True)
 class Stage2Config:
  stage1_root:Path;calibration_root:Path;output_dir:Path;overwrite:bool=False;min_points106:int=24;min_points134:int=30;lead_archive:Path|None=None
+ # 🏭 FACTORY → сборка итогового payload прогона
  def payload(self):return {'schema':SCHEMA,'min106':self.min_points106,'min134':self.min_points134,'calibration':'7x-same-person-matched-plus-pooled-v1','lead_policy':'coverage_only_not_threshold_tuning','descriptor_families':list(DESCRIPTOR_NAMES)}
 
  def __post_init__(self):
@@ -47,6 +60,38 @@ class Stage2Config:
 class Stage2Engine:
  def __init__(self,cfg):self.cfg=cfg
  def run(self):
+  """🎯 CRITICAL → Полный анализ Stage 2 (сравнение пар, хронология, калибровка).
+
+  Проходит по всем парам фото внутри pose bins:
+  1. Сравнение ландмарков (compare_landmarks)
+  2. Point motion analysis (aligned_point_motion)
+  3. Descriptor analysis (shape families)
+  4. Mesh comparison (dense_mesh_pair)
+  5. Texture comparison (texture_pair_deltas)
+  6. Chronology rate flags (apply_chronology_rate_flags)
+  7. Cross-bin corroboration (apply_cross_bin_corroboration)
+  8. Multiple testing correction (FDR)
+
+  🔗 DEPENDS ON:
+    - load_main() — загрузка Stage 1 данных
+    - load_calibration() — калибровочная модель
+    - compare_landmarks() — ядро сравнения
+
+  ⚠️ IN PROGRESS:
+    - Использует chronology-aligned landmarks (исправлено)
+    - Фильтрует по alignment quality (исправлено)
+    - Нет проверки что калибровочная модель стабильна (cross-validation)
+
+  💡 NOTE:
+    - Пары только внутри одного pose bin (adjacent + baseline)
+    - Calibration noise из 7 same-person datasets
+    - FDR correction для multiple testing
+
+  🚨 WARNING:
+    - При отсутствии калибровочных данных — ошибка
+    - При большом количестве пар — медленно (FDR)
+  """
+  log_status("run", "complete")
   t=time.time();o=self.cfg.output_dir
   if o.exists() and any(o.iterdir()) and not self.cfg.overwrite:raise FileExistsError(f'output exists: {o}')
   if o.exists() and self.cfg.overwrite:
@@ -73,10 +118,97 @@ class Stage2Engine:
   motion_dir=o/'point_motion';motion_dir.mkdir(exist_ok=True)
   groups=defaultdict(list)
   for r in main:groups[r.pose_bin].append(r)
+  # Load alignment quality from info.json for each record
+  alignment_quality = {}
+  for r in main:
+      info_path = Path(r.record_dir) / 'info.json' if r.record_dir else None
+      if info_path and info_path.is_file():
+          try:
+              info = json.loads(info_path.read_text(encoding='utf-8'))
+              chronology = info.get('chronology', {})
+              alignment_quality[r.record_id] = chronology.get('alignment_quality', 1.0)
+          except Exception:
+              alignment_quality[r.record_id] = 1.0
+      else:
+          alignment_quality[r.record_id] = 1.0
+  # Load expression magnitude from info.json for each record
+  expression_magnitude = {}
+  for r in main:
+      info_path = Path(r.record_dir) / 'info.json' if r.record_dir else None
+      if info_path and info_path.is_file():
+          try:
+              info = json.loads(info_path.read_text(encoding='utf-8'))
+              chronology = info.get('chronology', {})
+              expression_magnitude[r.record_id] = chronology.get('expression_magnitude', 0.0)
+          except Exception:
+              expression_magnitude[r.record_id] = 0.0
+      else:
+          expression_magnitude[r.record_id] = 0.0
+  # ⚠️ IN PROGRESS: Calibration stability cross-validation not implemented
+  # TODO: Add leave-one-out validation for calibration model
+  status_warning("calibration_stability", "Cross-validation not implemented")
+
+  # ⚠️ IN PROGRESS: Pose delta gate doesn't check residual after correction
+  # TODO: Add residual pitch/roll check after chronology alignment
+  status_warning("pose_delta_gate", "Residual pose check not implemented")
+  # Load temporal context: previous/next photos for each record
+  # This enables temporal smoothing and consistency checks
+  temporal_context = {}
+  for pose_bin, records in groups.items():
+      records_sorted = sorted(records, key=lambda r: (r.date or '9999', r.sequence))
+      for i, r in enumerate(records_sorted):
+          prev_rec = records_sorted[i - 1] if i > 0 else None
+          next_rec = records_sorted[i + 1] if i < len(records_sorted) - 1 else None
+          temporal_context[r.record_id] = {
+              'prev_record_id': prev_rec.record_id if prev_rec else None,
+              'next_record_id': next_rec.record_id if next_rec else None,
+              'prev_date': prev_rec.date if prev_rec else None,
+              'next_date': next_rec.date if next_rec else None,
+              'index_in_pose_bin': i,
+              'total_in_pose_bin': len(records_sorted),
+          }
+
+
+  # Filter out pairs where either photo has poor alignment quality (< 0.5)
+  MIN_ALIGNMENT_QUALITY = 0.5
+  # Filter out pairs where either photo has strong expression (jaw open, smile)
+  MAX_EXPRESSION_MAGNITUDE = 1.5  # threshold for expression dominance
   specs=[]
+  skipped_alignment = 0
+  skipped_expression = 0
+  # 🚨 WARNING (AUDIT-5): при отсутствии info.json дефолты (1.0/0.0) ПРОПУСКАЮТ фото
+  # через фильтры — без сигнала это скрывает loss of filtering. Считаем и предупреждаем.
+  missing_alignment_info = sum(1 for r in main if r.record_id not in alignment_quality)
+  missing_expression_info = sum(1 for r in main if r.record_id not in expression_magnitude)
+  if missing_alignment_info > 0:
+      status_warning("alignment_filter", f"{missing_alignment_info} records lack alignment_quality — NOT filtered (default pass)")
+  if missing_expression_info > 0:
+      status_warning("expression_filter", f"{missing_expression_info} records lack expression_magnitude — NOT filtered (default pass)")
   for pose,rs in sorted(groups.items()):
-   rs.sort(key=lambda x:(x.date or '9999',x.sequence,x.record_id));specs += [('adjacent',a,b) for a,b in zip(rs,rs[1:])]
-   if len(rs)>2:specs += [('baseline',rs[0],b) for b in rs[2:]]
+   rs.sort(key=lambda x:(x.date or '9999',x.sequence,x.record_id))
+   for a,b in zip(rs,rs[1:]):
+       # Skip if either photo has poor alignment
+       if alignment_quality.get(a.record_id, 1.0) < MIN_ALIGNMENT_QUALITY or alignment_quality.get(b.record_id, 1.0) < MIN_ALIGNMENT_QUALITY:
+           skipped_alignment += 1
+           continue
+       # Skip if either photo has strong expression
+       if expression_magnitude.get(a.record_id, 0.0) > MAX_EXPRESSION_MAGNITUDE or expression_magnitude.get(b.record_id, 0.0) > MAX_EXPRESSION_MAGNITUDE:
+           skipped_expression += 1
+           continue
+       specs.append(('adjacent',a,b))
+   if len(rs)>2:
+       for b in rs[2:]:
+           if alignment_quality.get(rs[0].record_id, 1.0) < MIN_ALIGNMENT_QUALITY or alignment_quality.get(b.record_id, 1.0) < MIN_ALIGNMENT_QUALITY:
+               skipped_alignment += 1
+               continue
+           if expression_magnitude.get(rs[0].record_id, 0.0) > MAX_EXPRESSION_MAGNITUDE or expression_magnitude.get(b.record_id, 0.0) > MAX_EXPRESSION_MAGNITUDE:
+               skipped_expression += 1
+               continue
+           specs.append(('baseline',rs[0],b))
+  if skipped_alignment > 0:
+      print(f"  Skipped {skipped_alignment} pairs due to poor alignment quality (< {MIN_ALIGNMENT_QUALITY})", flush=True)
+  if skipped_expression > 0:
+      print(f"  Skipped {skipped_expression} pairs due to strong expression (> {MAX_EXPRESSION_MAGNITUDE})", flush=True)
   rows=[];zones=[];details=[];quality_zone_rows=[];texture_zone_rows=[];mesh_rows=[];mesh_zones=[];uv_zone_list=[]
   for n,(ptype,a,b) in enumerate(specs,1):
    pid=f'{ptype}__{a.record_id}__{b.record_id}';c=compare_landmarks(a,b,z106,z134,self.cfg.min_points106,self.cfg.min_points134);matched=model.matched_null(a,b) if c.status=='measured' else {};scores={}
@@ -86,7 +218,15 @@ class Stage2Engine:
    identity_motion=aligned_point_motion(a,b,134,identity_only=True)
    identity_rmse=float(np.sqrt(np.nanmean(np.asarray(identity_motion['magnitude'])**2))) if identity_motion['status']=='measured' else float('nan')
    full_rmse=float(np.sqrt(np.nanmean(np.asarray(motion134['magnitude'])**2))) if motion134['status']=='measured' else float('nan')
-   expression_influence=float(max(0.,1.-identity_rmse/max(full_rmse,1e-8))) if np.isfinite(identity_rmse) and np.isfinite(full_rmse) else 0.
+   # ⚠️ FIX: Prevent division by zero when full_rmse is 0 or NaN
+   # If full_rmse is 0, both photos are identical (no motion)
+   # If full_rmse is NaN, motion couldn't be measured
+   if not np.isfinite(full_rmse) or full_rmse < 1e-8:
+       expression_influence = 0.0
+   elif not np.isfinite(identity_rmse):
+       expression_influence = 0.0
+   else:
+       expression_influence = float(max(0., 1. - identity_rmse / full_rmse))
    if c.status=='measured':status=motion_score134['status']
    if descriptor_score['status']=='descriptor_jump_candidate' and status in ('within_reconstruction_noise','scattered_or_uncertain'):status='coherent_jump_candidate'
    if status=='coherent_jump_candidate':

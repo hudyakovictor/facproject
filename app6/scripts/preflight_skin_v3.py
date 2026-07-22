@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""✅ VERIFIED → Pre-flight проверка готовности каталога к skin v3 (атлас, ассеты).
+🔗 DEPENDS ON: stage1.skin.atlas_registry.validate()
+🚪 ENTRY POINT: main() (helper add() — 🔄 CALLBACK для чек-листа).
+"""
 from __future__ import annotations
 import argparse,importlib.util,json,shutil,subprocess,sys
 from pathlib import Path

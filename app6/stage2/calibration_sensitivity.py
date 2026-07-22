@@ -1,3 +1,7 @@
+"""📊 METRIC → Чувствительность калибровки: leave-one-out по датасетам.
+🚪 API: leave_one_dataset_sensitivity()
+💡 NOTE: диагностика устойчивости; не входит в runtime-отчёт.
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -17,6 +21,7 @@ CORE_METRICS = (
 )
 
 
+# 📊 LOO-чувствительность p95 по калибровочным датасетам
 def leave_one_dataset_sensitivity(records: list[Record], zone106: np.ndarray, zone134: np.ndarray) -> dict[str, Any]:
     """Compute leave-one-calibration-dataset-out p95 sensitivity.
 

@@ -1,4 +1,9 @@
+"""📊 METRIC → Кросс-подтверждение событий между pose bins + агрегация.
+🚪 API: apply_cross_bin_corroboration(), aggregate_events()
+💡 NOTE: подтверждённое в ≥2 бинах событие повышает evidence-уровень.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import defaultdict
 from datetime import date
@@ -30,6 +35,7 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
     Cross-bin rows never contribute to the primary residual. They only corroborate
     already-frozen same-bin adjacent results inside a bounded temporal window.
     """
+    log_status("apply_cross_bin_corroboration", "complete")
     adjacent = [r for r in rows if r.get("pair_type") == "adjacent"]
     events: list[dict[str, Any]] = []
     for row in adjacent:
@@ -86,6 +92,7 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
 
 def aggregate_events(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Aggregate same target-date observations without pretending files are independent."""
+    log_status("aggregate_events", "complete")
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if row.get("pair_type") == "adjacent" and row.get("date_b"):

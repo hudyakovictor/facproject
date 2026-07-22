@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage1.storage: атомарный publish, clean_incomplete, write_failure.
+"""
 from __future__ import annotations
 
 import tempfile

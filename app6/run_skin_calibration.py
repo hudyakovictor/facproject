@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🚪 ENTRY POINT → Калибровка skin-пакета на референсных парах.
+🔗 DEPENDS ON: stage2.skin.package_calibration.build_package_calibration()
+📊 METRIC: производит sidecar-калибровки для skin-каналов.
+"""
 import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent;sys.path.insert(0,str(ROOT))

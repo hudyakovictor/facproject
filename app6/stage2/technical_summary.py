@@ -1,4 +1,9 @@
+"""📤 Техническая сводка прогона: версии контрактов, покрытие модулей.
+🚪 API: build_technical_summary()
+💡 NOTE: идёт в отчёт как appendix; не содержит выводов о лице.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import Counter
 from typing import Any
@@ -7,6 +12,7 @@ SUMMARY_SCHEMA = "deeputin-stage2-technical-summary-v1.0"
 
 
 def build_technical_summary(rows: list[dict[str, Any]], changes: list[dict[str, Any]], manifest: dict[str, Any]) -> dict[str, Any]:
+    log_status("build_technical_summary", "complete")
     status_counts = Counter(str(r.get("status")) for r in rows)
     evidence_counts = Counter(str(r.get("evidence_state")) for r in rows)
     quality_limited = sum(bool(r.get("quality_limited")) for r in rows)

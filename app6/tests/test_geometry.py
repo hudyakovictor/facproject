@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage1.geometry: classify_pose, yaw-бины, попиксельные преобразования.
+"""
 from __future__ import annotations
 
 import unittest

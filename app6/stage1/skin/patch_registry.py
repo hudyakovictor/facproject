@@ -1,6 +1,10 @@
+"""🏭 FACTORY → Реестр патчей зон (канонические координаты UV).
+🚪 API: build_patch_registry()
+"""
 from __future__ import annotations
 import numpy as np
 from .surface_geometry import SurfaceGeometry
+# 🏭 FACTORY → реестр патчей зон из атласа
 def build_patch_registry(vertices,triangles,uv,atlas):
  v=np.asarray(vertices);f=np.asarray(triangles);uv=np.asarray(uv);g=SurfaceGeometry(v,f);T,B,N=g.tangent_frames();rows=[];cent=[]
  for i,code in enumerate(atlas.S_codes):

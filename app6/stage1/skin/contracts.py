@@ -1,4 +1,7 @@
-"""Versioned, dependency-light contracts shared by skin Stage 1/2/3."""
+"""Versioned, dependency-light contracts shared by skin Stage 1/2/3.
+
+📜 CONVENTIONS v2 → контракты skin-пакета; статус: ✅ VERIFIED
+"""
 from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from enum import Enum
@@ -20,17 +23,21 @@ class ReasonCode(str,Enum):
 @dataclass(frozen=True)
 class Applicability:
  family:str;state:EvidenceState;effective_support:float;reasons:tuple[str,...]=();components:dict[str,float]=field(default_factory=dict)
+ # 📤 Сериализация контракта в dict
  def to_dict(self):
   d=asdict(self);d['state']=self.state.value;d['reasons']=list(self.reasons);return d
 @dataclass(frozen=True)
 class FeatureRecord:
  feature:str;version:int;zone_level:str;zone_id:str;patch_id:str|None;value:float|None;units:str;state:EvidenceState;support:dict[str,Any];quality:dict[str,Any];confounders:tuple[str,...];input_branch:str;extractor_config_sha256:str
+ # 📤 Сериализация контракта в dict
  def to_dict(self):
   d=asdict(self);d['state']=self.state.value;d['confounders']=list(self.confounders);return d
 
+# 🚨 Проверка версии схемы; mismatch = исключение
 def require_schema(payload:dict[str,Any],expected:str)->None:
  if payload.get('schema')!=expected:raise ValueError(f"schema mismatch: expected {expected}, got {payload.get('schema')}")
 
+# ✅ Проверка обязательных ключей пакета
 def validate_missing(value:Any,state:EvidenceState)->None:
  if state is EvidenceState.USABLE and value is None:raise ValueError('usable evidence cannot have null value')
  if state is not EvidenceState.USABLE and value==0:raise ValueError('zero sentinel forbidden for missing evidence')

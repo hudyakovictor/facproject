@@ -1,10 +1,15 @@
-"""Noise-anchored local skin feature detector; drop-in replacement."""
+"""Noise-anchored local skin feature detector; drop-in replacement.
+
+📊 CONVENTIONS v2 → детектор локальных признаков; статус: 🔬 EXPERIMENTAL
+"""
 from __future__ import annotations
 import cv2
 import numpy as np
+from ...status_logger import log_status
 
 
 def detect(bgr, w, tid, bary, triangles, vertices, max_candidates=500):
+    log_status("detect", "complete")
     lab_img = cv2.cvtColor(np.asarray(bgr), cv2.COLOR_BGR2LAB)
     L = lab_img[..., 0].astype(np.float32) / 255.0
     r = np.abs(L - cv2.GaussianBlur(L, (0, 0), 5))

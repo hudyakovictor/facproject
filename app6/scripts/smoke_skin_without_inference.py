@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Deterministic mean-mesh smoke test for the complete skin package, no Torch."""
+"""Deterministic mean-mesh smoke test for the complete skin package, no Torch.
+
+🔬 CONVENTIONS v2 → smoke без inference; статус: ✅ VERIFIED
+"""
 import argparse,cv2,json,shutil,sys,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))

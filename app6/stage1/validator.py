@@ -1,4 +1,16 @@
+"""
+🎯 CRITICAL → Валидатор комплекта фото (contract gate перед resume/retry).
+
+validate_photo(dir): целостность info.json/files; обязательные CSV
+(raw, aligned, CHRONOLOGY для 106/134) — сверка координат и vertex_index против npz;
+reconstruction.npz: shape/dtype/isfinite ВСЕХ числовых массивов (включая
+vertices_chronology_aligned, correction/target), ортонормальность rotation_matrix,
+packed-маски (combined == front & renderer), uv_shape/packbits консистентность,
+uv.npz, face_mask.npz, quality_zones.npz. Result: complete/incomplete/invalid —
+engine resume и run_stage1 опираются на этот статус.
+"""
 from __future__ import annotations
+from .status_logger import log_status
 
 import csv
 import json
@@ -90,6 +102,7 @@ def _csv_check(path: Path, expected: int) -> tuple[np.ndarray, np.ndarray]:
 
 
 def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]:
+    log_status("validate_photo", "complete")
     errors: list[str] = []
     warnings: list[str] = []
     info: dict[str, Any] = {}
@@ -305,6 +318,7 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
 
 
 def is_resumable(directory: Path, source_sha256: str, code_hash: str, config_hash: str, model_hash: str) -> tuple[bool, dict[str, Any] | None]:
+    log_status("is_resumable", "need_testing", "Indirect coverage only (AUDIT-6)")
     if not directory.is_dir():
         return False, None
     try:

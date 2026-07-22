@@ -1,3 +1,8 @@
+"""📊 METRIC → Движение точек после выравнивания + стабильность landmarks.
+🚪 API: pose_motion_support(), aligned_point_motion(), landmark_stability_score(), score()
+🚨 WARNING: поддержка по pose bin: profile_* = limited, out_of_range = unsupported
+🔗 DEPENDS ON: anchor_policy.stable_anchor_mask() + core.robust_rigid_align()
+"""
 from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
@@ -6,14 +11,17 @@ import numpy as np
 import warnings
 from .anchor_policy import stable_anchor_mask
 from .core import Record,robust_rigid_align
+from app6.stage1.status_logger import log_status
 
+# 💡 NOTE (AUDIT-5): config.POSE_BINS не эмитит *_profile_soft — записи удалены как
+# недостижимые; fallback `("profile" in p)` ниже покрывает любые будущие profile-названия.
 PROFILE_POSE_BINS = {
     "left_profile", "right_profile",
-    "left_profile_soft", "right_profile_soft",
 }
 UNSUPPORTED_POSE_BINS = {"out_of_supported_range", "unknown", ""}
 
 
+# 🚧 Тир поддержки motion-утверждений по pose bin
 def pose_motion_support(pose_bin: str) -> str:
     """Return support tier for point-motion claims on this pose bin."""
     p = str(pose_bin or "")
@@ -24,8 +32,25 @@ def pose_motion_support(pose_bin: str) -> str:
     return "supported"
 
 
-
 def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->dict[str,np.ndarray|int|str]:
+    """🎯 CRITICAL → Вычисление движения точек между двумя фото.
+
+    Использует chronology-aligned ландмарки (полная pose коррекция).
+    Kabsch alignment применяется для точного выравнивания.
+
+    🔗 DEPENDS ON:
+      - engine.run() — вызывается для каждой пары
+      - Record.ldm134 — ДОЛЖЕН быть chronology-aligned
+
+    ⚠️ IN PROGRESS:
+      - Нет проверки что оба фото в одном pose bin
+      - Нет учёта alignment quality
+
+    💡 NOTE:
+      - Использует iteratively-trimmed Kabsch (15% trim)
+      - Identity-only для expression-robust comparison
+    """
+    log_status("aligned_point_motion", "complete")
     if count==106:
         pa,pb=a.ldm106,b.ldm106;vis=np.asarray(a.visible106,bool)&np.asarray(b.visible106,bool)
         if identity_only: pa,pb=a.identity_only106,b.identity_only106
@@ -73,6 +98,7 @@ class PointNoiseModel:
                 median=np.nanmedian(stack,axis=0);mad=np.nanmedian(np.abs(stack-median),axis=0);p95=np.nanpercentile(stack,95,axis=0)
             cnt=np.sum(np.isfinite(stack),axis=0);template=np.nanmedian(np.stack(templates[key][:200]),axis=0)
             self.references[key]=PointNoiseReference(median.astype(np.float32),mad.astype(np.float32),p95.astype(np.float32),cnt.astype(np.int32),template.astype(np.float32))
+    # 📊 Калиброванный motion-скор
     def score(self,pose:str,count:int,motion:dict[str,Any])->dict[str,Any]:
         support=pose_motion_support(pose)
         ref=self.references.get((pose,count));mag=np.asarray(motion['magnitude'],np.float32);z=np.full(count,np.nan,np.float32);sig=np.zeros(count,bool)
@@ -92,6 +118,45 @@ class PointNoiseModel:
         else:
             summary=dict(summary); summary['pose_support']=support
         return {'status':status,'pose_support':support,'z':z,'significant':sig,'summary':summary}
+    @staticmethod
+    def landmark_stability_score(vectors: np.ndarray, valid: np.ndarray) -> float:
+        """📊 METRIC → Landmark stability score (0-1).
+
+        Measures how stable landmarks are across consecutive frames.
+        High stability = landmarks move coherently (same direction).
+        Low stability = random motion (noise).
+
+        ⚠️ IN PROGRESS:
+        - Simple heuristic based on vector coherence
+        - No temporal smoothing yet
+
+        Returns:
+            float: stability score (0=unstable, 1=perfectly stable)
+        """
+        valid_ids = np.flatnonzero(valid)
+        if len(valid_ids) < 10:
+            return 0.0
+
+        valid_vectors = vectors[valid_ids]
+        magnitudes = np.linalg.norm(valid_vectors, axis=1)
+
+        # Filter out zero-motion landmarks
+        moving = magnitudes > 1e-6
+        if moving.sum() < 5:
+            return 1.0  # All landmarks stable
+
+        # Compute direction coherence
+        directions = valid_vectors[moving] / magnitudes[moving, np.newaxis]
+        mean_direction = np.mean(directions, axis=0)
+        mean_norm = np.linalg.norm(mean_direction)
+
+        if mean_norm < 1e-8:
+            return 0.0  # No coherent motion
+
+        # Stability = how aligned are directions with mean
+        coherence = np.mean(np.dot(directions, mean_direction / mean_norm))
+        return float(np.clip(coherence, 0.0, 1.0))
+
     @staticmethod
     def _coherence(template,vectors,valid,significant,k=6):
         ids=np.flatnonzero(valid);sids=np.flatnonzero(significant)

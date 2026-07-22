@@ -1,3 +1,8 @@
+"""⚙️ Конфигурация Stage 1: пороги, семантические политики, POSE_BINS (9 бинов).
+🎯 CRITICAL → canonical yaw-значения [0, ±17.5, ±32.5, ±45] согласованы с
+  geometry.classify_pose() и golden-тестами — менять только синхронно!
+📤 public_dict()/extraction_payload() — сериализация конфига в info.json.
+"""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -37,6 +42,7 @@ class Stage1Config:
     save_original: bool = True
     save_mesh: bool = True
 
+    # 📤 Только настройки, влияющие на научный результат (идут в info.json)
     def extraction_payload(self) -> dict[str, Any]:
         """Only settings that can change scientific output."""
         return {
@@ -49,6 +55,7 @@ class Stage1Config:
             "save_mesh": bool(self.save_mesh),
         }
 
+    # 📤 Публичный dict конфига для сериализации
     def public_dict(self) -> dict[str, Any]:
         d = asdict(self)
         return {k: str(v) if isinstance(v, Path) else v for k, v in d.items()}

@@ -1,3 +1,15 @@
+"""
+🎯 CRITICAL → Оркестратор Stage 1: один inference 3DDFA → все артефакты фото.
+
+Для каждого фото _one() выполняет: EXIF-ориентацию, 3DDFA-реконструкцию,
+chronology alignment, запись reconstruction.npz / ldm*-{raw,aligned,chronology}.csv /
+info.json, сборку skin-пакета (без второго inference) и валидацию.
+Контракты: schema deeputin-stage1-v2.4-chronology-alignment; в info["chronology"]
+пишутся alignment_quality, residual_*_deg, pose_confidence, expression_magnitude,
+detection_confidence. run() дополнительно: SHA256-дедупликация входа (#22),
+пропуск уже валидных фото (resume), атомарный main_timeline.csv.
+💡 NOTE: ldm*_aligned.csv — DEPRECATED (yaw-only); используйте ldm*_chronology.csv.
+"""
 from __future__ import annotations
 
 import json
@@ -14,6 +26,7 @@ import numpy as np
 from .assets import save_image_assets, save_uv_and_mesh, technical_quality, save_face_mask, save_semantic_channels
 from .config import IMAGE_EXTENSIONS, PHOTO_SCHEMA_VERSION, SCHEMA_VERSION, Stage1Config
 from .geometry import pack_mask, to_original_image
+from .status_logger import log_status, status_warning
 from .masks import build_mask_bundle
 from .naming import make_photo_id, parse_photo_name
 from .reconstruction import ReconstructionBundle, ReconstructionEngine
@@ -28,12 +41,26 @@ def _utc() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _landmark_rows(points: np.ndarray, visible: np.ndarray, indices: np.ndarray) -> list[dict[str, Any]]:
-    return [
-        {"landmark_id": i, "x": float(p[0]), "y": float(p[1]), "z": float(p[2]),
-         "visible": int(visible[i]), "vertex_index": int(indices[i])}
-        for i, p in enumerate(points)
-    ]
+def _landmark_rows(points: np.ndarray, visible: np.ndarray, indices: np.ndarray,
+                    confidence: np.ndarray | None = None) -> list[dict[str, Any]]:
+    """Создание строк CSV для ландмарков с опциональным confidence.
+    📊 METRIC — confidence вычисляется из projection + visibility.
+    """
+    log_status("_landmark_rows", "need_testing", "Indirect coverage only (AUDIT-6)")
+    rows = []
+    for i, p in enumerate(points):
+        row = {
+            "landmark_id": i,
+            "x": float(p[0]),
+            "y": float(p[1]),
+            "z": float(p[2]),
+            "visible": int(visible[i]),
+            "vertex_index": int(indices[i]),
+        }
+        if confidence is not None:
+            row["confidence"] = float(confidence[i])
+        rows.append(row)
+    return rows
 
 
 class Stage1Engine:
@@ -60,16 +87,35 @@ class Stage1Engine:
         self.recon = ReconstructionEngine(self.root, config.device, config.detector, config.backbone)
 
     def run(self) -> dict[str, Any]:
+        log_status("run", "complete")
         photos = sorted(
             p for p in self.cfg.input_dir.rglob("*")
             if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS and not p.name.startswith("._")
         )
         if self.cfg.limit:
             photos = photos[: self.cfg.limit]
+
+        # 🎯 CRITICAL: Detect duplicate photos by SHA256 hash
+        # Different filenames but same content = duplicates
+        seen_hashes: dict[str, str] = {}  # hash -> first filename
+        duplicate_count = 0
+        unique_photos = []
+        for path in photos:
+            file_hash = sha256_file(path)
+            if file_hash in seen_hashes:
+                print(f"  ⚠️ DUPLICATE: {path.name} == {seen_hashes[file_hash]} (skipping)", flush=True)
+                duplicate_count += 1
+                continue
+            seen_hashes[file_hash] = path.name
+            unique_photos.append(path)
+
+        if duplicate_count > 0:
+            print(f"  Found {duplicate_count} duplicate photos (skipped)", flush=True)
+
         started = time.time(); rows: list[dict[str, Any]] = []; errors: list[dict[str, Any]] = []
         skipped = 0
-        for number, path in enumerate(photos, 1):
-            print(f"[{number}/{len(photos)}] {path.name}", flush=True)
+        for number, path in enumerate(unique_photos, 1):
+            print(f"[{number}/{len(unique_photos)}] {path.name}", flush=True)
             try:
                 info, was_skipped = self._one(path)
                 rows.append(self._index_row(info)); skipped += int(was_skipped)
@@ -95,6 +141,9 @@ class Stage1Engine:
             pose = str(row["pose_bin"])
             pose_counts[pose] = pose_counts.get(pose, 0) + 1
             row["chronology_index_in_pose"] = pose_counts[pose]
+        # 💡 NOTE (AUDIT-5): main_index.csv — дубль main_timeline.csv, оставлен как
+        # compatibility-alias для внешних read-only потребителей (стиль app7).
+        # Канонический индекс для stage2 — main_timeline.csv (см. stage2/loaders.py).
         write_csv(self.cfg.output_dir / "main_index.csv", rows or [{"status": "no_successes"}])
         write_csv(self.cfg.output_dir / "main_timeline.csv", rows or [{"status": "no_successes"}])
         if errors:
@@ -115,6 +164,36 @@ class Stage1Engine:
         return manifest
 
     def _one(self, path: Path) -> tuple[dict[str, Any], bool]:
+        """🎯 CRITICAL → Обработка ОДНОГО фото через весь Stage 1.
+
+        Вызывается для каждого фото в цикле run(). Здесь происходит:
+        1. 3DDFA inference (reconstruction.py)
+        2. Pose classification + chronology alignment
+        3. Semantic mask + face mask generation
+        4. UV texture + mesh generation
+        5. Skin feature extraction (skin/pipeline.py)
+        6. Сохранение ВСЕХ результатов в output_dir/photo_id/
+
+        🔗 DEPENDS ON:
+          - run() — вызывает в цикле для каждого фото
+          - reconstruction.process() — 3DDFA inference
+          - build_skin_package() — skin feature extraction
+
+        ⚠️ IN PROGRESS:
+          - Нет проверки что фото не дублируется по содержимому
+          - Нет проверки качества реконструкции (reprojection error)
+          - Нет фильтрации по expression magnitude
+
+        💡 NOTE:
+          - Результаты атомарно сохраняются (temp dir → rename)
+          - При ошибке — пишет в _failures/photo_id.json
+          - При resume — проверяет хеши и пропускает уже обработанные
+
+        🚨 WARNING:
+          - Не вызывать параллельно для одного и того же фото!
+          - При continue_on_error=False — останавливается на первой ошибке
+        """
+        log_status("_one", "need_testing", "Indirect coverage only (AUDIT-6)")
         parsed = parse_photo_name(path)
         source_hash = sha256_file(path)
         photo_id = make_photo_id(parsed, source_hash)
@@ -130,7 +209,8 @@ class Stage1Engine:
         rec = self.recon.process(path, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         ldm = rec.landmark_arrays()
         ldm106_original = to_original_image(ldm["ldm106_image_224"], rec.trans_params)
-        ldm134_original = to_original_image(ldm["ldm134_image_224"], rec.trans_params)
+        # 💡 NOTE: ldm134_original намеренно не считаем — потребителя в пайплайне нет
+        # (AUDIT-5: был dead store). Добавить вызов можно симметрично ldm106 при появлении юзкейса.
         mask = build_mask_bundle(rec.semantic_channels_224, rec.trans_params, bgr.shape)
 
         with atomic_photo_directory(self.cfg.output_dir, photo_id, overwrite=final.exists()) as out:
@@ -174,17 +254,59 @@ class Stage1Engine:
             # Family-level applicability is produced later in the native skin
             # package from A20/S40/W14/Q projection and decomposed quality maps.
             quality_summary = {"status": "migrated_to_skin_quality_v1"}
+            # Compute per-landmark confidence for chronology landmarks
+            # Confidence = visibility * reprojection_anchor * front_facing
+            # Higher = more reliable landmark for comparison
+            def _compute_landmark_confidence(visible_arr, front_facing_arr, indices, reproj_factor):
+                """📊 METRIC — Per-landmark confidence score (0-1)."""
+                conf = np.zeros(len(indices), np.float32)
+                for i, idx in enumerate(indices):
+                    if visible_arr[i]:
+                        # Base confidence from visibility
+                        conf[i] = 1.0
+                        # Reduce if not front-facing
+                        if not front_facing_arr[idx]:
+                            conf[i] *= 0.5
+                        # Reduce by reprojection quality factor
+                        conf[i] *= reproj_factor
+                return conf
+
+            # Reprojection quality factor (1.0 = perfect, 0.0 = bad)
+            reproj_factor = float(np.clip(1.0 - reprojection_p95 / 10.0, 0.1, 1.0))
+
+            ldm106_confidence = _compute_landmark_confidence(
+                ldm["ldm106_visible"], rec.front_facing, rec.ldm106_indices, reproj_factor
+            )
+            ldm134_confidence = _compute_landmark_confidence(
+                ldm["ldm134_visible"], rec.front_facing, rec.ldm134_indices, reproj_factor
+            )
+
 
             write_csv(out / "ldm106_raw.csv", _landmark_rows(ldm["ldm106_object"], ldm["ldm106_visible"], rec.ldm106_indices))
+            # ⚠️ DEPRECATED: ldm*_aligned.csv использует только yaw коррекцию
+            # Для хронологии используйте ldm*_chronology.csv (полная pose коррекция)
             write_csv(out / "ldm106_aligned.csv", _landmark_rows(ldm["ldm106_bin_canonical"], ldm["ldm106_visible"], rec.ldm106_indices))
-            write_csv(out / "ldm106_chronology.csv", _landmark_rows(ldm["ldm106_chronology_aligned"], ldm["ldm106_visible"], rec.ldm106_indices))
+            write_csv(out / "ldm106_chronology.csv", _landmark_rows(ldm["ldm106_chronology_aligned"], ldm["ldm106_visible"], rec.ldm106_indices, ldm106_confidence))
             write_csv(out / "ldm134_raw.csv", _landmark_rows(ldm["ldm134_object"], ldm["ldm134_visible"], rec.ldm134_indices))
             write_csv(out / "ldm134_aligned.csv", _landmark_rows(ldm["ldm134_bin_canonical"], ldm["ldm134_visible"], rec.ldm134_indices))
-            write_csv(out / "ldm134_chronology.csv", _landmark_rows(ldm["ldm134_chronology_aligned"], ldm["ldm134_visible"], rec.ldm134_indices))
+            write_csv(out / "ldm134_chronology.csv", _landmark_rows(ldm["ldm134_chronology_aligned"], ldm["ldm134_visible"], rec.ldm134_indices, ldm134_confidence))
             files.update({
-                "ldm106_raw": "ldm106_raw.csv", "ldm106_aligned": "ldm106_aligned.csv", "ldm106_chronology": "ldm106_chronology.csv",
-                "ldm134_raw": "ldm134_raw.csv", "ldm134_aligned": "ldm134_aligned.csv", "ldm134_chronology": "ldm134_chronology.csv",
+                "ldm106_raw": "ldm106_raw.csv",
+                "ldm106_aligned": "ldm106_aligned.csv",  # DEPRECATED: yaw-only
+                "ldm106_chronology": "ldm106_chronology.csv",  # RECOMMENDED
+                "ldm134_raw": "ldm134_raw.csv",
+                "ldm134_aligned": "ldm134_aligned.csv",  # DEPRECATED: yaw-only
+                "ldm134_chronology": "ldm134_chronology.csv",  # RECOMMENDED
             })
+            # Compute per-vertex visibility confidence
+            # Combines: combined_visible, front_facing, renderer_visible
+            # Higher = more reliable vertex for comparison
+            vertex_visibility_confidence = (
+                rec.combined_visible.astype(np.float32) *
+                rec.front_facing.astype(np.float32) *
+                (1.0 - np.clip(reprojection_p95 / 10.0, 0.0, 0.5))  # reduce for bad reprojection
+            ).astype(np.float32)
+
 
             arrays: dict[str, np.ndarray] = {
                 "vertices_object": rec.vertices_object, "vertices_identity_only": rec.vertices_identity_only,
@@ -193,6 +315,7 @@ class Stage1Engine:
                 "vertices_camera": rec.vertices_camera, "vertices_image_224": rec.vertices_image_224,
                 "normals_object": rec.normals_object, "normals_posed": rec.normals_posed,
                 "triangles": rec.triangles, "uv_coords": rec.uv_coords,
+                "vertex_visibility_confidence": vertex_visibility_confidence,
                 "ldm106_vertex_indices": rec.ldm106_indices, "ldm134_vertex_indices": rec.ldm134_indices,
                 "ldm106_identity_only": rec.vertices_identity_only[rec.ldm106_indices].astype(np.float32),
                 "ldm134_identity_only": rec.vertices_identity_only[rec.ldm134_indices].astype(np.float32),
@@ -237,9 +360,73 @@ class Stage1Engine:
                 skin_status={"state":"failed_retryable","error":str(exc)}
                 atomic_json(out / "skin_failure.json", skin_status);files["skin_failure"]="skin_failure.json"
 
+            # ⚠️ IN PROGRESS: Expression magnitude threshold not calibrated
+            # TODO: Calibrate MAX_EXPRESSION_MAGNITUDE on calibration dataset
+            status_warning("expression_threshold", "MAX_EXPRESSION_MAGNITUDE not calibrated")
+            # Compute alignment quality: how much correction was applied
+            # Lower is better (less correction needed = more reliable)
+            actual_pose = np.array([float(rec.angles_deg[0]), float(rec.angles_deg[1]), float(rec.angles_deg[2])])
+            target_pose = np.array([0.0, float(rec.canonical_yaw), 0.0])
+            correction_per_axis = np.abs(actual_pose - target_pose)
+
+            # Compute residual pose after correction
+            # This is the remaining pose difference after applying chronology alignment
+            # Ideally should be close to [0, 0, 0]
+            # Residual = actual - target (what we tried to correct)
+            residual_pose = actual_pose - target_pose
+            residual_pitch = float(residual_pose[0])
+            residual_yaw = float(residual_pose[1])
+            residual_roll = float(residual_pose[2])
+            # Weight yaw less (expected to be larger), pitch/roll more (should be near 0)
+            alignment_quality = float(1.0 - np.clip(
+                (correction_per_axis[0] / 15.0 + correction_per_axis[1] / 30.0 + correction_per_axis[2] / 15.0) / 3.0,
+                0.0, 1.0
+            ))
+            correction_magnitude_deg = float(np.linalg.norm(correction_per_axis))
+            # Compute reprojection quality (lower = better)
+            reprojection_p95 = float(max(r["p95"] for r in rec.reprojection.values()))
+            reprojection_rmse = float(min(r["rmse"] for r in rec.reprojection.values()))
+
+            # Compute expression magnitude from alpha_exp
+            # alpha_exp is a 64-dim vector representing expression coefficients
+            # Higher norm = more extreme expression
+            expression_magnitude = float(np.linalg.norm(rec.alpha_exp))
+
+            # Estimate jaw opening from alpha_exp
+            # In 3DDFA, dimensions 0-2 are typically jaw-related (pitch, yaw, roll of jaw)
+            # This is a heuristic - actual jaw opening depends on the specific model
+            jaw_open_degree = float(np.abs(rec.alpha_exp[0]) * 100) if len(rec.alpha_exp) > 0 else 0.0
+            # Compute pose confidence
+            # Extreme poses (>50° yaw) have lower confidence in 3DDFA
+            # This is based on the model's training distribution
+            yaw_magnitude = abs(float(rec.angles_deg[1]))
+            if yaw_magnitude < 20:
+                pose_confidence = 1.0  # frontal: high confidence
+            elif yaw_magnitude < 40:
+                pose_confidence = 0.9  # light 3/4: good confidence
+            elif yaw_magnitude < 55:
+                pose_confidence = 0.7  # deep 3/4: moderate confidence
+            elif yaw_magnitude < 70:
+                pose_confidence = 0.5  # profile: lower confidence
+            else:
+                pose_confidence = 0.3  # extreme profile: low confidence
+            # Estimate face detection confidence
+            # Based on face bbox size relative to image (larger = more confident)
+            # and face position (center = more confident)
+            face_bbox_area = crop_meta["bbox_original"][2] * crop_meta["bbox_original"][3]
+            image_area = bgr.shape[0] * bgr.shape[1]
+            face_area_ratio = face_bbox_area / max(image_area, 1)
+
+            # Heuristic: face should be 5%-80% of image
+            if 0.05 < face_area_ratio < 0.8:
+                detection_confidence = min(1.0, face_area_ratio * 2)
+            else:
+                detection_confidence = 0.3  # too small or too large
+
             # Compute visible landmarks count for this pose
             visible_106 = int(np.sum(ldm["ldm106_visible"]))
             visible_134 = int(np.sum(ldm["ldm134_visible"]))
+
 
             info = {
                 "schema_version": PHOTO_SCHEMA_VERSION, "photo_id": photo_id,
@@ -263,6 +450,21 @@ class Stage1Engine:
                     "visible_landmarks_134": visible_134,
                     "alignment_csv_106": "ldm106_chronology.csv",
                     "alignment_csv_134": "ldm134_chronology.csv",
+                    "alignment_quality": alignment_quality,
+                    "correction_magnitude_deg": correction_magnitude_deg,
+                    "correction_pitch_deg": float(correction_per_axis[0]),
+                    "correction_yaw_deg": float(correction_per_axis[1]),
+                    "correction_roll_deg": float(correction_per_axis[2]),
+                    "residual_pitch_deg": residual_pitch,
+                    "residual_yaw_deg": residual_yaw,
+                    "residual_roll_deg": residual_roll,
+                    "reprojection_p95": reprojection_p95,
+                    "reprojection_rmse": reprojection_rmse,
+                    "expression_magnitude": expression_magnitude,
+                    "jaw_open_degree": jaw_open_degree,
+                    "pose_confidence": pose_confidence,
+                    "detection_confidence": detection_confidence,
+                    "face_area_ratio": float(face_area_ratio),
                     "description": "Full pose correction (pitch+yaw+roll) to canonical pose. Use chronology CSVs for within-bin comparison."
                 },
                 "camera": {"projection": "perspective", "focal": 1015.0, "principal_point": [112.0, 112.0],

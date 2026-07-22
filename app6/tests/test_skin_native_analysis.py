@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → нативные skin-метрики без внешних ML-детекторов.
+"""
 import unittest,numpy as np,cv2
 from pathlib import Path
 from app6.stage1.skin.texture.features import extract_texture_features,FEATURES

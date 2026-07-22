@@ -1,8 +1,14 @@
+"""🎯 CRITICAL → Хронологические флаги: скорость изменения признака во времени.
+🚪 API: apply_chronology_rate_flags(), apply_biological_rate_flags()
+🔗 DEPENDS ON: stage1 chronology alignment (vertices_chronology_aligned)
+🚨 WARNING: требует >=2 дат; при одной дате флаги не выставляются.
+"""
 from __future__ import annotations
 from collections import defaultdict
 from datetime import date
 import math
 import numpy as np
+from app6.stage1.status_logger import log_status
 
 def _days(a: str | None, b: str | None) -> int | None:
     if not a or not b: return None
@@ -17,9 +23,25 @@ def _robust(vals: list[float]) -> tuple[float,float,float]:
     med=float(np.median(arr)); mad=float(np.median(np.abs(arr-med))); p95=float(np.percentile(arr,95)); return med,mad,p95
 
 def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
+    """🎯 CRITICAL → Apply chronology rate flags to adjacent pairs.
+
+    ⚠️ IN PROGRESS:
+    - Doesn't filter by alignment quality
+    - Doesn't filter by expression magnitude
+    - May produce false positives from poorly aligned pairs
+
+    💡 NOTE:
+    - Rate = p95_point_z * coherent_fraction / sqrt(days)
+    - Flags: same_day_structural_conflict, rapid_change_candidate
+    """
+    log_status("apply_chronology_rate_flags", "in_progress", "No alignment quality filter. NO BLOCKER - can add filter anytime")
     refs={}; by=defaultdict(list)
     for r in rows:
-        if r.get('pair_type')=='adjacent': by[r['pose_bin']].append(r)
+        if r.get('pair_type')=='adjacent':
+            # ⚠️ IN PROGRESS: Filter by alignment quality
+            # TODO: Skip pairs with poor alignment quality
+            # TODO: Skip pairs with strong expression
+            by[r['pose_bin']].append(r)
     for pose,group in by.items():
         rates=[]; coherent=[]
         for r in group:
@@ -73,6 +95,9 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     return refs
 
 
+# 🗑️ DEPRECATED alias → используйте apply_chronology_rate_flags
 def apply_biological_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     """Deprecated compatibility alias; use apply_chronology_rate_flags."""
+    # 🗑️ DEPRECATED (AUDIT-5): алиас логирует свой статус при вызове, делегирует основной функции
+    log_status("apply_biological_rate_flags", "deprecated", "Alias of apply_chronology_rate_flags")
     return apply_chronology_rate_flags(rows)

@@ -12,17 +12,20 @@ Improvements for 100%:
 - points: x,y,triangle_id,b0,b1,b2,sx,sy,sz,tangent_t,tangent_b,ridge_probability (same dtype)
 - meta includes: backend, scale factors, effective_resolution_median, valid_pixels, orientation histogram,
   endpoint_count, junction_count, component_count, density_per_sa
+📊 CONVENTIONS v2 → классический CV-детектор морщин; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 import cv2
 import numpy as np
 from ..surface_geometry import SurfaceGeometry
+from ...status_logger import log_status
 try:
     from skimage.filters import frangi, meijering
     from skimage.morphology import skeletonize
 except Exception:
     frangi = meijering = skeletonize = None
 
+# 📊 Frangi/Meijering с адаптацией масштаба к разрешению
 def response_map_scale_adaptive(gray01: np.ndarray, valid: np.ndarray, er_median: float = 1.2):
     """
     Frangi/Meijering scale adapts to effective_resolution median
@@ -64,6 +67,7 @@ def response_map_scale_adaptive(gray01: np.ndarray, valid: np.ndarray, er_median
             r = np.clip(r / p99, 0, 1)
     return r.astype(np.float32), {'sigmas': sigmas, 'er_factor': factor, 'er_median': er_median, 'fusion': f'blackhat+frangi+meijering ({len(responses)} channels)'}
 
+# 🔄 Compatibility shim для старых тестов
 def response_map(gray01: np.ndarray, valid: np.ndarray, er_median: float = 1.2):
     """
     Compatibility shim for old tests: response_map(g,m)
@@ -112,6 +116,7 @@ def detect(bgr, w, tid, bary, triangles, vertices, w14, er_median=None):
 
     Returns: ridge_probability, skeleton bool, points structured array, branches list, meta dict
     """
+    log_status("detect", "complete")
     gray01 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
     valid = np.asarray(w) > 0.15
     # er_median is supplied by pipeline.py from quality_maps['effective_resolution'].

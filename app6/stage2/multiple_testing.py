@@ -1,4 +1,9 @@
+"""📊 METRIC → Множественная проверка гипотез: BH FDR по парам и зонам.
+🚪 API: apply_pair_fdr(), apply_zone_fdr()
+💡 NOTE: _p_from_z через erfc-аппроксимацию — стабильно на малых p.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from math import erfc, sqrt
 from typing import Any
@@ -30,6 +35,7 @@ def _bh_qvalues(items: list[tuple[int, float]]) -> dict[int, float]:
 
 
 def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_threshold: float = 0.10) -> dict[str, Any]:
+    log_status("apply_pair_fdr", "complete")
     tests: list[tuple[int, float]] = []
     for i, r in enumerate(rows):
         z = r.get(z_key)
@@ -60,6 +66,7 @@ def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_
 
 
 def apply_zone_fdr(zones: list[dict[str, Any]], *, z_key: str = "robust_z", q_threshold: float = 0.10) -> dict[str, Any]:
+    log_status("apply_zone_fdr", "complete")
     tests: list[tuple[int, float]] = []
     for i, zrow in enumerate(zones):
         if zrow.get("status") != "measured" and zrow.get("mesh_zone_status") != "measured":

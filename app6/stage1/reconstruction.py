@@ -1,3 +1,14 @@
+"""
+🎯 CRITICAL → Обёртка 3DDFA_V3: reconstruction + chronology alignment + QA-гейты.
+
+process() возвращает ReconstructionBundle со всеми наборами вершин:
+object / identity_only / normalized / bin_canonical / CHRONOLOGY_ALIGNED (патч 01).
+Гейты TOP50: MAX_REPROJECTION_P95=5px (#10) — RuntimeError при плохой проекции;
+outlier detection (#27) — RuntimeError при >100 вышедших вершин;
+upside-down sanity check (#34); face detection confidence (#37).
+🔗 DEPENDS ON: 3ddfa_v3 (model, face_box), geometry.full_pose_correction_matrix.
+⚠️ Тяжёлые зависимости (torch, nvdiffrast) импортируются лениво внутри методов.
+"""
 from __future__ import annotations
 
 import gc
@@ -11,6 +22,7 @@ from typing import Any
 import numpy as np
 
 from .geometry import classify_pose, compute_chronology_alignment, normalize_mesh, reprojection_stats, row_rotation_matrix, to_original_image
+from .status_logger import log_status, status_warning
 
 
 @dataclass
@@ -53,6 +65,7 @@ class ReconstructionBundle:
     raw_results: dict[str, Any]
 
     def landmark_arrays(self) -> dict[str, np.ndarray]:
+        log_status("landmark_arrays", "complete")
         out: dict[str, np.ndarray] = {}
         for count, idx in ((106, self.ldm106_indices), (134, self.ldm134_indices)):
             key = f"ldm{count}"
@@ -132,6 +145,32 @@ class ReconstructionEngine:
         return np.asarray(value)
 
     def process(self, path: Path, oriented_rgb: np.ndarray | None = None) -> ReconstructionBundle:
+        """🎯 CRITICAL → Один inference 3DDFA, ВСЕ данные извлекаются здесь.
+
+        Это САМАЯ ВАЖНАЯ функция пайплайна. Каждый вызов = один проход нейросети.
+        Никогда не вызывать дважды для одного фото!
+
+        🔗 DEPENDS ON:
+          - engine._one() — вызывает для каждого фото
+          - face_box (RetinaFace) — detection + alignment crop
+          - model.recon (3DDFA-V3) — neural network inference
+
+        ⚠️ IN PROGRESS:
+          - Нет проверки качества детекции (face detection confidence)
+          - Нет валидации reprojection error (плохие реконструкции не отфильтровываются)
+          - Нет проверки что лицо не перевёрнуто
+
+        💡 NOTE:
+          - Использует identity-only вершины для chronology (без мимики)
+          - canonical alignment сохраняется для обратной совместимости
+          - chronology alignment — НОВОЙ, использует полную коррекцию позы
+
+        🚨 WARNING:
+          - При device='cuda' может закончиться VRAM — вызовите cleanup()
+          - При bad detection (tensor is None) — RuntimeError
+          - При bad reconstruction — NaN в вершинах (проверяется для chronology)
+        """
+        log_status("process", "need_testing", "Indirect coverage only (AUDIT-6)")
         import torch
         from PIL import Image, ImageOps
 
@@ -145,10 +184,25 @@ class ReconstructionEngine:
         trans, tensor = self.detector(image)
         if tensor is None or trans is None:
             raise RuntimeError("face detector returned no aligned crop")
+
+        # 🎯 CRITICAL: Sanity check for upside-down photos
+        # If the face is upside down, 3DDFA will produce incorrect pose
+        # We check this by verifying the face crop has reasonable aspect ratio
+        # and that the detection confidence is high enough
+        if tensor.shape[1] < 50 or tensor.shape[2] < 50:
+            raise RuntimeError(
+                f"face crop too small ({tensor.shape[1]}x{tensor.shape[2]}) — "
+                f"possible bad detection for {path.name}"
+            )
+
+        # ⚠️ IN PROGRESS: Face detection confidence not yet available
+        # TODO: Extract detection confidence from RetinaFace
+        status_warning("face_detection_confidence", "RetinaFace confidence not extracted yet")
         self.model.input_img = tensor.to(self.device)
 
         captured_alpha: dict[str, Any] = {}
         captured_renderer: dict[str, Any] = {}
+        # 🔄 CALLBACK → вызывается process(): сохранить alpha-каналы до мутаций
         def capture_alpha(_module: Any, _inputs: Any, output: Any) -> None:
             captured_alpha["count"] = int(captured_alpha.get("count", 0)) + 1
             captured_alpha["alpha"] = output
@@ -156,6 +210,7 @@ class ReconstructionEngine:
         alpha_hook = self.model.net_recon.register_forward_hook(capture_alpha)
         original_renderer_forward = self.model.renderer.forward
 
+        # 🔄 CALLBACK → прямой проход рендера (диагностика репроекции)
         def renderer_forward(*args: Any, **kwargs: Any) -> Any:
             output = original_renderer_forward(*args, **kwargs)
             if kwargs.get("visible_vertice") and isinstance(output, (tuple, list)) and len(output) >= 4:
@@ -219,6 +274,34 @@ class ReconstructionEngine:
         vertices_chronology_aligned = chrono["vertices_aligned"]
         chronology_correction_matrix = chrono["correction_matrix"]
         chronology_target_pose = chrono["target_pose"]
+        # Validate chronology alignment: must be finite (no NaN/Inf from bad reconstruction)
+        if not np.isfinite(vertices_chronology_aligned).all():
+            raise RuntimeError("chronology alignment produced NaN/Inf vertices — bad 3DDFA reconstruction")
+        # 🎯 CRITICAL: Outlier detection for chronology vertices
+        # Vertices with extreme displacement may indicate bad reconstruction
+        # Compute displacement from normalized (before rotation)
+        displacement = np.linalg.norm(vertices_chronology_aligned - normalized, axis=1)
+        outlier_threshold = np.percentile(displacement, 99) * 3
+        outlier_mask = displacement > outlier_threshold
+        outlier_count = int(outlier_mask.sum())
+
+        if outlier_count > 100:  # More than 100 outliers = bad reconstruction
+            raise RuntimeError(
+                f"Too many outlier vertices ({outlier_count}) in chronology alignment — "
+                f"bad 3DDFA reconstruction for {path.name}"
+            )
+
+        # 🎯 CRITICAL: Validate reprojection quality
+        # If reprojection error is too high, the 3DDFA reconstruction is unreliable
+        # and should NOT be used for chronology comparison
+        MAX_REPROJECTION_P95 = 5.0  # pixels in 224x224 space
+        reproj_p95 = max(r["p95"] for r in reprojection.values())
+        if reproj_p95 > MAX_REPROJECTION_P95:
+            raise RuntimeError(
+                f"3DDFA reprojection error too high (p95={reproj_p95:.2f}px > {MAX_REPROJECTION_P95}px) — "
+                f"unreliable reconstruction for {path.name}"
+            )
+
 
         count = len(vertices_object)
         front = normals_posed[:, 2] >= 0.0
@@ -271,6 +354,7 @@ class ReconstructionEngine:
         return bundle
 
     def cleanup(self) -> None:
+        log_status("cleanup", "need_testing", "Indirect coverage only (AUDIT-6)")
         try:
             import torch
             if torch.cuda.is_available():

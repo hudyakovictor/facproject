@@ -1,4 +1,10 @@
+"""🏭 FACTORY → Парсинг имён фото и детерминированная генерация photo_id.
+🔗 DEPENDS ON: utils.sha256_file — photo_id включает хэш содержимого
+📤 API: parse_photo_name(), make_photo_id()
+💡 NOTE: дата из имени файла — первичный источник хронологии для stage2.
+"""
 from __future__ import annotations
+from .status_logger import log_status
 
 import re
 from dataclasses import dataclass
@@ -25,6 +31,7 @@ class PhotoName:
 
 def parse_photo_name(path: Path) -> PhotoName:
     """Parse photo name, accepting YYYY_MM_DD[_N] with optional copy suffixes like (2), _2, -copy."""
+    log_status("parse_photo_name", "complete")
     stem = path.stem
     parsed = None
     date_end_pos = 0
@@ -39,7 +46,7 @@ def parse_photo_name(path: Path) -> PhotoName:
                 pass
     if parsed is None:
         raise ValueError(f"invalid filename; could not parse date: {path.name}")
-    
+
     suffix_match = _COPY_SUFFIX.search(stem[date_end_pos:])
     seq = int((suffix_match.group("n1") or suffix_match.group("n2")) if suffix_match else 1)
     # Весь остаток имени после даты (кроме расширения) идёт в canonical_stem,
@@ -60,6 +67,7 @@ def make_photo_id(parsed: PhotoName, source_sha256: str | None) -> str:
     Copy spellings normalised by ``parse_photo_name`` remain identical, while
     different bytes can never silently publish to the same photo directory.
     """
+    log_status("make_photo_id", "complete")
     if not source_sha256:
         return parsed.canonical_stem
     digest = str(source_sha256).lower()

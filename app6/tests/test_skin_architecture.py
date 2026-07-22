@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → архитектурные границы skin-слоя: single public render и пр.
+"""
 import ast,unittest
 from pathlib import Path
 class SkinArchitectureTests(unittest.TestCase):

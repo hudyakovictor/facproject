@@ -1,10 +1,14 @@
+"""🎯 CRITICAL → Калибровка skin-каналов на референс-парах → sidecar.
+🚪 API: build_package_calibration()
+🔗 DEPENDS ON: calibration.py (общий matched-null механизм).
+"""
 import csv,json,hashlib
 from pathlib import Path
 import numpy as np
 from .loader import SkinPackage
 from app6.stage1.skin.serialization import atomic_json
 def _records(root,metadata):
- 
+
  with open(metadata,encoding='utf8') as fh:rows=list(csv.DictReader(fh))
  out=[]
  for r in rows:
@@ -15,6 +19,7 @@ def _records(root,metadata):
      v=float(z['values'][i,j])
      if np.isfinite(v) and z['state'][i]=='usable':out.append({**r,'key':'|'.join((r['yaw_bin'],str(zone),str(name))),'value':v})
  return rows,out
+# 🎯 CRITICAL → калибровка skin-пакета → sidecar
 def build_package_calibration(stage1_root,metadata_csv,output,target_false_anomaly=.01,min_heldout_checks=30):
  rows,obs=_records(stage1_root,metadata_csv);train=[x for x in obs if x['split'] in {'development','calibration'}];test=[x for x in obs if x['split']=='test'];by={}
  for x in train:by.setdefault(x['key'],[]).append(x['value'])

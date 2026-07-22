@@ -1,7 +1,12 @@
+"""📊 METRIC → Попарное сопоставление локальных skin-дескрипторов.
+🚪 API: match_local_features()
+🔗 DEPENDS ON: stage1.skin.local_features.detector
+"""
 import numpy as np
 from app6.stage1.skin.surface_geometry import SurfaceGeometry
 try:from scipy.optimize import linear_sum_assignment
 except:linear_sum_assignment=None
+# 📊 Попарное сопоставление локальных признаков
 def match_local_features(a,b,gate=.08):
  with a.npz('features/local_candidates.npz') as x,b.npz('features/local_candidates.npz') as y,a.surface() as sa,b.surface() as sb:A=x['candidates'];B=y['candidates'];tri=sa['triangles'];geom=SurfaceGeometry((sa['surface_vertices']+sb['surface_vertices'])/2,tri,False)
  if not len(A) or not len(B):return {'status':'insufficient_evidence','matches':[]}

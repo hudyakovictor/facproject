@@ -1,3 +1,8 @@
+"""🚪 ENTRY POINT → Движок Stage 2B: собирает payload пост-отчётов поверх Stage 2.
+🚪 API: run(); helpers utc()/payload()
+🔗 DEPENDS ON: stage2.postprocess_reports + сводные таблицы
+⚠️ IN PROGRESS: часть секций наполняется по мере закрытия status-log.
+"""
 from __future__ import annotations
 
 import json
@@ -23,6 +28,7 @@ WEAK_STATES = {"elevated_uncertain", "quality_limited", "expression_dominated"}
 NO_SUPPORT_STATES = {"within_noise", "insufficient_visibility", "insufficient_calibration", "unsupported_pose"}
 
 
+# 🔄 UTC-штамп
 def utc() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -34,6 +40,7 @@ class Stage2BConfig:
     prior_root: Path | None = None
     overwrite: bool = False
 
+    # 🏭 FACTORY → payload пост-отчётов
     def payload(self) -> dict[str, Any]:
         return {
             "schema": SCHEMA,
@@ -46,6 +53,7 @@ class Stage2BEngine:
     def __init__(self, cfg: Stage2BConfig):
         self.cfg = cfg
 
+    # 🚪 ENTRY POINT Stage 2B
     def run(self) -> dict[str, Any]:
         out = self.cfg.output_dir
         if out.exists() and any(out.iterdir()) and not self.cfg.overwrite:

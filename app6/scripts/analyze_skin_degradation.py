@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🔬 EXPERIMENTAL → Анализ деградации skin-признаков при синтетических искажениях.
+🔗 DEPENDS ON: stage1.skin.sensitivity.degradation.benchmark()
+💡 NOTE: исследовательский скрипт; результаты не попадают в отчёт.
+"""
 import argparse,json
 from pathlib import Path
 import numpy as np

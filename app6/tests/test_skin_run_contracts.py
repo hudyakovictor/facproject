@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → контракты skin-run: manifest finalize, run_manager guard.
+"""
 import json,tempfile,unittest
 from pathlib import Path
 from app6.stage1.skin.config_loader import load_config

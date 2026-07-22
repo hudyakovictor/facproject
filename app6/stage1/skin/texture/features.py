@@ -12,10 +12,12 @@ Improvements for 100%:
   We keep old 18 at start for compat, append 6 new at end.
 
 Returns list of dicts with same keys: zone_level, zone_id, state, effective_support, values (np array float32)
+📊 CONVENTIONS v2 → LBP/GLCM признаки; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 import cv2
 import numpy as np
+from ...status_logger import log_status
 
 # Original 18 + 6 new = 24
 FEATURES = (
@@ -158,6 +160,7 @@ def extract_texture_features(bgr, w, A, S, min_support=100):
     bgr: HxW BGR uint8, w: quality_weight HxW float, A: A20 map HxW int, S: S40 map HxW int
     Returns list of dicts
     """
+    log_status("extract_texture_features", "complete")
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
     lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
     lab[...,0] /= 255.0

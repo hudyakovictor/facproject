@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🚪 ENTRY POINT → Skin Stage 1: извлечение skin-пакета из фото.
+🔗 DEPENDS ON: stage1.skin.pipeline.build_skin_package()
+💡 NOTE: отдельный от run_stage1.py вход — skin-слой опционален к основному.
+"""
 import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent;sys.path.insert(0,str(ROOT))

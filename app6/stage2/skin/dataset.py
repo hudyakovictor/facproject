@@ -1,8 +1,13 @@
+"""🎯 CRITICAL → Dataset-gate: валидация полноты skin-датасета перед анализом.
+🚪 API: validate_skin_dataset()
+🚨 WARNING: неполный датасет = отказ запуска stage2 skin (by design).
+"""
 import csv,hashlib
 from pathlib import Path
 REQUIRED=('photo_id','relative_path','input_sha256','capture_event_id','date_start','source_group','expression_bin','yaw_bin','duplicate_cluster','split')
+# 🚨 Dataset-gate: неполный датасет = отказ
 def validate_skin_dataset(root,csv_path,min_photos=180):
- 
+
  with open(csv_path,encoding='utf8') as fh:rows=list(csv.DictReader(fh))
  errors=[];clusters={};events={}
  if rows and set(REQUIRED)-set(rows[0]):errors.append('missing columns: '+str(sorted(set(REQUIRED)-set(rows[0]))))

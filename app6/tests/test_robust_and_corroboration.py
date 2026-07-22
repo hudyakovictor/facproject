@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → robust rigid align + кросс-биновое подтверждение событий.
+"""
 from __future__ import annotations
 
 import unittest

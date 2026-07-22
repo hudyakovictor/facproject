@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage2.leads: загрузка и спаривание лидов из структуры папок.
+"""
 from __future__ import annotations
 import json,tempfile,unittest
 from pathlib import Path

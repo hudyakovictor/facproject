@@ -6,6 +6,7 @@ Full implementation for 100% readiness:
 - calibrated cost gate ready
 
 Same signature: def match_wrinkle_packages(a,b,gate=.55)
+📊 CONVENTIONS v2 → сопоставление морщин; статус: 🔬 EXPERIMENTAL
 """
 from __future__ import annotations
 import math
@@ -48,6 +49,7 @@ def _robust_hausdorff(dist_matrix, p=95):
         return np.nan
     return float(np.percentile(dist_matrix, p))
 
+# 🔬 EXPERIMENTAL → сопоставление морщин пар
 def match_wrinkle_packages(a,b,gate=.55):
     try:
         sa_json = a.json('wrinkles/summary.json')

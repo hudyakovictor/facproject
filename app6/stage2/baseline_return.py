@@ -1,4 +1,10 @@
+"""📊 METRIC → Baseline-return: возврат признака к собственной базовой линии.
+🚪 API: apply_baseline_return()
+🔗 DEPENDS ON: loaders — векторы базовых линий из sidecar
+🔬 EXPERIMENTAL: _reversal_stats ещё калибруется.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import defaultdict
 from pathlib import Path
@@ -57,6 +63,7 @@ def apply_baseline_return(rows: list[dict[str, Any]], output_dir: Path) -> dict[
     This is intentionally conservative and does not assert biology/identity. It marks a
     candidate as reversible when the next adjacent edge has broadly opposite motion.
     """
+    log_status("apply_baseline_return", "complete")
     by_pose: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
         if r.get("pair_type") == "adjacent":
