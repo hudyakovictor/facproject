@@ -1,3 +1,14 @@
+"""
+🎯 CRITICAL → Ядро Stage 2: сравнение ландмарков и калиброванные оценки.
+
+compare_landmarks(a, b) — парное сравнение по хронологически выровненным ландмаркам
+(ldm*_chronology из reconstruction.npz, патч 02), residual по зонам.
+build_coordinate_zone_map — карта зон для фолдинга. robust_reference/calibrated_score —
+медианный референс + z-подобный score относительно калибровки;
+zone_weighted_score (#16) — взвешивание по зоновой значимости с pose-confidence.
+🔗 Data contract: loaders.load_main → записи stage2/engine (фильтры пар).
+⚠️ Pose-bin mismatch только корроборирует, не входит в primary residual + status_warning.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

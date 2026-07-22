@@ -1,3 +1,14 @@
+"""
+🎯 CRITICAL → Валидатор комплекта фото (contract gate перед resume/retry).
+
+validate_photo(dir): целостность info.json/files; обязательные CSV
+(raw, aligned, CHRONOLOGY для 106/134) — сверка координат и vertex_index против npz;
+reconstruction.npz: shape/dtype/isfinite ВСЕХ числовых массивов (включая
+vertices_chronology_aligned, correction/target), ортонормальность rotation_matrix,
+packed-маски (combined == front & renderer), uv_shape/packbits консистентность,
+uv.npz, face_mask.npz, quality_zones.npz. Result: complete/incomplete/invalid —
+engine resume и run_stage1 опираются на этот статус.
+"""
 from __future__ import annotations
 from .status_logger import log_status, log_blocker, log_warning
 

@@ -1,3 +1,14 @@
+"""
+🎯 CRITICAL → Геометрия поз: canonical alignment и chronology alignment.
+
+КЛЮЧЕВОЙ КОНТРАКТ (патч 01): фото в одном pose bin
+приводятся к ИДЕНТИЧНОЙ позе (0, canonical_yaw, 0) полной коррекцией
+pitch+yaw+roll через full_pose_correction_matrix (R_corr = R_target @ R_actual^T).
+Это исключает шумы наклона головы при хронологическом сравнении.
+🔗 DEPENDS ON: config.POSE_BINS (9 бинов yaw), используется reconstruction.py/engine.py.
+💡 NOTE: row_rotation_matrix — конвенция row-vector (Rz@Ry@Rx)^T; координаты согласованы с 3DDFA_V3.
+⚠️ nearest_canonical_yaw (#17) — soft assignment, в пайплайн пока не интегрирована.
+"""
 from __future__ import annotations
 
 import numpy as np

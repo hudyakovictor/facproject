@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run stage1 + skin sequentially per photo — single Python process, no model reload."""
-import sys,os,json,shutil,tempfile
+import sys,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT))
@@ -9,16 +9,9 @@ os.chdir(ROOT)
 def main():
  from app6.stage1.config import Stage1Config
  from app6.stage1.engine import Stage1Engine
- from app6.stage1.naming import parse_photo_name,sha256_file as sf
- from app6.stage1.geometry import unpack_mask,to_original_image
- from app6.stage1.skin.pipeline import build_skin_package
- from app6.stage1.skin.input_provenance import decode_oriented
- from app6.stage1.skin.batch import _to_original
- from app6.stage1.serialization import atomic_json
 
  inp=Path('/Volumes/SDCARD/storage/calibration_input')
  out=Path('/Volumes/SDCARD/storage/stage1')
- atlas=ROOT/'app6/atlas/texture_zones_bfm35709_v3.npz'
 
  cfg=Stage1Config(project_root=ROOT,input_dir=inp,output_dir=out,device='auto',overwrite=True)
  engine=Stage1Engine(cfg)
@@ -44,4 +37,4 @@ def main():
  print(f'DONE ok={ok} fail={fail} total={total}',flush=True)
 
 if __name__=='__main__':
- import numpy as np,cv2;main()
+ main()

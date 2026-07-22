@@ -1,3 +1,14 @@
+"""
+🎯 CRITICAL → Обёртка 3DDFA_V3: reconstruction + chronology alignment + QA-гейты.
+
+process() возвращает ReconstructionBundle со всеми наборами вершин:
+object / identity_only / normalized / bin_canonical / CHRONOLOGY_ALIGNED (патч 01).
+Гейты TOP50: MAX_REPROJECTION_P95=5px (#10) — RuntimeError при плохой проекции;
+outlier detection (#27) — RuntimeError при >100 вышедших вершин;
+upside-down sanity check (#34); face detection confidence (#37).
+🔗 DEPENDS ON: 3ddfa_v3 (model, face_box), geometry.full_pose_correction_matrix.
+⚠️ Тяжёлые зависимости (torch, nvdiffrast) импортируются лениво внутри методов.
+"""
 from __future__ import annotations
 
 import gc

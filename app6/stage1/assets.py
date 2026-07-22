@@ -1,3 +1,12 @@
+"""
+💡 NOTE → Запись визуальных ассетов фото: crop, UV-текстура, mesh, маски, превью.
+
+save_uv_and_mesh: единственная uv_texture.png (без beauty-дублей, аудит S1);
+mesh.obj/mtl опциональны (save_mesh, --no-mesh). save_face_mask: проекция
+face-области на оригинал (face_mask.npz). technical_quality: резкость/экспозиция/
+покрытие кожи для info["quality"]. save_semantic_channels: 8-канальный semantic npz.
+🔗 Вызывается только из engine._one(); координаты через geometry.to_original_image.
+"""
 from __future__ import annotations
 from .masks import CHANNEL_NAMES
 import shutil

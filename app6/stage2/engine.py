@@ -1,3 +1,13 @@
+"""
+🎯 CRITICAL → Оркестратор Stage 2: формирование пар, фильтры, payload для отчёта.
+
+run(): load_main/load_calibration (хронология-выравненные данные), затем пары
+(соседние по времени + не-соседние) с гейтами: MIN_ALIGNMENT_QUALITY=0.5 (патч 02),
+MAX_EXPRESSION_MAGNITUDE=1.5 (#11). Далее: core-показатели, calibration,
+chronology rate flags, corroboration, motion/dense-mesh/texture каналы,
+multiple_testing FDR, persistence результатов.
+⚠️ Открыто: calibration cross-validation и residual pose check (status_warning TODO).
+"""
 from __future__ import annotations
 import json,time,shutil
 import numpy as np

@@ -1,3 +1,15 @@
+"""
+🎯 CRITICAL → Оркестратор Stage 1: один inference 3DDFA → все артефакты фото.
+
+Для каждого фото _one() выполняет: EXIF-ориентацию, 3DDFA-реконструкцию,
+chronology alignment, запись reconstruction.npz / ldm*-{raw,aligned,chronology}.csv /
+info.json, сборку skin-пакета (без второго inference) и валидацию.
+Контракты: schema deeputin-stage1-v2.4-chronology-alignment; в info["chronology"]
+пишутся alignment_quality, residual_*_deg, pose_confidence, expression_magnitude,
+detection_confidence. run() дополнительно: SHA256-дедупликация входа (#22),
+пропуск уже валидных фото (resume), атомарный main_timeline.csv.
+💡 NOTE: ldm*_aligned.csv — DEPRECATED (yaw-only); используйте ldm*_chronology.csv.
+"""
 from __future__ import annotations
 
 import json

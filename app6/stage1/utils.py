@@ -1,3 +1,11 @@
+"""
+💡 NOTE → Низкоуровневые утилиты Stage 1: хеширование и атомарная запись.
+
+sha256_file/sha256_json/sha256_paths — контент-хеши для photo_id и дедупликации;
+atomic_json/write_csv — запись через временный файл + os.replace (crash-safe);
+runtime_versions — фиксация версий для воспроизводимости info.json.
+Используется engine.py, validator, run-скриптами. Все функции чистые, без глобального состояния.
+"""
 from __future__ import annotations
 from .status_logger import log_status, log_blocker, log_warning
 
