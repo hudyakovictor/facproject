@@ -25,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--overwrite", action="store_true")
     p.add_argument("--fail-fast", action="store_true")
     p.add_argument("--no-original-copy", action="store_true")
+    p.add_argument("--no-mesh", action="store_true", help="Skip mesh.obj/mesh.mtl output (keeps uv_texture.png)")
     return p
 
 
@@ -39,7 +40,7 @@ def main() -> int:
         project_root=root, input_dir=a.input.resolve(), output_dir=a.output.resolve(),
         device=a.device, detector=a.detector, backbone=a.backbone, uv_size=a.uv_size,
         limit=a.limit, overwrite=a.overwrite, continue_on_error=not a.fail_fast,
-        save_original=not a.no_original_copy,
+        save_original=not a.no_original_copy, save_mesh=not a.no_mesh,
     )
     Stage1Engine(cfg).run()
     return 0
