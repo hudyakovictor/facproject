@@ -352,7 +352,6 @@ def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], l
     pose_a = getattr(a, 'pose_bin', 'unknown')
     pose_b = getattr(b, 'pose_bin', 'unknown')
     if pose_a != pose_b:
-        from .status_logger import status_warning
         status_warning("texture_pair_deltas", f"Pose mismatch: {pose_a} vs {pose_b}")
     rows: list[dict[str, Any]] = []
     max_lap_delta = 0.0

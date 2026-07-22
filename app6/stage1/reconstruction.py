@@ -186,7 +186,6 @@ class ReconstructionEngine:
 
         # ⚠️ IN PROGRESS: Face detection confidence not yet available
         # TODO: Extract detection confidence from RetinaFace
-        from .status_logger import status_warning
         status_warning("face_detection_confidence", "RetinaFace confidence not extracted yet")
         self.model.input_img = tensor.to(self.device)
 
@@ -289,7 +288,6 @@ class ReconstructionEngine:
                 f"3DDFA reprojection error too high (p95={reproj_p95:.2f}px > {MAX_REPROJECTION_P95}px) — "
                 f"unreliable reconstruction for {path.name}"
             )
-
 
 
         count = len(vertices_object)

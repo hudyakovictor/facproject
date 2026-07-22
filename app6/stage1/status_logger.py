@@ -40,8 +40,6 @@ STATUS_FLOW = {
 ALWAYS_SHOW = {"need_testing", "complete", "in_progress", "blocked", "error", "experimental"}
 
 
-
-
 def log_status(func_name: str, status: str, detail: str = ""):
     """Log function status.
 
@@ -118,8 +116,6 @@ def _update_audit_status(func_name: str, new_status: str, audit_path: str):
         logger.info(f"  Updated {audit_path}: {func_name} → {new_status}")
 
 
-
-
 def log_blocker(func_name: str, blocker: str, detail: str = ""):
     """Log that a function is blocked by another function."""
     msg = f"{func_name}: BLOCKED by {blocker}"
@@ -162,16 +158,12 @@ def mark_closed(func_name: str):
     _closed_functions.add(func_name)
 
 
-
-
 def is_verified(func_name: str) -> bool:
     """Check if function has been verified."""
     return func_name in _verified_functions
 def is_closed(func_name: str) -> bool:
     """Check if function has been closed."""
     return func_name in _closed_functions
-
-
 
 
 def print_status_summary():

@@ -25,7 +25,6 @@ def pose_motion_support(pose_bin: str) -> str:
     return "supported"
 
 
-
 def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->dict[str,np.ndarray|int|str]:
     log_status("aligned_point_motion", "complete")
     """🎯 CRITICAL → Вычисление движения точек между двумя фото.

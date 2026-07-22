@@ -346,7 +346,6 @@ class Stage1Engine:
 
             # ⚠️ IN PROGRESS: Expression magnitude threshold not calibrated
             # TODO: Calibrate MAX_EXPRESSION_MAGNITUDE on calibration dataset
-            from .status_logger import status_warning
             status_warning("expression_threshold", "MAX_EXPRESSION_MAGNITUDE not calibrated")
             # Compute alignment quality: how much correction was applied
             # Lower is better (less correction needed = more reliable)

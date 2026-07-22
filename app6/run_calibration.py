@@ -30,37 +30,11 @@ def main():
   base=path.name
   print(f'[{i}/{total}] {base}',flush=True)
   try:
-   parsed=parse_photo_name(path)
-   source_hash=sf(path)
-   from app6.stage1.naming import make_photo_id
-   pid=make_photo_id(parsed,source_hash)
-   final=out/pid
-
-   # ---- stage1 ----
-   bgr,decode_meta=engine._decode_oriented(path)
-   rec=engine.recon.process(path,cv2.cvtColor(bgr,cv2.COLOR_BGR2RGB))
-   engine._save_output(final,path,bgr,rec,decode_meta)
-   # _save_output also saves info.json
-
-   # ---- skin ----
-   bgr2,_=decode_oriented(path)
-   with np.load(final/'reconstruction.npz',allow_pickle=False) as z:
-    tri=z['triangles'];vis=unpack_mask(z['full_mesh_visible_packbits'],len(z['vertices_object'])).astype(bool)
-    kwargs={'triangles':tri,'vertices_original_xy':_to_original(z['vertices_image_224'],z['trans_params']),
-            'vertices_depth':z['vertices_camera'][:,2],'normals':z['normals_posed'],
-            'surface_vertices':z['vertices_object_normalized'],'vertex_visibility':vis}
-   with open(final/'info.json') as f:info=json.load(f)
-   tmp=Path(tempfile.mkdtemp(prefix='.skin-',dir=final))
-   build_skin_package(photo_id=pid,input_path=path,bgr=bgr2,out_dir=tmp,
-    face_mask_data_path=final/'face_mask.npz',atlas_path=atlas,
-    coordinate_chain={'retry_from_reconstruction':True,'original_info':info.get('crop')},
-    models={'model_hash':info.get('model_hash')},config={'retry_skin_only':True},
-    pose=info.get('pose',{}),**kwargs)
-   sk=final/'skin'
-   if sk.exists():shutil.rmtree(sk)
-   (tmp/'skin').replace(sk);shutil.rmtree(tmp,ignore_errors=True)
-   info['skin']={'state':'success'};info.setdefault('files',{})['skin_manifest']='skin/manifest.json'
-   atomic_json(final/'info.json',info)
+   # ---- stage1 + skin via the single fixed pipeline (audit fix A2) ----
+   # Stage1Engine._one performs: decode/orient, 3DDFA reconstruction with
+   # full chronology pose correction, NaN/Inf validation, asset writing and a
+   # skin-package attempt (reusing the same reconstruction — no double inference).
+   info, was_skipped = engine._one(path)
    ok+=1
    print(f'  OK',flush=True)
   except Exception as e:

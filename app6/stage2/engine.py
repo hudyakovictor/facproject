@@ -134,7 +134,6 @@ class Stage2Engine:
           expression_magnitude[r.record_id] = 0.0
   # ⚠️ IN PROGRESS: Calibration stability cross-validation not implemented
   # TODO: Add leave-one-out validation for calibration model
-  from .status_logger import status_warning
   status_warning("calibration_stability", "Cross-validation not implemented")
 
   # ⚠️ IN PROGRESS: Pose delta gate doesn't check residual after correction
@@ -156,7 +155,6 @@ class Stage2Engine:
               'index_in_pose_bin': i,
               'total_in_pose_bin': len(records_sorted),
           }
-
 
 
   # Filter out pairs where either photo has poor alignment quality (< 0.5)

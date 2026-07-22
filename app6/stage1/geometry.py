@@ -58,8 +58,6 @@ def nearest_canonical_yaw(yaw: float) -> tuple[str, float]:
     return best_name, best_canonical
 
 
-
-
 def row_rotation_matrix(pitch_deg: float, yaw_deg: float, roll_deg: float) -> np.ndarray:
     """Euler rotation: Rz @ Ry @ Rx, transposed for row-vector convention."""
     log_status("row_rotation_matrix", "complete")
