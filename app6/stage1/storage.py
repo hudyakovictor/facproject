@@ -4,7 +4,7 @@
 🚨 WARNING: никогда не писать прямо в output_root/<photo_id> — только через этот модуль.
 """
 from __future__ import annotations
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 import os
 import shutil

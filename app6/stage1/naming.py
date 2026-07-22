@@ -4,7 +4,7 @@
 💡 NOTE: дата из имени файла — первичный источник хронологии для stage2.
 """
 from __future__ import annotations
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 import re
 from dataclasses import dataclass

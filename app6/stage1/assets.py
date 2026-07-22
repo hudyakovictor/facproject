@@ -12,7 +12,7 @@ from .masks import CHANNEL_NAMES
 import shutil
 from pathlib import Path
 from typing import Any
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 import cv2
 import numpy as np

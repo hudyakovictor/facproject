@@ -3,7 +3,7 @@
 💡 NOTE: идёт в отчёт как appendix; не содержит выводов о лице.
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 from collections import Counter
 from typing import Any

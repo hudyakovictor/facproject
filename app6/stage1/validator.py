@@ -10,7 +10,7 @@ uv.npz, face_mask.npz, quality_zones.npz. Result: complete/incomplete/invalid �
 engine resume и run_stage1 опираются на этот статус.
 """
 from __future__ import annotations
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 import csv
 import json

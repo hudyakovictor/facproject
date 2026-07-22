@@ -5,7 +5,7 @@
 from __future__ import annotations
 import cv2
 import numpy as np
-from ..status_logger import log_status, log_blocker, log_warning
+from ..status_logger import log_status
 
 
 def _zone_colors(n=20):

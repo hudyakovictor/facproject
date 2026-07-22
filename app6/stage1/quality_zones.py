@@ -4,7 +4,7 @@
 💡 NOTE: оставлен для обратной совместимости старых прогонов.
 """
 from __future__ import annotations
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 from datetime import datetime, timezone
 from pathlib import Path

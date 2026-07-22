@@ -4,7 +4,7 @@
 💡 NOTE: неверный якорь = смещение всех motion-метрик пары.
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 import numpy as np
 

@@ -17,7 +17,7 @@ Returns list of dicts with same keys: zone_level, zone_id, state, effective_supp
 from __future__ import annotations
 import cv2
 import numpy as np
-from ...status_logger import log_status, log_blocker, log_warning
+from ...status_logger import log_status
 
 # Original 18 + 6 new = 24
 FEATURES = (

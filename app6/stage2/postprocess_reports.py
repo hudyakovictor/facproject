@@ -3,7 +3,7 @@
 🔗 DEPENDS ON: все evidence/quality структуры финализированного прогона.
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 from collections import Counter, defaultdict
 from pathlib import Path

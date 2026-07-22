@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import date
 import math
 import numpy as np
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 def _days(a: str | None, b: str | None) -> int | None:
     if not a or not b: return None

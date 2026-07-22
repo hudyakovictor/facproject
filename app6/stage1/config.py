@@ -4,7 +4,6 @@
 📤 public_dict()/extraction_payload() — сериализация конфига в info.json.
 """
 from __future__ import annotations
-from .status_logger import log_status, log_blocker, log_warning
 
 from dataclasses import asdict, dataclass
 from pathlib import Path

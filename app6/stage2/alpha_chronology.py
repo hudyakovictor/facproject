@@ -4,7 +4,7 @@
 ⚠️ IN PROGRESS: часть каналов ещё без α-коэффициентов (fallback = passthrough).
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 from typing import Any
 

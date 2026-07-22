@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import numpy as np
 from .core import Record,robust_rigid_align
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 NAMES=("centroid_dx","centroid_dy","centroid_dz","span_lateral","span_vertical","span_depth","bbox_area","bbox_volume","radial_dispersion","plane_residual","normal_angle","curvature","planarity")
 
 def _neighbors(template: np.ndarray, k: int = 8) -> np.ndarray:

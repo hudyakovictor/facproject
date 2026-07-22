@@ -3,7 +3,7 @@
 🔗 DEPENDS ON: texture_image.texture_pair_deltas()
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 from collections import defaultdict
 from typing import Any

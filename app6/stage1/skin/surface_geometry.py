@@ -5,7 +5,6 @@
 from __future__ import annotations
 import heapq,hashlib
 import numpy as np
-from ..status_logger import log_status, log_blocker, log_warning
 class SurfaceGeometry:
  def __init__(self,vertices,triangles,prefer_potpourri=True):
   self.v=np.asarray(vertices,np.float64);self.f=np.asarray(triangles,np.int64);self.backend='heap_graph_dijkstra_v1';self._solver=None;self._csr=None

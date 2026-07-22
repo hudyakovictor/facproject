@@ -4,7 +4,7 @@
 🚨 WARNING: порядок CHANNEL_NAMES жёсткий — валидатор stage1 проверяет shape.
 """
 from __future__ import annotations
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 from dataclasses import dataclass
 from typing import Any

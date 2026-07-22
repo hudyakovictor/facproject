@@ -10,7 +10,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from app6.stage1.utils import atomic_json,sha256_file
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 SCHEMA='deeputin-stage3-v1.4'
 @dataclass(frozen=True)
 class Stage3Config: analysis_root:Path;output_dir:Path;overwrite:bool=False

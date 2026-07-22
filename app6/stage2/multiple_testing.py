@@ -3,7 +3,7 @@
 💡 NOTE: _p_from_z через erfc-аппроксимацию — стабильно на малых p.
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 from math import erfc, sqrt
 from typing import Any

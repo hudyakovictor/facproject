@@ -4,7 +4,7 @@
 💡 NOTE: _resolve_mesh_count() подстраивается под число вершин конкретной модели.
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 from functools import lru_cache
 from pathlib import Path

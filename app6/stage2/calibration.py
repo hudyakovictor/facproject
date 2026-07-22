@@ -4,7 +4,6 @@
 🚨 WARNING: калибровка валидна только внутри своего pose bin (distance-guard `_pose_distance`).
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from collections import defaultdict
 from typing import Any, Iterable

@@ -4,7 +4,7 @@
 💡 NOTE: домен evidence отличается от geometry/support — см. DEEP_AUDIT §2.2.
 """
 from __future__ import annotations
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 
 from dataclasses import dataclass, asdict
 from typing import Any

@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 import numpy as np
-from ..status_logger import log_status, log_blocker, log_warning
+from ..status_logger import log_status
 # 🔢 Связные компоненты UV-маски (8-neighbour)
 def connected_components(mask):
  import cv2

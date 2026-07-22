@@ -18,7 +18,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from ..surface_geometry import SurfaceGeometry
-from ...status_logger import log_status, log_blocker, log_warning
+from ...status_logger import log_status
 try:
     from skimage.filters import frangi, meijering
     from skimage.morphology import skeletonize

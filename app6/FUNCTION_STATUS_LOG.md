@@ -11,7 +11,7 @@
 дополнительно: ⚠️ in_progress · 🚫 blocked · ❌ error · 🔬 experimental · 🗑️ deprecated
 ```
 
-## Покрытие: 243/524 функций имеют статус-маркеры (46.4%)
+## Покрытие: 243/533 функций имеют статус-маркеры (45.6%)
 
 | Модуль | Функция | Строка | Статус(ы) | Роли |
 |---|---|---:|---|---|
@@ -33,8 +33,8 @@
 | `app6/scripts/check_geometry_vs_evidence.py` | `load_mask` | 25 | — | — |
 | `app6/scripts/check_geometry_vs_evidence.py` | `analyze_pkg` | 38 | — | — |
 | `app6/scripts/check_geometry_vs_evidence.py` | `main` | 105 | — | — |
-| `app6/scripts/fetch_external_assets.py` | `sha` | 17 | — | — |
-| `app6/scripts/fetch_external_assets.py` | `main` | 23 | — | — |
+| `app6/scripts/fetch_external_assets.py` | `sha` | 17 | — | 💡 |
+| `app6/scripts/fetch_external_assets.py` | `main` | 22 | — | — |
 | `app6/scripts/preflight_skin_v3.py` | `main` | 15 | — | — |
 | `app6/scripts/preflight_skin_v3.py` | `add` | 17 | — | — |
 | `app6/scripts/release_gate_skin.py` | `main` | 11 | — | — |
@@ -48,8 +48,8 @@
 | `app6/stage1/assets.py` | `_write_obj` 🔒 | 190 | — | — |
 | `app6/stage1/assets.py` | `save_face_mask` | 204 | log: need_testing; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
 | `app6/stage1/assets.py` | `save_semantic_channels` | 304 | log: need_testing | — |
-| `app6/stage1/config.py` | `extraction_payload` | 47 | — | 📤 |
-| `app6/stage1/config.py` | `public_dict` | 60 | — | 📤 |
+| `app6/stage1/config.py` | `extraction_payload` | 46 | — | 📤 |
+| `app6/stage1/config.py` | `public_dict` | 59 | — | 📤 |
 | `app6/stage1/engine.py` | `_utc` 🔒 | 40 | — | — |
 | `app6/stage1/engine.py` | `_landmark_rows` 🔒 | 44 | log: need_testing | 📊 |
 | `app6/stage1/engine.py` | `__init__` 🔒 | 67 | — | — |
@@ -89,20 +89,20 @@
 | `app6/stage1/reconstruction.py` | `cleanup` | 356 | log: need_testing | — |
 | `app6/stage1/reconstruction.py` | `capture_alpha` | 206 | — | 🔄 |
 | `app6/stage1/reconstruction.py` | `renderer_forward` | 214 | — | 🔄 |
-| `app6/stage1/skin/atlas_registry.py` | `__init__` 🔒 | 11 | — | — |
-| `app6/stage1/skin/atlas_registry.py` | `_sha` 🔒 | 15 | — | — |
-| `app6/stage1/skin/atlas_registry.py` | `verify_topology` | 18 | ✅ VERIFIED | — |
-| `app6/stage1/skin/atlas_registry.py` | `validate` | 23 | ✅ VERIFIED | — |
-| `app6/stage1/skin/atlas_registry.py` | `describe` | 31 | — | 📤 |
+| `app6/stage1/skin/atlas_registry.py` | `__init__` 🔒 | 10 | — | — |
+| `app6/stage1/skin/atlas_registry.py` | `_sha` 🔒 | 14 | — | — |
+| `app6/stage1/skin/atlas_registry.py` | `verify_topology` | 17 | ✅ VERIFIED | — |
+| `app6/stage1/skin/atlas_registry.py` | `validate` | 22 | ✅ VERIFIED | — |
+| `app6/stage1/skin/atlas_registry.py` | `describe` | 30 | — | 📤 |
 | `app6/stage1/skin/batch.py` | `_to_original` 🔒 | 45 | — | — |
 | `app6/stage1/skin/batch.py` | `__init__` 🔒 | 12 | — | — |
 | `app6/stage1/skin/batch.py` | `run` | 14 | — | 🚪 |
 | `app6/stage1/skin/config_loader.py` | `load_config` | 8 | — | ⚙️ |
 | `app6/stage1/skin/config_loader.py` | `merge` | 11 | — | 🔀 |
-| `app6/stage1/skin/contamination.py` | `__init__` 🔒 | 11 | — | — |
-| `app6/stage1/skin/contamination.py` | `_load` 🔒 | 15 | — | — |
-| `app6/stage1/skin/contamination.py` | `predict` | 26 | 🔬 EXPERIMENTAL | — |
-| `app6/stage1/skin/contamination.py` | `metadata` | 32 | — | 📤 |
+| `app6/stage1/skin/contamination.py` | `__init__` 🔒 | 10 | — | — |
+| `app6/stage1/skin/contamination.py` | `_load` 🔒 | 14 | — | — |
+| `app6/stage1/skin/contamination.py` | `predict` | 25 | 🔬 EXPERIMENTAL | — |
+| `app6/stage1/skin/contamination.py` | `metadata` | 31 | — | 📤 |
 | `app6/stage1/skin/contracts.py` | `require_schema` | 37 | — | 🚨 |
 | `app6/stage1/skin/contracts.py` | `validate_missing` | 41 | ✅ VERIFIED | — |
 | `app6/stage1/skin/contracts.py` | `to_dict` | 27 | — | 📤 |
@@ -126,16 +126,16 @@
 | `app6/stage1/skin/pipeline.py` | `_resolve_pose_policy_csv` 🔒 | 37 | — | — |
 | `app6/stage1/skin/pipeline.py` | `build_skin_package` | 52 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
 | `app6/stage1/skin/pipeline.py` | `focus` | 366 | — | 💡 |
-| `app6/stage1/skin/pose_policy.py` | `yaw_to_bin` | 32 | — | 📊 |
-| `app6/stage1/skin/pose_policy.py` | `__init__` 🔒 | 40 | — | — |
-| `app6/stage1/skin/pose_policy.py` | `_build_default` 🔒 | 85 | — | — |
-| `app6/stage1/skin/pose_policy.py` | `get` | 127 | — | 🔍 |
-| `app6/stage1/skin/pose_policy.py` | `_selected_center` 🔒 | 131 | — | — |
-| `app6/stage1/skin/pose_policy.py` | `weights` | 138 | — | 📊 |
-| `app6/stage1/skin/pose_policy.py` | `soft_evidence_weights` | 173 | — | 📊 |
-| `app6/stage1/skin/pose_policy.py` | `is_compatible` | 234 | ✅ VERIFIED | — |
-| `app6/stage1/skin/pose_policy.py` | `common_observed_gate` | 256 | — | 🚧 |
-| `app6/stage1/skin/pose_policy.py` | `pose_delta_gate` | 268 | — | — |
+| `app6/stage1/skin/pose_policy.py` | `yaw_to_bin` | 31 | — | 📊 |
+| `app6/stage1/skin/pose_policy.py` | `__init__` 🔒 | 39 | — | — |
+| `app6/stage1/skin/pose_policy.py` | `_build_default` 🔒 | 84 | — | — |
+| `app6/stage1/skin/pose_policy.py` | `get` | 126 | — | 🔍 |
+| `app6/stage1/skin/pose_policy.py` | `_selected_center` 🔒 | 130 | — | — |
+| `app6/stage1/skin/pose_policy.py` | `weights` | 137 | — | 📊 |
+| `app6/stage1/skin/pose_policy.py` | `soft_evidence_weights` | 172 | — | 📊 |
+| `app6/stage1/skin/pose_policy.py` | `is_compatible` | 233 | ✅ VERIFIED | — |
+| `app6/stage1/skin/pose_policy.py` | `common_observed_gate` | 255 | — | 🚧 |
+| `app6/stage1/skin/pose_policy.py` | `pose_delta_gate` | 267 | — | — |
 | `app6/stage1/skin/previews.py` | `_zone_colors` 🔒 | 11 | — | — |
 | `app6/stage1/skin/previews.py` | `_atlas_overlay` 🔒 | 18 | — | — |
 | `app6/stage1/skin/previews.py` | `_smooth_map` 🔒 | 27 | — | — |
@@ -159,21 +159,21 @@
 | `app6/stage1/skin/run_manager.py` | `assert_mutable` | 24 | — | 🚨 |
 | `app6/stage1/skin/sensitivity/degradation.py` | `variants` | 9 | — | 🏭 |
 | `app6/stage1/skin/sensitivity/degradation.py` | `benchmark` | 17 | log: complete | — |
-| `app6/stage1/skin/serialization.py` | `sha256_file` | 12 | — | 📊 |
-| `app6/stage1/skin/serialization.py` | `canonical_hash` | 27 | — | 📊 |
-| `app6/stage1/skin/serialization.py` | `atomic_json` | 29 | — | 🎯 |
-| `app6/stage1/skin/serialization.py` | `atomic_npz` | 37 | — | 🎯 |
-| `app6/stage1/skin/serialization.py` | `inventory` | 47 | — | 📤 |
-| `app6/stage1/skin/serialization.py` | `validate_npz_no_pickle` | 50 | — | 🚨 |
-| `app6/stage1/skin/serialization.py` | `default` | 19 | — | 🔄 |
-| `app6/stage1/skin/surface_geometry.py` | `__init__` 🔒 | 10 | — | — |
-| `app6/stage1/skin/surface_geometry.py` | `adjacency` | 19 | — | — |
-| `app6/stage1/skin/surface_geometry.py` | `distance` | 28 | — | 🔢 |
-| `app6/stage1/skin/surface_geometry.py` | `vertex_normals` | 48 | — | 🔢 |
-| `app6/stage1/skin/surface_geometry.py` | `tangent_frames` | 53 | — | 🔢 |
-| `app6/stage1/skin/surface_geometry.py` | `transport_local` | 56 | 🔬 EXPERIMENTAL | — |
-| `app6/stage1/skin/surface_geometry.py` | `transport_roundtrip_error` | 60 | — | 📊 |
-| `app6/stage1/skin/surface_geometry.py` | `metadata` | 63 | — | 📤 |
+| `app6/stage1/skin/serialization.py` | `sha256_file` | 16 | — | — |
+| `app6/stage1/skin/serialization.py` | `canonical_hash` | 28 | — | 📊 |
+| `app6/stage1/skin/serialization.py` | `atomic_json` | 30 | — | 🎯 |
+| `app6/stage1/skin/serialization.py` | `atomic_npz` | 38 | — | 🎯 |
+| `app6/stage1/skin/serialization.py` | `inventory` | 48 | — | 📤 |
+| `app6/stage1/skin/serialization.py` | `validate_npz_no_pickle` | 51 | — | 🚨 |
+| `app6/stage1/skin/serialization.py` | `default` | 20 | — | 🔄 |
+| `app6/stage1/skin/surface_geometry.py` | `__init__` 🔒 | 9 | — | — |
+| `app6/stage1/skin/surface_geometry.py` | `adjacency` | 18 | — | — |
+| `app6/stage1/skin/surface_geometry.py` | `distance` | 27 | — | 🔢 |
+| `app6/stage1/skin/surface_geometry.py` | `vertex_normals` | 47 | — | 🔢 |
+| `app6/stage1/skin/surface_geometry.py` | `tangent_frames` | 52 | — | 🔢 |
+| `app6/stage1/skin/surface_geometry.py` | `transport_local` | 55 | 🔬 EXPERIMENTAL | — |
+| `app6/stage1/skin/surface_geometry.py` | `transport_roundtrip_error` | 59 | — | 📊 |
+| `app6/stage1/skin/surface_geometry.py` | `metadata` | 62 | — | 📤 |
 | `app6/stage1/skin/texture/basic.py` | `_weighted_quantile` 🔒 | 9 | — | — |
 | `app6/stage1/skin/texture/basic.py` | `extract_basic` | 18 | log: complete | — |
 | `app6/stage1/skin/texture/features.py` | `_lbp` 🔒 | 35 | — | — |
@@ -184,12 +184,12 @@
 | `app6/stage1/skin/wrinkles/classical.py` | `response_map` | 71 | — | 🔄 |
 | `app6/stage1/skin/wrinkles/classical.py` | `_branch_paths` 🔒 | 90 | — | — |
 | `app6/stage1/skin/wrinkles/classical.py` | `detect` | 106 | log: complete | — |
-| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `__init__` 🔒 | 12 | — | — |
-| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `_load` 🔒 | 17 | — | — |
-| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `_load_parser` 🔒 | 23 | — | — |
-| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `_skin_mask` 🔒 | 34 | — | — |
-| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `predict` | 42 | 🔬 EXPERIMENTAL | — |
-| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `metadata` | 51 | — | 📤 |
+| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `__init__` 🔒 | 11 | — | — |
+| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `_load` 🔒 | 16 | — | — |
+| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `_load_parser` 🔒 | 22 | — | — |
+| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `_skin_mask` 🔒 | 33 | — | — |
+| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `predict` | 41 | 🔬 EXPERIMENTAL | — |
+| `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `metadata` | 50 | — | 📤 |
 | `app6/stage1/skin_zone_atlas.py` | `build_triangle_zone_map` | 193 | ⚠️ IN PROGRESS | — |
 | `app6/stage1/skin_zone_atlas.py` | `_zone_colors` 🔒 | 218 | — | — |
 | `app6/stage1/skin_zone_atlas.py` | `_tri_px` 🔒 | 229 | — | — |
@@ -252,14 +252,14 @@
 | `app6/stage2/baseline_return.py` | `_load_vectors` 🔒 | 26 | — | — |
 | `app6/stage2/baseline_return.py` | `_reversal_stats` 🔒 | 40 | — | — |
 | `app6/stage2/baseline_return.py` | `apply_baseline_return` | 60 | log: complete | — |
-| `app6/stage2/calibration.py` | `__init__` 🔒 | 18 | — | — |
-| `app6/stage2/calibration.py` | `_pose_distance` 🔒 | 27 | — | — |
-| `app6/stage2/calibration.py` | `_build_references` 🔒 | 30 | — | — |
-| `app6/stage2/calibration.py` | `_nearest` 🔒 | 46 | — | — |
-| `app6/stage2/calibration.py` | `matched_null` | 57 | — | 📊 |
-| `app6/stage2/calibration.py` | `reference` | 72 | — | 📊 |
-| `app6/stage2/calibration.py` | `consistency_check` | 75 | ⚠️ IN PROGRESS | 📊 |
-| `app6/stage2/calibration.py` | `score` | 50 | — | 📊 |
+| `app6/stage2/calibration.py` | `__init__` 🔒 | 17 | — | — |
+| `app6/stage2/calibration.py` | `_pose_distance` 🔒 | 26 | — | — |
+| `app6/stage2/calibration.py` | `_build_references` 🔒 | 29 | — | — |
+| `app6/stage2/calibration.py` | `_nearest` 🔒 | 45 | — | — |
+| `app6/stage2/calibration.py` | `matched_null` | 56 | — | 📊 |
+| `app6/stage2/calibration.py` | `reference` | 71 | — | 📊 |
+| `app6/stage2/calibration.py` | `consistency_check` | 74 | ⚠️ IN PROGRESS | 📊 |
+| `app6/stage2/calibration.py` | `score` | 49 | — | 📊 |
 | `app6/stage2/calibration_sensitivity.py` | `leave_one_dataset_sensitivity` | 25 | — | 📊 |
 | `app6/stage2/chronology.py` | `_days` 🔒 | 13 | — | — |
 | `app6/stage2/chronology.py` | `_robust` 🔒 | 20 | — | — |
@@ -307,12 +307,12 @@
 | `app6/stage2/loaders.py` | `_missing_alpha` 🔒 | 124 | — | — |
 | `app6/stage2/loaders.py` | `load_calibration_from_sidecar` | 129 | log: complete | — |
 | `app6/stage2/loaders.py` | `load_calibration` | 185 | log: complete | — |
-| `app6/stage2/mesh_calibration.py` | `_pose_distance` 🔒 | 29 | — | — |
-| `app6/stage2/mesh_calibration.py` | `_mesh_metrics` 🔒 | 33 | — | — |
-| `app6/stage2/mesh_calibration.py` | `__init__` 🔒 | 90 | — | — |
-| `app6/stage2/mesh_calibration.py` | `_build` 🔒 | 95 | — | — |
-| `app6/stage2/mesh_calibration.py` | `to_json` | 136 | — | 📤 |
-| `app6/stage2/mesh_calibration.py` | `score` | 149 | — | 📊 |
+| `app6/stage2/mesh_calibration.py` | `_pose_distance` 🔒 | 28 | — | — |
+| `app6/stage2/mesh_calibration.py` | `_mesh_metrics` 🔒 | 32 | — | — |
+| `app6/stage2/mesh_calibration.py` | `__init__` 🔒 | 89 | — | — |
+| `app6/stage2/mesh_calibration.py` | `_build` 🔒 | 94 | — | — |
+| `app6/stage2/mesh_calibration.py` | `to_json` | 135 | — | 📤 |
+| `app6/stage2/mesh_calibration.py` | `score` | 148 | — | 📊 |
 | `app6/stage2/mesh_dense.py` | `_resolve_mesh_count` 🔒 | 31 | — | — |
 | `app6/stage2/mesh_dense.py` | `load_anatomical_zones` | 64 | — | — |
 | `app6/stage2/mesh_dense.py` | `_normalize` 🔒 | 79 | — | — |
@@ -520,6 +520,15 @@
 | `app6/tests/test_skin_v3_foundation.py` | `test_atlas_projection_parent_and_w14_bits` | 29 | — | — |
 | `app6/tests/test_skin_v3_foundation.py` | `test_basic_texture_missing_is_nan_not_zero` | 31 | — | — |
 | `app6/tests/test_skin_v3_foundation.py` | `test_tangent_frame_orthonormal` | 33 | — | — |
+| `app6/tests/test_status_registry.py` | `_own_modules` 🔒 | 23 | — | — |
+| `app6/tests/test_status_registry.py` | `_code_statuses` 🔒 | 34 | — | — |
+| `app6/tests/test_status_registry.py` | `_audit_statuses` 🔒 | 47 | — | — |
+| `app6/tests/test_status_registry.py` | `test_log_statuses_within_status_flow` | 54 | — | — |
+| `app6/tests/test_status_registry.py` | `test_status_audit_names_exist_in_code` | 63 | — | — |
+| `app6/tests/test_status_registry.py` | `test_audit_matches_code_status` | 73 | — | — |
+| `app6/tests/test_status_registry.py` | `test_no_orphan_code_statuses` | 84 | — | — |
+| `app6/tests/test_status_registry.py` | `test_no_duplicated_log_status_calls` | 90 | — | — |
+| `app6/tests/test_status_registry.py` | `full` | 97 | — | — |
 | `app6/tests/test_storage.py` | `test_failed_write_is_not_published` | 13 | — | — |
 | `app6/tests/test_storage.py` | `test_success_is_published` | 23 | — | — |
 | `app6/tests/test_storage.py` | `test_cleanup_incomplete` | 30 | — | — |

@@ -7,7 +7,7 @@ import json,re
 from collections import Counter,defaultdict
 from pathlib import Path
 from typing import Any
-from app6.stage1.status_logger import log_status, log_blocker, log_warning
+from app6.stage1.status_logger import log_status
 REGIONS=("orbit","brow","eyebrow","temporal","zygoma","cheekbone","cheek_soft","nose_bridge","nose_wing","nose","chin","jaw_angle","jaw","forehead","ligament_orbital","ligament_zygomatic","palpebral","lid","malar","submalar")
 
 def _date(v: str | None) -> str | None:

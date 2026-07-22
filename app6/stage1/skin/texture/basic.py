@@ -5,7 +5,7 @@
 from __future__ import annotations
 import cv2,numpy as np
 from ..contracts import EvidenceState
-from ...status_logger import log_status, log_blocker, log_warning
+from ...status_logger import log_status
 def _weighted_quantile(x, w, q):
     o = np.argsort(x)
     x = x[o]

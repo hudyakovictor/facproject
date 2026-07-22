@@ -10,7 +10,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from .contracts import Applicability, EvidenceState, ReasonCode
-from ..status_logger import log_status, log_blocker, log_warning
+from ..status_logger import log_status
 
 FAMILIES = ('geometry','macro_texture','meso_texture','micro_texture','wrinkles','pigmentation','material_optics','local_feature_matching')
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from .config import POSE_BINS
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 
 def classify_pose(yaw: float) -> tuple[str, float]:

@@ -31,7 +31,7 @@ from .contamination import FaceParsingAdapter
 from .patch_sampler import sample_zone_patches
 from .photometric import branches as photometric_branches
 from .previews import save_previews, save_wrinkle_overlay
-from ..status_logger import log_status, log_blocker, log_warning
+from ..status_logger import log_status
 
 
 def _resolve_pose_policy_csv(atlas_path: Path) -> Path:

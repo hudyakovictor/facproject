@@ -4,7 +4,7 @@
 🏭 CONVENTIONS v2 → загрузка внешних ассетов; статус: ✅ VERIFIED
 """
 from __future__ import annotations
-import argparse, hashlib, json, urllib.request
+import argparse, json, urllib.request
 from pathlib import Path
 ASSETS={
  'face_model.npy':'https://huggingface.co/datasets/Zidu-Wang/3DDFA-V3/resolve/main/assets/face_model.npy?download=true',
@@ -15,10 +15,9 @@ ASSETS={
  'similarity_Lm3D_all.mat':'https://huggingface.co/datasets/Zidu-Wang/3DDFA-V3/resolve/main/assets/similarity_Lm3D_all.mat?download=true'}
 
 def sha(p):
-    h=hashlib.sha256()
-    with open(p,'rb') as f:
-        for b in iter(lambda:f.read(1<<20),b''): h.update(b)
-    return h.hexdigest()
+    """💡 NOTE (AUDIT-7): делегирует канонической реализации utils.sha256_file (дедуп)."""
+    from app6.stage1.utils import sha256_file
+    return sha256_file(p if isinstance(p, Path) else Path(p))
 
 def main():
     p=argparse.ArgumentParser()

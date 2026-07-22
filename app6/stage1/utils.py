@@ -7,7 +7,7 @@ runtime_versions — фиксация версий для воспроизвод
 Используется engine.py, validator, run-скриптами. Все функции чистые, без глобального состояния.
 """
 from __future__ import annotations
-from .status_logger import log_status, log_blocker, log_warning
+from .status_logger import log_status
 
 import csv
 import hashlib
