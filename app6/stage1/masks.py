@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .status_logger import log_status, log_blocker, log_warning
 
 from dataclasses import dataclass
 from typing import Any
@@ -28,6 +29,31 @@ class MaskBundle:
 
 
 def build_mask_bundle(channels: np.ndarray, trans_params: np.ndarray, image_shape: tuple[int, ...]) -> MaskBundle:
+    log_status("build_mask_bundle", "complete")
+    """🎯 CRITICAL → Создание маски кожи из семантических каналов 3DDFA.
+
+    Использует 8 каналов сегментации:
+    0,1 = right/left eye | 2,3 = right/left eyebrow | 4 = nose | 5,6 = upper/lower lip | 7 = skin
+
+    Маска кожи = max(skin, nose) * (1 - max(eyes, eyebrows, lips))
+
+    🔗 DEPENDS ON:
+      - engine._one() — вызывается после 3DDFA inference
+      - semantic_channels_224 — из результатов 3DDFA
+
+    ⚠️ IN PROGRESS:
+      - Hard threshold 0.5 может быть слишком строгим для границ
+      - Нет проверки что маска достаточно большая (мин. площадь)
+
+    💡 NOTE:
+      - Soft mask (0-1) для взвешенного анализа
+      - Hard mask (bool) для бинарных решений
+      - Projection в оригинальное изображение через back_resize_crop_img
+
+    🚨 WARNING:
+      - При projection failure — soft_original/hard_original = None
+      - Никогда не растягивать 224px маску на полное изображение!
+    """
     a = np.asarray(channels, np.float32)
     if a.shape != (224, 224, 8):
         raise ValueError(f"semantic channels must be (224,224,8), got {a.shape}")

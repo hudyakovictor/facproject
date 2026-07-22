@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from typing import Any
 
@@ -10,6 +11,7 @@ ALPHA_SCHEMA = "deeputin-stage2-alpha-chronology-v1.0"
 
 
 def apply_alpha_chronology(rows: list[dict[str, Any]], model: Any) -> dict[str, Any]:
+    log_status("apply_alpha_chronology", "complete")
     """Annotate pair rows with calibrated alpha_id / alpha_exp chronology signals.
 
     alpha_id is treated as an additional identity-shape channel, not as an identity

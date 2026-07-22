@@ -10,6 +10,7 @@ import csv
 import numpy as np
 from pathlib import Path
 from typing import Dict, Tuple, Optional
+from ..status_logger import log_status, log_blocker, log_warning
 
 YAW_BINS = [-60, -40, -25, -10, 0, 10, 25, 40, 60]
 

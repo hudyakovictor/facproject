@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import numpy as np
 from .core import Record,robust_rigid_align
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 NAMES=("centroid_dx","centroid_dy","centroid_dz","span_lateral","span_vertical","span_depth","bbox_area","bbox_volume","radial_dispersion","plane_residual","normal_angle","curvature","planarity")
 
 def _neighbors(template: np.ndarray, k: int = 8) -> np.ndarray:
@@ -18,6 +19,7 @@ def _one(points: np.ndarray, ids: np.ndarray):
     return c,span,float(area),volume,rad,plane,normal,curv,plan
 
 def local_pair_descriptors(a: Record, b: Record, template: np.ndarray) -> dict[str, np.ndarray | str]:
+    log_status("local_pair_descriptors", "complete")
     vis=np.asarray(a.visible134,bool)&np.asarray(b.visible134,bool); out=np.full((134,len(NAMES)),np.nan,np.float32)
     if vis.sum()<30: return {"status":"insufficient_visibility","values":out}
     _,r,t,_=robust_rigid_align(b.ldm134[vis],a.ldm134[vis]); pb=b.ldm134@r+t; neigh=_neighbors(template)

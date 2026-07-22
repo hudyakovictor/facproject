@@ -3,6 +3,7 @@ from .masks import CHANNEL_NAMES
 import shutil
 from pathlib import Path
 from typing import Any
+from .status_logger import log_status, log_blocker, log_warning
 
 import cv2
 import numpy as np
@@ -41,6 +42,7 @@ def _letterbox(image: np.ndarray, width: int = CROP_WIDTH, height: int = CROP_HE
 
 
 def save_image_assets(source: Path, bgr: np.ndarray, ldm106_original: np.ndarray, out: Path, save_original: bool = True) -> tuple[dict[str, str], dict[str, Any]]:
+    log_status("save_image_assets", "complete")
     files: dict[str, str] = {}
     if save_original:
         original_name = "original" + source.suffix.lower()
@@ -60,6 +62,7 @@ def save_image_assets(source: Path, bgr: np.ndarray, ldm106_original: np.ndarray
 
 
 def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | None, combined_visible: np.ndarray) -> dict[str, float | int]:
+    log_status("technical_quality", "complete")
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     x, y, w, h = face_bbox
     face_gray = gray[y:y + h, x:x + w]
@@ -83,6 +86,7 @@ def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | 
 
 
 def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3, save_mesh: bool = True) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
+    log_status("save_uv_and_mesh", "complete")
     from uv_module import HDUVConfig, HDUVTextureGenerator
 
     vertices_2d = to_original_image(bundle.vertices_image_224, bundle.trans_params)
@@ -189,19 +193,28 @@ def _write_obj(obj_path: Path, mtl_path: Path, vertices: np.ndarray, normals: np
 
 
 def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int], out: Path) -> dict[str, str] | None:
-    """
-    Create and save:
-      - face_mask.png: visual RGBA 424x500 face crop with skin mask in alpha;
-      - face_mask.npz: lossless numeric mask bundle for future texture/quality analysis.
-    
-    Args:
-        bgr: Full image BGR
-        hard_mask: Full image size binary mask (bool or 0/255) or None if projection failed
-        bbox: [x, y, w, h] face crop bbox in original image
-        out: Output directory
-    
-    Returns:
-        File mapping or None if mask unavailable
+    log_status("save_face_mask", "complete")
+    """🎯 CRITICAL → Создание face_mask.png и face_mask.npz.
+
+    face_mask — это ОСНОВНАЯ маска для skin analysis. Все текстурные анализы
+    используют именно эту маску (НЕ UV текстуру!).
+
+    🔗 DEPENDS ON:
+      - engine._one() — вызывается после build_mask_bundle
+      - mask.hard_original — binary mask в original resolution
+
+    ⚠️ IN PROGRESS:
+      - Нет проверки что маска покрывает достаточно кожи
+      - Нет проверки что bbox корректный (не выходит за изображение)
+
+    💡 NOTE:
+      - face_mask.png — RGBA визуальный превью (424x500 letterboxed)
+      - face_mask.npz — числовые маски (original, crop, face, alpha)
+      - mask_original — в original resolution (может быть большим!)
+
+    🚨 WARNING:
+      - При hard_mask = None — возвращает None (mask unavailable)
+      - При ошибке записи — engine пишет face_mask_failure.json
     """
     if hard_mask is None or hard_mask.size == 0:
         return None
@@ -280,6 +293,7 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
 
 
 def save_semantic_channels(bundle: Any, out: Path) -> str:
+    log_status("save_semantic_channels", "complete")
     """
     Save semantic_channels.npz from mask bundle.
     """

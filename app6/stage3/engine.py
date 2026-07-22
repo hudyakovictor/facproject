@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from app6.stage1.utils import atomic_json,sha256_file
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 SCHEMA='deeputin-stage3-v1.4'
 @dataclass(frozen=True)
 class Stage3Config: analysis_root:Path;output_dir:Path;overwrite:bool=False
@@ -17,6 +18,7 @@ def num(v,default=0.0):
 class Stage3Engine:
  def __init__(self,cfg):self.cfg=cfg
  def run(self):
+  log_status("run", "complete")
   o=self.cfg.output_dir
   if o.exists() and any(o.iterdir()) and not self.cfg.overwrite:raise FileExistsError(f'output exists: {o}')
   if o.exists() and self.cfg.overwrite:shutil.rmtree(o)

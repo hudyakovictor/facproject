@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 import numpy as np
 
@@ -6,6 +7,7 @@ ANCHOR_SCHEMA = "deeputin-stage2-stable-anchor-policy-v1.0"
 
 
 def stable_anchor_mask(points: np.ndarray, common_visible: np.ndarray, *, min_count: int = 24) -> tuple[np.ndarray, dict[str, float | int | str]]:
+    log_status("stable_anchor_mask", "complete")
     """Choose conservative central-face anchors for pair alignment.
 
     This is a deterministic fallback policy until calibration-ranked anatomical anchors
@@ -41,6 +43,7 @@ def stable_anchor_mask(points: np.ndarray, common_visible: np.ndarray, *, min_co
 
 
 def stable_anchor_indices(points: np.ndarray, common_indices: np.ndarray, *, max_points: int = 6000, min_count: int = 1200) -> tuple[np.ndarray, dict[str, float | int | str]]:
+    log_status("stable_anchor_indices", "complete")
     common = np.asarray(common_indices, np.int64)
     mask = np.zeros(len(points), bool)
     mask[common[(common >= 0) & (common < len(points))]] = True

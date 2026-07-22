@@ -9,6 +9,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from .contracts import Applicability, EvidenceState, ReasonCode
+from ..status_logger import log_status, log_blocker, log_warning
 
 FAMILIES = ('geometry','macro_texture','meso_texture','micro_texture','wrinkles','pigmentation','material_optics','local_feature_matching')
 
@@ -90,6 +91,7 @@ def _sanitize_density(scale: np.ndarray, domain: np.ndarray) -> tuple[np.ndarray
     return s.astype(np.float32), meta
 
 def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, projected_density_map=None):
+    log_status("quality_maps", "complete")
     g = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
     d = np.asarray(domain, bool)
     gx = cv2.Sobel(g, cv2.CV_32F, 1, 0, ksize=3)
@@ -197,6 +199,7 @@ def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, pro
     }
 
 def applicability(m, d, W, H):
+    log_status("applicability", "complete")
     n = int(np.asarray(d).sum())
     def _med(key):
         arr = m.get(key)
@@ -271,6 +274,7 @@ def applicability(m, d, W, H):
     return out
 
 def per_zone_applicability(A, domain, quality_weight, pose_weight=None, min_support=50.0, min_pixels=64):
+    log_status("per_zone_applicability", "complete")
     """Per-zone geometry/support/evidence snapshot for diagnostics."""
     A = np.asarray(A)
     d = np.asarray(domain, bool)

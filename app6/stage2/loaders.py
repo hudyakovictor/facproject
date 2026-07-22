@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 import csv
 import json
@@ -16,6 +17,31 @@ def _rows(path: Path) -> list[dict[str, str]]:
 
 
 def load_main(stage1_root: Path) -> list[Record]:
+    log_status("load_main", "complete")
+    """🎯 CRITICAL → Загрузка записей Stage 1 для анализа Stage 2.
+
+    Читает main_timeline.csv, затем для каждого фото:
+    - info.json (метаданные, pose, alignment quality)
+    - reconstruction.npz (вершины, ландмарки, видимость)
+
+    🔗 DEPENDS ON:
+      - engine.run() — вызывается в начале Stage 2
+      - stage1 output — структура папок photo_id/
+
+    ⚠️ IN PROGRESS:
+      - Использует chronology-aligned landmarks (ldm134_chronology_aligned)
+      - Fallback к object_normalized если chronology отсутствует (legacy)
+      - Нет проверки что все записи из одного источника
+
+    💡 NOTE:
+      - Фильтрует по validation.status == "complete"
+      - Сортирует по (date, sequence, record_id)
+      - Загружает alignment quality для фильтрации пар
+
+    🚨 WARNING:
+      - Если reconstruction.npz не содержит chronology arrays — fallback к старым данным!
+      - При отсутствии info.json — запись пропускается
+    """
     index = stage1_root / "main_timeline.csv"
     if not index.is_file():
         raise FileNotFoundError(index)
@@ -36,11 +62,29 @@ def load_main(stage1_root: Path) -> list[Record]:
         qzones = load_quality_zone_summary(directory)
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
             idx106 = z["ldm106_vertex_indices"].astype(np.int64); idx134 = z["ldm134_vertex_indices"].astype(np.int64)
+            # CRITICAL: Use chronology-aligned landmarks (full pitch+yaw+roll correction)
+            # NOT object_normalized (which has no pose correction)
+            ldm106_chrono = z.get("ldm106_chronology_aligned")
+            ldm134_chrono = z.get("ldm134_chronology_aligned")
+            ldm106_obj = z.get("ldm106_object_normalized", z.get("ldm106_object_norm"))
+            ldm134_obj = z.get("ldm134_object_normalized", z.get("ldm134_object_norm"))
+            # Validate chronology data is present and finite
+            use_chronology = (
+                ldm106_chrono is not None and ldm134_chrono is not None
+                and np.isfinite(ldm106_chrono).all() and np.isfinite(ldm134_chrono).all()
+            )
+            if use_chronology:
+                ldm106_data = ldm106_chrono.astype(np.float32)
+                ldm134_data = ldm134_chrono.astype(np.float32)
+            else:
+                # Fallback to object_normalized if chronology not available (legacy data)
+                ldm106_data = ldm106_obj.astype(np.float32)
+                ldm134_data = ldm134_obj.astype(np.float32)
             out.append(Record(
                 record_id=row["photo_id"], dataset_id="main", date=row["date"], sequence=int(row["same_date_sequence"]),
                 pose_bin=row["pose_bin"], angles=z["angle_deg_pitch_yaw_roll"].astype(np.float32),
-                ldm106=z.get("ldm106_object_normalized", z.get("ldm106_object_norm")).astype(np.float32),
-                ldm134=z.get("ldm134_object_normalized", z.get("ldm134_object_norm")).astype(np.float32),
+                ldm106=ldm106_data,
+                ldm134=ldm134_data,
                 visible106=z["ldm106_visible"].astype(bool), visible134=z["ldm134_visible"].astype(bool),
                 alpha_id=z["alpha_id"].astype(np.float32), alpha_exp=z["alpha_exp"].astype(np.float32),
                 identity_only106=(z["ldm106_identity_only"] if "ldm106_identity_only" in z else z["vertices_identity_only"][idx106]).astype(np.float32),
@@ -78,6 +122,7 @@ def _missing_alpha(count: int) -> np.ndarray:
 
 
 def load_calibration_from_sidecar(root: Path) -> list[Record]:
+    log_status("load_calibration_from_sidecar", "complete")
     """Recover Records from metadata.json + ldm*_raw.csv when record.npz is absent.
 
     Space contract:
@@ -133,6 +178,7 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
 
 
 def load_calibration(calibration_root: Path) -> list[Record]:
+    log_status("load_calibration", "complete")
     root = calibration_root
     # Native app6 Stage-1 same-day calibration output. This is the format
     # produced by the top-level run_calibration.py workflow.

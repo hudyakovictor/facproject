@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .status_logger import log_status, log_blocker, log_warning
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -181,6 +182,7 @@ def build_quality_files(
     photo_id: str,
     out: Path,
 ) -> tuple[dict[str, str], dict[str, Any]]:
+    log_status("build_quality_files", "deprecated", "Replaced by skin/pipeline.py")
     """Write quality.json and quality_zones.npz for Stage 1.
 
     Current implementation creates forehead zones for frontal/left_light/right_light using

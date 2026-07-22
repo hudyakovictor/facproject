@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from collections import defaultdict
 from pathlib import Path
@@ -52,6 +53,7 @@ def _reversal_stats(v1: np.ndarray, v2: np.ndarray) -> dict[str, float | int]:
 
 
 def apply_baseline_return(rows: list[dict[str, Any]], output_dir: Path) -> dict[str, Any]:
+    log_status("apply_baseline_return", "complete")
     """Detect local A→B spike followed by B→C return in same pose-bin chronology.
 
     This is intentionally conservative and does not assert biology/identity. It marks a

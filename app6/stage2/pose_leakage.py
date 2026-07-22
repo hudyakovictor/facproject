@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from typing import Any
 import numpy as np
@@ -29,6 +30,7 @@ def _finite_pairs(rows: list[dict[str, Any]], metric: str) -> tuple[np.ndarray, 
 
 
 def pose_leakage_diagnostic(rows: list[dict[str, Any]], *, min_count: int = 12) -> dict[str, Any]:
+    log_status("pose_leakage_diagnostic", "complete")
     """Check whether residuals still grow with pose difference after normalization.
 
     This is a diagnostic, not a correction. A strong positive rank correlation means

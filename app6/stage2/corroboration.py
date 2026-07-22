@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from collections import defaultdict
 from datetime import date
@@ -25,6 +26,7 @@ def _date(value: Any) -> date | None:
 
 
 def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: int = 45) -> dict[str, Any]:
+    log_status("apply_cross_bin_corroboration", "complete")
     """Annotate blind candidates with independent pose-bin support.
 
     Cross-bin rows never contribute to the primary residual. They only corroborate
@@ -85,6 +87,7 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
 
 
 def aggregate_events(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    log_status("aggregate_events", "complete")
     """Aggregate same target-date observations without pretending files are independent."""
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:

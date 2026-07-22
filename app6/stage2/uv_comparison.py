@@ -7,11 +7,13 @@ surface. Missing wrinkle features remain insufficient evidence, never zeros.
 from __future__ import annotations
 from pathlib import Path
 from typing import Any
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 from app6.stage1.utils import atomic_json
 from .skin.loader import SkinPackage
 from .skin.pair_comparison import compare_packages
 UV_COMPARISON_SCHEMA="deeputin-stage2-native-skin-adapter-v2.0"
 def uv_geometry_pair(a:Any,b:Any,output_dir:Path,pair_id:str):
+ log_status("uv_geometry_pair", "in_progress", "Adapter only, no calibration. NO BLOCKER")
  da=getattr(a,'record_dir',None);db=getattr(b,'record_dir',None)
  if da is None or db is None:return {'uv_geometry_status':'insufficient_evidence','uv_geometry_reason':'missing_record_dir'},[]
  try:pa=SkinPackage(Path(da)/'skin');pb=SkinPackage(Path(db)/'skin')

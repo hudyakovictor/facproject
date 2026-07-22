@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from pathlib import Path
 from typing import Any
@@ -76,6 +77,7 @@ def load_quality_zone_summary(photo_dir: Path) -> dict[str, Any]:
 
 
 def pair_quality_zone_overlap(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    log_status("pair_quality_zone_overlap", "complete")
     qa = getattr(a, "quality_zones", {}) or {}
     qb = getattr(b, "quality_zones", {}) or {}
     za = qa.get("per_zone", {}) or {}

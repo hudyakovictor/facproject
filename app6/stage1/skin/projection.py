@@ -13,6 +13,7 @@ Original functions to keep same names:
 Enhancements:
 - rasterize_surface returns RasterResult with additional projected_density_map (screen pixels per surface area)
 - Need triangle surface areas: compute from surface_vertices if provided? We add optional param surface_vertices + triangles to rasterize for density.
+from ..status_logger import log_status, log_blocker, log_warning
 
 For drop-in, we keep original signature but add **kwargs to accept surface_vertices, triangles, triangle_surface_areas.
 If not provided, fallback to heuristic _scale.
@@ -42,6 +43,7 @@ class RasterResult:
     triangle_surface_area: np.ndarray = None
 
 def rasterize_surface(vertices_xy, vertices_z, normals, triangles, image_shape, vertex_visibility=None, near='min', surface_vertices=None, triangle_surface_areas=None):
+    log_status("rasterize_surface", "in_progress", "CPU slow, GPU not implemented. NO BLOCKER - can optimize anytime")
     """
     Drop-in: original args + optional surface_vertices, triangle_surface_areas for physics fix
     vertices_xy: Vx2 image coords (original image)
@@ -174,6 +176,7 @@ def rasterize_surface(vertices_xy, vertices_z, normals, triangles, image_shape, 
     return RasterResult(tid, bar, depth, normal, inc, vis, conf, source, projected_density_map=projected_density, triangle_surface_area=np.asarray(triangle_surface_areas) if triangle_surface_areas is not None else None)
 
 def project_atlas(raster, atlas, skin_segmentation=None):
+    log_status("project_atlas", "complete")
     """
     Same signature as original, returns dict with zone_id_a20 etc + projected_density_map
     """

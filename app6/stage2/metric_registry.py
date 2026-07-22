@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 import math
 import re
@@ -83,11 +84,13 @@ def _usable(value: Any) -> bool:
 
 
 def metric_channel(row: dict[str, Any]) -> dict[str, Any]:
+    log_status("metric_channel", "complete")
     """Lossless registered metric projection for evidence/report transport."""
     return {name: row.get(name) for name in NAMES}
 
 
 def build_metric_catalog(rows: list[dict[str, Any]], enabled: dict[str, bool] | None = None) -> dict[str, Any]:
+    log_status("build_metric_catalog", "complete")
     enabled = enabled or {}
     entries: list[dict[str, Any]] = []
     for spec in METRICS:

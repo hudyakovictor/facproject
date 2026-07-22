@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from dataclasses import dataclass, asdict
 from typing import Any
@@ -29,12 +30,14 @@ STATUS_TO_EVIDENCE_STATE = {
 
 
 def evidence_state(status: str, *, quality_limited: bool = False) -> str:
+    log_status("evidence_state", "complete")
     if quality_limited and status not in {"within_reconstruction_noise", "within_calibration_noise"}:
         return "quality_limited"
     return STATUS_TO_EVIDENCE_STATE.get(status, "elevated_uncertain")
 
 
 def alternative_reasons(row: dict[str, Any]) -> list[str]:
+    log_status("alternative_reasons", "complete")
     reasons: list[str] = []
     if row.get("quality_limited"):
         reasons.append("low_or_missing_quality")
@@ -88,6 +91,7 @@ class EvidencePacket:
 
 
 def packet_from_pair(row: dict[str, Any]) -> dict[str, Any]:
+    log_status("packet_from_pair", "complete")
     quality = {
         "quality_limited": bool(row.get("quality_limited")),
         "photo_a_texture_score": row.get("quality_texture_score_a"),

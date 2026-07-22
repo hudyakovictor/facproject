@@ -30,6 +30,7 @@ from .contamination import FaceParsingAdapter
 from .patch_sampler import sample_zone_patches
 from .photometric import branches as photometric_branches
 from .previews import save_previews, save_wrinkle_overlay
+from ..status_logger import log_status, log_blocker, log_warning
 
 
 def _resolve_pose_policy_csv(atlas_path: Path) -> Path:
@@ -48,6 +49,31 @@ def _resolve_pose_policy_csv(atlas_path: Path) -> Path:
 
 
 def build_skin_package(*, photo_id, input_path, bgr, out_dir, triangles, vertices_original_xy, vertices_depth, normals, surface_vertices, vertex_visibility, face_mask_data_path, atlas_path, coordinate_chain, models, config, pose):
+    log_status("build_skin_package", "complete")
+    """🎯 CRITICAL → Извлечение skin features из оригинальных пикселей фото.
+
+    НЕ использует UV текстуру для анализа! Вся аналитика на оригинальных пикселях
+    через face_mask (skin segmentation) и atlas projection.
+
+    🔗 DEPENDS ON:
+      - engine._one() — вызывается после 3DDFA inference
+      - face_mask.npz — семантическая маска кожи
+      - atlas (texture_zones_bfm35709_v3.npz) — 20 зон атласа
+
+    ⚠️ IN PROGRESS:
+      - Нет проверки что face_mask покрывает достаточно кожи
+      - Нет валидации качества texture features (blur, noise)
+      - Нет проверки что atlas projection корректен
+
+    💡 NOTE:
+      - Использует soft pose policy (не убирает evidence полностью)
+      - Quality weight = physical * pose_soft (не zero-kill)
+      - Результаты в out_dir/skin/
+
+    🚨 WARNING:
+      - При отсутствии face_mask — ValueError (не создаёт заглушку)
+      - При отсутствии весов FFHQ — wrinkle/ffhq.npz не создаётся
+    """
     face_mask_data_path = Path(face_mask_data_path)
     if not face_mask_data_path.is_file():
         raise ValueError('face_mask.npz unavailable; refusing UV or resized fallback for skin evidence')

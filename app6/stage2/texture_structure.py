@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from typing import Any
 
@@ -138,6 +139,7 @@ def _skeleton_metrics(probability: np.ndarray, mask: np.ndarray) -> dict[str, fl
 
 
 def compare_zone_structure(image_a: np.ndarray, mask_a: np.ndarray, image_b: np.ndarray, mask_b: np.ndarray) -> dict[str, Any]:
+    log_status("compare_zone_structure", "complete")
     pa = _patch(image_a, mask_a)
     pb = _patch(image_b, mask_b)
     if pa is None or pb is None:

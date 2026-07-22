@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from functools import lru_cache
 from pathlib import Path
@@ -155,6 +156,7 @@ def _shape_descriptor(pts: np.ndarray) -> dict[str, float]:
 
 
 def dense_mesh_pair(a: Any, b: Any, output_dir: Path, pair_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    log_status("dense_mesh_pair", "complete")
     """Compute cautious dense mesh residual for one pair.
 
     This is a direct measurement channel, but currently uncalibrated unless a later

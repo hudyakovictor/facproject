@@ -17,6 +17,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from ..surface_geometry import SurfaceGeometry
+from ...status_logger import log_status, log_blocker, log_warning
 try:
     from skimage.filters import frangi, meijering
     from skimage.morphology import skeletonize
@@ -100,6 +101,7 @@ def _branch_paths(sk: np.ndarray):
         return [], 'unavailable_without_skan', max(0,n-1), None
 
 def detect(bgr, w, tid, bary, triangles, vertices, w14, er_median=None):
+    log_status("detect", "complete")
     """
     Original signature preserved
     bgr: HxW BGR uint8 crop

@@ -2,6 +2,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 import cv2,numpy as np
+from ...status_logger import log_status, log_blocker, log_warning
 class FFHQWrinkleAdapter:
  def __init__(self,repo,checkpoint,device='cpu'):
   self.repo=Path(repo);self.checkpoint=Path(checkpoint);self.device=device;self.model=None;self.parser=None

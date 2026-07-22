@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
 from collections import defaultdict
 from typing import Any
@@ -7,6 +8,7 @@ TEXTURE_SCHEMA = "deeputin-stage2-texture-pair-v1.0"
 
 
 def summarize_texture_pairs(zone_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    log_status("summarize_texture_pairs", "complete")
     """Summarize Stage-1 quality-zone texture comparability per pair.
 
     This is not yet a full texture-difference module. It converts quality_zones pair

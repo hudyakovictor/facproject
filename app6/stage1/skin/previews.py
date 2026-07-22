@@ -2,6 +2,7 @@
 from __future__ import annotations
 import cv2
 import numpy as np
+from ..status_logger import log_status, log_blocker, log_warning
 
 
 def _zone_colors(n=20):
@@ -39,6 +40,7 @@ def _smooth_map(x, mask, sigma=1.2):
 
 
 def save_previews(root, bgr, A, mask, quality, usable_mask=None):
+    log_status("save_previews", "complete")
     """Write geometry atlas + smooth quality heatmap + usable-only atlas."""
     root.mkdir(parents=True, exist_ok=True)
     A = np.asarray(A)
@@ -77,6 +79,7 @@ def save_previews(root, bgr, A, mask, quality, usable_mask=None):
 
 
 def save_wrinkle_overlay(root, bgr, skeleton, ridge_prob, ffhq_prob, mask, usable_mask=None):
+    log_status("save_wrinkle_overlay", "complete")
     root.mkdir(parents=True, exist_ok=True)
     geom = np.asarray(mask, bool)
     use = np.asarray(usable_mask, bool) if usable_mask is not None else geom

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .status_logger import log_status, log_blocker, log_warning
 
 import csv
 import json
@@ -90,6 +91,7 @@ def _csv_check(path: Path, expected: int) -> tuple[np.ndarray, np.ndarray]:
 
 
 def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]:
+    log_status("validate_photo", "complete")
     errors: list[str] = []
     warnings: list[str] = []
     info: dict[str, Any] = {}
@@ -305,6 +307,7 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
 
 
 def is_resumable(directory: Path, source_sha256: str, code_hash: str, config_hash: str, model_hash: str) -> tuple[bool, dict[str, Any] | None]:
+    log_status("is_resumable", "complete")
     if not directory.is_dir():
         return False, None
     try:

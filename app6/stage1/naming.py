@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .status_logger import log_status, log_blocker, log_warning
 
 import re
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ class PhotoName:
 
 
 def parse_photo_name(path: Path) -> PhotoName:
+    log_status("parse_photo_name", "complete")
     """Parse photo name, accepting YYYY_MM_DD[_N] with optional copy suffixes like (2), _2, -copy."""
     stem = path.stem
     parsed = None
@@ -55,6 +57,7 @@ def parse_photo_name(path: Path) -> PhotoName:
 
 
 def make_photo_id(parsed: PhotoName, source_sha256: str | None) -> str:
+    log_status("make_photo_id", "complete")
     """Collision-safe controlled slug plus source-byte hash prefix.
 
     Copy spellings normalised by ``parse_photo_name`` remain identical, while

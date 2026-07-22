@@ -16,6 +16,7 @@ Returns list of dicts with same keys: zone_level, zone_id, state, effective_supp
 from __future__ import annotations
 import cv2
 import numpy as np
+from ...status_logger import log_status, log_blocker, log_warning
 
 # Original 18 + 6 new = 24
 FEATURES = (
@@ -153,6 +154,7 @@ def _spectral_full(gray01, valid_mask):
     return {'entropy': float(entropy), 'high_ratio': float(high_e), 'low_ratio': float(low_e), 'mid_ratio': float(mid_e), 'slope': float(slope), 'anisotropy': float(anisotropy)}
 
 def extract_texture_features(bgr, w, A, S, min_support=100):
+    log_status("extract_texture_features", "complete")
     """
     Drop-in: same signature
     bgr: HxW BGR uint8, w: quality_weight HxW float, A: A20 map HxW int, S: S40 map HxW int
