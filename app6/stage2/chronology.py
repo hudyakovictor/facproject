@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Хронологические флаги: скорость изменения признака во времени.
+🚪 API: apply_chronology_rate_flags(), apply_biological_rate_flags()
+🔗 DEPENDS ON: stage1 chronology alignment (vertices_chronology_aligned)
+🚨 WARNING: требует >=2 дат; при одной дате флаги не выставляются.
+"""
 from __future__ import annotations
 from collections import defaultdict
 from datetime import date
@@ -18,7 +23,6 @@ def _robust(vals: list[float]) -> tuple[float,float,float]:
     med=float(np.median(arr)); mad=float(np.median(np.abs(arr-med))); p95=float(np.percentile(arr,95)); return med,mad,p95
 
 def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
-    log_status("apply_chronology_rate_flags", "in_progress", "No alignment quality filter. NO BLOCKER - can add filter anytime")
     """🎯 CRITICAL → Apply chronology rate flags to adjacent pairs.
 
     ⚠️ IN PROGRESS:
@@ -30,6 +34,7 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     - Rate = p95_point_z * coherent_fraction / sqrt(days)
     - Flags: same_day_structural_conflict, rapid_change_candidate
     """
+    log_status("apply_chronology_rate_flags", "in_progress", "No alignment quality filter. NO BLOCKER - can add filter anytime")
     refs={}; by=defaultdict(list)
     for r in rows:
         if r.get('pair_type')=='adjacent':
@@ -90,6 +95,7 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     return refs
 
 
+# 🗑️ DEPRECATED alias → используйте apply_chronology_rate_flags
 def apply_biological_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     """Deprecated compatibility alias; use apply_chronology_rate_flags."""
     return apply_chronology_rate_flags(rows)

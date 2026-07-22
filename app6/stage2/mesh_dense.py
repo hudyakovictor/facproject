@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Плотные mesh-сравнения с анатомическими зонами.
+🚪 API: load_anatomical_zones(), dense_mesh_pair()
+🔗 DEPENDS ON: mesh_zone_indices.json + subsample для скорости
+💡 NOTE: _resolve_mesh_count() подстраивается под число вершин конкретной модели.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -54,6 +59,7 @@ PRIORITY_ZONES = (
     "ligament_zygomatic_L", "ligament_zygomatic_R",
 )
 
+# ✅ Загрузка зон вершин (mesh_zone_indices.json)
 @lru_cache(maxsize=1)
 def load_anatomical_zones() -> dict[str, np.ndarray]:
     if not ZONE_INDEX_PATH.is_file():
@@ -156,12 +162,12 @@ def _shape_descriptor(pts: np.ndarray) -> dict[str, float]:
 
 
 def dense_mesh_pair(a: Any, b: Any, output_dir: Path, pair_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    log_status("dense_mesh_pair", "complete")
     """Compute cautious dense mesh residual for one pair.
 
     This is a direct measurement channel, but currently uncalibrated unless a later
     mesh calibration model is added. It must not be interpreted as identity verdict.
     """
+    log_status("dense_mesh_pair", "complete")
     ma = _load_mesh(a)
     mb = _load_mesh(b)
     if ma.get("status") != "ok" or mb.get("status") != "ok":

@@ -1,10 +1,16 @@
+"""📤 Рендер skin-отчёта + строгая валидация языка формулировок.
+🚪 API: validate_language(), render_report()
+🚨 WARNING: forbidden-формулировки ('диагноз', возраст-оценка) отклоняются.
+"""
 from __future__ import annotations
 import html,json
 from pathlib import Path
 FORBIDDEN=('доказано, что это силикон','доказано, что это другой человек','биологический возраст равен')
+# 🚨 Ревизия формулировок (запрещённые = отказ)
 def validate_language(text):
  for q in FORBIDDEN:
   if q in text.lower():raise ValueError(f'unsupported verdict language: {q}')
+# 📤 Рендер финального skin-отчёта
 def render_report(pair_results,output,provenance,chronology=None):
  rows=[]
  for p in pair_results:

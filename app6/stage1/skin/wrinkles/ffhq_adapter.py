@@ -1,3 +1,8 @@
+"""🔬 EXPERIMENTAL → Адаптер к FFHQ-detect-face-wrinkles (внешний ML-детектор).
+🚪 API: predict(), metadata()
+🚨 WARNING: требует весов внешнего репо; без весов → graceful skip, не crash.
+⚠️ IN PROGRESS: зоны BFM35709 для v3 ещё не подключены (test_wrinkle_zones).
+"""
 from __future__ import annotations
 import hashlib
 from pathlib import Path
@@ -33,6 +38,7 @@ class FFHQWrinkleAdapter:
   rgb=cv2.cvtColor(cv2.resize(bgr,(512,512)),cv2.COLOR_BGR2RGB).astype(np.float32)/255.;rgb=(rgb-[.485,.456,.406])/[.229,.224,.225];x=torch.from_numpy(rgb.transpose(2,0,1)[None].astype(np.float32)).to(dev)
   with torch.inference_mode():lab=parser(x)[0][0].argmax(0).cpu().numpy().astype(np.uint8)
   return cv2.resize(lab,(bgr.shape[1],bgr.shape[0]),interpolation=cv2.INTER_NEAREST)==1
+ # 🔬 EXPERIMENTAL → вызов внешнего ML-детектора
  def predict(self,bgr,skin_mask=None):
   self._load();self._load_parser();import torch
   if skin_mask is None and self.parser is not None:
@@ -41,4 +47,5 @@ class FFHQWrinkleAdapter:
   x=cv2.cvtColor(cv2.resize(masked,(512,512)),cv2.COLOR_BGR2RGB).astype(np.float32)/255.;x=(x-[.485,.456,.406])/[.229,.224,.225];x=torch.from_numpy(x.transpose(2,0,1)[None].astype(np.float32)).to(self.device)
   with torch.inference_mode():p=torch.sigmoid(self.model(x))[0,0].cpu().numpy()
   return cv2.resize(p,(bgr.shape[1],bgr.shape[0])).astype(np.float32)
+ # 📤 Метаданные ML-детектора (версия/веса)
  def metadata(self):return {'backend':'vendored_ffhq_unet+bisenet_skimmask','checkpoint_sha256':self.weight_sha256,'face_parsing_available':self.fp_cp.is_file(),'device':self.device,'domain_warning':'FFHQ web faces; no universal threshold'}

@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage2.pose_leakage: диагностика утечки ракурса в скоры.
+"""
 from __future__ import annotations
 
 import unittest

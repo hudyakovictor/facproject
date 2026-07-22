@@ -1,3 +1,8 @@
+"""✅ VERIFIED → Аппликабельность skin-зоны к паре: общая видимая поверхность.
+🚪 API: common_surface()
+🔗 DEPENDS ON: stage1.skin зонные маски + pose bin политика.
+"""
 import numpy as np
+# 📊 Общая наблюдаемая поверхность зоны на паре
 def common_surface(a,b,aa,ab,zone_level='A',zone_id=None,min_conf=.2):
  ta=a['triangle_id'];tb=b['triangle_id'];za=aa['zone_id_a20' if zone_level=='A' else 'zone_id_s40'];zb=ab['zone_id_a20' if zone_level=='A' else 'zone_id_s40'];fa=(ta>=0)&(a['projection_confidence']>=min_conf);fb=(tb>=0)&(b['projection_confidence']>=min_conf);ia=set(map(int,np.unique(ta[fa&(za==zone_id)] if zone_id is not None else ta[fa])));ib=set(map(int,np.unique(tb[fb&(zb==zone_id)] if zone_id is not None else tb[fb])));common=ia&ib;union=ia|ib;area=(a['triangle_surface_area']+b['triangle_surface_area'])/2 if 'triangle_surface_area' in a and 'triangle_surface_area' in b else np.ones(max(max(union,default=0)+1,1));s=lambda ids:float(area[list(ids)].sum()) if ids else 0.;return {'triangle_ids':np.array(sorted(common),np.int32),'coverage_A':s(common)/max(s(ia),1e-12),'coverage_B':s(common)/max(s(ib),1e-12),'coverage_sym':s(common)/max(s(union),1e-12),'common_surface_area':s(common),'area_units':'canonical_surface_units_squared'}

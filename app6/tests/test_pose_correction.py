@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → полная pose-коррекция pitch+yaw+roll (chronology alignment v1).
+"""
 from __future__ import annotations
 
 import unittest

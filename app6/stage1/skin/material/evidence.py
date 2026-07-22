@@ -1,3 +1,7 @@
+"""📊 METRIC → Evidence для материальной модели: медианные статистики по зонам.
+🚪 API: build()
+🔗 DEPENDS ON: surface_geometry + photometric branches.
+"""
 from __future__ import annotations
 import numpy as np
 from ...status_logger import log_status, log_blocker, log_warning

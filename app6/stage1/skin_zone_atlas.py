@@ -32,6 +32,7 @@
 ГУБЫ ИСКЛЮЧЕНЫ: зоны вокруг рта называются perioral_skin (околоротовые зоны
 кожи), губы (upper_lip/lower_lip) исключаются segmentation mask и не входят
 в атлас как зоны кожи.
+⚠️ CONVENTIONS v2 → legacy-атлас; актуальный: skin_zone_atlas_final.py
 """
 from __future__ import annotations
 
@@ -183,6 +184,7 @@ ZONE_SPECS: list[dict[str, Any]] = [
 _ZONE_NAME_TO_INDEX = {spec["name"]: i + 1 for i, spec in enumerate(ZONE_SPECS)}
 
 
+# ⚠️ LEGACY → primary_triangle_zone (T,) int; см. *_final
 def build_triangle_zone_map(uv_coords: np.ndarray, triangles: np.ndarray) -> np.ndarray:
     """Вернуть primary_triangle_zone: (T,) int, 0 = фон, 1..N = индекс зоны.
 
@@ -232,6 +234,7 @@ def _tri_px(uv: np.ndarray, tri_verts: np.ndarray, size: int) -> np.ndarray:
     return pts
 
 
+# 📤 Отрисовка UV-атласа в PNG (диагностика)
 def render_atlas_png(uv_coords: np.ndarray, triangles: np.ndarray, primary: np.ndarray, size: int = 1024) -> np.ndarray:
     """Отрисовать UV-атлас:
       - фон = ЧЁРНЫЙ;
@@ -283,6 +286,7 @@ def _pose_weight(pose_bin: str, spec: dict[str, Any]) -> float:
     return 0.0
 
 
+# 🏭 Политика видимости зон по бинам (legacy-расчёт)
 def build_pose_policy() -> dict[str, dict[str, float]]:
     policy: dict[str, dict[str, float]] = {}
     for pose in POSE_BINS:
@@ -290,6 +294,7 @@ def build_pose_policy() -> dict[str, dict[str, float]]:
     return policy
 
 
+# 📤 JSON-контракт атласа (legacy)
 def build_atlas_json(primary: np.ndarray) -> dict[str, Any]:
     counts = np.bincount(primary, minlength=len(ZONE_SPECS) + 1)
     coverage = {spec["name"]: int(counts[i + 1]) for i, spec in enumerate(ZONE_SPECS)}
@@ -319,6 +324,7 @@ def build_atlas_json(primary: np.ndarray) -> dict[str, Any]:
     }
 
 
+# 🏭 FACTORY → записать 4 канонических слоя ОДИН РАЗ
 def generate_canonical_atlas(atlas_dir: Path, uv_coords: np.ndarray, triangles: np.ndarray, png_size: int = 1024, face_model_path: Path | None = None) -> dict[str, Any]:
     """Построить и записать 4 канонических слоя атласа ОДИН РАЗ.
 
@@ -375,6 +381,7 @@ def generate_canonical_atlas(atlas_dir: Path, uv_coords: np.ndarray, triangles: 
     }
 
 
+# 📤 Запись pose policy CSV
 def write_pose_policy_csv(policy: dict[str, dict[str, float]], out_dir: Path) -> None:
     with open(out_dir / "skin_zone_atlas_pose_policy.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
@@ -383,6 +390,7 @@ def write_pose_policy_csv(policy: dict[str, dict[str, float]], out_dir: Path) ->
             w.writerow([pose] + [row[s["name"]] for s in ZONE_SPECS])
 
 
+# ✅ Загрузка канонического атласа без пересчёта
 def load_canonical_atlas(atlas_dir: Path) -> dict[str, Any]:
     """Загрузить канонический атлас из диска (без пересчёта)."""
     atlas_dir = Path(atlas_dir)
@@ -418,6 +426,7 @@ def _uv_to_original(uv: np.ndarray, trans_params: np.ndarray, W: int, H: int) ->
     return to_original_image(pts_224, trans_params)
 
 
+# 🎯 Применение атласа к конкретному фото (legacy-путь)
 def project_atlas_to_photo(
     atlas: dict[str, Any],
     bgr: np.ndarray,
@@ -601,5 +610,6 @@ def _render_overlay(bgr: np.ndarray, zone_masks: dict[str, np.ndarray], zone_nam
     return overlay.astype(np.uint8)
 
 
+# 📤 Имена зон атласа
 def zone_names() -> list[str]:
     return [s["name"] for s in ZONE_SPECS]

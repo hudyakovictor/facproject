@@ -145,7 +145,6 @@ class ReconstructionEngine:
         return np.asarray(value)
 
     def process(self, path: Path, oriented_rgb: np.ndarray | None = None) -> ReconstructionBundle:
-        log_status("process", "complete")
         """🎯 CRITICAL → Один inference 3DDFA, ВСЕ данные извлекаются здесь.
 
         Это САМАЯ ВАЖНАЯ функция пайплайна. Каждый вызов = один проход нейросети.
@@ -171,6 +170,7 @@ class ReconstructionEngine:
           - При bad detection (tensor is None) — RuntimeError
           - При bad reconstruction — NaN в вершинах (проверяется для chronology)
         """
+        log_status("process", "complete")
         import torch
         from PIL import Image, ImageOps
 
@@ -202,6 +202,7 @@ class ReconstructionEngine:
 
         captured_alpha: dict[str, Any] = {}
         captured_renderer: dict[str, Any] = {}
+        # 🔄 CALLBACK → вызывается process(): сохранить alpha-каналы до мутаций
         def capture_alpha(_module: Any, _inputs: Any, output: Any) -> None:
             captured_alpha["count"] = int(captured_alpha.get("count", 0)) + 1
             captured_alpha["alpha"] = output
@@ -209,6 +210,7 @@ class ReconstructionEngine:
         alpha_hook = self.model.net_recon.register_forward_hook(capture_alpha)
         original_renderer_forward = self.model.renderer.forward
 
+        # 🔄 CALLBACK → прямой проход рендера (диагностика репроекции)
         def renderer_forward(*args: Any, **kwargs: Any) -> Any:
             output = original_renderer_forward(*args, **kwargs)
             if kwargs.get("visible_vertice") and isinstance(output, (tuple, list)) and len(output) >= 4:

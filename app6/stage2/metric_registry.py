@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Реестр метрик (100 каналов): валидация имён, каналы, каталог.
+🚪 API: validate_registry(), metric_channel(), build_metric_catalog()
+🔗 DEPENDS ON: skin feature_registry — синхронизация имён каналов
+🚨 WARNING: добавление метрики требует обновления golden-аудита audit_100.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -63,6 +68,7 @@ if len(METRICS) != 100:
 NAMES = tuple(m["name"] for m in METRICS)
 
 
+# ✅ Валидация реестра: все 100 каналов объявлены
 def validate_registry() -> list[str]:
     errors: list[str] = []
     if len(set(NAMES)) != len(NAMES):
@@ -84,8 +90,8 @@ def _usable(value: Any) -> bool:
 
 
 def metric_channel(row: dict[str, Any]) -> dict[str, Any]:
-    log_status("metric_channel", "complete")
     """Lossless registered metric projection for evidence/report transport."""
+    log_status("metric_channel", "complete")
     return {name: row.get(name) for name in NAMES}
 
 

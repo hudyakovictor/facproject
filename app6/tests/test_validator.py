@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage1.validator: контракты npz/csv (43 ключа, 6 CSV).
+"""
 from __future__ import annotations
 
 import csv

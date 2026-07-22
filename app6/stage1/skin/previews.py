@@ -1,4 +1,7 @@
-"""Preview writers: no mesh-grid imprint on analysis heatmaps."""
+"""Preview writers: no mesh-grid imprint on analysis heatmaps.
+
+📤 CONVENTIONS v2 → превью-рендеры; статус: ✅ VERIFIED
+"""
 from __future__ import annotations
 import cv2
 import numpy as np
@@ -40,8 +43,8 @@ def _smooth_map(x, mask, sigma=1.2):
 
 
 def save_previews(root, bgr, A, mask, quality, usable_mask=None):
-    log_status("save_previews", "complete")
     """Write geometry atlas + smooth quality heatmap + usable-only atlas."""
+    log_status("save_previews", "complete")
     root.mkdir(parents=True, exist_ok=True)
     A = np.asarray(A)
     geom = np.asarray(mask, bool)

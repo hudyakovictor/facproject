@@ -1,3 +1,7 @@
+"""📊 Фотометрические ветви анализа (diffuse/specular split).
+🚪 API: branches()
+🔬 EXPERIMENTAL: specular-ветвь ещё валидируется.
+"""
 import cv2,numpy as np
 from ..status_logger import log_status, log_blocker, log_warning
 def branches(bgr,mask):

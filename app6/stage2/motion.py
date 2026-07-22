@@ -1,3 +1,8 @@
+"""📊 METRIC → Движение точек после выравнивания + стабильность landmarks.
+🚪 API: pose_motion_support(), aligned_point_motion(), landmark_stability_score(), score()
+🚨 WARNING: поддержка по pose bin: profile_* = limited, out_of_range = unsupported
+🔗 DEPENDS ON: anchor_policy.stable_anchor_mask() + core.robust_rigid_align()
+"""
 from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
@@ -15,6 +20,7 @@ PROFILE_POSE_BINS = {
 UNSUPPORTED_POSE_BINS = {"out_of_supported_range", "unknown", ""}
 
 
+# 🚧 Тир поддержки motion-утверждений по pose bin
 def pose_motion_support(pose_bin: str) -> str:
     """Return support tier for point-motion claims on this pose bin."""
     p = str(pose_bin or "")
@@ -26,7 +32,6 @@ def pose_motion_support(pose_bin: str) -> str:
 
 
 def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->dict[str,np.ndarray|int|str]:
-    log_status("aligned_point_motion", "complete")
     """🎯 CRITICAL → Вычисление движения точек между двумя фото.
 
     Использует chronology-aligned ландмарки (полная pose коррекция).
@@ -44,6 +49,7 @@ def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->
       - Использует iteratively-trimmed Kabsch (15% trim)
       - Identity-only для expression-robust comparison
     """
+    log_status("aligned_point_motion", "complete")
     if count==106:
         pa,pb=a.ldm106,b.ldm106;vis=np.asarray(a.visible106,bool)&np.asarray(b.visible106,bool)
         if identity_only: pa,pb=a.identity_only106,b.identity_only106
@@ -91,6 +97,7 @@ class PointNoiseModel:
                 median=np.nanmedian(stack,axis=0);mad=np.nanmedian(np.abs(stack-median),axis=0);p95=np.nanpercentile(stack,95,axis=0)
             cnt=np.sum(np.isfinite(stack),axis=0);template=np.nanmedian(np.stack(templates[key][:200]),axis=0)
             self.references[key]=PointNoiseReference(median.astype(np.float32),mad.astype(np.float32),p95.astype(np.float32),cnt.astype(np.int32),template.astype(np.float32))
+    # 📊 Калиброванный motion-скор
     def score(self,pose:str,count:int,motion:dict[str,Any])->dict[str,Any]:
         support=pose_motion_support(pose)
         ref=self.references.get((pose,count));mag=np.asarray(motion['magnitude'],np.float32);z=np.full(count,np.nan,np.float32);sig=np.zeros(count,bool)

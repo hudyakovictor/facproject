@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Run stage1 + skin sequentially per photo — single Python process, no model reload."""
+"""Run stage1 + skin sequentially per photo — single Python process, no model reload.
+
+🚪 CONVENTIONS v2 → ENTRY POINT калибровки; статус: ✅ VERIFIED
+"""
 import sys,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT))
 os.chdir(ROOT)
 
+# 🚪 ENTRY POINT → см. модульный docstring
 def main():
  from app6.stage1.config import Stage1Config
  from app6.stage1.engine import Stage1Engine

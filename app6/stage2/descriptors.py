@@ -1,3 +1,7 @@
+"""📊 METRIC → Локальные парные дескрипторы (окрестности landmarks) и их скоринг.
+🚪 API: local_pair_descriptors(), score()
+🔗 DEPENDS ON: records из loaders.load_main()
+"""
 from __future__ import annotations
 import warnings
 from collections import defaultdict
@@ -57,6 +61,7 @@ class DescriptorNoiseModel:
                 warnings.simplefilter("ignore",RuntimeWarning)
                 med=np.nanmedian(st,0); mad=np.nanmedian(np.abs(st-med),0); p95=np.nanpercentile(st,95,0)
             self.refs[pose]=Ref(med.astype('f4'),mad.astype('f4'),p95.astype('f4'),np.sum(np.isfinite(st),0).astype('i4'),np.median(np.stack(templates[pose][:200]),0).astype('f4'))
+    # 📊 Скоринг локальных дескрипторов
     def score(self, pose: str, a: Record, b: Record) -> dict[str, object]:
         ref=self.refs.get(pose)
         if ref is None:

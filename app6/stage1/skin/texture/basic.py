@@ -1,4 +1,7 @@
-"""Deterministic native-pixel robust macro texture baseline."""
+"""Deterministic native-pixel robust macro texture baseline.
+
+📊 CONVENTIONS v2 → базовые текстурные статистики; статус: ✅ VERIFIED
+"""
 from __future__ import annotations
 import cv2,numpy as np
 from ..contracts import EvidenceState

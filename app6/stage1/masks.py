@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Построение бандла масок (семантика 8 каналов + skin-производные).
+🔗 DEPENDS ON: config.SEMANTIC_POLICY — правила сведения каналов
+🚪 API: build_mask_bundle() — вызывается из engine._one()
+🚨 WARNING: порядок CHANNEL_NAMES жёсткий — валидатор stage1 проверяет shape.
+"""
 from __future__ import annotations
 from .status_logger import log_status, log_blocker, log_warning
 
@@ -29,7 +34,6 @@ class MaskBundle:
 
 
 def build_mask_bundle(channels: np.ndarray, trans_params: np.ndarray, image_shape: tuple[int, ...]) -> MaskBundle:
-    log_status("build_mask_bundle", "complete")
     """🎯 CRITICAL → Создание маски кожи из семантических каналов 3DDFA.
 
     Использует 8 каналов сегментации:
@@ -54,6 +58,7 @@ def build_mask_bundle(channels: np.ndarray, trans_params: np.ndarray, image_shap
       - При projection failure — soft_original/hard_original = None
       - Никогда не растягивать 224px маску на полное изображение!
     """
+    log_status("build_mask_bundle", "complete")
     a = np.asarray(channels, np.float32)
     if a.shape != (224, 224, 8):
         raise ValueError(f"semantic channels must be (224,224,8), got {a.shape}")

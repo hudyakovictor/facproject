@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → регрессии P0-фиксов форензик-слоя (evidence gates).
+"""
 from __future__ import annotations
 
 import json

@@ -1,3 +1,8 @@
+"""📊 METRIC → Baseline-return: возврат признака к собственной базовой линии.
+🚪 API: apply_baseline_return()
+🔗 DEPENDS ON: loaders — векторы базовых линий из sidecar
+🔬 EXPERIMENTAL: _reversal_stats ещё калибруется.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -53,12 +58,12 @@ def _reversal_stats(v1: np.ndarray, v2: np.ndarray) -> dict[str, float | int]:
 
 
 def apply_baseline_return(rows: list[dict[str, Any]], output_dir: Path) -> dict[str, Any]:
-    log_status("apply_baseline_return", "complete")
     """Detect local A→B spike followed by B→C return in same pose-bin chronology.
 
     This is intentionally conservative and does not assert biology/identity. It marks a
     candidate as reversible when the next adjacent edge has broadly opposite motion.
     """
+    log_status("apply_baseline_return", "complete")
     by_pose: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
         if r.get("pair_type") == "adjacent":

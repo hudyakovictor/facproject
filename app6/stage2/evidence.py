@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Evidence-слой: состояние доказательности, контр-объяснения, пакет.
+🚪 API: evidence_state(), alternative_reasons(), packet_from_pair(), to_dict()
+🚨 WARNING: только evidence-backed claims попадают в Stage 3 отчёт
+💡 NOTE: домен evidence отличается от geometry/support — см. DEEP_AUDIT §2.2.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -61,7 +66,7 @@ def alternative_reasons(row: dict[str, Any]) -> list[str]:
         reasons.append("dense_mesh_insufficient_calibration")
     elif row.get("mesh_status") == "measured_uncalibrated":
         reasons.append("dense_mesh_uncalibrated_support_only")
-    if row.get("biological_rate_status"): 
+    if row.get("biological_rate_status"):
         reasons.append("short_interval_rate_flag_requires_review")
     return reasons
 
@@ -86,6 +91,7 @@ class EvidencePacket:
     alternative_explanations: list[str]
     source_files: dict[str, Any]
 
+    # 📤 Сериализация evidence-пакета
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 

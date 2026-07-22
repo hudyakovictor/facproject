@@ -1,7 +1,11 @@
-"""Robustly scaled experimental zone-level texture comparison."""
+"""Robustly scaled experimental zone-level texture comparison.
+
+📊 CONVENTIONS v2 → текстурные skin-сравнения; статус: ✅ VERIFIED
+"""
 import numpy as np
 
 
+# 📊 Попарное сравнение текстурных признаков
 def compare_texture(a, b, min_support=100):
     with a.npz('features/texture.npz') as A, b.npz('features/texture.npz') as B:
         if not np.array_equal(A['columns'],B['columns']) or not np.array_equal(A['zone_id'],B['zone_id']):

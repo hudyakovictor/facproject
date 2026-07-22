@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""🚨 WARNING → Release-gate: блокирующая проверка готовности skin-слоя к релизу.
+🔗 DEPENDS ON: preflight_skin_v3 + dataset validation
+🚪 ENTRY POINT: main() (helper add() — 🔄 CALLBACK для списка гейтов).
+💡 NOTE: exit code != 0 останавливает релиз — это by design.
+"""
 import argparse,json,subprocess,sys,hashlib
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))

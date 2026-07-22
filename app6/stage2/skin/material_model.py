@@ -1,5 +1,10 @@
+"""📊 METRIC → Оценка материальной модели (альбедо/блеск) по паре.
+🚪 API: evaluate_material()
+🔬 EXPERIMENTAL: шкалы specular-каналов ещё калибруются.
+"""
 import json,math
 from pathlib import Path
+# 📊 Оценка материальной модели на паре
 def evaluate_material(evidence,calibration_artifact=None):
  if calibration_artifact is None:return {**evidence,'probability':None,'status':'uncalibrated','reason':'material calibration absent'}
  c=json.loads(Path(calibration_artifact).read_text())

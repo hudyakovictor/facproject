@@ -44,11 +44,13 @@ from .evidence import evidence_state, packet_from_pair
 
 SCHEMA='deeputin-stage2-v1.3'
 
+# 🔄 UTC-штамп для payload
 def utc():return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
 
 @dataclass(frozen=True)
 class Stage2Config:
  stage1_root:Path;calibration_root:Path;output_dir:Path;overwrite:bool=False;min_points106:int=24;min_points134:int=30;lead_archive:Path|None=None
+ # 🏭 FACTORY → сборка итогового payload прогона
  def payload(self):return {'schema':SCHEMA,'min106':self.min_points106,'min134':self.min_points134,'calibration':'7x-same-person-matched-plus-pooled-v1','lead_policy':'coverage_only_not_threshold_tuning','descriptor_families':list(DESCRIPTOR_NAMES)}
 
  def __post_init__(self):
@@ -58,7 +60,6 @@ class Stage2Config:
 class Stage2Engine:
  def __init__(self,cfg):self.cfg=cfg
  def run(self):
-  log_status("run", "complete")
   """🎯 CRITICAL → Полный анализ Stage 2 (сравнение пар, хронология, калибровка).
 
   Проходит по всем парам фото внутри pose bins:
@@ -90,6 +91,7 @@ class Stage2Engine:
     - При отсутствии калибровочных данных — ошибка
     - При большом количестве пар — медленно (FDR)
   """
+  log_status("run", "complete")
   t=time.time();o=self.cfg.output_dir
   if o.exists() and any(o.iterdir()) and not self.cfg.overwrite:raise FileExistsError(f'output exists: {o}')
   if o.exists() and self.cfg.overwrite:

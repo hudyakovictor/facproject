@@ -1,3 +1,7 @@
+"""🔄 CALLBACK → Пакетный прогон skin pipeline по нескольким фото.
+🔗 DEPENDS ON: pipeline.build_skin_package() — вызывается на каждый элемент
+🚪 API: run()
+"""
 from __future__ import annotations
 import json,shutil,tempfile
 from pathlib import Path
@@ -6,6 +10,7 @@ from .pipeline import build_skin_package
 from ..geometry import unpack_mask
 class SkinStage1Batch:
  def __init__(self,stage1_root,atlas_path,overwrite=False):self.root=Path(stage1_root);self.atlas=Path(atlas_path);self.overwrite=overwrite
+ # 🚪 Пакетный прогон pipeline по списку фото
  def run(self):
   ok=skip=fail=0;errors=[]
   for d in sorted(self.root.iterdir()):

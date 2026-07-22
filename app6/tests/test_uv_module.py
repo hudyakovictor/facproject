@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → /uv_module: HD UV генератор (config guards, render contract).
+"""
 import unittest,numpy as np
 from uv_module import HDUVConfig,HDUVTextureGenerator
 class TestUVModule(unittest.TestCase):

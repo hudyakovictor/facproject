@@ -1,3 +1,8 @@
+"""📊 METRIC → Альфа-хронология: коррекция метрик, зависящих от возрастного тренда.
+🚪 API: apply_alpha_chronology()
+🔗 DEPENDS ON: loaders.load_main() — ожидает даты и α-каналы в записях
+⚠️ IN PROGRESS: часть каналов ещё без α-коэффициентов (fallback = passthrough).
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -11,12 +16,12 @@ ALPHA_SCHEMA = "deeputin-stage2-alpha-chronology-v1.0"
 
 
 def apply_alpha_chronology(rows: list[dict[str, Any]], model: Any) -> dict[str, Any]:
-    log_status("apply_alpha_chronology", "complete")
     """Annotate pair rows with calibrated alpha_id / alpha_exp chronology signals.
 
     alpha_id is treated as an additional identity-shape channel, not as an identity
     verdict. alpha_exp is used as an expression-leakage explanation channel.
     """
+    log_status("apply_alpha_chronology", "complete")
     events: list[dict[str, Any]] = []
     for r in rows:
         pose = str(r.get("pose_bin") or "")

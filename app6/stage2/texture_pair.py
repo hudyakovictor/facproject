@@ -1,3 +1,7 @@
+"""📊 METRIC → Сводка текстурных дельт по парам в агрегированную таблицу.
+🚪 API: summarize_texture_pairs()
+🔗 DEPENDS ON: texture_image.texture_pair_deltas()
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -8,13 +12,13 @@ TEXTURE_SCHEMA = "deeputin-stage2-texture-pair-v1.0"
 
 
 def summarize_texture_pairs(zone_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    log_status("summarize_texture_pairs", "complete")
     """Summarize Stage-1 quality-zone texture comparability per pair.
 
     This is not yet a full texture-difference module. It converts quality_zones pair
     coverage into a pair-level readiness table for future image-space texture/wrinkle
     analysis and public evidence caveats.
     """
+    log_status("summarize_texture_pairs", "complete")
     by_pair: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in zone_rows:
         pid = str(r.get("pair_id", ""))

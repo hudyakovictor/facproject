@@ -66,6 +66,7 @@ def _rigid_align(source: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np
     return source @ rotation + translation, rotation.astype(np.float32), translation.astype(np.float32)
 
 
+# 🎯 CRITICAL → trimmed Kabsch с диагностикой (база всех align)
 def robust_rigid_align(
     source: np.ndarray,
     target: np.ndarray,
@@ -142,7 +143,6 @@ def compare_landmarks(
     min_points106: int = 24,
     min_points134: int = 30,
 ) -> Comparison:
-    log_status("compare_landmarks", "complete")
     """🎯 CRITICAL → Сравнение ландмарков двух фото (ядро хронологии).
 
     Использует Kabsch alignment (robust_rigid_align) для выравнивания,
@@ -167,6 +167,7 @@ def compare_landmarks(
       - Если Record.ldm134 НЕ chronology-aligned — результаты недостоверны!
       - При insufficient visibility (< 30 common points) — статус "insufficient_visibility"
     """
+    log_status("compare_landmarks", "complete")
     # ⚠️ IN PROGRESS: No check that both photos are in the same pose bin
     # TODO: Add explicit pose_bin check (currently done by grouping in engine)
     if a.pose_bin != b.pose_bin:
@@ -240,8 +241,8 @@ def compare_landmarks(
 
 
 def build_coordinate_zone_map(records: list[Record], landmark_count: int) -> tuple[np.ndarray, dict[str, Any]]:
-    log_status("build_coordinate_zone_map", "complete")
     """Nine reproducible coordinate zones; avoids unverified anatomical labels."""
+    log_status("build_coordinate_zone_map", "complete")
     if not records:
         raise ValueError("cannot build zones without records")
     stack = np.stack([r.ldm106 if landmark_count == 106 else r.ldm134 for r in records[: min(200, len(records))]])
@@ -266,12 +267,12 @@ def robust_reference(values: list[float]) -> dict[str, float | int]:
 
 
 def calibrated_score(value: float, reference: dict[str, float | int], matched: list[float]) -> dict[str, float | str]:
-    log_status("calibrated_score", "complete")
     """📊 METRIC — Calibrated score для одного значения.
 
     Сравнивает value с калибровочным распределением (same-person noise).
     Возвращает z-score и статус.
     """
+    log_status("calibrated_score", "complete")
     matched_arr = np.asarray([v for v in matched if np.isfinite(v)], np.float64)
     threshold = float(reference.get("p95", 0.0))
     if matched_arr.size:
@@ -303,7 +304,6 @@ def zone_weighted_score(zone_rmse: dict[str, float], zone_map: np.ndarray,
                         visible_indices: np.ndarray,
                         reference: dict[str, float | int],
                         matched: list[float]) -> dict[str, float | str]:
-    log_status("zone_weighted_score", "complete")
     """📊 METRIC — Zone-weighted calibrated score.
 
     Учитывает что разные зоны имеют разную важность:
@@ -320,6 +320,7 @@ def zone_weighted_score(zone_rmse: dict[str, float], zone_map: np.ndarray,
     Returns:
         dict с weighted_z, weighted_status, per_zone_scores
     """
+    log_status("zone_weighted_score", "complete")
     if not zone_rmse:
         return {"weighted_z": 0.0, "weighted_status": "no_zones", "per_zone_scores": {}}
 

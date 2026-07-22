@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🔬 EXPERIMENTAL → Бенчмарк скорости сборки skin-пакета на корпусе фото.
+🔗 DEPENDS ON: stage1.skin.pipeline
+💡 NOTE: только диагностика производительности; на контракты не влияет.
+"""
 import argparse,json,time,resource
 from pathlib import Path
 import numpy as np

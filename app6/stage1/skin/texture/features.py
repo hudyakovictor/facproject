@@ -12,6 +12,7 @@ Improvements for 100%:
   We keep old 18 at start for compat, append 6 new at end.
 
 Returns list of dicts with same keys: zone_level, zone_id, state, effective_support, values (np array float32)
+📊 CONVENTIONS v2 → LBP/GLCM признаки; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 import cv2
@@ -154,12 +155,12 @@ def _spectral_full(gray01, valid_mask):
     return {'entropy': float(entropy), 'high_ratio': float(high_e), 'low_ratio': float(low_e), 'mid_ratio': float(mid_e), 'slope': float(slope), 'anisotropy': float(anisotropy)}
 
 def extract_texture_features(bgr, w, A, S, min_support=100):
-    log_status("extract_texture_features", "complete")
     """
     Drop-in: same signature
     bgr: HxW BGR uint8, w: quality_weight HxW float, A: A20 map HxW int, S: S40 map HxW int
     Returns list of dicts
     """
+    log_status("extract_texture_features", "complete")
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
     lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
     lab[...,0] /= 255.0

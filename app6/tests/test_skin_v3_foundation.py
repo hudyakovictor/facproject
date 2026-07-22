@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → фундамент skin v3: атлас-топология, zbuffer, background.
+"""
 import tempfile,unittest
 from pathlib import Path
 import numpy as np

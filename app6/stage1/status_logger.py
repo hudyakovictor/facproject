@@ -30,16 +30,25 @@ logging.basicConfig(
 
 logger = logging.getLogger('facproject')
 # Status flow: need_testing → complete → closed
+# 🚨 WARNING: любой статус, используемый в log_status(), ОБЯЗАН присутствовать
+# в STATUS_FLOW — иначе print_status_summary() и STATUS_AUDIT его не увидят.
 STATUS_FLOW = {
     "need_testing": {"next": "complete", "log_level": "warning", "emoji": "🔴"},  # Bright red circle - very visible!
     "complete": {"next": "closed", "log_level": "info", "emoji": "✅"},
     "closed": {"next": None, "log_level": None, "emoji": "🚪"},  # Hidden from console
+    "in_progress": {"next": "need_testing", "log_level": "warning", "emoji": "⚠️"},
+    "blocked": {"next": None, "log_level": "warning", "emoji": "🚫"},
+    "error": {"next": None, "log_level": "error", "emoji": "❌"},
+    "experimental": {"next": "need_testing", "log_level": "info", "emoji": "🔬"},
+    "deprecated": {"next": None, "log_level": "warning", "emoji": "🗑️"},
 }
 
 # Statuses that always show in console
-ALWAYS_SHOW = {"need_testing", "complete", "in_progress", "blocked", "error", "experimental"}
+ALWAYS_SHOW = {"need_testing", "complete", "in_progress", "blocked", "error",
+               "experimental", "deprecated"}
 
 
+# 🎯 CRITICAL → единая точка логирования статуса функции
 def log_status(func_name: str, status: str, detail: str = ""):
     """Log function status.
 
@@ -84,6 +93,7 @@ def log_complete(func_name: str, detail: str = "complete"):
     log_status(func_name, "complete", detail)
 
 
+# 🔒 Ручное закрытие функции + авто-апдейт STATUS_AUDIT.py
 def close_function(func_name: str, audit_path: str = "app6/STATUS_AUDIT.py"):
     """Close a function (mark as fully tested and approved).
 
@@ -116,6 +126,7 @@ def _update_audit_status(func_name: str, new_status: str, audit_path: str):
         logger.info(f"  Updated {audit_path}: {func_name} → {new_status}")
 
 
+# 🚫 Функция заблокирована другой нереализованной
 def log_blocker(func_name: str, blocker: str, detail: str = ""):
     """Log that a function is blocked by another function."""
     msg = f"{func_name}: BLOCKED by {blocker}"
@@ -124,6 +135,7 @@ def log_blocker(func_name: str, blocker: str, detail: str = ""):
     logger.warning(f"🚫 {msg}")
 
 
+# ⚠️ Предупреждение о неполной реализации
 def log_warning(func_name: str, message: str):
     """Log a warning about incomplete implementation."""
     logger.warning(f"⚠️ {func_name}: {message}")
@@ -135,11 +147,13 @@ def status_warning(func_name: str, message: str):
     log_warning(func_name, message)
 
 
+# ❌ Известный баг в функции
 def log_error(func_name: str, message: str):
     """Log an error/bug."""
     logger.error(f"❌ {func_name}: {message}")
 
 
+# 🔬 Экспериментальная функция
 def log_experimental(func_name: str, message: str = ""):
     """Log experimental function."""
     logger.info(f"🔬 {func_name}: {message}")
@@ -150,22 +164,27 @@ _verified_functions: set = set()
 _closed_functions: set = set()
 
 
+# ✅ Пометить функцию проверенной (complete)
 def mark_verified(func_name: str):
     """Mark a function as verified (complete)."""
     _verified_functions.add(func_name)
+# 🚪 Пометить функцию закрытой
 def mark_closed(func_name: str):
     """Mark a function as closed (fully tested)."""
     _closed_functions.add(func_name)
 
 
+# 🔍 Проверка: функция verified?
 def is_verified(func_name: str) -> bool:
     """Check if function has been verified."""
     return func_name in _verified_functions
+# 🔍 Проверка: функция closed?
 def is_closed(func_name: str) -> bool:
     """Check if function has been closed."""
     return func_name in _closed_functions
 
 
+# 📤 Сводка статусов в консоль
 def print_status_summary():
     """Print summary of function statuses."""
     print("\n" + "=" * 60)

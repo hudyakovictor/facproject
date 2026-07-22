@@ -1,7 +1,12 @@
+"""✅ VERIFIED → Provenance входа: декодирование ориентированного RGB + хэши.
+🚪 API: decode_oriented()
+💡 NOTE: EXIF-ориентация применяется здесь — выше по стеку уже не трогаем.
+"""
 from __future__ import annotations
 from pathlib import Path
 import cv2,numpy as np
 from PIL import Image,ImageOps,ExifTags
+# ✅ VERIFIED → EXIF-транспонирование + RGB→BGR + provenance
 def decode_oriented(path):
  """Deterministic EXIF transpose followed by RGB→BGR; returns provenance."""
  with Image.open(path) as im:

@@ -1,3 +1,8 @@
+"""📊 METRIC → Построение per-zone quality-файлов (bbox, эрозия, статистики текстур).
+🗑️ DEPRECATED: build_quality_files() помечена deprecated — заменена skin/pipeline.py
+🔗 DEPENDS ON: masks.build_mask_bundle() — входные маски
+💡 NOTE: оставлен для обратной совместимости старых прогонов.
+"""
 from __future__ import annotations
 from .status_logger import log_status, log_blocker, log_warning
 
@@ -182,13 +187,13 @@ def build_quality_files(
     photo_id: str,
     out: Path,
 ) -> tuple[dict[str, str], dict[str, Any]]:
-    log_status("build_quality_files", "deprecated", "Replaced by skin/pipeline.py")
     """Write quality.json and quality_zones.npz for Stage 1.
 
     Current implementation creates forehead zones for frontal/left_light/right_light using
     a conservative skin-mask fallback. The file contract is designed so a later mesh-zone
     projection can replace the masks without changing downstream wrinkle code.
     """
+    log_status("build_quality_files", "deprecated", "Replaced by skin/pipeline.py")
     if hard_mask_original is None or hard_mask_original.size == 0:
         summary = {
             "schema_version": QUALITY_SCHEMA_VERSION,

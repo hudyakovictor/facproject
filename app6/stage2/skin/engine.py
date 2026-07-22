@@ -1,4 +1,7 @@
-"""Stage2 engine with same-pose pitch/roll protection."""
+"""Stage2 engine with same-pose pitch/roll protection.
+
+🚪 CONVENTIONS v2 → ENTRY POINT skin stage2; статус: ⚠️ IN PROGRESS
+"""
 from __future__ import annotations
 import json
 import math
@@ -48,6 +51,7 @@ class SkinStage2Engine:
                 else ('difference_candidate' if zs else 'outside_calibration_support')
             )
 
+    # 🚪 ENTRY POINT skin Stage 2
     def run(self):
         self.out.mkdir(parents=True, exist_ok=True)
         cal = None

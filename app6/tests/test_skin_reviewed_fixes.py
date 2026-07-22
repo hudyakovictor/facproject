@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → регрессии ревью skin-слоя (reviewed fixes pack).
+"""
 import inspect, unittest
 from app6.stage2.skin.calibration import _split, _group_id
 from app6.stage2.skin.chronology import analyze_temporal_observations

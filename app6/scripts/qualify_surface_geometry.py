@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🔬 EXPERIMENTAL → Квалификация качества surface-геометрии (кривизны/границы).
+🔗 DEPENDS ON: stage1.skin.surface_geometry
+💡 NOTE: диагностика; отказ = warning, пайплайн не блокируется.
+"""
 import argparse,json,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))

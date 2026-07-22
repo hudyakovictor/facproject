@@ -1,3 +1,10 @@
+"""🎯 CRITICAL → Финальный UV-атлас зон кожи (BFM 35709): валидация, проекция, контракт.
+🚪 API: validate_definitions(), build_primary_triangle_zone(), project_atlas_to_photo(),
+  export_contract(), load_canonical_atlas()
+🔗 DEPENDS ON: assets face_model + mask_atlas npz
+📊 METRIC: zone_role_for_pose() — роль зоны по pose bin (аппликабельность в stage2)
+⚠️ IN PROGRESS: покрытие профильных бинов уточняется (см. AUDIT-тесты v3).
+"""
 from __future__ import annotations
 
 """Canonical anatomical skin atlas v4 (40 zones).
@@ -129,6 +136,7 @@ FACE_SUPPORT_POLYGON = (
 )
 
 
+# ✅ VERIFIED → валидация определений зон (полигоны UV)
 def validate_definitions() -> None:
     nums = [z.num for z in ZONES]
     ids = [z.zone_id for z in ZONES]
@@ -146,12 +154,14 @@ def validate_definitions() -> None:
             raise ValueError(f"missing pair for {z.name}")
 
 
+# 🔢 Центроиды треугольников в UV
 def triangle_centroids_uv(uv_coords: np.ndarray, triangles: np.ndarray) -> np.ndarray:
     uv = np.asarray(uv_coords, np.float32)[:, :2]
     tri = np.asarray(triangles, np.int64)
     return uv[tri].mean(axis=1)
 
 
+# 🔢 Point-in-polygon тест для UV-точек
 def points_in_polygon(points: np.ndarray, polygon) -> np.ndarray:
     contour = np.asarray(polygon, np.float32)
     return np.asarray(
@@ -160,6 +170,7 @@ def points_in_polygon(points: np.ndarray, polygon) -> np.ndarray:
     )
 
 
+# 🎯 CRITICAL → одна зона на треугольник внутри face support
 def build_primary_triangle_zone(uv_coords: np.ndarray, triangles: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Assign one zone per triangle inside the face support.
 
@@ -179,6 +190,7 @@ def build_primary_triangle_zone(uv_coords: np.ndarray, triangles: np.ndarray) ->
     return out, support
 
 
+# 📊 Роль зоны по pose bin (аппликабельность)
 def zone_role_for_pose(zone: Zone, pose: str) -> str:
     if pose == "frontal":
         return "primary"
@@ -194,6 +206,7 @@ def zone_role_for_pose(zone: Zone, pose: str) -> str:
     return "exclude"
 
 
+# 📤 Экспорт контракта атласа для внешних потребителей
 def export_contract() -> dict:
     payload = {
         "schema_version": ATLAS_VERSION,
@@ -218,6 +231,7 @@ validate_definitions()
 # Per-photo projection (canonical atlas -> original photo pixels)
 # ---------------------------------------------------------------------------
 
+# ✅ Загрузка канонического атласа без пересчёта
 def load_canonical_atlas(atlas_dir) -> dict:
     """Загрузить канонический атлас из диска (без пересчёта).
 
@@ -268,6 +282,7 @@ def _zone_colors(n: int):
     return colors
 
 
+# 🎯 CRITICAL → проекция атласа на фото (актуальный путь)
 def project_atlas_to_photo(
     atlas: dict,
     bgr: np.ndarray,

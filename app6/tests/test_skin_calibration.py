@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → stage2.skin.package_calibration на синтетических парах.
+"""
 import tempfile, unittest
 from pathlib import Path
 from unittest.mock import patch

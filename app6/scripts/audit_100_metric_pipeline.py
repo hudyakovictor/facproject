@@ -1,3 +1,8 @@
+"""📊 METRIC → Сквозной аудит 100-канального metric pipeline: сводит каналы в CSV.
+🔗 DEPENDS ON: stage2.metric_registry.build_metric_catalog()
+🚪 ENTRY POINT: run_audit() — вызывается из __main__.
+💡 NOTE: источник истины по названиям каналов — metric_registry, не этот файл.
+"""
 from __future__ import annotations
 
 import csv

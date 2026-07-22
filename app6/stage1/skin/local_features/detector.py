@@ -1,4 +1,7 @@
-"""Noise-anchored local skin feature detector; drop-in replacement."""
+"""Noise-anchored local skin feature detector; drop-in replacement.
+
+📊 CONVENTIONS v2 → детектор локальных признаков; статус: 🔬 EXPERIMENTAL
+"""
 from __future__ import annotations
 import cv2
 import numpy as np

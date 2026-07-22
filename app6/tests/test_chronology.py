@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → rate-флаги хронологии и биологические пороги stage2.chronology.
+"""
 from __future__ import annotations
 import unittest
 from app6.stage2.chronology import apply_chronology_rate_flags

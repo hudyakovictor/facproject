@@ -1,3 +1,7 @@
+"""🔄 Лиды (подсказки) из имён папок для вероятных пар сравнения.
+🚪 API: load_leads(), pair_leads(), add()
+💡 NOTE: лиды влияют на приоритет, но не на содержимое метрик.
+"""
 from __future__ import annotations
 import json,re
 from collections import Counter,defaultdict
@@ -23,6 +27,7 @@ def load_leads(path: Path | None) -> dict[str, Any]:
     root=path/"final_inference" if (path/"final_inference").is_dir() else path
     dates=defaultdict(lambda:{"photos":set(),"sources":set(),"events":set(),"metrics":set(),"regions":set(),"priority":0})
     metrics=Counter(); regions=Counter(); sources=Counter()
+    # 📝 Добавить лид (кандидатную пару)
     def add(d, src, photo=None, event=None, ms=(), rs=(), weight=1):
         d=_date(d or photo)
         if not d: return

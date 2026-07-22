@@ -1,5 +1,5 @@
 """
-Drop-in replacement for app6/stage1/skin/projection.py (actually app6/stage1/skin/projection wrapper around uv module? 
+Drop-in replacement for app6/stage1/skin/projection.py (actually app6/stage1/skin/projection wrapper around uv module?
 Original file at app6/stage1/skin/projection.py wraps rasterize_surface.
 
 We patch the underlying rasterizer to compute projected_density_map physics.
@@ -20,6 +20,7 @@ If not provided, fallback to heuristic _scale.
 
 Also project_atlas now also returns projected_density_map for quality.
 
+🎯 CONVENTIONS v2 → растеризация/проекция поверхности; статус: ⚠️ IN PROGRESS
 """
 
 from __future__ import annotations
@@ -43,7 +44,6 @@ class RasterResult:
     triangle_surface_area: np.ndarray = None
 
 def rasterize_surface(vertices_xy, vertices_z, normals, triangles, image_shape, vertex_visibility=None, near='min', surface_vertices=None, triangle_surface_areas=None):
-    log_status("rasterize_surface", "in_progress", "CPU slow, GPU not implemented. NO BLOCKER - can optimize anytime")
     """
     Drop-in: original args + optional surface_vertices, triangle_surface_areas for physics fix
     vertices_xy: Vx2 image coords (original image)
@@ -55,6 +55,7 @@ def rasterize_surface(vertices_xy, vertices_z, normals, triangles, image_shape, 
 
     Returns RasterResult with projected_density_map
     """
+    log_status("rasterize_surface", "in_progress", "CPU slow, GPU not implemented. NO BLOCKER - can optimize anytime")
     xy = np.asarray(vertices_xy, np.float32)[:, :2]
     z = np.asarray(vertices_z, np.float32).reshape(-1)
     n = np.asarray(normals, np.float32)
@@ -135,7 +136,7 @@ def rasterize_surface(vertices_xy, vertices_z, normals, triangles, image_shape, 
     # NOTE: do NOT multiply conf by barycentric edge — it imprints triangle mesh onto quality renders.
     conf = (vis * np.sqrt(np.clip(inc, 0.0, 1.0))).astype(np.float32)
     conf[bg] = 0
-    
+
     try:
         import cv2 as _cv2
         _m = ~bg
@@ -176,10 +177,10 @@ def rasterize_surface(vertices_xy, vertices_z, normals, triangles, image_shape, 
     return RasterResult(tid, bar, depth, normal, inc, vis, conf, source, projected_density_map=projected_density, triangle_surface_area=np.asarray(triangle_surface_areas) if triangle_surface_areas is not None else None)
 
 def project_atlas(raster, atlas, skin_segmentation=None):
-    log_status("project_atlas", "complete")
     """
     Same signature as original, returns dict with zone_id_a20 etc + projected_density_map
     """
+    log_status("project_atlas", "complete")
     tid = raster.triangle_id
     valid = tid >= 0
     # atlas may have different attribute names? Original code uses atlas.A, atlas.S, atlas.skin, atlas.W, atlas.boundary

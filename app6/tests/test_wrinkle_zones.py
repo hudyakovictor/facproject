@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → зоны морщин BFM35709 v3 (требует ассет texture_zones npz).
+"""
 import unittest
 from pathlib import Path
 import numpy as np

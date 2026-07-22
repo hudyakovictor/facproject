@@ -43,10 +43,10 @@ def _utc() -> str:
 
 def _landmark_rows(points: np.ndarray, visible: np.ndarray, indices: np.ndarray,
                     confidence: np.ndarray | None = None) -> list[dict[str, Any]]:
-    log_status("_landmark_rows", "complete")
     """Создание строк CSV для ландмарков с опциональным confidence.
     📊 METRIC — confidence вычисляется из projection + visibility.
     """
+    log_status("_landmark_rows", "complete")
     rows = []
     for i, p in enumerate(points):
         row = {
@@ -161,7 +161,6 @@ class Stage1Engine:
         return manifest
 
     def _one(self, path: Path) -> tuple[dict[str, Any], bool]:
-        log_status("_one", "complete")
         """🎯 CRITICAL → Обработка ОДНОГО фото через весь Stage 1.
 
         Вызывается для каждого фото в цикле run(). Здесь происходит:
@@ -191,6 +190,7 @@ class Stage1Engine:
           - Не вызывать параллельно для одного и того же фото!
           - При continue_on_error=False — останавливается на первой ошибке
         """
+        log_status("_one", "complete")
         parsed = parse_photo_name(path)
         source_hash = sha256_file(path)
         photo_id = make_photo_id(parsed, source_hash)

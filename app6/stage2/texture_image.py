@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Попарные текстурные дельты в исходном изображении (LBP/GLCM/stats).
+🚪 API: texture_pair_deltas()
+🔗 DEPENDS ON: stage1 сохранённые маски + ориентированные изображения
+🚨 WARNING: маски жёстко привязаны к face-mask текстуре — несоответствие shape = skip.
+"""
 from __future__ import annotations
 
 import json
@@ -326,7 +331,6 @@ def _stats(img: np.ndarray, mask: np.ndarray) -> dict[str, float | int | list[fl
 
 
 def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    log_status("texture_pair_deltas", "in_progress", "No pose normalization. NO BLOCKER - can add normalization anytime")
     """🎯 CRITICAL → Texture comparison between two photos.
 
     ⚠️ IN PROGRESS:
@@ -338,6 +342,7 @@ def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], l
     - Uses image-space texture features (LBP, GLCM, Gabor)
     - Quality/expression/compression can explain differences
     """
+    log_status("texture_pair_deltas", "in_progress", "No pose normalization. NO BLOCKER - can add normalization anytime")
     ta = _load_texture(a)
     tb = _load_texture(b)
     if ta.get("status") != "ok" or tb.get("status") != "ok":

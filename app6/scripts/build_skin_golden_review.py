@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🏭 FACTORY → Генерирует golden-набор для ручной ревизии skin-каналов.
+🔗 DEPENDS ON: stage2.skin.* + previews
+📊 METRIC: выход — ревизионный набор для подтверждения статусов ⚠️→✅.
+"""
 import argparse,csv,html,json,shutil
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--stage1',required=True);p.add_argument('--output',required=True);p.add_argument('--limit',type=int,default=30);a=p.parse_args();root=Path(a.stage1);out=Path(a.output);out.mkdir(parents=True,exist_ok=True);rows=[]

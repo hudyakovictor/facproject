@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Калибровка скоров: matched-null распределения + референсы.
+🚪 API: matched_null(), reference(), consistency_check(), score()
+📊 METRIC: все калиброванные z-скоры проходят через эту семью функций
+🚨 WARNING: калибровка валидна только внутри своего pose bin (distance-guard `_pose_distance`).
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -41,12 +46,14 @@ class CalibrationModel:
     def _nearest(self, target: Record, dataset: str, exclude: str | None = None) -> Record | None:
         candidates = [r for r in self.by_dataset_bin.get((dataset, target.pose_bin), []) if r.record_id != exclude]
         if not candidates: return None
+        # 📊 Калиброванный z-скор с pose-distance guard
         def score(record: Record) -> float:
             pose = self._pose_distance(target, record)
             vis = abs(float(target.visible134.mean()) - float(record.visible134.mean()))
             return pose + 1.5 * vis
         return min(candidates, key=score)
 
+    # 📊 Matched-null распределение для пары (same-subject null)
     def matched_null(self, a: Record, b: Record) -> dict[str, list[float]]:
         values: dict[str, list[float]] = defaultdict(list)
         for dataset in self.datasets:
@@ -61,6 +68,7 @@ class CalibrationModel:
                     values[f"zone::{zone['zone']}::rmse"].append(float(zone["rmse"]))
         return dict(values)
 
+    # 📊 Референс-калибровка из sidecar
     def reference(self, pose_bin: str, metric: str) -> dict[str, float | int]:
         return self.references.get(pose_bin, {}).get(metric, {"count": 0, "median": 0.0, "mad": 0.0, "p95": 0.0, "p99": 0.0})
 

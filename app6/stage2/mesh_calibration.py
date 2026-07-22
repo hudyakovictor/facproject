@@ -1,3 +1,7 @@
+"""📊 METRIC → Калибровка mesh-метрик (форма/поверхность) по референс-парам.
+🚪 API: score(), to_json()
+🔗 DEPENDS ON: mesh_dense.dense_mesh_pair() — источник сырых величин.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -128,6 +132,7 @@ class MeshNoiseModel:
             pose_counts=dict(pose_counts),
         )
 
+    # 📤 Сериализация mesh-калибровки
     def to_json(self) -> dict[str, Any]:
         return {
             "schema": self.reference.schema,
@@ -140,6 +145,7 @@ class MeshNoiseModel:
             "policy": "If unavailable, dense mesh remains direct_uncalibrated support only.",
         }
 
+    # 📊 Калиброванный mesh-скор
     def score(self, pose_bin: str, mesh_row: dict[str, Any]) -> dict[str, Any]:
         refs = self.reference.references.get(pose_bin, {})
         out: dict[str, Any] = {

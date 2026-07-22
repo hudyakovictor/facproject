@@ -18,7 +18,6 @@ from .status_logger import log_status, log_blocker, log_warning
 
 
 def classify_pose(yaw: float) -> tuple[str, float]:
-    log_status("classify_pose", "complete")
     """📊 METRIC → Классификация позы по yaw углу.
 
     9 бинов от left_profile (-70°) до right_profile (+70°).
@@ -38,12 +37,12 @@ def classify_pose(yaw: float) -> tuple[str, float]:
     - left_profile: -95°..-50° → canonical -70°
     """
     log_status("classify_pose", "complete")
+    log_status("classify_pose", "complete")
     for name, lo, hi, canonical in POSE_BINS:
         if lo <= float(yaw) < hi:
             return name, canonical
     return "out_of_supported_range", float(np.clip(yaw, -70.0, 70.0))
 def nearest_canonical_yaw(yaw: float) -> tuple[str, float]:
-    log_status("nearest_canonical_yaw", "in_progress", "Not integrated into main pipeline yet")
     """📊 METRIC → Ближайший canonical yaw (soft assignment).
 
     В отличие от classify_pose, использует ближайший canonical,
@@ -55,6 +54,7 @@ def nearest_canonical_yaw(yaw: float) -> tuple[str, float]:
     - Пока не используется в основном пайплайне
     - Нужно интегрировать в compute_chronology_alignment
     """
+    log_status("nearest_canonical_yaw", "in_progress", "Not integrated into main pipeline yet")
     log_status("nearest_canonical_yaw", "in_progress",
                "Not integrated into main pipeline yet")
     best_name = "frontal"
@@ -81,7 +81,6 @@ def row_rotation_matrix(pitch_deg: float, yaw_deg: float, roll_deg: float) -> np
 
 def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
                                  target_pose_deg: list[float] | np.ndarray) -> np.ndarray:
-    log_status("full_pose_correction_matrix", "complete")
     """Compute rotation matrix that transforms mesh from actual_pose to target_pose.
 
     This is the KEY function for chronology alignment. It ensures that all photos
@@ -100,6 +99,7 @@ def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
         3x3 rotation matrix (row-vector convention, float32)
     """
     log_status("full_pose_correction_matrix", "complete")
+    log_status("full_pose_correction_matrix", "complete")
     actual = np.asarray(actual_pose_deg, np.float64)
     target = np.asarray(target_pose_deg, np.float64)
 
@@ -115,12 +115,12 @@ def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
 
 
 def normalize_mesh(mesh: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
-    log_status("normalize_mesh", "complete")
     """Normalize mesh to canonical scale and center.
 
     Uses RMS scale over the entire mesh. For chronology, this is applied
     BEFORE pose correction so that scale is consistent across all photos.
     """
+    log_status("normalize_mesh", "complete")
     log_status("normalize_mesh", "complete")
     mesh = np.asarray(mesh, np.float32)
     center = mesh.mean(axis=0)
@@ -134,7 +134,6 @@ def normalize_mesh(mesh: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
 def normalize_mesh_landmark_anchored(mesh: np.ndarray,
                                        landmark_indices: np.ndarray | None = None,
                                        anchor_pair: tuple[int, int] = (38, 43)) -> tuple[np.ndarray, np.ndarray, float]:
-    log_status("normalize_mesh_landmark_anchored", "complete")
     """Normalize mesh using inter-landmark distance as scale reference.
 
     This is an alternative to RMS normalization that preserves more individual
@@ -149,6 +148,7 @@ def normalize_mesh_landmark_anchored(mesh: np.ndarray,
     Returns:
         (normalized_mesh, center, scale)
     """
+    log_status("normalize_mesh_landmark_anchored", "complete")
     log_status("normalize_mesh_landmark_anchored", "complete")
     mesh = np.asarray(mesh, np.float32)
     center = mesh.mean(axis=0)
@@ -176,7 +176,6 @@ def compute_chronology_alignment(vertices: np.ndarray,
                                    actual_pose_deg: list[float] | np.ndarray,
                                    canonical_yaw: float,
                                    normalization: str = "rms") -> dict[str, np.ndarray]:
-    log_status("compute_chronology_alignment", "complete")
     """Full alignment pipeline for chronology comparison.
 
     This is the main entry point for producing aligned vertices suitable
@@ -202,6 +201,7 @@ def compute_chronology_alignment(vertices: np.ndarray,
             - target_pose: [0, canonical_yaw, 0]
             - actual_pose: original [pitch, yaw, roll]
     """
+    log_status("compute_chronology_alignment", "complete")
     log_status("compute_chronology_alignment", "complete")
     actual = np.asarray(actual_pose_deg, np.float64)
     target = np.array([0.0, float(canonical_yaw), 0.0], np.float64)
@@ -229,12 +229,12 @@ def compute_chronology_alignment(vertices: np.ndarray,
 
 
 def to_original_image(points_224: np.ndarray, trans_params: np.ndarray) -> np.ndarray:
-    log_status("to_original_image", "in_progress", "No bounds check on output coordinates")
     """🎯 CRITICAL → Map 3DDFA image-plane coordinates to original top-left image coordinates.
     🔗 DEPENDS ON: engine._one() — вызывается для проекции ландмарков на оригинал
     💡 NOTE: Инвертирует Y (223 - y) т.к. 3DDFA использует bottom-left origin
     ⚠️ IN PROGRESS: Нет проверки что результат в пределах изображения
     """
+    log_status("to_original_image", "in_progress", "No bounds check on output coordinates")
     log_status("to_original_image", "in_progress",
                "No bounds check on output coordinates")
     q = np.asarray(points_224, np.float32).copy()

@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → dataset-gate: неполный skin-датасет блокирует анализ.
+"""
 import csv,hashlib,tempfile,unittest
 from pathlib import Path
 from app6.stage2.skin.dataset import validate_skin_dataset

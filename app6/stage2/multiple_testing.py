@@ -1,3 +1,7 @@
+"""📊 METRIC → Множественная проверка гипотез: BH FDR по парам и зонам.
+🚪 API: apply_pair_fdr(), apply_zone_fdr()
+💡 NOTE: _p_from_z через erfc-аппроксимацию — стабильно на малых p.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 

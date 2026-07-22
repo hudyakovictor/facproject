@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🏭 FACTORY → Строит канонические патчи зон атласа для эталонной сетки.
+🔗 DEPENDS ON: stage1.skin.patch_sampler.sample_zone_patches()
+🚨 WARNING: перезаписывает канонические патчи — запускать осознанно.
+"""
 import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))

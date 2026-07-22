@@ -81,47 +81,47 @@ STAGE1_STATUS = {
         "unpack_mask": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "reconstruction.py": {
-        "ReconstructionEngine.process": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Full 3DDFA pipeline"},
-        "ReconstructionEngine.cleanup": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "ReconstructionEngine.process": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Full 3DDFA pipeline"},
+        "ReconstructionEngine.cleanup": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "engine.py": {
-        "Stage1Engine.run": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Main entry point"},
-        "Stage1Engine._one": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Per-photo processing"},
-        "_landmark_rows": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "Stage1Engine.run": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Main entry point"},
+        "Stage1Engine._one": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Per-photo processing"},
+        "_landmark_rows": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "masks.py": {
-        "build_mask_bundle": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "build_mask_bundle": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "assets.py": {
-        "save_image_assets": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "technical_quality": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "save_uv_and_mesh": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "save_face_mask": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Main skin mask"},
-        "save_semantic_channels": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "save_image_assets": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "technical_quality": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "save_uv_and_mesh": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "save_face_mask": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Main skin mask"},
+        "save_semantic_channels": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "config.py": {
-        "Stage1Config": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "Stage1Config": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "naming.py": {
-        "parse_photo_name": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "make_photo_id": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "parse_photo_name": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "make_photo_id": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "storage.py": {
-        "atomic_photo_directory": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "clean_incomplete": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "write_failure": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "atomic_photo_directory": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "clean_incomplete": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "write_failure": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "utils.py": {
-        "sha256_file": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "sha256_json": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "sha256_paths": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "atomic_json": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "write_csv": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "runtime_versions": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "sha256_file": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "sha256_json": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "sha256_paths": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "atomic_json": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "write_csv": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "runtime_versions": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "validator.py": {
-        "validate_photo": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "is_resumable": {"status": "🧪 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "validate_photo": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "is_resumable": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "quality_zones.py": {
         "build_quality_files": {"status": "🗑️ DEPRECATED", "blocker": "✅ NO BLOCKER", "note": "Replaced by skin/pipeline.py"},
@@ -316,6 +316,7 @@ STAGE3_STATUS = {
 }
 
 
+# 📤 Печать сводки статусов всех функций аудита
 def print_audit_summary():
     """Print summary of all function statuses."""
     print("\n" + "=" * 70)
@@ -335,7 +336,7 @@ def print_audit_summary():
     total_deprecated = 0
 
     for section_name, section in all_statuses:
-        print(f"\n📁 {section_name}")
+        print(f"\n📦 {section_name}")
         print("-" * 50)
         for module, functions in section.items():
             for func_name, info in functions.items():

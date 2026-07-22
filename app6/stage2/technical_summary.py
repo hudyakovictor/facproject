@@ -1,3 +1,7 @@
+"""📤 Техническая сводка прогона: версии контрактов, покрытие модулей.
+🚪 API: build_technical_summary()
+💡 NOTE: идёт в отчёт как appendix; не содержит выводов о лице.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 

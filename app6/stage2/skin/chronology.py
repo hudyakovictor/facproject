@@ -1,14 +1,19 @@
-"""Pose/expression-separated temporal candidate analysis."""
+"""Pose/expression-separated temporal candidate analysis.
+
+📊 CONVENTIONS v2 → skin-хронология; статус: 🔬 EXPERIMENTAL
+"""
 from __future__ import annotations
 import json, math
 from pathlib import Path
 
 
+# 🔢 Циркулярное расстояние линий (градусы)
 def circular_line_distance_deg(a, b):
     d = abs(float(a) - float(b)) % 180
     return min(d, 180 - d)
 
 
+# 📊 Сопоставление ветвей морщин во времени
 def match_branches(a, b, centroid_tol=.05, orientation_tol_deg=15, length_log_tol=.35):
     used, matches = set(), []
     for i, x in enumerate(a):
@@ -26,6 +31,7 @@ def match_branches(a, b, centroid_tol=.05, orientation_tol_deg=15, length_log_to
     return {'matches': matches, 'match_fraction': len(matches)/max(1, len(a), len(b))}
 
 
+# 📊 Анализ временных записей skin-каналов
 def analyze_records(records, profile=None):
     by = {}
     for r in records: by.setdefault(str(r.get('pose_bin', 'unknown')), []).append(r)
@@ -42,6 +48,7 @@ def analyze_records(records, profile=None):
             'pose_bins': sorted(by), 'record_count': len(records)}
 
 
+# 🔄 Загрузка записей для хронологии
 def load_records(path):
     p = Path(path)
     if p.is_dir():
@@ -70,6 +77,7 @@ def _date_value(value):
     except ValueError: return None
 
 
+# 🔬 EXPERIMENTAL → временной анализ наблюдений
 def analyze_temporal_observations(observations, min_pre=3, min_post=3, jump_z=3.5):
     import numpy as np
     groups = {}

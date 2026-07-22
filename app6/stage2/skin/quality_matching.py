@@ -11,11 +11,13 @@ v4 improvements:
 - Returns raw vs best matched diff, degradation_explained_fraction per family
 
 Backward compatible: returns dict with raw_focus_difference, best_degradation_matched_difference etc, plus new fields texture_explained, wrinkle_explained
+📊 CONVENTIONS v2 → quality-matching skin-пар; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 import cv2
 import numpy as np
 
+# 🔬 Контролируемые варианты; НЕ заменяют raw evidence
 def degradation_family(image, target_blur, target_noise, target_scale, jpeg_qualities=(95,80,60), seed=0):
     """Controlled variants only; never replaces raw evidence."""
     rng = np.random.default_rng(seed)
@@ -55,6 +57,7 @@ def _texture_distance_for_waveform(a_package, b_image_variant):
     except:
         return None
 
+# 📊 v4: multi-family оценка чувствительности
 def compare_sensitivity_packages(a,b):
     """
     Drop-in same signature, but v4 now evaluates multiple families if available
@@ -65,6 +68,7 @@ def compare_sensitivity_packages(a,b):
     except Exception as e:
         return {'status':'insufficient_evidence','error':f'sensitivity json missing {e}'}
 
+    # 📤 Сериализация результата matching
     def to_dict(rows):
         return {x.get('variant','unknown'): x.get('value') for x in rows if x.get('status')=='measured' and x.get('value') is not None}
 

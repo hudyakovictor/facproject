@@ -47,6 +47,7 @@ if str(APP_DIR.parent) not in sys.path:
     sys.path.insert(0, str(APP_DIR.parent))
 
 
+# 🏭 FACTORY → сборка argparse-парсера Stage 1
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="DEEPUTIN app6 — deterministic 3DDFA_V3 stage-1 extraction")
     p.add_argument("--project-root", type=Path, default=DEFAULT_ROOT)
@@ -64,6 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+# 🚪 ENTRY POINT Stage 1 → engine по каждому фото
 def main() -> int:
     a = build_parser().parse_args()
     root = a.project_root.resolve()

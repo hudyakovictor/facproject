@@ -1,4 +1,7 @@
-"""Pair comparison with pose delta (yaw/pitch/roll) + common usable gates."""
+"""Pair comparison with pose delta (yaw/pitch/roll) + common usable gates.
+
+📊 CONVENTIONS v2 → попарные skin-сравнения; статус: ✅ VERIFIED
+"""
 from __future__ import annotations
 import numpy as np
 from pathlib import Path
@@ -41,6 +44,7 @@ def _count_usable_zones(pkg):
         return 0
 
 
+# 🎯 CRITICAL → попарное сравнение skin-пакетов
 def compare_packages(a, b, min_common=.35):
     if DEFAULT_ATLAS_CSV.exists():
         policy = PosePolicy(DEFAULT_ATLAS_CSV, allow_default=False)

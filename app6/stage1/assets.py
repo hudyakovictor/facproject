@@ -202,7 +202,6 @@ def _write_obj(obj_path: Path, mtl_path: Path, vertices: np.ndarray, normals: np
 
 
 def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int], out: Path) -> dict[str, str] | None:
-    log_status("save_face_mask", "complete")
     """🎯 CRITICAL → Создание face_mask.png и face_mask.npz.
 
     face_mask — это ОСНОВНАЯ маска для skin analysis. Все текстурные анализы
@@ -225,18 +224,19 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
       - При hard_mask = None — возвращает None (mask unavailable)
       - При ошибке записи — engine пишет face_mask_failure.json
     """
+    log_status("save_face_mask", "complete")
     if hard_mask is None or hard_mask.size == 0:
         return None
-    
+
     # Convert to uint8 if boolean
     if hard_mask.dtype == bool:
         hard_mask = hard_mask.astype(np.uint8) * 255
     elif hard_mask.dtype != np.uint8:
         hard_mask = np.clip(hard_mask, 0, 255).astype(np.uint8)
-    
+
     x, y, w, h = bbox
     H, W = hard_mask.shape[:2]
-    
+
     # Clamp bbox to image bounds
     x1 = max(0, min(x, W - 1))
     y1 = max(0, min(y, H - 1))
@@ -244,27 +244,27 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
     y2 = max(0, min(y + h, H))
     w = x2 - x1
     h = y2 - y1
-    
+
     if w <= 0 or h <= 0:
         return None
-    
+
     # Extract face crop and mask
     crop = bgr[y1:y2, x1:x2]
     mask_crop = hard_mask[y1:y2, x1:x2]
-    
+
     # Letterbox to 424x500 (same as face_crop)
     face, transform = _letterbox(crop)
     mh, mw = mask_crop.shape[:2]
     scale = transform["scale"]
     nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
     ox, oy = transform["offset_x"], transform["offset_y"]
-    
+
     # Resize mask with same letterbox transform
     mask_resized = cv2.resize(mask_crop, (nw, nh), interpolation=cv2.INTER_LINEAR)
     mask_canvas = np.zeros((500, 424), np.uint8)
     if oy + nh <= 500 and ox + nw <= 424:
         mask_canvas[oy:oy + nh, ox:ox + nw] = mask_resized
-    
+
     # Create RGBA visual preview.
     rgba = cv2.cvtColor(face, cv2.COLOR_BGR2BGRA)
     rgba[:, :, 3] = mask_canvas
@@ -302,10 +302,10 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
 
 
 def save_semantic_channels(bundle: Any, out: Path) -> str:
-    log_status("save_semantic_channels", "complete")
     """
     Save semantic_channels.npz from mask bundle.
     """
+    log_status("save_semantic_channels", "complete")
     np.savez_compressed(
         out / "semantic_channels.npz",
         channels_224=bundle.channels_224,

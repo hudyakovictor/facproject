@@ -3,6 +3,7 @@
 Despite the historical module name, no UV texture metrics are consumed. The
 adapter reads immutable native-photo skin packages and compares common observed
 surface. Missing wrinkle features remain insufficient evidence, never zeros.
+📊 CONVENTIONS v2 → UV-сравнения текстур; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 from pathlib import Path

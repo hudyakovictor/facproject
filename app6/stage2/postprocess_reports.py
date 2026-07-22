@@ -1,3 +1,7 @@
+"""🏭 FACTORY → Пост-отчёты Stage 2: manual-review queue, public-safety, summary.
+🚪 API: write_postprocess_reports()
+🔗 DEPENDS ON: все evidence/quality структуры финализированного прогона.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 

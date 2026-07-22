@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""🚪 ENTRY POINT → Управление жизненным циклом skin-run'а (lock/finalize/status).
+🔗 DEPENDS ON: stage1.skin.run_manager — вся логика делегирована туда
+💡 NOTE: тонкая CLI-обёртка; не содержит бизнес-логики сама по себе.
+"""
 import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent;sys.path.insert(0,str(ROOT))

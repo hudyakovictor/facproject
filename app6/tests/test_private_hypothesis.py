@@ -1,3 +1,5 @@
+"""🔄 CALLBACK (pytest) → private_hypothesis: retest-карточки остаются в quarantine.
+"""
 from __future__ import annotations
 
 import csv

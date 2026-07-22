@@ -50,6 +50,7 @@ def sha256_paths(paths: Iterable[Path], root: Path | None = None) -> str:
     return h.hexdigest()
 
 
+# 🔄 Рекурсивная конвертация numpy→json-совместимые типы
 def json_ready(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(k): json_ready(v) for k, v in value.items()}
@@ -94,6 +95,7 @@ def write_csv(path: Path, rows: Iterable[dict[str, Any]]) -> None:
 
 def runtime_versions() -> dict[str, str | None]:
     log_status("runtime_versions", "complete")
+    # 📤 Версия схемы вывода stage1
     def version(name: str) -> str | None:
         try:
             module = __import__(name)

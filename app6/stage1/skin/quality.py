@@ -4,6 +4,7 @@ Changes vs previous:
 - projected_density no longer hard-clipped to 100 (was saturating to constant)
 - optional percentile winsorization only for extreme outliers
 - per-zone applicability helper for quality.json diagnostics
+📊 CONVENTIONS v2 → per-zone applicability; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 import cv2
@@ -131,7 +132,7 @@ def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, pro
     inc = np.asarray(incidence, np.float32)
     proj = np.asarray(projection_confidence, np.float32)
 
-    
+
     # mesh_grid_fix: smooth conf inside domain so quality renders lose triangle grid
     _d = np.asarray(domain, bool)
     if np.any(_d):
@@ -147,7 +148,7 @@ def quality_maps(bgr, domain, incidence, projection_confidence, triangle_id, pro
     # physical quality BEFORE pose prior
     w = (focus * exposure * proj * proc * ns * (~spec) * (~shadow) * d).astype(np.float32)
 
-    
+
     # mesh_grid_fix: mild domain-normalized smooth of quality_weight (kills residual mesh faceting)
     if np.any(d):
         _wf = np.where(d, w, 0.0).astype(np.float32)
@@ -274,8 +275,8 @@ def applicability(m, d, W, H):
     return out
 
 def per_zone_applicability(A, domain, quality_weight, pose_weight=None, min_support=50.0, min_pixels=64):
-    log_status("per_zone_applicability", "complete")
     """Per-zone geometry/support/evidence snapshot for diagnostics."""
+    log_status("per_zone_applicability", "complete")
     A = np.asarray(A)
     d = np.asarray(domain, bool)
     qw = np.asarray(quality_weight, np.float32)

@@ -1,6 +1,11 @@
+"""📜 Контракт морфинга: что и как разрешено показывать в skin-репорте.
+🚪 API: build_morph_contract()
+💡 NOTE: юридический/этический контракт, не вычисления.
+"""
 import hashlib,json
 from pathlib import Path
 import numpy as np
+# 📜 Контракт допустимых морфинг-показов
 def build_morph_contract(photo_a,photo_b,reconstruction_a,reconstruction_b,uv_a,uv_b,out):
  with np.load(reconstruction_a,allow_pickle=False) as A,np.load(reconstruction_b,allow_pickle=False) as B:
   if not np.array_equal(A['triangles'],B['triangles']):raise ValueError('morphing requires identical ordered topology')

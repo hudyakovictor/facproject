@@ -1,4 +1,7 @@
-"""Same-person calibration with group-safe holdout splitting."""
+"""Same-person calibration with group-safe holdout splitting.
+
+📊 CONVENTIONS v2 → калибровка skin-каналов; статус: ⚠️ IN PROGRESS
+"""
 from __future__ import annotations
 import csv, json, random, hashlib, time
 from pathlib import Path
@@ -6,10 +9,12 @@ import numpy as np
 from .chronology import load_records as _load
 
 
+# 🔄 Загрузка референс-записей калибровки
 def load_records(p):
     return _load(p)
 
 
+# 🔄 Загрузка профиля калибровки
 def load_profile(p):
     return json.loads(Path(p).read_text())
 
@@ -52,6 +57,7 @@ def _split(records, test_fraction=.20, seed=0):
     return train, test
 
 
+# 📊 Калибровка одного skin-канала
 def calibrate(stage1_dir, output_dir, target_false_anomaly=.01):
     records = load_records(stage1_dir)
     tr, te = _split(records)
@@ -95,6 +101,7 @@ def calibrate(stage1_dir, output_dir, target_false_anomaly=.01):
     return profile, report
 
 
+# 🔒 Заморозка калибровки в sidecar
 def freeze_calibration(profile_path, report, dataset_validation, out):
     if not report["acceptance"]["test_pass"] or not dataset_validation["ok"]:
         raise ValueError("calibration/dataset gate failed")

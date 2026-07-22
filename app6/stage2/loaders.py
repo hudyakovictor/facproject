@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Загрузка записей Stage 1 (npz+csv+sidecar) в Record-структуры.
+🚪 API: load_main(), load_calibration(), load_calibration_from_sidecar()
+🔗 DEPENDS ON: stage1.validator контракты (6 CSV + npz keys)
+🚨 WARNING: _missing_alpha() мягко помечает записи без α-каналов.
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -17,7 +22,6 @@ def _rows(path: Path) -> list[dict[str, str]]:
 
 
 def load_main(stage1_root: Path) -> list[Record]:
-    log_status("load_main", "complete")
     """🎯 CRITICAL → Загрузка записей Stage 1 для анализа Stage 2.
 
     Читает main_timeline.csv, затем для каждого фото:
@@ -42,6 +46,7 @@ def load_main(stage1_root: Path) -> list[Record]:
       - Если reconstruction.npz не содержит chronology arrays — fallback к старым данным!
       - При отсутствии info.json — запись пропускается
     """
+    log_status("load_main", "complete")
     index = stage1_root / "main_timeline.csv"
     if not index.is_file():
         raise FileNotFoundError(index)
@@ -122,7 +127,6 @@ def _missing_alpha(count: int) -> np.ndarray:
 
 
 def load_calibration_from_sidecar(root: Path) -> list[Record]:
-    log_status("load_calibration_from_sidecar", "complete")
     """Recover Records from metadata.json + ldm*_raw.csv when record.npz is absent.
 
     Space contract:
@@ -130,6 +134,7 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
     Never treat aligned/bin_canonical CSV as object_normalized.
     Alpha is unavailable in the published sidecar layout → NaN vectors.
     """
+    log_status("load_calibration_from_sidecar", "complete")
     out: list[Record] = []
     for meta_path in sorted(root.glob("*/frame_*/metadata.json")):
         directory = meta_path.parent

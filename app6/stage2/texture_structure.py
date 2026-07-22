@@ -1,3 +1,7 @@
+"""📊 METRIC → Структурные текстурные сравнения: SSIM, скелет ridges по зонам.
+🚪 API: register_patches(), compare_zone_structure()
+🔗 DEPENDS ON: patch_registry stage1 + cv2.ximgproc (graceful fallback).
+"""
 from __future__ import annotations
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
@@ -30,6 +34,7 @@ def _patch(image: np.ndarray, mask: np.ndarray, size: int = PATCH_SIZE) -> tuple
     return gray.astype(np.float32) / 255.0, local_mask
 
 
+# 🏭 Регистрация патчей зоны для структурного сравнения
 def register_patches(a: np.ndarray, b: np.ndarray, mask_a: np.ndarray, mask_b: np.ndarray) -> dict[str, Any]:
     common = np.asarray(mask_a, bool) & np.asarray(mask_b, bool)
     if int(common.sum()) < 1000:
