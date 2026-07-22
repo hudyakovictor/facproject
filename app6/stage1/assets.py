@@ -51,7 +51,7 @@ def _letterbox(image: np.ndarray, width: int = CROP_WIDTH, height: int = CROP_HE
 
 
 def save_image_assets(source: Path, bgr: np.ndarray, ldm106_original: np.ndarray, out: Path, save_original: bool = True) -> tuple[dict[str, str], dict[str, Any]]:
-    log_status("save_image_assets", "complete")
+    log_status("save_image_assets", "need_testing", "Indirect coverage only (AUDIT-6)")
     files: dict[str, str] = {}
     if save_original:
         original_name = "original" + source.suffix.lower()
@@ -71,7 +71,7 @@ def save_image_assets(source: Path, bgr: np.ndarray, ldm106_original: np.ndarray
 
 
 def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | None, combined_visible: np.ndarray) -> dict[str, float | int]:
-    log_status("technical_quality", "complete")
+    log_status("technical_quality", "need_testing", "Indirect coverage only (AUDIT-6)")
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     x, y, w, h = face_bbox
     face_gray = gray[y:y + h, x:x + w]
@@ -95,7 +95,7 @@ def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | 
 
 
 def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3, save_mesh: bool = True) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
-    log_status("save_uv_and_mesh", "complete")
+    log_status("save_uv_and_mesh", "need_testing", "Indirect coverage only (AUDIT-6)")
     from uv_module import HDUVConfig, HDUVTextureGenerator
 
     vertices_2d = to_original_image(bundle.vertices_image_224, bundle.trans_params)
@@ -224,7 +224,7 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
       - При hard_mask = None — возвращает None (mask unavailable)
       - При ошибке записи — engine пишет face_mask_failure.json
     """
-    log_status("save_face_mask", "complete")
+    log_status("save_face_mask", "need_testing", "Indirect coverage only (AUDIT-6)")
     if hard_mask is None or hard_mask.size == 0:
         return None
 
@@ -305,7 +305,7 @@ def save_semantic_channels(bundle: Any, out: Path) -> str:
     """
     Save semantic_channels.npz from mask bundle.
     """
-    log_status("save_semantic_channels", "complete")
+    log_status("save_semantic_channels", "need_testing", "Indirect coverage only (AUDIT-6)")
     np.savez_compressed(
         out / "semantic_channels.npz",
         channels_224=bundle.channels_224,

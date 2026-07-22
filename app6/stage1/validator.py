@@ -318,7 +318,7 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
 
 
 def is_resumable(directory: Path, source_sha256: str, code_hash: str, config_hash: str, model_hash: str) -> tuple[bool, dict[str, Any] | None]:
-    log_status("is_resumable", "complete")
+    log_status("is_resumable", "need_testing", "Indirect coverage only (AUDIT-6)")
     if not directory.is_dir():
         return False, None
     try:

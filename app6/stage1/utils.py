@@ -22,7 +22,7 @@ import numpy as np
 
 
 def sha256_file(path: Path) -> str:
-    log_status("sha256_file", "complete")
+    log_status("sha256_file", "need_testing", "Indirect coverage only (AUDIT-6)")
     h = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -31,13 +31,13 @@ def sha256_file(path: Path) -> str:
 
 
 def sha256_json(value: Any) -> str:
-    log_status("sha256_json", "complete")
+    log_status("sha256_json", "need_testing", "Indirect coverage only (AUDIT-6)")
     raw = json.dumps(json_ready(value), ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(raw).hexdigest()
 
 
 def sha256_paths(paths: Iterable[Path], root: Path | None = None) -> str:
-    log_status("sha256_paths", "complete")
+    log_status("sha256_paths", "need_testing", "Indirect coverage only (AUDIT-6)")
     h = hashlib.sha256()
     for path in sorted((Path(p) for p in paths), key=lambda x: str(x)):
         if not path.is_file():
@@ -71,7 +71,7 @@ def json_ready(value: Any) -> Any:
 
 
 def atomic_json(path: Path, value: Any) -> None:
-    log_status("atomic_json", "complete")
+    log_status("atomic_json", "need_testing", "Indirect coverage only (AUDIT-6)")
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(json_ready(value), ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
@@ -79,7 +79,7 @@ def atomic_json(path: Path, value: Any) -> None:
 
 
 def write_csv(path: Path, rows: Iterable[dict[str, Any]]) -> None:
-    log_status("write_csv", "complete")
+    log_status("write_csv", "need_testing", "Indirect coverage only (AUDIT-6)")
     rows = list(rows)
     if not rows:
         raise ValueError(f"refusing to write empty CSV: {path}")
@@ -94,7 +94,7 @@ def write_csv(path: Path, rows: Iterable[dict[str, Any]]) -> None:
 
 
 def runtime_versions() -> dict[str, str | None]:
-    log_status("runtime_versions", "complete")
+    log_status("runtime_versions", "need_testing", "Indirect coverage only (AUDIT-6)")
     # 📤 Версия схемы вывода stage1
     def version(name: str) -> str | None:
         try:

@@ -143,7 +143,7 @@ def normalize_mesh_landmark_anchored(mesh: np.ndarray,
     Returns:
         (normalized_mesh, center, scale)
     """
-    log_status("normalize_mesh_landmark_anchored", "complete")
+    log_status("normalize_mesh_landmark_anchored", "need_testing", "Indirect coverage only (AUDIT-6)")
     mesh = np.asarray(mesh, np.float32)
     center = mesh.mean(axis=0)
     centered = mesh - center
@@ -240,7 +240,7 @@ def to_original_image(points_224: np.ndarray, trans_params: np.ndarray) -> np.nd
 
 
 def reprojection_stats(projected: np.ndarray, expected: np.ndarray) -> dict[str, float]:
-    log_status("reprojection_stats", "complete")
+    log_status("reprojection_stats", "need_testing", "Indirect coverage only (AUDIT-6)")
     a = np.asarray(projected, np.float64); b = np.asarray(expected, np.float64)
     if a.shape != b.shape:
         raise ValueError(f"reprojection shape mismatch: {a.shape} vs {b.shape}")

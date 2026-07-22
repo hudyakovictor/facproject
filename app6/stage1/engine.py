@@ -46,7 +46,7 @@ def _landmark_rows(points: np.ndarray, visible: np.ndarray, indices: np.ndarray,
     """Создание строк CSV для ландмарков с опциональным confidence.
     📊 METRIC — confidence вычисляется из projection + visibility.
     """
-    log_status("_landmark_rows", "complete")
+    log_status("_landmark_rows", "need_testing", "Indirect coverage only (AUDIT-6)")
     rows = []
     for i, p in enumerate(points):
         row = {
@@ -193,7 +193,7 @@ class Stage1Engine:
           - Не вызывать параллельно для одного и того же фото!
           - При continue_on_error=False — останавливается на первой ошибке
         """
-        log_status("_one", "complete")
+        log_status("_one", "need_testing", "Indirect coverage only (AUDIT-6)")
         parsed = parse_photo_name(path)
         source_hash = sha256_file(path)
         photo_id = make_photo_id(parsed, source_hash)

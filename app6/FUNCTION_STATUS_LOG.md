@@ -15,7 +15,7 @@
 
 | Модуль | Функция | Строка | Статус(ы) | Роли |
 |---|---|---:|---|---|
-| `app6/STATUS_AUDIT.py` | `print_audit_summary` | 320 | — | 📤 |
+| `app6/STATUS_AUDIT.py` | `print_audit_summary` | 321 | — | 📤 |
 | `app6/run_calibration.py` | `main` | 13 | — | 🚪 |
 | `app6/run_private_hypotheses.py` | `main` | 14 | — | 🚪 |
 | `app6/run_stage1.py` | `build_parser` | 51 | — | 🏭 |
@@ -42,19 +42,19 @@
 | `app6/scripts/render_skin_zone_atlas.py` | `main` | 30 | — | — |
 | `app6/stage1/assets.py` | `_bbox` 🔒 | 27 | — | — |
 | `app6/stage1/assets.py` | `_letterbox` 🔒 | 41 | — | — |
-| `app6/stage1/assets.py` | `save_image_assets` | 53 | log: complete | — |
-| `app6/stage1/assets.py` | `technical_quality` | 73 | log: complete | — |
-| `app6/stage1/assets.py` | `save_uv_and_mesh` | 97 | log: complete | — |
+| `app6/stage1/assets.py` | `save_image_assets` | 53 | log: need_testing | — |
+| `app6/stage1/assets.py` | `technical_quality` | 73 | log: need_testing | — |
+| `app6/stage1/assets.py` | `save_uv_and_mesh` | 97 | log: need_testing | — |
 | `app6/stage1/assets.py` | `_write_obj` 🔒 | 190 | — | — |
-| `app6/stage1/assets.py` | `save_face_mask` | 204 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
-| `app6/stage1/assets.py` | `save_semantic_channels` | 304 | log: complete | — |
+| `app6/stage1/assets.py` | `save_face_mask` | 204 | log: need_testing; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
+| `app6/stage1/assets.py` | `save_semantic_channels` | 304 | log: need_testing | — |
 | `app6/stage1/config.py` | `extraction_payload` | 47 | — | 📤 |
 | `app6/stage1/config.py` | `public_dict` | 60 | — | 📤 |
 | `app6/stage1/engine.py` | `_utc` 🔒 | 40 | — | — |
-| `app6/stage1/engine.py` | `_landmark_rows` 🔒 | 44 | log: complete | 📊 |
+| `app6/stage1/engine.py` | `_landmark_rows` 🔒 | 44 | log: need_testing | 📊 |
 | `app6/stage1/engine.py` | `__init__` 🔒 | 67 | — | — |
 | `app6/stage1/engine.py` | `run` | 89 | log: complete | — |
-| `app6/stage1/engine.py` | `_one` 🔒 | 166 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
+| `app6/stage1/engine.py` | `_one` 🔒 | 166 | log: need_testing; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
 | `app6/stage1/engine.py` | `_relative` 🔒 | 490 | — | — |
 | `app6/stage1/engine.py` | `_index_row` 🔒 | 497 | — | — |
 | `app6/stage1/engine.py` | `_compute_landmark_confidence` 🔒 | 260 | — | 📊 |
@@ -63,10 +63,10 @@
 | `app6/stage1/geometry.py` | `row_rotation_matrix` | 69 | log: complete | — |
 | `app6/stage1/geometry.py` | `full_pose_correction_matrix` | 79 | log: complete | — |
 | `app6/stage1/geometry.py` | `normalize_mesh` | 113 | log: complete | — |
-| `app6/stage1/geometry.py` | `normalize_mesh_landmark_anchored` | 129 | log: complete | — |
+| `app6/stage1/geometry.py` | `normalize_mesh_landmark_anchored` | 129 | log: need_testing | — |
 | `app6/stage1/geometry.py` | `compute_chronology_alignment` | 169 | log: complete | — |
 | `app6/stage1/geometry.py` | `to_original_image` | 224 | log: in_progress; ⚠️ IN PROGRESS | 🎯 🔗 💡 |
-| `app6/stage1/geometry.py` | `reprojection_stats` | 242 | log: complete | — |
+| `app6/stage1/geometry.py` | `reprojection_stats` | 242 | log: need_testing | — |
 | `app6/stage1/geometry.py` | `pack_mask` | 255 | log: complete | — |
 | `app6/stage1/geometry.py` | `unpack_mask` | 260 | log: complete | — |
 | `app6/stage1/masks.py` | `build_mask_bundle` | 36 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
@@ -85,8 +85,8 @@
 | `app6/stage1/reconstruction.py` | `_resolve_device` 🔒 | 114 | — | — |
 | `app6/stage1/reconstruction.py` | `_check_assets` 🔒 | 132 | — | — |
 | `app6/stage1/reconstruction.py` | `_np` 🔒 | 141 | — | — |
-| `app6/stage1/reconstruction.py` | `process` | 147 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
-| `app6/stage1/reconstruction.py` | `cleanup` | 356 | log: complete | — |
+| `app6/stage1/reconstruction.py` | `process` | 147 | log: need_testing; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
+| `app6/stage1/reconstruction.py` | `cleanup` | 356 | log: need_testing | — |
 | `app6/stage1/reconstruction.py` | `capture_alpha` | 206 | — | 🔄 |
 | `app6/stage1/reconstruction.py` | `renderer_forward` | 214 | — | 🔄 |
 | `app6/stage1/skin/atlas_registry.py` | `__init__` 🔒 | 11 | — | — |
@@ -234,18 +234,18 @@
 | `app6/stage1/storage.py` | `atomic_photo_directory` | 20 | log: complete | — |
 | `app6/stage1/storage.py` | `clean_incomplete` | 47 | log: complete | — |
 | `app6/stage1/storage.py` | `write_failure` | 58 | log: complete | — |
-| `app6/stage1/utils.py` | `sha256_file` | 24 | log: complete | — |
-| `app6/stage1/utils.py` | `sha256_json` | 33 | log: complete | — |
-| `app6/stage1/utils.py` | `sha256_paths` | 39 | log: complete | — |
+| `app6/stage1/utils.py` | `sha256_file` | 24 | log: need_testing | — |
+| `app6/stage1/utils.py` | `sha256_json` | 33 | log: need_testing | — |
+| `app6/stage1/utils.py` | `sha256_paths` | 39 | log: need_testing | — |
 | `app6/stage1/utils.py` | `json_ready` | 54 | — | 🔄 |
-| `app6/stage1/utils.py` | `atomic_json` | 73 | log: complete | — |
-| `app6/stage1/utils.py` | `write_csv` | 81 | log: complete | — |
-| `app6/stage1/utils.py` | `runtime_versions` | 96 | log: complete | — |
+| `app6/stage1/utils.py` | `atomic_json` | 73 | log: need_testing | — |
+| `app6/stage1/utils.py` | `write_csv` | 81 | log: need_testing | — |
+| `app6/stage1/utils.py` | `runtime_versions` | 96 | log: need_testing | — |
 | `app6/stage1/utils.py` | `version` | 99 | — | 📤 |
 | `app6/stage1/validator.py` | `_resolve_topology` 🔒 | 33 | — | — |
 | `app6/stage1/validator.py` | `_csv_check` 🔒 | 91 | — | — |
 | `app6/stage1/validator.py` | `validate_photo` | 104 | log: complete | — |
-| `app6/stage1/validator.py` | `is_resumable` | 320 | log: complete | — |
+| `app6/stage1/validator.py` | `is_resumable` | 320 | log: need_testing | — |
 | `app6/stage2/alpha_chronology.py` | `apply_alpha_chronology` | 18 | log: complete | — |
 | `app6/stage2/anchor_policy.py` | `stable_anchor_mask` | 14 | log: complete | — |
 | `app6/stage2/anchor_policy.py` | `stable_anchor_indices` | 50 | log: complete | — |

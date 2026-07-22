@@ -68,21 +68,22 @@ from __future__ import annotations
 # Status flow: 🔴 need_testing → ✅ complete → 🚪 closed
 STAGE1_STATUS = {
     "geometry.py": {
-        "classify_pose": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "row_rotation_matrix": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "full_pose_correction_matrix": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Needs extensive testing"},
-        "normalize_mesh": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "classify_pose": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
+        "row_rotation_matrix": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
+        "full_pose_correction_matrix": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
+        "normalize_mesh": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
         "normalize_mesh_landmark_anchored": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Alternative method, needs testing"},
-        "compute_chronology_alignment": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Needs extensive testing"},
+        "compute_chronology_alignment": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
         "nearest_canonical_yaw": {"status": "⚠️ IN PROGRESS", "blocker": "🚫 compute_chronology_alignment", "note": "Not integrated yet"},
-        "to_original_image": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "No bounds check"},
+        "to_original_image": {"status": "⚠️ IN PROGRESS", "blocker": "✅ NO BLOCKER", "note": "No bounds check on output coordinates"},
         "reprojection_stats": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "pack_mask": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "unpack_mask": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "pack_mask": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
+        "unpack_mask": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
     },
     "reconstruction.py": {
         "ReconstructionEngine.process": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Full 3DDFA pipeline"},
         "ReconstructionEngine.cleanup": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "landmark_arrays": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Payload assembly, mirrors code (AUDIT-6)"},
     },
     "engine.py": {
         "Stage1Engine.run": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Critical! Main entry point"},
@@ -90,7 +91,7 @@ STAGE1_STATUS = {
         "_landmark_rows": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "masks.py": {
-        "build_mask_bundle": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "build_mask_bundle": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
     },
     "assets.py": {
         "save_image_assets": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
@@ -103,13 +104,13 @@ STAGE1_STATUS = {
         "Stage1Config": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "naming.py": {
-        "parse_photo_name": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "make_photo_id": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "parse_photo_name": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
+        "make_photo_id": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
     },
     "storage.py": {
-        "atomic_photo_directory": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "clean_incomplete": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
-        "write_failure": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "atomic_photo_directory": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
+        "clean_incomplete": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
+        "write_failure": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
     },
     "utils.py": {
         "sha256_file": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
@@ -120,7 +121,7 @@ STAGE1_STATUS = {
         "runtime_versions": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "validator.py": {
-        "validate_photo": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
+        "validate_photo": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Test-covered (AUDIT-6)"},
         "is_resumable": {"status": "🔴 need_testing", "blocker": "✅ NO BLOCKER", "note": "Works, needs verification"},
     },
     "quality_zones.py": {
@@ -176,7 +177,7 @@ STAGE1_SKIN_STATUS = {
         "detect": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER"},
     },
     "skin/material/evidence.py": {
-        "build": {"status": "⚠️ IN PROGRESS", "blocker": "✅ NO BLOCKER", "note": "Experimental, no verdict"},
+        "build": {"status": "🔬 EXPERIMENTAL", "blocker": "✅ NO BLOCKER", "note": "Mirrors code status (AUDIT-6)"},
     },
     "skin/contamination.py": {
         "FaceParsingAdapter": {"status": "✅ COMPLETE", "blocker": "✅ NO BLOCKER", "note": "Requires weights file"},
