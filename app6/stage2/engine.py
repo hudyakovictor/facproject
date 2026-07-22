@@ -176,6 +176,14 @@ class Stage2Engine:
   specs=[]
   skipped_alignment = 0
   skipped_expression = 0
+  # 🚨 WARNING (AUDIT-5): при отсутствии info.json дефолты (1.0/0.0) ПРОПУСКАЮТ фото
+  # через фильтры — без сигнала это скрывает loss of filtering. Считаем и предупреждаем.
+  missing_alignment_info = sum(1 for r in main if r.record_id not in alignment_quality)
+  missing_expression_info = sum(1 for r in main if r.record_id not in expression_magnitude)
+  if missing_alignment_info > 0:
+      status_warning("alignment_filter", f"{missing_alignment_info} records lack alignment_quality — NOT filtered (default pass)")
+  if missing_expression_info > 0:
+      status_warning("expression_filter", f"{missing_expression_info} records lack expression_magnitude — NOT filtered (default pass)")
   for pose,rs in sorted(groups.items()):
    rs.sort(key=lambda x:(x.date or '9999',x.sequence,x.record_id))
    for a,b in zip(rs,rs[1:]):

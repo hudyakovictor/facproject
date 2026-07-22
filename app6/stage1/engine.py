@@ -141,6 +141,9 @@ class Stage1Engine:
             pose = str(row["pose_bin"])
             pose_counts[pose] = pose_counts.get(pose, 0) + 1
             row["chronology_index_in_pose"] = pose_counts[pose]
+        # 💡 NOTE (AUDIT-5): main_index.csv — дубль main_timeline.csv, оставлен как
+        # compatibility-alias для внешних read-only потребителей (стиль app7).
+        # Канонический индекс для stage2 — main_timeline.csv (см. stage2/loaders.py).
         write_csv(self.cfg.output_dir / "main_index.csv", rows or [{"status": "no_successes"}])
         write_csv(self.cfg.output_dir / "main_timeline.csv", rows or [{"status": "no_successes"}])
         if errors:
@@ -206,7 +209,8 @@ class Stage1Engine:
         rec = self.recon.process(path, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         ldm = rec.landmark_arrays()
         ldm106_original = to_original_image(ldm["ldm106_image_224"], rec.trans_params)
-        ldm134_original = to_original_image(ldm["ldm134_image_224"], rec.trans_params)
+        # 💡 NOTE: ldm134_original намеренно не считаем — потребителя в пайплайне нет
+        # (AUDIT-5: был dead store). Добавить вызов можно симметрично ldm106 при появлении юзкейса.
         mask = build_mask_bundle(rec.semantic_channels_224, rec.trans_params, bgr.shape)
 
         with atomic_photo_directory(self.cfg.output_dir, photo_id, overwrite=final.exists()) as out:

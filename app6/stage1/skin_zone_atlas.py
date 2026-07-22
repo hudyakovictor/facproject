@@ -15,7 +15,10 @@
      skin_zone_projection.npz   (zone_id_map, zone_masks_photo, bbox, fractions...)
      skin_zone_quality.json     (status/exclusion/quality по зонам)
      skin_zone_overlay.png      (визуальная накладка зон на фото)
-   Строится функцией project_atlas_to_photo(...), вызываемой из assets.py.
+   Строится функцией project_atlas_to_photo(...).
+   ⚠️ AUDIT-5: из assets.py больше НЕ вызывается (там явно отключён legacy-fallback) —
+   live-путь проекции атласа: stage1/skin/projection.py. Функция оставлена для
+   render_skin_zone_atlas.py и совместимости.
 
 ОРИЕНТАЦИЯ UV (проверено по mesh_zone_indices.json на BFM-35709):
   u: 0 = левый край атласа, 1 = правый край
@@ -32,7 +35,9 @@
 ГУБЫ ИСКЛЮЧЕНЫ: зоны вокруг рта называются perioral_skin (околоротовые зоны
 кожи), губы (upper_lip/lower_lip) исключаются segmentation mask и не входят
 в атлас как зоны кожи.
-⚠️ CONVENTIONS v2 → legacy-атлас; актуальный: skin_zone_atlas_final.py
+⚠️ CONVENTIONS v2 → «legacy» по имени, но единственный ЖИВОЙ генератор канонического
+атласа (через scripts/render_skin_zone_atlas.py). skin_zone_atlas_final.py НЕ подключён
+(AUDIT-5). Live-проекция зон: stage1/skin/projection.py.
 """
 from __future__ import annotations
 

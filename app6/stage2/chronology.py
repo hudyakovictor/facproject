@@ -98,4 +98,6 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
 # 🗑️ DEPRECATED alias → используйте apply_chronology_rate_flags
 def apply_biological_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     """Deprecated compatibility alias; use apply_chronology_rate_flags."""
+    # 🗑️ DEPRECATED (AUDIT-5): алиас логирует свой статус при вызове, делегирует основной функции
+    log_status("apply_biological_rate_flags", "deprecated", "Alias of apply_chronology_rate_flags")
     return apply_chronology_rate_flags(rows)

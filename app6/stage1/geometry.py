@@ -37,7 +37,6 @@ def classify_pose(yaw: float) -> tuple[str, float]:
     - left_profile: -95°..-50° → canonical -70°
     """
     log_status("classify_pose", "complete")
-    log_status("classify_pose", "complete")
     for name, lo, hi, canonical in POSE_BINS:
         if lo <= float(yaw) < hi:
             return name, canonical
@@ -55,12 +54,10 @@ def nearest_canonical_yaw(yaw: float) -> tuple[str, float]:
     - Нужно интегрировать в compute_chronology_alignment
     """
     log_status("nearest_canonical_yaw", "in_progress", "Not integrated into main pipeline yet")
-    log_status("nearest_canonical_yaw", "in_progress",
-               "Not integrated into main pipeline yet")
     best_name = "frontal"
     best_canonical = 0.0
     best_dist = float("inf")
-    for name, lo, hi, canonical in POSE_BINS:
+    for name, _lo, _hi, canonical in POSE_BINS:  # границы (_lo/_hi) не нужны: выбор по близости к canonical
         dist = abs(float(yaw) - canonical)
         if dist < best_dist:
             best_dist = dist
@@ -99,7 +96,6 @@ def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
         3x3 rotation matrix (row-vector convention, float32)
     """
     log_status("full_pose_correction_matrix", "complete")
-    log_status("full_pose_correction_matrix", "complete")
     actual = np.asarray(actual_pose_deg, np.float64)
     target = np.asarray(target_pose_deg, np.float64)
 
@@ -120,7 +116,6 @@ def normalize_mesh(mesh: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
     Uses RMS scale over the entire mesh. For chronology, this is applied
     BEFORE pose correction so that scale is consistent across all photos.
     """
-    log_status("normalize_mesh", "complete")
     log_status("normalize_mesh", "complete")
     mesh = np.asarray(mesh, np.float32)
     center = mesh.mean(axis=0)
@@ -148,7 +143,6 @@ def normalize_mesh_landmark_anchored(mesh: np.ndarray,
     Returns:
         (normalized_mesh, center, scale)
     """
-    log_status("normalize_mesh_landmark_anchored", "complete")
     log_status("normalize_mesh_landmark_anchored", "complete")
     mesh = np.asarray(mesh, np.float32)
     center = mesh.mean(axis=0)
@@ -202,7 +196,6 @@ def compute_chronology_alignment(vertices: np.ndarray,
             - actual_pose: original [pitch, yaw, roll]
     """
     log_status("compute_chronology_alignment", "complete")
-    log_status("compute_chronology_alignment", "complete")
     actual = np.asarray(actual_pose_deg, np.float64)
     target = np.array([0.0, float(canonical_yaw), 0.0], np.float64)
 
@@ -235,8 +228,6 @@ def to_original_image(points_224: np.ndarray, trans_params: np.ndarray) -> np.nd
     ⚠️ IN PROGRESS: Нет проверки что результат в пределах изображения
     """
     log_status("to_original_image", "in_progress", "No bounds check on output coordinates")
-    log_status("to_original_image", "in_progress",
-               "No bounds check on output coordinates")
     q = np.asarray(points_224, np.float32).copy()
     q[:, 1] = 223.0 - q[:, 1]
     w0, h0, scale, cx, cy = map(float, np.asarray(trans_params).reshape(-1)[:5])

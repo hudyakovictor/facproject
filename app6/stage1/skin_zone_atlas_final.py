@@ -1,9 +1,12 @@
-"""🎯 CRITICAL → Финальный UV-атлас зон кожи (BFM 35709): валидация, проекция, контракт.
-🚪 API: validate_definitions(), build_primary_triangle_zone(), project_atlas_to_photo(),
-  export_contract(), load_canonical_atlas()
-🔗 DEPENDS ON: assets face_model + mask_atlas npz
+"""⚠️ NOT WIRED (AUDIT-5): модуль НЕ импортируется ничем в продакшн-путях и тестах —
+471 строка кандидат-реализации атласа v3, которая так и не была подключена.
+Актуальный live-путь атласа: stage1/skin/projection.py (rasterize_surface/project_atlas)
++ генерация канонических слоёв: skin_zone_atlas.py (legacy) через scripts/render_skin_zone_atlas.py.
+🚪 API (если будет подключён): validate_definitions(), build_primary_triangle_zone(),
+  project_atlas_to_photo(), export_contract(), load_canonical_atlas()
+🔗 DEPENDS ON: assets face_model + mask_atlas npz (внешний ассет, отсутствует в гите)
 📊 METRIC: zone_role_for_pose() — роль зоны по pose bin (аппликабельность в stage2)
-⚠️ IN PROGRESS: покрытие профильных бинов уточняется (см. AUDIT-тесты v3).
+💡 NOTE: не удалять — задел под skin v3 (см. test_skin_v3_foundation, test_wrinkle_zones).
 """
 from __future__ import annotations
 

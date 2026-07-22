@@ -54,21 +54,21 @@
 | `app6/stage1/engine.py` | `_landmark_rows` 🔒 | 44 | log: complete | 📊 |
 | `app6/stage1/engine.py` | `__init__` 🔒 | 67 | — | — |
 | `app6/stage1/engine.py` | `run` | 89 | log: complete | — |
-| `app6/stage1/engine.py` | `_one` 🔒 | 163 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
-| `app6/stage1/engine.py` | `_relative` 🔒 | 486 | — | — |
-| `app6/stage1/engine.py` | `_index_row` 🔒 | 493 | — | — |
-| `app6/stage1/engine.py` | `_compute_landmark_confidence` 🔒 | 256 | — | 📊 |
+| `app6/stage1/engine.py` | `_one` 🔒 | 166 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
+| `app6/stage1/engine.py` | `_relative` 🔒 | 490 | — | — |
+| `app6/stage1/engine.py` | `_index_row` 🔒 | 497 | — | — |
+| `app6/stage1/engine.py` | `_compute_landmark_confidence` 🔒 | 260 | — | 📊 |
 | `app6/stage1/geometry.py` | `classify_pose` | 20 | log: complete; ⚠️ IN PROGRESS | 💡 📊 |
-| `app6/stage1/geometry.py` | `nearest_canonical_yaw` | 45 | log: in_progress; ⚠️ IN PROGRESS | 📊 |
-| `app6/stage1/geometry.py` | `row_rotation_matrix` | 72 | log: complete | — |
-| `app6/stage1/geometry.py` | `full_pose_correction_matrix` | 82 | log: complete | — |
-| `app6/stage1/geometry.py` | `normalize_mesh` | 117 | log: complete | — |
-| `app6/stage1/geometry.py` | `normalize_mesh_landmark_anchored` | 134 | log: complete | — |
-| `app6/stage1/geometry.py` | `compute_chronology_alignment` | 175 | log: complete | — |
-| `app6/stage1/geometry.py` | `to_original_image` | 231 | log: in_progress; ⚠️ IN PROGRESS | 🎯 🔗 💡 |
-| `app6/stage1/geometry.py` | `reprojection_stats` | 251 | log: complete | — |
-| `app6/stage1/geometry.py` | `pack_mask` | 264 | log: complete | — |
-| `app6/stage1/geometry.py` | `unpack_mask` | 269 | log: complete | — |
+| `app6/stage1/geometry.py` | `nearest_canonical_yaw` | 44 | log: in_progress; ⚠️ IN PROGRESS | 📊 |
+| `app6/stage1/geometry.py` | `row_rotation_matrix` | 69 | log: complete | — |
+| `app6/stage1/geometry.py` | `full_pose_correction_matrix` | 79 | log: complete | — |
+| `app6/stage1/geometry.py` | `normalize_mesh` | 113 | log: complete | — |
+| `app6/stage1/geometry.py` | `normalize_mesh_landmark_anchored` | 129 | log: complete | — |
+| `app6/stage1/geometry.py` | `compute_chronology_alignment` | 169 | log: complete | — |
+| `app6/stage1/geometry.py` | `to_original_image` | 224 | log: in_progress; ⚠️ IN PROGRESS | 🎯 🔗 💡 |
+| `app6/stage1/geometry.py` | `reprojection_stats` | 242 | log: complete | — |
+| `app6/stage1/geometry.py` | `pack_mask` | 255 | log: complete | — |
+| `app6/stage1/geometry.py` | `unpack_mask` | 260 | log: complete | — |
 | `app6/stage1/masks.py` | `build_mask_bundle` | 36 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
 | `app6/stage1/naming.py` | `parse_photo_name` | 32 | log: complete | — |
 | `app6/stage1/naming.py` | `make_photo_id` | 64 | log: complete | — |
@@ -190,32 +190,32 @@
 | `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `_skin_mask` 🔒 | 34 | — | — |
 | `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `predict` | 42 | 🔬 EXPERIMENTAL | — |
 | `app6/stage1/skin/wrinkles/ffhq_adapter.py` | `metadata` | 51 | — | 📤 |
-| `app6/stage1/skin_zone_atlas.py` | `build_triangle_zone_map` | 188 | ⚠️ IN PROGRESS | — |
-| `app6/stage1/skin_zone_atlas.py` | `_zone_colors` 🔒 | 213 | — | — |
-| `app6/stage1/skin_zone_atlas.py` | `_tri_px` 🔒 | 224 | — | — |
-| `app6/stage1/skin_zone_atlas.py` | `render_atlas_png` | 238 | — | 📤 |
-| `app6/stage1/skin_zone_atlas.py` | `_pose_weight` 🔒 | 270 | — | — |
-| `app6/stage1/skin_zone_atlas.py` | `build_pose_policy` | 290 | — | 🏭 |
-| `app6/stage1/skin_zone_atlas.py` | `build_atlas_json` | 298 | — | 📤 |
-| `app6/stage1/skin_zone_atlas.py` | `generate_canonical_atlas` | 328 | — | 🏭 |
-| `app6/stage1/skin_zone_atlas.py` | `write_pose_policy_csv` | 385 | — | 📤 |
-| `app6/stage1/skin_zone_atlas.py` | `load_canonical_atlas` | 394 | ✅ VERIFIED | — |
-| `app6/stage1/skin_zone_atlas.py` | `_boundary_safe_mask` 🔒 | 411 | — | — |
-| `app6/stage1/skin_zone_atlas.py` | `_uv_to_original` 🔒 | 417 | — | — |
-| `app6/stage1/skin_zone_atlas.py` | `project_atlas_to_photo` | 430 | — | 🎯 |
-| `app6/stage1/skin_zone_atlas.py` | `_render_overlay` 🔒 | 597 | — | — |
-| `app6/stage1/skin_zone_atlas.py` | `zone_names` | 614 | — | 📤 |
-| `app6/stage1/skin_zone_atlas_final.py` | `validate_definitions` | 140 | ✅ VERIFIED | — |
-| `app6/stage1/skin_zone_atlas_final.py` | `triangle_centroids_uv` | 158 | — | 🔢 |
-| `app6/stage1/skin_zone_atlas_final.py` | `points_in_polygon` | 165 | — | 🔢 |
-| `app6/stage1/skin_zone_atlas_final.py` | `build_primary_triangle_zone` | 174 | — | 🎯 |
-| `app6/stage1/skin_zone_atlas_final.py` | `zone_role_for_pose` | 194 | — | 📊 |
-| `app6/stage1/skin_zone_atlas_final.py` | `export_contract` | 210 | — | 📤 |
-| `app6/stage1/skin_zone_atlas_final.py` | `load_canonical_atlas` | 235 | ✅ VERIFIED | — |
-| `app6/stage1/skin_zone_atlas_final.py` | `_boundary_safe_mask` 🔒 | 262 | — | — |
-| `app6/stage1/skin_zone_atlas_final.py` | `_uv_to_original` 🔒 | 267 | — | — |
-| `app6/stage1/skin_zone_atlas_final.py` | `_zone_colors` 🔒 | 275 | — | — |
-| `app6/stage1/skin_zone_atlas_final.py` | `project_atlas_to_photo` | 286 | — | 🎯 |
+| `app6/stage1/skin_zone_atlas.py` | `build_triangle_zone_map` | 193 | ⚠️ IN PROGRESS | — |
+| `app6/stage1/skin_zone_atlas.py` | `_zone_colors` 🔒 | 218 | — | — |
+| `app6/stage1/skin_zone_atlas.py` | `_tri_px` 🔒 | 229 | — | — |
+| `app6/stage1/skin_zone_atlas.py` | `render_atlas_png` | 243 | — | 📤 |
+| `app6/stage1/skin_zone_atlas.py` | `_pose_weight` 🔒 | 275 | — | — |
+| `app6/stage1/skin_zone_atlas.py` | `build_pose_policy` | 295 | — | 🏭 |
+| `app6/stage1/skin_zone_atlas.py` | `build_atlas_json` | 303 | — | 📤 |
+| `app6/stage1/skin_zone_atlas.py` | `generate_canonical_atlas` | 333 | — | 🏭 |
+| `app6/stage1/skin_zone_atlas.py` | `write_pose_policy_csv` | 390 | — | 📤 |
+| `app6/stage1/skin_zone_atlas.py` | `load_canonical_atlas` | 399 | ✅ VERIFIED | — |
+| `app6/stage1/skin_zone_atlas.py` | `_boundary_safe_mask` 🔒 | 416 | — | — |
+| `app6/stage1/skin_zone_atlas.py` | `_uv_to_original` 🔒 | 422 | — | — |
+| `app6/stage1/skin_zone_atlas.py` | `project_atlas_to_photo` | 435 | — | 🎯 |
+| `app6/stage1/skin_zone_atlas.py` | `_render_overlay` 🔒 | 602 | — | — |
+| `app6/stage1/skin_zone_atlas.py` | `zone_names` | 619 | — | 📤 |
+| `app6/stage1/skin_zone_atlas_final.py` | `validate_definitions` | 143 | ✅ VERIFIED | — |
+| `app6/stage1/skin_zone_atlas_final.py` | `triangle_centroids_uv` | 161 | — | 🔢 |
+| `app6/stage1/skin_zone_atlas_final.py` | `points_in_polygon` | 168 | — | 🔢 |
+| `app6/stage1/skin_zone_atlas_final.py` | `build_primary_triangle_zone` | 177 | — | 🎯 |
+| `app6/stage1/skin_zone_atlas_final.py` | `zone_role_for_pose` | 197 | — | 📊 |
+| `app6/stage1/skin_zone_atlas_final.py` | `export_contract` | 213 | — | 📤 |
+| `app6/stage1/skin_zone_atlas_final.py` | `load_canonical_atlas` | 238 | ✅ VERIFIED | — |
+| `app6/stage1/skin_zone_atlas_final.py` | `_boundary_safe_mask` 🔒 | 265 | — | — |
+| `app6/stage1/skin_zone_atlas_final.py` | `_uv_to_original` 🔒 | 270 | — | — |
+| `app6/stage1/skin_zone_atlas_final.py` | `_zone_colors` 🔒 | 278 | — | — |
+| `app6/stage1/skin_zone_atlas_final.py` | `project_atlas_to_photo` | 289 | — | 🎯 |
 | `app6/stage1/status_logger.py` | `log_status` | 52 | — | 🎯 |
 | `app6/stage1/status_logger.py` | `log_need_testing` | 86 | — | — |
 | `app6/stage1/status_logger.py` | `log_complete` | 91 | — | — |
@@ -264,7 +264,7 @@
 | `app6/stage2/chronology.py` | `_days` 🔒 | 13 | — | — |
 | `app6/stage2/chronology.py` | `_robust` 🔒 | 20 | — | — |
 | `app6/stage2/chronology.py` | `apply_chronology_rate_flags` | 25 | log: in_progress; ⚠️ IN PROGRESS | 🎯 💡 |
-| `app6/stage2/chronology.py` | `apply_biological_rate_flags` | 99 | 🗑️ DEPRECATED | — |
+| `app6/stage2/chronology.py` | `apply_biological_rate_flags` | 99 | log: deprecated; 🗑️ DEPRECATED | — |
 | `app6/stage2/core.py` | `_rigid_align` 🔒 | 56 | — | — |
 | `app6/stage2/core.py` | `robust_rigid_align` | 70 | — | 🎯 |
 | `app6/stage2/core.py` | `_stats` 🔒 | 129 | — | — |
@@ -289,7 +289,7 @@
 | `app6/stage2/engine.py` | `__post_init__` 🔒 | 56 | — | — |
 | `app6/stage2/engine.py` | `__init__` 🔒 | 61 | — | — |
 | `app6/stage2/engine.py` | `run` | 62 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 🚨 |
-| `app6/stage2/engine.py` | `_persistence` 🔒 | 292 | — | — |
+| `app6/stage2/engine.py` | `_persistence` 🔒 | 300 | — | — |
 | `app6/stage2/evidence.py` | `evidence_state` | 37 | log: complete | — |
 | `app6/stage2/evidence.py` | `alternative_reasons` | 44 | log: complete | — |
 | `app6/stage2/evidence.py` | `packet_from_pair` | 99 | log: complete | — |
@@ -325,14 +325,14 @@
 | `app6/stage2/metric_registry.py` | `_usable` 🔒 | 84 | — | — |
 | `app6/stage2/metric_registry.py` | `metric_channel` | 92 | log: complete | — |
 | `app6/stage2/metric_registry.py` | `build_metric_catalog` | 98 | log: complete | — |
-| `app6/stage2/motion.py` | `pose_motion_support` | 24 | — | 🚧 |
-| `app6/stage2/motion.py` | `aligned_point_motion` | 34 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 |
-| `app6/stage2/motion.py` | `__init__` 🔒 | 76 | — | — |
-| `app6/stage2/motion.py` | `_pose_distance` 🔒 | 79 | — | — |
-| `app6/stage2/motion.py` | `_build` 🔒 | 80 | — | — |
-| `app6/stage2/motion.py` | `score` | 101 | — | 📊 |
-| `app6/stage2/motion.py` | `landmark_stability_score` | 121 | ⚠️ IN PROGRESS | 📊 |
-| `app6/stage2/motion.py` | `_coherence` 🔒 | 160 | — | — |
+| `app6/stage2/motion.py` | `pose_motion_support` | 25 | — | 🚧 |
+| `app6/stage2/motion.py` | `aligned_point_motion` | 35 | log: complete; ⚠️ IN PROGRESS | 🎯 🔗 💡 |
+| `app6/stage2/motion.py` | `__init__` 🔒 | 77 | — | — |
+| `app6/stage2/motion.py` | `_pose_distance` 🔒 | 80 | — | — |
+| `app6/stage2/motion.py` | `_build` 🔒 | 81 | — | — |
+| `app6/stage2/motion.py` | `score` | 102 | — | 📊 |
+| `app6/stage2/motion.py` | `landmark_stability_score` | 122 | ⚠️ IN PROGRESS | 📊 |
+| `app6/stage2/motion.py` | `_coherence` 🔒 | 161 | — | — |
 | `app6/stage2/multiple_testing.py` | `_p_from_z` 🔒 | 14 | — | — |
 | `app6/stage2/multiple_testing.py` | `_bh_qvalues` 🔒 | 22 | — | — |
 | `app6/stage2/multiple_testing.py` | `apply_pair_fdr` | 37 | log: complete | — |

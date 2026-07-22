@@ -13,9 +13,10 @@ from .anchor_policy import stable_anchor_mask
 from .core import Record,robust_rigid_align
 from app6.stage1.status_logger import log_status, log_blocker, log_warning
 
+# 💡 NOTE (AUDIT-5): config.POSE_BINS не эмитит *_profile_soft — записи удалены как
+# недостижимые; fallback `("profile" in p)` ниже покрывает любые будущие profile-названия.
 PROFILE_POSE_BINS = {
     "left_profile", "right_profile",
-    "left_profile_soft", "right_profile_soft",
 }
 UNSUPPORTED_POSE_BINS = {"out_of_supported_range", "unknown", ""}
 
