@@ -161,7 +161,8 @@ class Stage1Engine:
                 files["face_mask_failure"] = "face_mask_failure.json"
             files["semantic_channels"] = save_semantic_channels(mask, out)
             uv_files, uv_arrays, uv_meta = save_uv_and_mesh(
-                bgr, rec, out, self.cfg.uv_size, skin_mask=mask.hard_original
+                bgr, rec, out, self.cfg.uv_size, skin_mask=mask.hard_original,
+                save_mesh=self.cfg.save_mesh
             )
             files.update(uv_files)
             quality = technical_quality(bgr, crop_meta["bbox_original"], mask.hard_original, rec.combined_visible)
@@ -176,16 +177,19 @@ class Stage1Engine:
 
             write_csv(out / "ldm106_raw.csv", _landmark_rows(ldm["ldm106_object"], ldm["ldm106_visible"], rec.ldm106_indices))
             write_csv(out / "ldm106_aligned.csv", _landmark_rows(ldm["ldm106_bin_canonical"], ldm["ldm106_visible"], rec.ldm106_indices))
+            write_csv(out / "ldm106_chronology.csv", _landmark_rows(ldm["ldm106_chronology_aligned"], ldm["ldm106_visible"], rec.ldm106_indices))
             write_csv(out / "ldm134_raw.csv", _landmark_rows(ldm["ldm134_object"], ldm["ldm134_visible"], rec.ldm134_indices))
             write_csv(out / "ldm134_aligned.csv", _landmark_rows(ldm["ldm134_bin_canonical"], ldm["ldm134_visible"], rec.ldm134_indices))
+            write_csv(out / "ldm134_chronology.csv", _landmark_rows(ldm["ldm134_chronology_aligned"], ldm["ldm134_visible"], rec.ldm134_indices))
             files.update({
-                "ldm106_raw": "ldm106_raw.csv", "ldm106_aligned": "ldm106_aligned.csv",
-                "ldm134_raw": "ldm134_raw.csv", "ldm134_aligned": "ldm134_aligned.csv",
+                "ldm106_raw": "ldm106_raw.csv", "ldm106_aligned": "ldm106_aligned.csv", "ldm106_chronology": "ldm106_chronology.csv",
+                "ldm134_raw": "ldm134_raw.csv", "ldm134_aligned": "ldm134_aligned.csv", "ldm134_chronology": "ldm134_chronology.csv",
             })
 
             arrays: dict[str, np.ndarray] = {
                 "vertices_object": rec.vertices_object, "vertices_identity_only": rec.vertices_identity_only,
                 "vertices_object_normalized": rec.vertices_object_normalized, "vertices_bin_canonical": rec.vertices_bin_canonical,
+                "vertices_chronology_aligned": rec.vertices_chronology_aligned,
                 "vertices_camera": rec.vertices_camera, "vertices_image_224": rec.vertices_image_224,
                 "normals_object": rec.normals_object, "normals_posed": rec.normals_posed,
                 "triangles": rec.triangles, "uv_coords": rec.uv_coords,
@@ -202,6 +206,8 @@ class Stage1Engine:
                 "normalization_center": rec.normalization_center,
                 "normalization_scale": np.asarray([rec.normalization_scale], np.float32),
                 "canonical_rotation_row_matrix": rec.canonical_rotation,
+                "chronology_correction_matrix": rec.chronology_correction_matrix,
+                "chronology_target_pose": rec.chronology_target_pose,
                 "canonical_yaw": np.asarray([rec.canonical_yaw], np.float32),
                 **ldm, **uv_arrays,
             }
@@ -231,6 +237,10 @@ class Stage1Engine:
                 skin_status={"state":"failed_retryable","error":str(exc)}
                 atomic_json(out / "skin_failure.json", skin_status);files["skin_failure"]="skin_failure.json"
 
+            # Compute visible landmarks count for this pose
+            visible_106 = int(np.sum(ldm["ldm106_visible"]))
+            visible_134 = int(np.sum(ldm["ldm134_visible"]))
+
             info = {
                 "schema_version": PHOTO_SCHEMA_VERSION, "photo_id": photo_id,
                 "source_filename": path.name, "source_relative_path": self._relative(path), "source_sha256": source_hash,
@@ -240,11 +250,30 @@ class Stage1Engine:
                 "config_hash": self.config_hash, "model_hash": self.model_hash,
                 "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower(), "decode": decode_meta},
                 "pose": pose_payload,
+                "chronology": {
+                    "alignment_method": "full_pose_correction_v1",
+                    "applied_rotation": rec.chronology_correction_matrix.tolist(),
+                    "applied_scale": float(rec.normalization_scale),
+                    "applied_center": rec.normalization_center.tolist(),
+                    "target_pose": rec.chronology_target_pose.tolist(),
+                    "actual_pose": rec.angles_deg.tolist(),
+                    "pose_bin": rec.pose_bin,
+                    "canonical_yaw": float(rec.canonical_yaw),
+                    "visible_landmarks_106": visible_106,
+                    "visible_landmarks_134": visible_134,
+                    "alignment_csv_106": "ldm106_chronology.csv",
+                    "alignment_csv_134": "ldm134_chronology.csv",
+                    "description": "Full pose correction (pitch+yaw+roll) to canonical pose. Use chronology CSVs for within-bin comparison."
+                },
                 "camera": {"projection": "perspective", "focal": 1015.0, "principal_point": [112.0, 112.0],
                            "camera_distance": 10.0, "render_size": [224, 224]},
-                "normalization": {"method": "full_mesh_rms_v1", "center": rec.normalization_center,
-                                  "scale": rec.normalization_scale},
-                "landmark_contract": {"raw": "object identity+expression", "aligned": "full-mesh RMS normalized then pose-bin canonical yaw"},
+                "normalization": {"method": "full_mesh_rms_v1", "center": rec.normalization_center.tolist(),
+                                  "scale": float(rec.normalization_scale)},
+                "landmark_contract": {
+                    "raw": "object identity+expression",
+                    "aligned": "full-mesh RMS normalized then pose-bin canonical yaw (yaw only)",
+                    "chronology": "full pose correction (pitch+yaw+roll) to canonical pose, identity-only vertices"
+                },
                 "mask": {"status": mask.status, "error": mask.error, **mask.metadata},
                 "uv": {"status": "valid", **uv_meta}, "quality_inputs": quality,
                 "quality_summary": quality_summary, "skin": skin_status,

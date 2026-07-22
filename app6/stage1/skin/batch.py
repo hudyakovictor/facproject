@@ -20,7 +20,17 @@ class SkinStage1Batch:
     with np.load(d/'reconstruction.npz',allow_pickle=False) as z:
      tri=z['triangles'];vis=unpack_mask(z['full_mesh_visible_packbits'],len(z['vertices_object'])).astype(bool);kwargs={'triangles':tri,'vertices_original_xy':_to_original(z['vertices_image_224'],z['trans_params']),'vertices_depth':z['vertices_camera'][:,2],'normals':z['normals_posed'],'surface_vertices':z['vertices_object_normalized'],'vertex_visibility':vis}
     temp=Path(tempfile.mkdtemp(prefix='.skin-retry-',dir=d))
-    build_skin_package(photo_id=info['photo_id'],input_path=original,bgr=bgr,out_dir=temp,face_mask_data_path=d/'face_mask.npz',atlas_path=self.atlas,coordinate_chain={'retry_from_reconstruction':True,'original_info':info.get('crop')},models={'model_hash':info.get('model_hash')},config={'retry_skin_only':True},pose=info.get('pose',{}),**kwargs)
+    # Build pose payload with chronology metadata if available
+    pose_payload = info.get('pose', {})
+    chronology = info.get('chronology', {})
+    if chronology:
+        pose_payload['_chronology'] = {
+            'alignment_method': chronology.get('alignment_method'),
+            'target_pose': chronology.get('target_pose'),
+            'actual_pose': chronology.get('actual_pose'),
+            'visible_landmarks_134': chronology.get('visible_landmarks_134'),
+        }
+    build_skin_package(photo_id=info['photo_id'],input_path=original,bgr=bgr,out_dir=temp,face_mask_data_path=d/'face_mask.npz',atlas_path=self.atlas,coordinate_chain={'retry_from_reconstruction':True,'original_info':info.get('crop')},models={'model_hash':info.get('model_hash')},config={'retry_skin_only':True},pose=pose_payload,**kwargs)
     if final.exists():shutil.rmtree(final)
     (temp/'skin').replace(final);shutil.rmtree(temp,ignore_errors=True);info['skin']={'state':'success_retry_without_reconstruction'};info.setdefault('files',{})['skin_manifest']='skin/manifest.json';info['files'].pop('skin_failure',None);from .serialization import atomic_json;atomic_json(d/'info.json',info);(d/'skin_failure.json').unlink(missing_ok=True);from ..validator import validate_photo;result=validate_photo(d,write_result=True)
     if result['status']!='complete':raise RuntimeError('post-retry validation failed: '+str(result['errors']))

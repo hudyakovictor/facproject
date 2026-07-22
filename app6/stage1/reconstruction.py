@@ -10,7 +10,7 @@ from typing import Any
 
 import numpy as np
 
-from .geometry import classify_pose, normalize_mesh, reprojection_stats, row_rotation_matrix, to_original_image
+from .geometry import classify_pose, compute_chronology_alignment, normalize_mesh, reprojection_stats, row_rotation_matrix, to_original_image
 
 
 @dataclass
@@ -26,6 +26,7 @@ class ReconstructionBundle:
     vertices_identity_only: np.ndarray
     vertices_object_normalized: np.ndarray
     vertices_bin_canonical: np.ndarray
+    vertices_chronology_aligned: np.ndarray
     vertices_camera: np.ndarray
     vertices_image_224: np.ndarray
     normals_object: np.ndarray
@@ -46,6 +47,8 @@ class ReconstructionBundle:
     normalization_center: np.ndarray
     normalization_scale: float
     canonical_rotation: np.ndarray
+    chronology_correction_matrix: np.ndarray
+    chronology_target_pose: np.ndarray
     reprojection: dict[str, dict[str, float]]
     raw_results: dict[str, Any]
 
@@ -56,6 +59,7 @@ class ReconstructionBundle:
             out[f"{key}_object"] = self.vertices_object[idx]
             out[f"{key}_object_normalized"] = self.vertices_object_normalized[idx]
             out[f"{key}_bin_canonical"] = self.vertices_bin_canonical[idx]
+            out[f"{key}_chronology_aligned"] = self.vertices_chronology_aligned[idx]
             out[f"{key}_camera"] = self.vertices_camera[idx]
             out[f"{key}_image_224"] = self.vertices_image_224[idx]
             out[f"{key}_front_facing"] = self.front_facing[idx].astype(np.uint8)
@@ -202,6 +206,20 @@ class ReconstructionEngine:
         canonical_rotation = row_rotation_matrix(0.0, canonical_yaw, 0.0)
         canonical = (normalized @ canonical_rotation).astype(np.float32)
 
+        # Chronology alignment: full pose correction (pitch + yaw + roll)
+        # This ensures all photos within the same pose bin have identical pose
+        # (0, canonical_yaw, 0), eliminating pitch/roll noise from comparison.
+        # We use identity-only vertices (without expression) for stable comparison.
+        chrono = compute_chronology_alignment(
+            vertices=vertices_identity,
+            actual_pose_deg=[float(angles_deg[0]), float(angles_deg[1]), float(angles_deg[2])],
+            canonical_yaw=float(canonical_yaw),
+            normalization="rms",
+        )
+        vertices_chronology_aligned = chrono["vertices_aligned"]
+        chronology_correction_matrix = chrono["correction_matrix"]
+        chronology_target_pose = chrono["target_pose"]
+
         count = len(vertices_object)
         front = normals_posed[:, 2] >= 0.0
         renderer = np.zeros(count, dtype=bool)
@@ -231,7 +249,9 @@ class ReconstructionEngine:
             pose_bin=pose_bin, canonical_yaw=float(canonical_yaw), rotation=rotation,
             translation=translation, vertices_object=vertices_object,
             vertices_identity_only=vertices_identity, vertices_object_normalized=normalized,
-            vertices_bin_canonical=canonical, vertices_camera=vertices_camera,
+            vertices_bin_canonical=canonical,
+            vertices_chronology_aligned=vertices_chronology_aligned,
+            vertices_camera=vertices_camera,
             vertices_image_224=vertices_image, normals_object=normals_object,
             normals_posed=normals_posed, triangles=np.asarray(results["tri"], np.int64),
             uv_coords=np.asarray(results["uv_coords"], np.float32),
@@ -243,7 +263,10 @@ class ReconstructionEngine:
             alpha_alb=self._np(alpha["alb"])[0].astype(np.float32),
             alpha_sh=self._np(alpha["sh"])[0].astype(np.float32),
             normalization_center=center, normalization_scale=scale,
-            canonical_rotation=canonical_rotation, reprojection=reprojection, raw_results=results,
+            canonical_rotation=canonical_rotation,
+            chronology_correction_matrix=chronology_correction_matrix,
+            chronology_target_pose=chronology_target_pose,
+            reprojection=reprojection, raw_results=results,
         )
         return bundle
 

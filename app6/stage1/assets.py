@@ -82,7 +82,7 @@ def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | 
     return out
 
 
-def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
+def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3, save_mesh: bool = True) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
     from uv_module import HDUVConfig, HDUVTextureGenerator
 
     vertices_2d = to_original_image(bundle.vertices_image_224, bundle.trans_params)
@@ -101,7 +101,6 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     out.mkdir(parents=True, exist_ok=True)
     if not cv2.imwrite(str(out / "uv_texture.png"), uv_render):
         raise OSError(f"failed to write uv_texture.png to {out / 'uv_texture.png'}")
-    cv2.imwrite(str(out / "uv_texture_beauty.png"), uv_beauty)
     # UV is visualization/correspondence only. Anatomical zones, wrinkles and
     # forensic evidence are produced by app6.stage1.skin.pipeline in native
     # photo space; no disabled placeholder and no silent legacy-atlas fallback.
@@ -122,7 +121,7 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     valid_mask = observed_bool & is_original_bool & (confidence_01 >= valid_threshold)
 
     tri_visibility = np.asarray(aux.get("tri_visibility", []), np.float16)
-    # Exactly one UV render is serialized. Provenance masks identify observed
+    # Exactly one UV texture is serialized. Provenance masks identify observed
     # and visually filled texels, but neither is used by skin analyzers.
     filled_mask = np.asarray(aux.get("uv_synthetic_mask", np.zeros_like(observed_bool)), bool)
     np.savez_compressed(
@@ -162,14 +161,16 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "uv_product_count": 1,
         "native_skin_contract": "all skin evidence uses original photo pixels through face_mask in app6.stage1.skin.pipeline",
     }
-    _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_texture.png")
+
     files = {
         "uv_texture": "uv_texture.png",
-        "uv_texture_beauty": "uv_texture_beauty.png",
         "uv_data": "uv.npz",
-        "mesh": "mesh.obj",
-        "mesh_material": "mesh.mtl",
     }
+    # Only save mesh files if requested (for morphing/visualization)
+    if save_mesh:
+        _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_texture.png")
+        files["mesh"] = "mesh.obj"
+        files["mesh_material"] = "mesh.mtl"
     return files, uv_arrays, uv_meta
 
 

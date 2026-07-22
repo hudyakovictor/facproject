@@ -4,9 +4,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "deeputin-stage1-v2.3-native-skin-single-uv"
-PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.3-native-skin-single-uv"
-VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.3-native-skin-single-uv"
+SCHEMA_VERSION = "deeputin-stage1-v2.4-chronology-alignment"
+PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.4-chronology-alignment"
+VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.4-chronology-alignment"
 SEMANTIC_POLICY = "3ddfa-semantic-skin-plus-nose-v1"
 POSE_BINS = (
     ("left_profile", -95.0, -50.0, -70.0),
@@ -35,6 +35,7 @@ class Stage1Config:
     overwrite: bool = False
     continue_on_error: bool = True
     save_original: bool = True
+    save_mesh: bool = True
 
     def extraction_payload(self) -> dict[str, Any]:
         """Only settings that can change scientific output."""
@@ -45,6 +46,7 @@ class Stage1Config:
             "uv_size": int(self.uv_size),
             "semantic_policy": SEMANTIC_POLICY,
             "pose_bins": POSE_BINS,
+            "save_mesh": bool(self.save_mesh),
         }
 
     def public_dict(self) -> dict[str, Any]:

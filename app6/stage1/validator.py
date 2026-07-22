@@ -41,6 +41,7 @@ NPZ_REQUIRED = {
     "vertices_identity_only": (MESH_COUNT, 3),
     "vertices_object_normalized": (MESH_COUNT, 3),
     "vertices_bin_canonical": (MESH_COUNT, 3),
+    "vertices_chronology_aligned": (MESH_COUNT, 3),
     "vertices_camera": (MESH_COUNT, 3),
     "vertices_image_224": (MESH_COUNT, 2),
     "normals_object": (MESH_COUNT, 3),
@@ -52,13 +53,17 @@ NPZ_REQUIRED = {
     "alpha_full": (257,), "alpha_id": (80,), "alpha_exp": (64,), "alpha_alb": (80,), "alpha_sh": (27,),
     "angle_rad": (3,), "angle_deg_pitch_yaw_roll": (3,), "rotation_matrix": (3, 3),
     "translation": (3,), "trans_params": (5,), "normalization_center": (3,),
-    "normalization_scale": (1,), "canonical_rotation_row_matrix": (3, 3), "canonical_yaw": (1,),
+    "normalization_scale": (1,), "canonical_rotation_row_matrix": (3, 3),
+    "chronology_correction_matrix": (3, 3), "chronology_target_pose": (3,),
+    "canonical_yaw": (1,),
     "ldm106_object": (106, 3), "ldm106_object_normalized": (106, 3),
-    "ldm106_bin_canonical": (106, 3), "ldm106_camera": (106, 3), "ldm106_image_224": (106, 2),
+    "ldm106_bin_canonical": (106, 3), "ldm106_chronology_aligned": (106, 3),
+    "ldm106_camera": (106, 3), "ldm106_image_224": (106, 2),
     "ldm106_identity_only": (106, 3),
     "ldm106_front_facing": (106,), "ldm106_renderer_visible": (106,), "ldm106_visible": (106,),
     "ldm134_object": (134, 3), "ldm134_object_normalized": (134, 3),
-    "ldm134_bin_canonical": (134, 3), "ldm134_camera": (134, 3), "ldm134_image_224": (134, 2),
+    "ldm134_bin_canonical": (134, 3), "ldm134_chronology_aligned": (134, 3),
+    "ldm134_camera": (134, 3), "ldm134_image_224": (134, 2),
     "ldm134_identity_only": (134, 3),
     "ldm134_front_facing": (134,), "ldm134_renderer_visible": (134,), "ldm134_visible": (134,),
     "full_mesh_front_facing_packbits": (4464,),
@@ -109,18 +114,32 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
         csv_data = {
             "ldm106_raw": _csv_check(directory / "ldm106_raw.csv", 106),
             "ldm106_aligned": _csv_check(directory / "ldm106_aligned.csv", 106),
+            "ldm106_chronology": _csv_check(directory / "ldm106_chronology.csv", 106),
             "ldm134_raw": _csv_check(directory / "ldm134_raw.csv", 134),
             "ldm134_aligned": _csv_check(directory / "ldm134_aligned.csv", 134),
+            "ldm134_chronology": _csv_check(directory / "ldm134_chronology.csv", 134),
         }
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
             # Build shape requirements using dynamic topology
             dynamic_npz_required = dict(NPZ_REQUIRED)
             for key in ("vertices_object", "vertices_identity_only", "vertices_object_normalized",
-                        "vertices_bin_canonical", "vertices_camera", "vertices_image_224",
+                        "vertices_bin_canonical", "vertices_chronology_aligned",
+                        "vertices_camera", "vertices_image_224",
                         "normals_object", "normals_posed", "uv_coords"):
                 if key in dynamic_npz_required:
                     dynamic_npz_required[key] = (mesh_count, *dynamic_npz_required[key][1:])
             dynamic_npz_required["triangles"] = (tri_count, 3)
+            # Update landmark array shapes
+            for prefix in ("ldm106", "ldm134"):
+                for suffix in ("object", "object_normalized", "bin_canonical", "chronology_aligned",
+                               "camera", "image_224", "identity_only"):
+                    key = f"{prefix}_{suffix}"
+                    if key in dynamic_npz_required:
+                        count = 106 if prefix == "ldm106" else 134
+                        if suffix == "image_224":
+                            dynamic_npz_required[key] = (count, 2)
+                        else:
+                            dynamic_npz_required[key] = (count, 3)
             # Update landmark index shapes if needed
             for key in ("ldm106_vertex_indices",):
                 pass  # (106,) stays
@@ -163,8 +182,10 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
             mapping = {
                 "ldm106_raw": ("ldm106_object", "ldm106_vertex_indices"),
                 "ldm106_aligned": ("ldm106_bin_canonical", "ldm106_vertex_indices"),
+                "ldm106_chronology": ("ldm106_chronology_aligned", "ldm106_vertex_indices"),
                 "ldm134_raw": ("ldm134_object", "ldm134_vertex_indices"),
                 "ldm134_aligned": ("ldm134_bin_canonical", "ldm134_vertex_indices"),
+                "ldm134_chronology": ("ldm134_chronology_aligned", "ldm134_vertex_indices"),
             }
             for name, (array_key, index_key) in mapping.items():
                 points, indices = csv_data[name]
