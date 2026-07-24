@@ -1,0 +1,107 @@
+{
+ "scenario": {
+  "id": "S05_change_AB_v01",
+  "block": "identity_change",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "AAB: смена личности ровно между 2-м и 3-м кадром",
+  "frames": [
+   {
+    "person": "person_02",
+    "yaw": 0,
+    "date": "2001_05_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_02",
+    "yaw": 0,
+    "date": "2002_06_12",
+    "group": "auto"
+   },
+   {
+    "person": "person_05",
+    "yaw": 0,
+    "date": "2003_07_15",
+    "group": "auto"
+   }
+  ],
+  "expect": [
+   {
+    "type": "pair_status",
+    "frames": [
+     2,
+     3
+    ],
+    "any_of": [
+     "coherent_jump_candidate",
+     "alpha_id_jump_candidate",
+     "persistent_geometric_change"
+    ]
+   },
+   {
+    "type": "pair_status_not",
+    "frames": [
+     1,
+     2
+    ],
+    "none_of": [
+     "alpha_id_jump_candidate",
+     "coherent_jump_candidate",
+     "persistent_geometric_change",
+     "persistent_rapid_change_candidate",
+     "rapid_change_candidate",
+     "same_day_structural_conflict"
+    ]
+   }
+  ],
+  "variant": 1
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_02",
+   "tag": "p02f000203",
+   "record_id": "frame_000203",
+   "yaw_target": 0,
+   "yaw_actual": 16.201684951782227,
+   "date": "2001_05_10",
+   "date_iso": "2001-05-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000203.jpg",
+   "filename": "2001_05_10.jpg",
+   "stem": "2001_05_10"
+  },
+  {
+   "n": 2,
+   "person": "person_02",
+   "tag": "p02f000232",
+   "record_id": "frame_000232",
+   "yaw_target": 0,
+   "yaw_actual": -6.311418533325195,
+   "date": "2002_06_12",
+   "date_iso": "2002-06-12",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000232.jpg",
+   "filename": "2002_06_12.jpg",
+   "stem": "2002_06_12"
+  },
+  {
+   "n": 3,
+   "person": "person_05",
+   "tag": "p05f000339",
+   "record_id": "frame_000339",
+   "yaw_target": 0,
+   "yaw_actual": -0.3221949338912964,
+   "date": "2003_07_15",
+   "date_iso": "2003-07-15",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000339.jpg",
+   "filename": "2003_07_15.jpg",
+   "stem": "2003_07_15"
+  }
+ ],
+ "planned_only": false
+}

@@ -1,0 +1,88 @@
+{
+  "schema": "app6-synthetic-gate-v1",
+  "face_model": "/Users/victorkhudyakov/work/assets/face_model.npy",
+  "suites": [
+    "asset",
+    "geometry",
+    "stage2"
+  ],
+  "passed": true,
+  "check_count": 12,
+  "failed_count": 0,
+  "checks": [
+    {
+      "suite": "asset",
+      "name": "face_model_shapes",
+      "passed": true,
+      "detail": "all required shapes match"
+    },
+    {
+      "suite": "asset",
+      "name": "face_model_indices",
+      "passed": true,
+      "detail": "finite arrays and valid topology indices"
+    },
+    {
+      "suite": "asset",
+      "name": "uv_non_evidentiary_contract",
+      "passed": true,
+      "detail": "UV verified for rendering/correspondence only; no evidence metric"
+    },
+    {
+      "suite": "asset",
+      "name": "face_model_sha256",
+      "passed": true,
+      "detail": "e12b911a1f98fd2996e6c8f9b5a997632d1dfc0fc4458af1a749d8ba330c7933"
+    },
+    {
+      "suite": "geometry",
+      "name": "normalization_invariance",
+      "passed": true,
+      "detail": "max_error=1.335e-05"
+    },
+    {
+      "suite": "geometry",
+      "name": "full_pose_rotation_recovery",
+      "passed": true,
+      "detail": "max_error=2.384e-07"
+    },
+    {
+      "suite": "geometry",
+      "name": "nine_pose_bins",
+      "passed": true,
+      "detail": "all nine canonical poses classified"
+    },
+    {
+      "suite": "geometry",
+      "name": "visibility_mask_roundtrip",
+      "passed": true,
+      "detail": "35709-bit visibility mask roundtrip"
+    },
+    {
+      "suite": "stage2",
+      "name": "robust_rigid_alignment",
+      "passed": true,
+      "detail": "rmse=4.734e-08; iteratively_trimmed_kabsch_v1"
+    },
+    {
+      "suite": "stage2",
+      "name": "same_identity_near_zero",
+      "passed": true,
+      "detail": "ldm134_rmse=0.000e+00"
+    },
+    {
+      "suite": "stage2",
+      "name": "different_identity_separates",
+      "passed": true,
+      "detail": "same=0.000e+00; different=2.094e-02"
+    },
+    {
+      "suite": "stage2",
+      "name": "chronology_edge_contracts",
+      "passed": true,
+      "detail": "same-day conflict and missing-date fail-closed behavior"
+    }
+  ],
+  "interpretation": "Numerical regression gate only; not a real-photo accuracy or forensic validation.",
+  "uv_policy": "UV is visualization/correspondence only and is excluded from evidence."
+}

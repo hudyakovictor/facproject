@@ -1,0 +1,44 @@
+{
+ "id": "S02_stability_frontal_A2",
+ "block": "stability",
+ "priority": "P2",
+ "mode": "fast",
+ "description": "AAAAA на другом человеке — контроль нормы на второй геометрии",
+ "frames": [
+  {
+   "person": "person_04",
+   "yaw": 0,
+   "date": "2002_01_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_04",
+   "yaw": 0,
+   "date": "2002_07_15",
+   "group": "src_a"
+  },
+  {
+   "person": "person_04",
+   "yaw": 0,
+   "date": "2003_03_20",
+   "group": "src_a"
+  },
+  {
+   "person": "person_04",
+   "yaw": 0,
+   "date": "2004_01_11",
+   "group": "src_a"
+  },
+  {
+   "person": "person_04",
+   "yaw": 0,
+   "date": "2005_05_30",
+   "group": "src_a"
+  }
+ ],
+ "expect": [
+  {
+   "type": "no_red_pairs"
+  }
+ ]
+}

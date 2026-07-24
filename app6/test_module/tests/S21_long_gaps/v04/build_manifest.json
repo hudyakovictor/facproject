@@ -1,0 +1,90 @@
+{
+ "scenario": {
+  "id": "S21_long_gaps_v04",
+  "block": "edge",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "Пропуски по 6 лет — никаких ложных rapid",
+  "frames": [
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2001_03_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2007_03_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2013_03_10",
+    "group": "auto"
+   }
+  ],
+  "expect": [
+   {
+    "type": "no_red_pairs"
+   },
+   {
+    "type": "status_absent",
+    "statuses": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate"
+    ]
+   }
+  ],
+  "variant": 4
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_06",
+   "tag": "p06f0060",
+   "record_id": "frame_0060",
+   "yaw_target": 0,
+   "yaw_actual": -16.947799682617188,
+   "date": "2001_03_10",
+   "date_iso": "2001-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0060.jpg",
+   "filename": "2001_03_10.jpg",
+   "stem": "2001_03_10"
+  },
+  {
+   "n": 2,
+   "person": "person_06",
+   "tag": "p06f0080",
+   "record_id": "frame_0080",
+   "yaw_target": 0,
+   "yaw_actual": -0.7462608814239502,
+   "date": "2007_03_10",
+   "date_iso": "2007-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0080.jpg",
+   "filename": "2007_03_10.jpg",
+   "stem": "2007_03_10"
+  },
+  {
+   "n": 3,
+   "person": "person_06",
+   "tag": "p06f0100",
+   "record_id": "frame_0100",
+   "yaw_target": 0,
+   "yaw_actual": 13.860709190368652,
+   "date": "2013_03_10",
+   "date_iso": "2013-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0100.jpg",
+   "filename": "2013_03_10.jpg",
+   "stem": "2013_03_10"
+  }
+ ],
+ "planned_only": false
+}

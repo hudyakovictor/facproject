@@ -6,6 +6,7 @@ Usage:
 
 Expects packages like:
   results_root/<photo_id>/skin/{atlas_projection.npz,quality_maps.npz,features/texture.npz,quality.json}
+📊 CONVENTIONS v2 → аудит-скрипт; статус: 🔬 EXPERIMENTAL
 """
 from __future__ import annotations
 import argparse

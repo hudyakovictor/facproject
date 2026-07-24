@@ -1,4 +1,16 @@
+"""
+🎯 CRITICAL → Валидатор комплекта фото (contract gate перед resume/retry).
+
+validate_photo(dir): целостность info.json/files; обязательные CSV
+(raw, aligned, CHRONOLOGY для 106/134) — сверка координат и vertex_index против npz;
+reconstruction.npz: shape/dtype/isfinite ВСЕХ числовых массивов (включая
+vertices_chronology_aligned, correction/target), ортонормальность rotation_matrix,
+packed-маски (combined == front & renderer), uv_shape/packbits консистентность,
+uv.npz, face_mask.npz, quality_zones.npz. Result: complete/incomplete/invalid —
+engine resume и run_stage1 опираются на этот статус.
+"""
 from __future__ import annotations
+from .status_logger import log_status
 
 import csv
 import json
@@ -24,16 +36,22 @@ def _resolve_topology(directory: Path) -> tuple[int, int]:
     Returns (mesh_count, triangle_count) — either from the NPZ or from
     the BFM defaults above.
     """
+    p = directory / "reconstruction.npz"
+    if not p.is_file():
+        raise ValidationError(f"missing reconstruction.npz in {directory}")
     try:
-        p = directory / "reconstruction.npz"
-        if p.is_file():
-            with np.load(p, allow_pickle=False) as z:
-                mc = int(z["vertices_object"].shape[0]) if "vertices_object" in z else MESH_COUNT
-                tc = int(z["triangles"].shape[0]) if "triangles" in z else TRIANGLE_COUNT
-                return mc, tc
-    except Exception:
-        pass
-    return MESH_COUNT, TRIANGLE_COUNT
+        with np.load(p, allow_pickle=False) as z:
+            if "vertices_object" not in z or "triangles" not in z:
+                raise ValidationError("topology arrays missing from reconstruction.npz")
+            mc = int(z["vertices_object"].shape[0])
+            tc = int(z["triangles"].shape[0])
+    except ValidationError:
+        raise
+    except Exception as exc:
+        raise ValidationError(f"cannot read reconstruction topology: {exc}") from exc
+    if mc < 3 or tc < 1:
+        raise ValidationError(f"invalid topology counts: vertices={mc}, triangles={tc}")
+    return mc, tc
 
 
 NPZ_REQUIRED = {
@@ -41,6 +59,7 @@ NPZ_REQUIRED = {
     "vertices_identity_only": (MESH_COUNT, 3),
     "vertices_object_normalized": (MESH_COUNT, 3),
     "vertices_bin_canonical": (MESH_COUNT, 3),
+    "vertices_chronology_aligned": (MESH_COUNT, 3),
     "vertices_camera": (MESH_COUNT, 3),
     "vertices_image_224": (MESH_COUNT, 2),
     "normals_object": (MESH_COUNT, 3),
@@ -52,13 +71,17 @@ NPZ_REQUIRED = {
     "alpha_full": (257,), "alpha_id": (80,), "alpha_exp": (64,), "alpha_alb": (80,), "alpha_sh": (27,),
     "angle_rad": (3,), "angle_deg_pitch_yaw_roll": (3,), "rotation_matrix": (3, 3),
     "translation": (3,), "trans_params": (5,), "normalization_center": (3,),
-    "normalization_scale": (1,), "canonical_rotation_row_matrix": (3, 3), "canonical_yaw": (1,),
+    "normalization_scale": (1,), "canonical_rotation_row_matrix": (3, 3),
+    "chronology_correction_matrix": (3, 3), "chronology_target_pose": (3,),
+    "canonical_yaw": (1,),
     "ldm106_object": (106, 3), "ldm106_object_normalized": (106, 3),
-    "ldm106_bin_canonical": (106, 3), "ldm106_camera": (106, 3), "ldm106_image_224": (106, 2),
+    "ldm106_bin_canonical": (106, 3), "ldm106_chronology_aligned": (106, 3),
+    "ldm106_camera": (106, 3), "ldm106_image_224": (106, 2),
     "ldm106_identity_only": (106, 3),
     "ldm106_front_facing": (106,), "ldm106_renderer_visible": (106,), "ldm106_visible": (106,),
     "ldm134_object": (134, 3), "ldm134_object_normalized": (134, 3),
-    "ldm134_bin_canonical": (134, 3), "ldm134_camera": (134, 3), "ldm134_image_224": (134, 2),
+    "ldm134_bin_canonical": (134, 3), "ldm134_chronology_aligned": (134, 3),
+    "ldm134_camera": (134, 3), "ldm134_image_224": (134, 2),
     "ldm134_identity_only": (134, 3),
     "ldm134_front_facing": (134,), "ldm134_renderer_visible": (134,), "ldm134_visible": (134,),
     "full_mesh_front_facing_packbits": (4464,),
@@ -85,6 +108,7 @@ def _csv_check(path: Path, expected: int) -> tuple[np.ndarray, np.ndarray]:
 
 
 def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]:
+    log_status("validate_photo", "complete")
     errors: list[str] = []
     warnings: list[str] = []
     info: dict[str, Any] = {}
@@ -109,18 +133,32 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
         csv_data = {
             "ldm106_raw": _csv_check(directory / "ldm106_raw.csv", 106),
             "ldm106_aligned": _csv_check(directory / "ldm106_aligned.csv", 106),
+            "ldm106_chronology": _csv_check(directory / "ldm106_chronology.csv", 106),
             "ldm134_raw": _csv_check(directory / "ldm134_raw.csv", 134),
             "ldm134_aligned": _csv_check(directory / "ldm134_aligned.csv", 134),
+            "ldm134_chronology": _csv_check(directory / "ldm134_chronology.csv", 134),
         }
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
             # Build shape requirements using dynamic topology
             dynamic_npz_required = dict(NPZ_REQUIRED)
             for key in ("vertices_object", "vertices_identity_only", "vertices_object_normalized",
-                        "vertices_bin_canonical", "vertices_camera", "vertices_image_224",
+                        "vertices_bin_canonical", "vertices_chronology_aligned",
+                        "vertices_camera", "vertices_image_224",
                         "normals_object", "normals_posed", "uv_coords"):
                 if key in dynamic_npz_required:
                     dynamic_npz_required[key] = (mesh_count, *dynamic_npz_required[key][1:])
             dynamic_npz_required["triangles"] = (tri_count, 3)
+            # Update landmark array shapes
+            for prefix in ("ldm106", "ldm134"):
+                for suffix in ("object", "object_normalized", "bin_canonical", "chronology_aligned",
+                               "camera", "image_224", "identity_only"):
+                    key = f"{prefix}_{suffix}"
+                    if key in dynamic_npz_required:
+                        count = 106 if prefix == "ldm106" else 134
+                        if suffix == "image_224":
+                            dynamic_npz_required[key] = (count, 2)
+                        else:
+                            dynamic_npz_required[key] = (count, 3)
             # Update landmark index shapes if needed
             for key in ("ldm106_vertex_indices",):
                 pass  # (106,) stays
@@ -163,8 +201,10 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
             mapping = {
                 "ldm106_raw": ("ldm106_object", "ldm106_vertex_indices"),
                 "ldm106_aligned": ("ldm106_bin_canonical", "ldm106_vertex_indices"),
+                "ldm106_chronology": ("ldm106_chronology_aligned", "ldm106_vertex_indices"),
                 "ldm134_raw": ("ldm134_object", "ldm134_vertex_indices"),
                 "ldm134_aligned": ("ldm134_bin_canonical", "ldm134_vertex_indices"),
+                "ldm134_chronology": ("ldm134_chronology_aligned", "ldm134_vertex_indices"),
             }
             for name, (array_key, index_key) in mapping.items():
                 points, indices = csv_data[name]
@@ -213,56 +253,34 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                 if qz["zone_texture_pixels"].shape[0] != qz["zone_names"].shape[0]:
                     raise ValidationError("quality_zones zone count mismatch")
 
+        # New skin authenticity contract: texture.json from face_mask.png
+        if files.get("texture") or (directory / "texture.json").is_file():
+            tex_rel = files.get("texture") or "texture.json"
+            tex_path = directory / str(tex_rel)
+            if not tex_path.is_file():
+                raise ValidationError(f"missing texture file: {tex_rel}")
+            tex = json.loads(tex_path.read_text(encoding="utf-8"))
+            if tex.get("schema") != "texture-v1":
+                raise ValidationError(f"texture.json bad schema: {tex.get('schema')}")
+            q = tex.get("quality") or {}
+            a = tex.get("authenticity") or {}
+            if "score" not in q or "status" not in q:
+                raise ValidationError("texture.json quality block incomplete")
+            if "status" not in a:
+                raise ValidationError("texture.json authenticity block incomplete")
+            if q.get("hard_stop") is True and a.get("score") is not None:
+                raise ValidationError("authenticity score must be null when quality hard-stop is true")
+            metrics = a.get("metrics") or {}
+            if not isinstance(metrics, dict) or len(metrics) < 1:
+                raise ValidationError("texture.json authenticity.metrics empty")
+            if (info.get("skin") or {}).get("state") == "success":
+                if info.get("skin_quality_status") != q.get("status"):
+                    raise ValidationError("info.skin_quality_status mismatches texture.json")
+                if info.get("skin_authenticity_status") != a.get("status"):
+                    raise ValidationError("info.skin_authenticity_status mismatches texture.json")
+
         if files.get("skin_manifest"):
-            skin_root = directory / "skin"
-            sm = json.loads((skin_root / "manifest.json").read_text(encoding="utf-8"))
-            if sm.get("schema") != "skin-manifest-v1" or sm.get("state") != "success":
-                raise ValidationError("skin manifest is not successful skin-manifest-v1")
-            if not (skin_root / "SUCCESS").is_file():
-                raise ValidationError("skin SUCCESS marker absent")
-            from .skin.serialization import sha256_file
-            source_mask = sm.get("source_mask") or {}
-            if source_mask.get("sha256") != sha256_file(directory / "face_mask.npz") or source_mask.get("array") != "mask_original":
-                raise ValidationError("skin source-mask provenance mismatch")
-            for relative, meta in sm.get("products", {}).items():
-                product = skin_root / relative
-                if not product.is_file() or sha256_file(product) != meta.get("sha256"):
-                    raise ValidationError(f"skin product checksum mismatch: {relative}")
-            with np.load(skin_root / "surface_observations.npz", allow_pickle=False) as sz:
-                original_shape = tuple(map(int, sz["original_shape"]))
-                if original_shape != tuple(info["image"][k] for k in ("height", "width")):
-                    raise ValidationError("skin original_shape differs from source photo")
-                if sz["triangle_id"].shape != sz["source_xy"].shape[:2]:
-                    raise ValidationError("skin cropped map shapes differ")
-                if sz["surface_vertices"].shape != (mesh_count,3) or sz["triangles"].shape != (tri_count,3) or sz["triangle_surface_area"].shape != (tri_count,):
-                    raise ValidationError("skin surface geometry contract invalid")
-                surface_map_shape = sz["triangle_id"].shape
-                surface_origin = tuple(map(int, sz["map_origin_xy"]))
-                valid = sz["triangle_id"] >= 0
-                if np.any(valid):
-                    xy = sz["source_xy"][valid]
-                    if xy[:, 0].min() < 0 or xy[:, 0].max() >= original_shape[1] or xy[:, 1].min() < 0 or xy[:, 1].max() >= original_shape[0]:
-                        raise ValidationError("skin source_xy outside original photo")
-                if np.any(valid) and not np.allclose(sz["barycentric"][valid].sum(1), 1, atol=2e-3):
-                    raise ValidationError("skin barycentric sum invariant failed")
-            with np.load(directory / "face_mask.npz", allow_pickle=False) as fm:
-                mask_original = fm["mask_original"].astype(bool)
-            x0,y0=surface_origin;hmap,wmap=surface_map_shape;face_mask_native=mask_original[y0:y0+hmap,x0:x0+wmap]
-            if face_mask_native.shape != surface_map_shape:
-                raise ValidationError("face_mask crop/surface map shape mismatch")
-            with np.load(skin_root / "atlas_projection.npz", allow_pickle=False) as az:
-                if np.any(az["zone_id_a20"] < -1) or np.any(az["zone_id_s40"] < -1):
-                    raise ValidationError("invalid skin zone sentinel")
-                if az["zone_id_a20"].shape != face_mask_native.shape or az["wrinkle_bits_w14"].shape != (2, *face_mask_native.shape):
-                    raise ValidationError("skin atlas/mask shape mismatch")
-                if np.any((az["zone_id_a20"] >= 0) & ~face_mask_native):
-                    raise ValidationError("skin evidence leaves canonical face_mask")
-            with np.load(skin_root / "features/texture.npz", allow_pickle=False) as ft:
-                if ft["values"].shape[0] != 60 or ft["values"].shape[1] != ft["columns"].shape[0]:
-                    raise ValidationError("texture feature contract invalid")
-            with np.load(skin_root / "wrinkles/classical.npz", allow_pickle=False) as wz:
-                if wz["ridge_probability"].shape != face_mask_native.shape:
-                    raise ValidationError("wrinkle map shape invalid")
+            warnings.append("legacy skin_manifest ignored; stage1 uses texture.json only")
 
         for key in ("face_crop", "uv_texture"):
             p = directory / str(files[key])
@@ -284,6 +302,7 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
 
 
 def is_resumable(directory: Path, source_sha256: str, code_hash: str, config_hash: str, model_hash: str) -> tuple[bool, dict[str, Any] | None]:
+    log_status("is_resumable", "need_testing", "Indirect coverage only (AUDIT-6)")
     if not directory.is_dir():
         return False, None
     try:

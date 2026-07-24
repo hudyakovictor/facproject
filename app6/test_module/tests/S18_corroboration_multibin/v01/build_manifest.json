@@ -1,0 +1,162 @@
+{
+ "scenario": {
+  "id": "S18_corroboration_multibin_v01",
+  "block": "corroboration",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "Событие видно в 3 ракурсах из 3 источников — должно быть подтверждено (тест N3)",
+  "frames": [
+   {
+    "person": "person_02",
+    "yaw": 0,
+    "date": "2002_12_01",
+    "group": "src_a"
+   },
+   {
+    "person": "person_05",
+    "yaw": 0,
+    "date": "2003_06_10",
+    "group": "src_a"
+   },
+   {
+    "person": "person_02",
+    "yaw": -20,
+    "date": "2002_12_15",
+    "group": "src_b"
+   },
+   {
+    "person": "person_05",
+    "yaw": -20,
+    "date": "2003_06_20",
+    "group": "src_b"
+   },
+   {
+    "person": "person_02",
+    "yaw": 20,
+    "date": "2003_01_05",
+    "group": "src_c"
+   },
+   {
+    "person": "person_05",
+    "yaw": 20,
+    "date": "2003_07_01",
+    "group": "src_c"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_present",
+    "any_of": [
+     "coherent_jump_candidate",
+     "alpha_id_jump_candidate",
+     "persistent_geometric_change"
+    ]
+   },
+   {
+    "type": "corroboration",
+    "frames": [
+     1,
+     2
+    ],
+    "any_of": [
+     "corroborated_multiple_pose_bins",
+     "corroborated_one_pose_bin"
+    ]
+   }
+  ],
+  "variant": 1
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_02",
+   "tag": "p02f000223",
+   "record_id": "frame_000223",
+   "yaw_target": 0,
+   "yaw_actual": 0.0115692727267742,
+   "date": "2002_12_01",
+   "date_iso": "2002-12-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000223.jpg",
+   "filename": "2002_12_01.jpg",
+   "stem": "2002_12_01"
+  },
+  {
+   "n": 2,
+   "person": "person_05",
+   "tag": "p05f000339",
+   "record_id": "frame_000339",
+   "yaw_target": 0,
+   "yaw_actual": -0.3221949338912964,
+   "date": "2003_06_10",
+   "date_iso": "2003-06-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000339.jpg",
+   "filename": "2003_06_10.jpg",
+   "stem": "2003_06_10"
+  },
+  {
+   "n": 3,
+   "person": "person_02",
+   "tag": "p02f000248",
+   "record_id": "frame_000248",
+   "yaw_target": -20,
+   "yaw_actual": -27.17979431152344,
+   "date": "2002_12_15",
+   "date_iso": "2002-12-15",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000248.jpg",
+   "filename": "2002_12_15.jpg",
+   "stem": "2002_12_15"
+  },
+  {
+   "n": 4,
+   "person": "person_05",
+   "tag": "p05f000314",
+   "record_id": "frame_000314",
+   "yaw_target": -20,
+   "yaw_actual": -33.10076904296875,
+   "date": "2003_06_20",
+   "date_iso": "2003-06-20",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000314.jpg",
+   "filename": "2003_06_20.jpg",
+   "stem": "2003_06_20"
+  },
+  {
+   "n": 5,
+   "person": "person_02",
+   "tag": "p02f000198",
+   "record_id": "frame_000198",
+   "yaw_target": 20,
+   "yaw_actual": 20.521530151367188,
+   "date": "2003_01_05",
+   "date_iso": "2003-01-05",
+   "seq": 1,
+   "group": "src_c",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000198.jpg",
+   "filename": "2003_01_05.jpg",
+   "stem": "2003_01_05"
+  },
+  {
+   "n": 6,
+   "person": "person_05",
+   "tag": "p05f000364",
+   "record_id": "frame_000364",
+   "yaw_target": 20,
+   "yaw_actual": 46.13834381103515,
+   "date": "2003_07_01",
+   "date_iso": "2003-07-01",
+   "seq": 1,
+   "group": "src_c",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000364.jpg",
+   "filename": "2003_07_01.jpg",
+   "stem": "2003_07_01"
+  }
+ ],
+ "planned_only": false
+}

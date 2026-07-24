@@ -1,9 +1,14 @@
+"""📊 METRIC → Локальные парные дескрипторы (окрестности landmarks) и их скоринг.
+🚪 API: local_pair_descriptors(), score()
+🔗 DEPENDS ON: records из loaders.load_main()
+"""
 from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 import numpy as np
 from .core import Record,robust_rigid_align
+from app6.stage1.status_logger import log_status
 NAMES=("centroid_dx","centroid_dy","centroid_dz","span_lateral","span_vertical","span_depth","bbox_area","bbox_volume","radial_dispersion","plane_residual","normal_angle","curvature","planarity")
 
 def _neighbors(template: np.ndarray, k: int = 8) -> np.ndarray:
@@ -18,6 +23,7 @@ def _one(points: np.ndarray, ids: np.ndarray):
     return c,span,float(area),volume,rad,plane,normal,curv,plan
 
 def local_pair_descriptors(a: Record, b: Record, template: np.ndarray) -> dict[str, np.ndarray | str]:
+    log_status("local_pair_descriptors", "complete")
     vis=np.asarray(a.visible134,bool)&np.asarray(b.visible134,bool); out=np.full((134,len(NAMES)),np.nan,np.float32)
     if vis.sum()<30: return {"status":"insufficient_visibility","values":out}
     _,r,t,_=robust_rigid_align(b.ldm134[vis],a.ldm134[vis]); pb=b.ldm134@r+t; neigh=_neighbors(template)
@@ -55,6 +61,7 @@ class DescriptorNoiseModel:
                 warnings.simplefilter("ignore",RuntimeWarning)
                 med=np.nanmedian(st,0); mad=np.nanmedian(np.abs(st-med),0); p95=np.nanpercentile(st,95,0)
             self.refs[pose]=Ref(med.astype('f4'),mad.astype('f4'),p95.astype('f4'),np.sum(np.isfinite(st),0).astype('i4'),np.median(np.stack(templates[pose][:200]),0).astype('f4'))
+    # 📊 Скоринг локальных дескрипторов
     def score(self, pose: str, a: Record, b: Record) -> dict[str, object]:
         ref=self.refs.get(pose)
         if ref is None:

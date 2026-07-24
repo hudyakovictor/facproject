@@ -1,0 +1,38 @@
+{
+ "id": "S13_slow_change",
+ "block": "rate",
+ "priority": "P1",
+ "mode": "fast",
+ "description": "A→B за 8 лет — смена есть, rapid — НЕТ",
+ "frames": [
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2001_03_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_02",
+   "yaw": 0,
+   "date": "2009_03_10",
+   "group": "src_a"
+  }
+ ],
+ "expect": [
+  {
+   "type": "status_absent",
+   "statuses": [
+    "rapid_change_candidate",
+    "persistent_rapid_change_candidate"
+   ]
+  },
+  {
+   "type": "status_present",
+   "any_of": [
+    "coherent_jump_candidate",
+    "alpha_id_jump_candidate",
+    "persistent_geometric_change"
+   ]
+  }
+ ]
+}

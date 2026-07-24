@@ -1,0 +1,111 @@
+{
+ "scenario": {
+  "id": "S19_corroboration_window_v02",
+  "block": "corroboration",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "'Поддержка' за пределами временного окна — НЕ засчитывается (тест N3b)",
+  "frames": [
+   {
+    "person": "person_03",
+    "yaw": 0,
+    "date": "2002_12_01",
+    "group": "src_a"
+   },
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2003_06_10",
+    "group": "src_a"
+   },
+   {
+    "person": "person_03",
+    "yaw": -20,
+    "date": "2003_01_05",
+    "group": "src_b"
+   },
+   {
+    "person": "person_06",
+    "yaw": -20,
+    "date": "2003_10_25",
+    "group": "src_b"
+   }
+  ],
+  "expect": [
+   {
+    "type": "corroboration",
+    "frames": [
+     1,
+     2
+    ],
+    "any_of": [
+     "not_corroborated"
+    ]
+   }
+  ],
+  "variant": 2
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_03",
+   "tag": "p03f000101",
+   "record_id": "frame_000101",
+   "yaw_target": 0,
+   "yaw_actual": -0.5264402031898499,
+   "date": "2002_12_01",
+   "date_iso": "2002-12-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000101.jpg",
+   "filename": "2002_12_01.jpg",
+   "stem": "2002_12_01"
+  },
+  {
+   "n": 2,
+   "person": "person_06",
+   "tag": "p06f0081",
+   "record_id": "frame_0081",
+   "yaw_target": 0,
+   "yaw_actual": 0.1733644902706146,
+   "date": "2003_06_10",
+   "date_iso": "2003-06-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0081.jpg",
+   "filename": "2003_06_10.jpg",
+   "stem": "2003_06_10"
+  },
+  {
+   "n": 3,
+   "person": "person_03",
+   "tag": "p03f000126",
+   "record_id": "frame_000126",
+   "yaw_target": -20,
+   "yaw_actual": -55.853118896484375,
+   "date": "2003_01_05",
+   "date_iso": "2003-01-05",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000126.jpg",
+   "filename": "2003_01_05.jpg",
+   "stem": "2003_01_05"
+  },
+  {
+   "n": 4,
+   "person": "person_06",
+   "tag": "p06f0056",
+   "record_id": "frame_0056",
+   "yaw_target": -20,
+   "yaw_actual": -20.04292678833008,
+   "date": "2003_10_25",
+   "date_iso": "2003-10-25",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0056.jpg",
+   "filename": "2003_10_25.jpg",
+   "stem": "2003_10_25"
+  }
+ ],
+ "planned_only": false
+}

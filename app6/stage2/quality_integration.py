@@ -1,4 +1,9 @@
+"""📊 METRIC → Интеграция quality-зон Stage 1 в попарный анализ (перекрытие масок).
+🚪 API: load_quality_zone_summary(), pair_quality_zone_overlap()
+🔗 DEPENDS ON: stage1.quality_zones вывод.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from pathlib import Path
 from typing import Any
@@ -8,6 +13,7 @@ import numpy as np
 QUALITY_INTEGRATION_SCHEMA = "deeputin-stage2-quality-integration-v1.0"
 
 
+# ✅ Stage-1 quality_zones.npz → компактный summary
 def load_quality_zone_summary(photo_dir: Path) -> dict[str, Any]:
     """Read Stage-1 quality_zones.npz into a compact Stage-2 summary.
 
@@ -76,6 +82,7 @@ def load_quality_zone_summary(photo_dir: Path) -> dict[str, Any]:
 
 
 def pair_quality_zone_overlap(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    log_status("pair_quality_zone_overlap", "complete")
     qa = getattr(a, "quality_zones", {}) or {}
     qb = getattr(b, "quality_zones", {}) or {}
     za = qa.get("per_zone", {}) or {}

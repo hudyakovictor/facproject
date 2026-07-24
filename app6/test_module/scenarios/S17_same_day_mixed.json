@@ -1,0 +1,45 @@
+{
+ "id": "S17_same_day_mixed",
+ "block": "same_day",
+ "priority": "P2",
+ "mode": "fast",
+ "description": "A+A+B в один день — конфликт локализован на B",
+ "frames": [
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2003_06_15",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2003_06_15",
+   "group": "src_a"
+  },
+  {
+   "person": "person_02",
+   "yaw": 0,
+   "date": "2003_06_15",
+   "group": "src_a"
+  }
+ ],
+ "expect": [
+  {
+   "type": "status_present",
+   "any_of": [
+    "same_day_structural_conflict"
+   ]
+  },
+  {
+   "type": "pair_status_not",
+   "frames": [
+    1,
+    2
+   ],
+   "none_of": [
+    "same_day_structural_conflict"
+   ]
+  }
+ ]
+}

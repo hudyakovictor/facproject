@@ -1,3 +1,7 @@
+"""🔬 EXPERIMENTAL → Приватные гипотезы: retest-карточки в карантинной зоне.
+🚪 API: walk(), run()
+🚨 WARNING: никогда не публикуются в отчёт Stage 3 (quarantine only).
+"""
 from __future__ import annotations
 
 import csv
@@ -98,6 +102,7 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
 
 def _candidate_keys(payload: Any) -> tuple[set[str], set[str], set[str]]:
     photos: set[str] = set(); dates: set[str] = set(); metrics: set[str] = set()
+    # 🔍 Обход quarantine-карточек
     def walk(value: Any, key: str = "") -> None:
         if isinstance(value, dict):
             for k, v in value.items():
@@ -148,6 +153,7 @@ class PrivateHypothesisEngine:
     """Private retest layer; deliberately excluded from the public Stage-3 report."""
     def __init__(self, config: PrivateHypothesisConfig): self.config = config
 
+    # 🚪 ENTRY POINT → retest приватных гипотез
     def run(self) -> dict[str, Any]:
         c = self.config; c.output_dir.mkdir(parents=True, exist_ok=True)
         current_pairs = _read_csv(c.analysis_root / "pair_metrics.csv")

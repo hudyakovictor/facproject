@@ -1,0 +1,96 @@
+{
+ "scenario": {
+  "id": "S17_same_day_mixed_v04",
+  "block": "same_day",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "A+A+B в один день — конфликт локализован на B",
+  "frames": [
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2003_06_15",
+    "group": "auto"
+   },
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2003_06_15",
+    "group": "auto"
+   },
+   {
+    "person": "person_01",
+    "yaw": 0,
+    "date": "2003_06_15",
+    "group": "auto"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_present",
+    "any_of": [
+     "same_day_structural_conflict"
+    ]
+   },
+   {
+    "type": "pair_status_not",
+    "frames": [
+     1,
+     2
+    ],
+    "none_of": [
+     "same_day_structural_conflict"
+    ]
+   }
+  ],
+  "variant": 4
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_06",
+   "tag": "p06f0065",
+   "record_id": "frame_0065",
+   "yaw_target": 0,
+   "yaw_actual": -11.629557609558104,
+   "date": "2003_06_15",
+   "date_iso": "2003-06-15",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0065.jpg",
+   "filename": "2003_06_15.jpg",
+   "stem": "2003_06_15"
+  },
+  {
+   "n": 2,
+   "person": "person_06",
+   "tag": "p06f0095",
+   "record_id": "frame_0095",
+   "yaw_target": 0,
+   "yaw_actual": 10.969407081604004,
+   "date": "2003_06_15",
+   "date_iso": "2003-06-15",
+   "seq": 2,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0095.jpg",
+   "filename": "2003_06_15_2.jpg",
+   "stem": "2003_06_15_2"
+  },
+  {
+   "n": 3,
+   "person": "person_01",
+   "tag": "p01f000289",
+   "record_id": "frame_000289",
+   "yaw_target": 0,
+   "yaw_actual": 0.0025587594136595,
+   "date": "2003_06_15",
+   "date_iso": "2003-06-15",
+   "seq": 3,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_01/frame_000289.jpg",
+   "filename": "2003_06_15_3.jpg",
+   "stem": "2003_06_15_3"
+  }
+ ],
+ "planned_only": false
+}

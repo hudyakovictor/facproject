@@ -1,4 +1,10 @@
+"""🎯 CRITICAL → Плотные mesh-сравнения с анатомическими зонами.
+🚪 API: load_anatomical_zones(), dense_mesh_pair()
+🔗 DEPENDS ON: mesh_zone_indices.json + subsample для скорости
+💡 NOTE: число вершин берётся из каждой reconstruction.npz при загрузке записи.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from functools import lru_cache
 from pathlib import Path
@@ -21,30 +27,6 @@ ZONE_INDEX_PATH = Path(__file__).with_name("mesh_zone_indices.json")
 
 _mesh_count_resolved: bool = False
 
-
-def _resolve_mesh_count() -> int:
-    """Resolve MESH_COUNT from the first available reconstruction.npz.
-
-    Falls back to the BFM default (35709) if no reconstruction is found.
-    Called lazily on first use.
-    """
-    global MESH_COUNT, _mesh_count_resolved
-    if _mesh_count_resolved:
-        return MESH_COUNT
-    # Try to find a reconstruction.npz to read the actual vertex count
-    try:
-        # Walk output directories for a reconstruction file
-        project_root = Path(__file__).resolve().parents[2]
-        for p in project_root.rglob("reconstruction.npz"):
-            with np.load(p, allow_pickle=False) as z:
-                if "vertices_object" in z:
-                    MESH_COUNT = int(z["vertices_object"].shape[0])
-                    break
-    except Exception:
-        pass
-    _mesh_count_resolved = True
-    return MESH_COUNT
-
 PRIORITY_ZONES = (
     "forehead", "brow_ridge_L", "brow_ridge_R", "orbit_L", "orbit_R",
     "nose_bridge_tip", "nose_wing_L", "nose_wing_R", "cheekbone_L", "cheekbone_R",
@@ -53,6 +35,7 @@ PRIORITY_ZONES = (
     "ligament_zygomatic_L", "ligament_zygomatic_R",
 )
 
+# ✅ Загрузка зон вершин (mesh_zone_indices.json)
 @lru_cache(maxsize=1)
 def load_anatomical_zones() -> dict[str, np.ndarray]:
     if not ZONE_INDEX_PATH.is_file():
@@ -160,6 +143,7 @@ def dense_mesh_pair(a: Any, b: Any, output_dir: Path, pair_id: str) -> tuple[dic
     This is a direct measurement channel, but currently uncalibrated unless a later
     mesh calibration model is added. It must not be interpreted as identity verdict.
     """
+    log_status("dense_mesh_pair", "complete")
     ma = _load_mesh(a)
     mb = _load_mesh(b)
     if ma.get("status") != "ok" or mb.get("status") != "ok":

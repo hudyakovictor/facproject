@@ -1,8 +1,18 @@
+"""
+💡 NOTE → Запись визуальных ассетов фото: crop, UV-текстура, mesh, маски, превью.
+
+save_uv_and_mesh: единственная uv_texture.png (без beauty-дублей, аудит S1);
+mesh.obj/mtl опциональны (save_mesh, --no-mesh). save_face_mask: проекция
+face-области на оригинал (face_mask.npz). technical_quality: резкость/экспозиция/
+покрытие кожи для info["quality"]. save_semantic_channels: 8-канальный semantic npz.
+🔗 Вызывается только из engine._one(); координаты через geometry.to_original_image.
+"""
 from __future__ import annotations
 from .masks import CHANNEL_NAMES
 import shutil
 from pathlib import Path
 from typing import Any
+from .status_logger import log_status
 
 import cv2
 import numpy as np
@@ -17,6 +27,10 @@ CROP_MARGIN = 0.25
 def _bbox(points: np.ndarray, shape: tuple[int, ...], margin: float = CROP_MARGIN) -> list[int]:
     h, w = shape[:2]
     p = np.asarray(points, np.float32)
+    if h <= 0 or w <= 0 or p.ndim != 2 or p.shape[1] != 2 or p.shape[0] < 3:
+        raise ValueError("invalid image shape or landmark points for bbox")
+    if not np.isfinite(p).all():
+        raise ValueError("bbox points contain NaN/Inf")
     x1, y1 = np.floor(p.min(axis=0)).astype(int)
     x2, y2 = np.ceil(p.max(axis=0)).astype(int)
     bw, bh = max(x2 - x1, 1), max(y2 - y1, 1)
@@ -30,6 +44,8 @@ def _bbox(points: np.ndarray, shape: tuple[int, ...], margin: float = CROP_MARGI
 
 def _letterbox(image: np.ndarray, width: int = CROP_WIDTH, height: int = CROP_HEIGHT) -> tuple[np.ndarray, dict[str, float]]:
     h, w = image.shape[:2]
+    if h <= 0 or w <= 0 or width <= 0 or height <= 0:
+        raise ValueError("cannot letterbox an empty image or non-positive target")
     scale = min(width / w, height / h)
     nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
     interpolation = cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR
@@ -41,6 +57,7 @@ def _letterbox(image: np.ndarray, width: int = CROP_WIDTH, height: int = CROP_HE
 
 
 def save_image_assets(source: Path, bgr: np.ndarray, ldm106_original: np.ndarray, out: Path, save_original: bool = True) -> tuple[dict[str, str], dict[str, Any]]:
+    log_status("save_image_assets", "need_testing", "Indirect coverage only (AUDIT-6)")
     files: dict[str, str] = {}
     if save_original:
         original_name = "original" + source.suffix.lower()
@@ -54,15 +71,21 @@ def save_image_assets(source: Path, bgr: np.ndarray, ldm106_original: np.ndarray
         raise OSError("failed to write face_crop.jpg")
     side = min(face.shape[:2]); yy = (face.shape[0] - side) // 2; xx = (face.shape[1] - side) // 2
     thumb = cv2.resize(face[yy:yy + side, xx:xx + side], (128, 128), interpolation=cv2.INTER_AREA)
-    cv2.imwrite(str(out / "thumb.jpg"), thumb, [cv2.IMWRITE_JPEG_QUALITY, 88])
+    if not cv2.imwrite(str(out / "thumb.jpg"), thumb, [cv2.IMWRITE_JPEG_QUALITY, 88]):
+        raise OSError("failed to write thumb.jpg")
     files.update({"face_crop": "face_crop.jpg", "thumbnail": "thumb.jpg"})
     return files, {"bbox_original": bbox, "letterbox": transform, "crop_source": "ldm106_projection"}
 
 
 def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | None, combined_visible: np.ndarray) -> dict[str, float | int]:
+    log_status("technical_quality", "need_testing", "Indirect coverage only (AUDIT-6)")
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     x, y, w, h = face_bbox
+    if bgr.size == 0 or w <= 0 or h <= 0:
+        raise ValueError("technical_quality requires a non-empty image and bbox")
     face_gray = gray[y:y + h, x:x + w]
+    if face_gray.size == 0:
+        raise ValueError("face bbox does not intersect the image")
     lap = cv2.Laplacian(face_gray, cv2.CV_64F)
     gx = cv2.Sobel(face_gray, cv2.CV_64F, 1, 0, ksize=3)
     gy = cv2.Sobel(face_gray, cv2.CV_64F, 0, 1, ksize=3)
@@ -82,7 +105,8 @@ def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | 
     return out
 
 
-def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
+def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin_mask: np.ndarray | None = None, super_sample: int = 3, save_mesh: bool = True) -> tuple[dict[str, str], dict[str, np.ndarray], dict[str, float]]:
+    log_status("save_uv_and_mesh", "need_testing", "Indirect coverage only (AUDIT-6)")
     from uv_module import HDUVConfig, HDUVTextureGenerator
 
     vertices_2d = to_original_image(bundle.vertices_image_224, bundle.trans_params)
@@ -101,9 +125,8 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     out.mkdir(parents=True, exist_ok=True)
     if not cv2.imwrite(str(out / "uv_texture.png"), uv_render):
         raise OSError(f"failed to write uv_texture.png to {out / 'uv_texture.png'}")
-    cv2.imwrite(str(out / "uv_texture_beauty.png"), uv_beauty)
     # UV is visualization/correspondence only. Anatomical zones, wrinkles and
-    # forensic evidence are produced by app6.stage1.skin.pipeline in native
+    # skin authenticity metrics are produced by app6.stage1.authenticity from face_mask.png; UV is
     # photo space; no disabled placeholder and no silent legacy-atlas fallback.
 
     # Confidence is stored in uv.npz with exact arrays for future analysis.
@@ -122,7 +145,7 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     valid_mask = observed_bool & is_original_bool & (confidence_01 >= valid_threshold)
 
     tri_visibility = np.asarray(aux.get("tri_visibility", []), np.float16)
-    # Exactly one UV render is serialized. Provenance masks identify observed
+    # Exactly one UV texture is serialized. Provenance masks identify observed
     # and visually filled texels, but neither is used by skin analyzers.
     filled_mask = np.asarray(aux.get("uv_synthetic_mask", np.zeros_like(observed_bool)), bool)
     np.savez_compressed(
@@ -160,16 +183,18 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "confidence_semantics": "uv_confidence.png is a binary visual valid mask; uv.npz stores UV texture pixels, continuous 0..1 confidence, component masks, UV coords and triangle visibility; valid_mask = observed AND original AND confidence >= threshold",
         "render_fill_policy": "contralateral mirror plus tiny-hole inpaint inside the single visualization render; never evidence",
         "uv_product_count": 1,
-        "native_skin_contract": "all skin evidence uses original photo pixels through face_mask in app6.stage1.skin.pipeline",
+        "native_skin_contract": "skin authenticity metrics use face_mask.png via app6.stage1.authenticity; UV texture is visualization-only",
     }
-    _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_texture.png")
+
     files = {
         "uv_texture": "uv_texture.png",
-        "uv_texture_beauty": "uv_texture_beauty.png",
         "uv_data": "uv.npz",
-        "mesh": "mesh.obj",
-        "mesh_material": "mesh.mtl",
     }
+    # Only save mesh files if requested (for morphing/visualization)
+    if save_mesh:
+        _write_obj(out / "mesh.obj", out / "mesh.mtl", bundle.vertices_object_normalized, bundle.normals_object, bundle.uv_coords, bundle.triangles, "uv_texture.png")
+        files["mesh"] = "mesh.obj"
+        files["mesh_material"] = "mesh.mtl"
     return files, uv_arrays, uv_meta
 
 
@@ -188,32 +213,41 @@ def _write_obj(obj_path: Path, mtl_path: Path, vertices: np.ndarray, normals: np
 
 
 def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int], out: Path) -> dict[str, str] | None:
+    """🎯 CRITICAL → Создание face_mask.png и face_mask.npz.
+
+    face_mask — это ОСНОВНАЯ маска для skin analysis. Все текстурные анализы
+    используют именно эту маску (НЕ UV текстуру!).
+
+    🔗 DEPENDS ON:
+      - engine._one() — вызывается после build_mask_bundle
+      - mask.hard_original — binary mask в original resolution
+
+    ⚠️ IN PROGRESS:
+      - Нет проверки что маска покрывает достаточно кожи
+      - Нет проверки что bbox корректный (не выходит за изображение)
+
+    💡 NOTE:
+      - face_mask.png — RGBA визуальный превью (424x500 letterboxed)
+      - face_mask.npz — числовые маски (original, crop, face, alpha)
+      - mask_original — в original resolution (может быть большим!)
+
+    🚨 WARNING:
+      - При hard_mask = None — возвращает None (mask unavailable)
+      - При ошибке записи — engine пишет face_mask_failure.json
     """
-    Create and save:
-      - face_mask.png: visual RGBA 424x500 face crop with skin mask in alpha;
-      - face_mask.npz: lossless numeric mask bundle for future texture/quality analysis.
-    
-    Args:
-        bgr: Full image BGR
-        hard_mask: Full image size binary mask (bool or 0/255) or None if projection failed
-        bbox: [x, y, w, h] face crop bbox in original image
-        out: Output directory
-    
-    Returns:
-        File mapping or None if mask unavailable
-    """
+    log_status("save_face_mask", "need_testing", "Indirect coverage only (AUDIT-6)")
     if hard_mask is None or hard_mask.size == 0:
         return None
-    
+
     # Convert to uint8 if boolean
     if hard_mask.dtype == bool:
         hard_mask = hard_mask.astype(np.uint8) * 255
     elif hard_mask.dtype != np.uint8:
         hard_mask = np.clip(hard_mask, 0, 255).astype(np.uint8)
-    
+
     x, y, w, h = bbox
     H, W = hard_mask.shape[:2]
-    
+
     # Clamp bbox to image bounds
     x1 = max(0, min(x, W - 1))
     y1 = max(0, min(y, H - 1))
@@ -221,27 +255,27 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
     y2 = max(0, min(y + h, H))
     w = x2 - x1
     h = y2 - y1
-    
+
     if w <= 0 or h <= 0:
         return None
-    
+
     # Extract face crop and mask
     crop = bgr[y1:y2, x1:x2]
     mask_crop = hard_mask[y1:y2, x1:x2]
-    
+
     # Letterbox to 424x500 (same as face_crop)
     face, transform = _letterbox(crop)
     mh, mw = mask_crop.shape[:2]
     scale = transform["scale"]
     nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
     ox, oy = transform["offset_x"], transform["offset_y"]
-    
+
     # Resize mask with same letterbox transform
     mask_resized = cv2.resize(mask_crop, (nw, nh), interpolation=cv2.INTER_LINEAR)
     mask_canvas = np.zeros((500, 424), np.uint8)
     if oy + nh <= 500 and ox + nw <= 424:
         mask_canvas[oy:oy + nh, ox:ox + nw] = mask_resized
-    
+
     # Create RGBA visual preview.
     rgba = cv2.cvtColor(face, cv2.COLOR_BGR2BGRA)
     rgba[:, :, 3] = mask_canvas
@@ -282,6 +316,7 @@ def save_semantic_channels(bundle: Any, out: Path) -> str:
     """
     Save semantic_channels.npz from mask bundle.
     """
+    log_status("save_semantic_channels", "need_testing", "Indirect coverage only (AUDIT-6)")
     np.savez_compressed(
         out / "semantic_channels.npz",
         channels_224=bundle.channels_224,

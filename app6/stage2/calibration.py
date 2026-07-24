@@ -1,7 +1,12 @@
+"""🎯 CRITICAL → Калибровка скоров: matched-null распределения + референсы.
+🚪 API: matched_null(), reference(), consistency_check(), score()
+📊 METRIC: все калиброванные z-скоры проходят через эту семью функций
+🚨 WARNING: калибровка валидна только внутри своего pose bin (distance-guard `_pose_distance`).
+"""
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable
+from typing import Any, Iterable
 
 import numpy as np
 
@@ -40,12 +45,14 @@ class CalibrationModel:
     def _nearest(self, target: Record, dataset: str, exclude: str | None = None) -> Record | None:
         candidates = [r for r in self.by_dataset_bin.get((dataset, target.pose_bin), []) if r.record_id != exclude]
         if not candidates: return None
+        # 📊 Калиброванный z-скор с pose-distance guard
         def score(record: Record) -> float:
             pose = self._pose_distance(target, record)
             vis = abs(float(target.visible134.mean()) - float(record.visible134.mean()))
             return pose + 1.5 * vis
         return min(candidates, key=score)
 
+    # 📊 Matched-null распределение для пары (same-subject null)
     def matched_null(self, a: Record, b: Record) -> dict[str, list[float]]:
         values: dict[str, list[float]] = defaultdict(list)
         for dataset in self.datasets:
@@ -60,5 +67,55 @@ class CalibrationModel:
                     values[f"zone::{zone['zone']}::rmse"].append(float(zone["rmse"]))
         return dict(values)
 
+    # 📊 Референс-калибровка из sidecar
     def reference(self, pose_bin: str, metric: str) -> dict[str, float | int]:
         return self.references.get(pose_bin, {}).get(metric, {"count": 0, "median": 0.0, "mad": 0.0, "p95": 0.0, "p99": 0.0})
+
+    def consistency_check(self) -> dict[str, Any]:
+        """📊 METRIC → Consistency check for calibration dataset.
+
+        Checks that all calibration photos are likely of the same person.
+        High variance in landmarks may indicate mixed identities.
+
+        ⚠️ IN PROGRESS:
+        - Simple heuristic based on landmark variance
+        - No ground truth for validation
+
+        Returns:
+            dict with consistency metrics per pose_bin
+        """
+        results = {}
+        for (dataset, pose_bin), group in self.by_dataset_bin.items():
+            if len(group) < 2:
+                continue
+
+            # Compute pairwise distances between all photos in group
+            distances = []
+            for i in range(len(group)):
+                for j in range(i + 1, len(group)):
+                    a, b = group[i], group[j]
+                    if self._pose_distance(a, b) > 2.5:
+                        continue
+                    # Compare landmarks
+                    common = np.asarray(a.visible134, bool) & np.asarray(b.visible134, bool)
+                    if common.sum() < 30:
+                        continue
+                    diff = np.linalg.norm(a.ldm134[common] - b.ldm134[common], axis=1)
+                    distances.append(float(np.median(diff)))
+
+            if distances:
+                results[f"{dataset}_{pose_bin}"] = {
+                    "pair_count": len(distances),
+                    "median_distance": float(np.median(distances)),
+                    "max_distance": float(np.max(distances)),
+                    "std_distance": float(np.std(distances)),
+                    # High max_distance may indicate mixed identities
+                    "consistency_flag": "ok" if np.max(distances) < 0.1 else "review",
+                }
+            else:
+                results[f"{dataset}_{pose_bin}"] = {
+                    "pair_count": 0,
+                    "consistency_flag": "insufficient_data",
+                }
+
+        return results

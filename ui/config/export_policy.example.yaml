@@ -1,0 +1,83 @@
+schema: dpo-fix-capsule-export-policy-v1
+
+mode: positive_allowlist
+
+limits:
+  max_total_mb: 20
+  max_single_file_mb: 5
+  fail_if_exceeded: true
+
+allowed_extensions:
+  - .log
+  - .txt
+  - .json
+  - .jsonl
+  - .csv
+  - .md
+  - .yaml
+  - .yml
+
+blocked_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+  - .webp
+  - .tif
+  - .tiff
+  - .gif
+  - .mp4
+  - .mov
+  - .avi
+  - .obj
+  - .mtl
+  - .npz
+  - .npy
+  - .pkl
+  - .pickle
+  - .pt
+  - .pth
+  - .onnx
+  - .db
+  - .sqlite
+  - .sqlite3
+
+blocked_categories:
+  - real_photos
+  - full_dataset
+  - model_weights
+  - meshes
+  - uv_texture
+  - previews
+  - stage1_binary_outputs
+  - run_cache
+  - private_notes
+
+binary_result_policy:
+  include_original: false
+  generate_compact_summary: true
+  summary_formats:
+    - json
+    - csv
+  summary_fields:
+    - schema
+    - dtype
+    - shape
+    - finite_count
+    - nan_count
+    - min
+    - max
+    - mean
+    - selected_metrics
+
+privacy:
+  redact_absolute_paths: true
+  redact_user_home: true
+  include_photo_hashes: true
+  include_photo_files: false
+
+manifest:
+  include_checksums: true
+  include_excluded_file_counts: true
+  include_excluded_bytes: true
+  include_exclusion_reasons: true
+  preview_before_export: true

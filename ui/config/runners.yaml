@@ -1,0 +1,16 @@
+schema: dpo-runners-v1
+max_parallel_runs: 1
+runners:
+  - id: app6-regression
+    title: Полная проверка app6
+    module: unittest
+    # -v (verbosity=2) даёт по одной строке на каждый test case с результатом;
+    # это единственный источник структурированной по функциям/файлам разметки
+    # для Timeline/Replay, не требующий изменений в самом app6.
+    fixed_args: [discover, -s, app6/test_module, -p, "test*.py", -v]
+    timeout: 900
+  - id: ui-backend-regression
+    title: Проверка управляющего backend
+    module: unittest
+    fixed_args: [discover, -s, ui/backend/tests, -p, "test*.py", -v]
+    timeout: 300

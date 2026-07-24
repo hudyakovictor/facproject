@@ -1,4 +1,10 @@
+"""🎯 CRITICAL → Реестр метрик (100 каналов): валидация имён, каналы, каталог.
+🚪 API: validate_registry(), metric_channel(), build_metric_catalog()
+🔗 DEPENDS ON: skin feature_registry — синхронизация имён каналов
+🚨 WARNING: добавление метрики требует обновления golden-аудита audit_100.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 import math
 import re
@@ -60,8 +66,10 @@ if len(METRICS) != 100:
     raise RuntimeError(f"metric registry must contain exactly 100 entries, got {len(METRICS)}")
 
 NAMES = tuple(m["name"] for m in METRICS)
+EVIDENCE_NAMES = tuple(m["name"] for m in METRICS if m["family"] != "texture")
 
 
+# ✅ Валидация реестра: все 100 каналов объявлены
 def validate_registry() -> list[str]:
     errors: list[str] = []
     if len(set(NAMES)) != len(NAMES):
@@ -84,10 +92,18 @@ def _usable(value: Any) -> bool:
 
 def metric_channel(row: dict[str, Any]) -> dict[str, Any]:
     """Lossless registered metric projection for evidence/report transport."""
+    log_status("metric_channel", "complete")
     return {name: row.get(name) for name in NAMES}
 
 
+def evidence_metric_channel(row: dict[str, Any]) -> dict[str, Any]:
+    """Forensic channel excluding visualization-only texture measurements."""
+    log_status("evidence_metric_channel", "complete")
+    return {name: row.get(name) for name in EVIDENCE_NAMES}
+
+
 def build_metric_catalog(rows: list[dict[str, Any]], enabled: dict[str, bool] | None = None) -> dict[str, Any]:
+    log_status("build_metric_catalog", "complete")
     enabled = enabled or {}
     entries: list[dict[str, Any]] = []
     for spec in METRICS:
@@ -101,6 +117,7 @@ def build_metric_catalog(rows: list[dict[str, Any]], enabled: dict[str, bool] | 
             status, reason = "active", "values_reached_output"
         entries.append({
             **spec,
+            "evidence_role": "visualization_only" if spec["family"] == "texture" else "forensic_measurement",
             "status": status,
             "reason": reason,
             "pair_value_count": len(values),

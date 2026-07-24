@@ -1,3 +1,8 @@
+"""🎯 CRITICAL → Попарные текстурные дельты в исходном изображении (LBP/GLCM/stats).
+🚪 API: texture_pair_deltas()
+🔗 DEPENDS ON: stage1 сохранённые маски + ориентированные изображения
+🚨 WARNING: маски жёстко привязаны к face-mask текстуре — несоответствие shape = skip.
+"""
 from __future__ import annotations
 
 import json
@@ -7,6 +12,7 @@ from typing import Any
 import cv2
 import numpy as np
 
+from app6.stage1.status_logger import log_status, status_warning
 from .texture_structure import compare_zone_structure
 
 TEXTURE_IMAGE_SCHEMA = "deeputin-stage2-image-texture-v1.2"
@@ -325,6 +331,18 @@ def _stats(img: np.ndarray, mask: np.ndarray) -> dict[str, float | int | list[fl
 
 
 def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """🎯 CRITICAL → Texture comparison between two photos.
+
+    ⚠️ IN PROGRESS:
+    - Texture comparison is sensitive to pose differences
+    - No pose normalization applied yet
+    - Different poses = different textures even for same person
+
+    💡 NOTE:
+    - Uses image-space texture features (LBP, GLCM, Gabor)
+    - Quality/expression/compression can explain differences
+    """
+    log_status("texture_pair_deltas", "in_progress", "No pose normalization. NO BLOCKER - can add normalization anytime")
     ta = _load_texture(a)
     tb = _load_texture(b)
     if ta.get("status") != "ok" or tb.get("status") != "ok":
@@ -333,6 +351,13 @@ def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], l
             "texture_image_error_a": ta.get("status"),
             "texture_image_error_b": tb.get("status"),
         }, []
+
+    # ⚠️ IN PROGRESS: Pose difference warning
+    # TODO: Add pose-normalized texture comparison
+    pose_a = getattr(a, 'pose_bin', 'unknown')
+    pose_b = getattr(b, 'pose_bin', 'unknown')
+    if pose_a != pose_b:
+        status_warning("texture_pair_deltas", f"Pose mismatch: {pose_a} vs {pose_b}")
     rows: list[dict[str, Any]] = []
     max_lap_delta = 0.0
     max_grad_delta = 0.0

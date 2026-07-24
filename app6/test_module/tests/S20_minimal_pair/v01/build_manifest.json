@@ -1,0 +1,62 @@
+{
+ "scenario": {
+  "id": "S20_minimal_pair_v01",
+  "block": "edge",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "Минимальный набор из 2 фото — пайплайн отрабатывает без падений",
+  "frames": [
+   {
+    "person": "person_02",
+    "yaw": 0,
+    "date": "2001_01_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_02",
+    "yaw": 0,
+    "date": "2005_01_10",
+    "group": "auto"
+   }
+  ],
+  "expect": [
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 1
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_02",
+   "tag": "p02f000203",
+   "record_id": "frame_000203",
+   "yaw_target": 0,
+   "yaw_actual": 16.201684951782227,
+   "date": "2001_01_10",
+   "date_iso": "2001-01-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000203.jpg",
+   "filename": "2001_01_10.jpg",
+   "stem": "2001_01_10"
+  },
+  {
+   "n": 2,
+   "person": "person_02",
+   "tag": "p02f000232",
+   "record_id": "frame_000232",
+   "yaw_target": 0,
+   "yaw_actual": -6.311418533325195,
+   "date": "2005_01_10",
+   "date_iso": "2005-01-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000232.jpg",
+   "filename": "2005_01_10.jpg",
+   "stem": "2005_01_10"
+  }
+ ],
+ "planned_only": false
+}
