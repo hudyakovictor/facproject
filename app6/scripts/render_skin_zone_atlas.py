@@ -15,6 +15,7 @@ UV-координаты и треугольники берутся из любо
   python app6/scripts/render_skin_zone_atlas.py \
       --recon /tmp/stage1_test/2000_06_14__21263917/reconstruction.npz \
       --atlas-dir app6/atlas/skin_zone_atlas_v1
+📤 CONVENTIONS v2 → рендер зон атласа; статус: ✅ VERIFIED
 """
 from __future__ import annotations
 

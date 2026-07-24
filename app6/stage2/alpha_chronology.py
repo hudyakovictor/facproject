@@ -1,4 +1,10 @@
+"""📊 METRIC → Альфа-хронология: коррекция метрик, зависящих от возрастного тренда.
+🚪 API: apply_alpha_chronology()
+🔗 DEPENDS ON: loaders.load_main() — ожидает даты и α-каналы в записях
+⚠️ IN PROGRESS: часть каналов ещё без α-коэффициентов (fallback = passthrough).
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from typing import Any
 
@@ -15,6 +21,7 @@ def apply_alpha_chronology(rows: list[dict[str, Any]], model: Any) -> dict[str, 
     alpha_id is treated as an additional identity-shape channel, not as an identity
     verdict. alpha_exp is used as an expression-leakage explanation channel.
     """
+    log_status("apply_alpha_chronology", "complete")
     events: list[dict[str, Any]] = []
     for r in rows:
         pose = str(r.get("pose_bin") or "")
@@ -34,16 +41,19 @@ def apply_alpha_chronology(rows: list[dict[str, Any]], model: Any) -> dict[str, 
             r["alpha_channel_status"] = "disabled_or_missing"
             continue
         alpha_id_score = calibrated_score(aid_f, model.reference(pose, "alpha_id_l2"), [])
-        alpha_exp_score = calibrated_score(aexp_f if np.isfinite(aexp_f) else 0.0, model.reference(pose, "alpha_exp_l2"), [])
-        r["alpha_id_status"] = alpha_id_score["status"]
-        r["alpha_id_robust_z"] = alpha_id_score["robust_z"]
-        r["alpha_id_calibration_p95"] = alpha_id_score["calibration_p95"]
-        r["alpha_exp_status"] = alpha_exp_score["status"]
-        r["alpha_exp_robust_z"] = alpha_exp_score["robust_z"]
-        r["alpha_exp_calibration_p95"] = alpha_exp_score["calibration_p95"]
+        # 🔧 FIX (аудит N2): отсутствующий alpha_exp больше не подменяется 0.0 —
+        # подмена давала ложный статус "в пределах шума". NOT_OBSERVED != 0.
+        if np.isfinite(aexp_f):
+            alpha_exp_score = calibrated_score(aexp_f, model.reference(pose, "alpha_exp_l2"), [])
+            r["alpha_exp_status"] = alpha_exp_score["status"]
+            r["alpha_exp_robust_z"] = alpha_exp_score["robust_z"]
+            r["alpha_exp_calibration_p95"] = alpha_exp_score["calibration_p95"]
+            alpha_exp_jump = alpha_exp_score["status"] == "elevated" and float(alpha_exp_score["robust_z"]) >= 3.5
+        else:
+            r["alpha_exp_status"] = "unavailable"
+            alpha_exp_jump = False
 
         alpha_id_jump = alpha_id_score["status"] == "elevated" and float(alpha_id_score["robust_z"]) >= 3.5
-        alpha_exp_jump = alpha_exp_score["status"] == "elevated" and float(alpha_exp_score["robust_z"]) >= 3.5
         if alpha_id_jump and str(r.get("status")) in {"within_reconstruction_noise", "scattered_or_uncertain", "elevated_but_uncertain"}:
             r["status"] = "alpha_id_jump_candidate"
         if alpha_exp_jump and not alpha_id_jump and str(r.get("status")) in {"coherent_jump_candidate", "alpha_id_jump_candidate"}:
@@ -59,9 +69,9 @@ def apply_alpha_chronology(rows: list[dict[str, Any]], model: Any) -> dict[str, 
                 "alpha_id_l2": float(aid),
                 "alpha_id_status": alpha_id_score["status"],
                 "alpha_id_robust_z": alpha_id_score["robust_z"],
-                "alpha_exp_l2": float(aexp or 0.0),
-                "alpha_exp_status": alpha_exp_score["status"],
-                "alpha_exp_robust_z": alpha_exp_score["robust_z"],
+                "alpha_exp_l2": float(aexp_f) if np.isfinite(aexp_f) else None,
+                "alpha_exp_status": r.get("alpha_exp_status"),
+                "alpha_exp_robust_z": r.get("alpha_exp_robust_z"),
                 "interpretation": "alpha_id/alpha_exp calibrated jump candidate; not an identity verdict",
             })
     return {"schema": ALPHA_SCHEMA, "event_count": len(events), "events": events}

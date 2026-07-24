@@ -1,0 +1,56 @@
+{
+ "id": "S03_stability_all_poses_A",
+ "block": "stability",
+ "priority": "P1",
+ "mode": "fast",
+ "description": "Один человек во всех ракурсах — проверка отсутствия утечки позы",
+ "frames": [
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2002_01_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": -20,
+   "date": "2002_02_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 20,
+   "date": "2002_03_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": -45,
+   "date": "2002_04_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 45,
+   "date": "2002_05_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": -70,
+   "date": "2002_06_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 70,
+   "date": "2002_07_10",
+   "group": "src_a"
+  }
+ ],
+ "expect": [
+  {
+   "type": "no_red_pairs"
+  }
+ ]
+}

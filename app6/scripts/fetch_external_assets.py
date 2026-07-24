@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Fetch hash-pinned 3DDFA assets. Unpinned downloads are rejected by default."""
+"""Fetch hash-pinned 3DDFA assets. Unpinned downloads are rejected by default.
+
+🏭 CONVENTIONS v2 → загрузка внешних ассетов; статус: ✅ VERIFIED
+"""
 from __future__ import annotations
 import argparse, hashlib, json, urllib.request
 from pathlib import Path

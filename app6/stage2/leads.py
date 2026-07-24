@@ -1,8 +1,13 @@
+"""🔄 Лиды (подсказки) из имён папок для вероятных пар сравнения.
+🚪 API: load_leads(), pair_leads(), add()
+💡 NOTE: лиды влияют на приоритет, но не на содержимое метрик.
+"""
 from __future__ import annotations
 import json,re
 from collections import Counter,defaultdict
 from pathlib import Path
 from typing import Any
+from app6.stage1.status_logger import log_status
 REGIONS=("orbit","brow","eyebrow","temporal","zygoma","cheekbone","cheek_soft","nose_bridge","nose_wing","nose","chin","jaw_angle","jaw","forehead","ligament_orbital","ligament_zygomatic","palpebral","lid","malar","submalar")
 
 def _date(v: str | None) -> str | None:
@@ -16,11 +21,13 @@ def _load(root: Path, name: str) -> dict[str, Any]:
         return {}
 
 def load_leads(path: Path | None) -> dict[str, Any]:
+    log_status("load_leads", "complete")
     if path is None:
         return {"status":"not_provided","dates":{},"metrics":[],"regions":[],"coverage":[]}
     root=path/"final_inference" if (path/"final_inference").is_dir() else path
     dates=defaultdict(lambda:{"photos":set(),"sources":set(),"events":set(),"metrics":set(),"regions":set(),"priority":0})
     metrics=Counter(); regions=Counter(); sources=Counter()
+    # 📝 Добавить лид (кандидатную пару)
     def add(d, src, photo=None, event=None, ms=(), rs=(), weight=1):
         d=_date(d or photo)
         if not d: return
@@ -73,6 +80,7 @@ def load_leads(path: Path | None) -> dict[str, Any]:
     }
 
 def pair_leads(reg: dict[str, Any], date_a: str | None, date_b: str | None) -> dict[str, Any]:
+    log_status("pair_leads", "complete")
     xs=[reg.get("dates",{}).get(d) for d in (date_a,date_b) if reg.get("dates",{}).get(d)]
     if not xs:
         return {"lead_overlap":False,"lead_priority":0,"lead_regions":"","lead_events":"","lead_metric_count":0}

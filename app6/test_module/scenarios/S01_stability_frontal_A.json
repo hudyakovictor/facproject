@@ -1,0 +1,44 @@
+{
+ "id": "S01_stability_frontal_A",
+ "block": "stability",
+ "priority": "P1",
+ "mode": "fast",
+ "description": "AAAAA: один человек, фронт, месяцы между кадрами — нет аномалий",
+ "frames": [
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2001_03_10",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2001_09_15",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2002_04_20",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2003_02_11",
+   "group": "src_a"
+  },
+  {
+   "person": "person_01",
+   "yaw": 0,
+   "date": "2004_06_30",
+   "group": "src_a"
+  }
+ ],
+ "expect": [
+  {
+   "type": "no_red_pairs"
+  }
+ ]
+}

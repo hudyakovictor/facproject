@@ -1,4 +1,10 @@
+"""📊 METRIC → Baseline-return: возврат признака к собственной базовой линии.
+🚪 API: apply_baseline_return()
+🔗 DEPENDS ON: loaders — векторы базовых линий из sidecar
+🔬 EXPERIMENTAL: _reversal_stats ещё калибруется.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import defaultdict
 from pathlib import Path
@@ -32,6 +38,10 @@ def _load_vectors(output_dir: Path, row: dict[str, Any]) -> np.ndarray | None:
 
 
 def _reversal_stats(v1: np.ndarray, v2: np.ndarray) -> dict[str, float | int]:
+    v1 = np.asarray(v1)
+    v2 = np.asarray(v2)
+    if v1.shape != v2.shape or v1.ndim != 2 or v1.shape[1] != 3:
+        return {"common_vector_count": 0, "median_cosine": 0.0, "opposite_fraction": 0.0, "magnitude_ratio": 0.0}
     finite = np.isfinite(v1).all(axis=1) & np.isfinite(v2).all(axis=1)
     if int(finite.sum()) < 12:
         return {"common_vector_count": int(finite.sum()), "median_cosine": 0.0, "opposite_fraction": 0.0, "magnitude_ratio": 0.0}
@@ -57,6 +67,7 @@ def apply_baseline_return(rows: list[dict[str, Any]], output_dir: Path) -> dict[
     This is intentionally conservative and does not assert biology/identity. It marks a
     candidate as reversible when the next adjacent edge has broadly opposite motion.
     """
+    log_status("apply_baseline_return", "complete")
     by_pose: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
         if r.get("pair_type") == "adjacent":

@@ -1,0 +1,3 @@
+schema: dpo-test-bindings-v1
+# Manual overrides are only for reviewed links that static analysis cannot prove.
+bindings: []

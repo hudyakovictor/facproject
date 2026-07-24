@@ -1,12 +1,17 @@
+"""⚙️ Конфигурация Stage 1: пороги, семантические политики, POSE_BINS (9 бинов).
+🎯 CRITICAL → canonical yaw-значения [0, ±17.5, ±32.5, ±45] согласованы с
+  geometry.classify_pose() и golden-тестами — менять только синхронно!
+📤 public_dict()/extraction_payload() — сериализация конфига в info.json.
+"""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "deeputin-stage1-v2.3-native-skin-single-uv"
-PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.3-native-skin-single-uv"
-VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.3-native-skin-single-uv"
+SCHEMA_VERSION = "deeputin-stage1-v2.4-chronology-alignment"
+PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.4-chronology-alignment"
+VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.4-chronology-alignment"
 SEMANTIC_POLICY = "3ddfa-semantic-skin-plus-nose-v1"
 POSE_BINS = (
     ("left_profile", -95.0, -50.0, -70.0),
@@ -35,7 +40,25 @@ class Stage1Config:
     overwrite: bool = False
     continue_on_error: bool = True
     save_original: bool = True
+    save_mesh: bool = True
 
+    def __post_init__(self) -> None:
+        if self.device not in {"auto", "cpu", "cuda"}:
+            raise ValueError("device must be auto, cpu or cuda")
+        if self.detector != "retinaface":
+            raise ValueError("only retinaface detector is supported")
+        if self.backbone not in {"resnet50", "mbnetv3"}:
+            raise ValueError("unsupported reconstruction backbone")
+        if not 64 <= int(self.uv_size) <= 1000:
+            raise ValueError("uv_size must be in 64..1000")
+        if int(self.limit) < 0:
+            raise ValueError("limit must be non-negative")
+        input_path = Path(self.input_dir).resolve()
+        output_path = Path(self.output_dir).resolve()
+        if input_path == output_path or input_path in output_path.parents:
+            raise ValueError("output_dir must not equal or be inside input_dir")
+
+    # 📤 Только настройки, влияющие на научный результат (идут в info.json)
     def extraction_payload(self) -> dict[str, Any]:
         """Only settings that can change scientific output."""
         return {
@@ -45,8 +68,10 @@ class Stage1Config:
             "uv_size": int(self.uv_size),
             "semantic_policy": SEMANTIC_POLICY,
             "pose_bins": POSE_BINS,
+            "save_mesh": bool(self.save_mesh),
         }
 
+    # 📤 Публичный dict конфига для сериализации
     def public_dict(self) -> dict[str, Any]:
         d = asdict(self)
         return {k: str(v) if isinstance(v, Path) else v for k, v in d.items()}

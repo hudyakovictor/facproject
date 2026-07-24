@@ -1,4 +1,10 @@
+"""🎯 CRITICAL → Атомарная запись вывода фото (temp-dir → publish после валидации).
+🔗 DEPENDS ON: validator — publish только после успешной валидации npz/csv
+🚪 API: atomic_photo_directory() (contextmanager), clean_incomplete(), write_failure()
+🚨 WARNING: никогда не писать прямо в output_root/<photo_id> — только через этот модуль.
+"""
 from __future__ import annotations
+from .status_logger import log_status
 
 import os
 import shutil
@@ -13,6 +19,7 @@ from .utils import atomic_json
 @contextmanager
 def atomic_photo_directory(output_root: Path, photo_id: str, overwrite: bool) -> Iterator[Path]:
     """Write to a sibling temp directory and atomically publish after validation."""
+    log_status("atomic_photo_directory", "complete")
     output_root.mkdir(parents=True, exist_ok=True)
     final = output_root / photo_id
     temp = output_root / f".{photo_id}.incomplete-{uuid.uuid4().hex}"
@@ -38,6 +45,7 @@ def atomic_photo_directory(output_root: Path, photo_id: str, overwrite: bool) ->
 
 
 def clean_incomplete(output_root: Path) -> int:
+    log_status("clean_incomplete", "complete")
     count = 0
     if not output_root.exists():
         return 0
@@ -48,6 +56,7 @@ def clean_incomplete(output_root: Path) -> int:
 
 
 def write_failure(output_root: Path, photo_id: str, payload: dict) -> None:
+    log_status("write_failure", "complete")
     failures = output_root / "_failures"
     failures.mkdir(parents=True, exist_ok=True)
     atomic_json(failures / f"{photo_id}.json", payload)

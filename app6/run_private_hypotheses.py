@@ -1,3 +1,7 @@
+"""🚪 ENTRY POINT → Изолированный прогон private-hypothesis слоя (retest гипотез).
+🔗 DEPENDS ON: stage2.private_hypothesis.run()
+🚨 WARNING: результаты НЕ входят в публичный отчёт — только quarantine-zone.
+"""
 from __future__ import annotations
 
 import argparse
@@ -6,6 +10,7 @@ from pathlib import Path
 from app6.stage2.private_hypothesis import PrivateHypothesisConfig, PrivateHypothesisEngine
 
 
+# 🚪 ENTRY POINT → argparse + private_hypothesis.run()
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the isolated private hypothesis retest layer.")
     parser.add_argument("analysis", type=Path, help="Current Stage-2 output made with the current alignment")

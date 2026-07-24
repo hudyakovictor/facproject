@@ -1,0 +1,37 @@
+schema: dpo-scenario-view-v1
+scenario_id: S01_stability_frontal_A
+pinned_until_gate_passes: true
+photo_rail:
+  visible: true
+  thumbnail_size: medium
+  show_pose_angles: true
+  show_runtime_ring: true
+  show_stage1_qc: true
+  show_fresh_cached_badge: true
+charts:
+  series:
+    - yaw
+    - pitch
+    - roll
+    - residual_pose_distance
+    - raw_geometric_delta
+    - corrected_geometric_delta
+    - estimated_pose_noise
+    - signal_after_noise_suppression
+    - quality_score
+  linked_cursor: true
+pose_combinations:
+  left_profile: 1
+  left_deep: 1
+  left_mid: 3
+  left_light: 3
+  frontal: 7
+  right_light: 3
+  right_mid: 3
+  right_deep: 1
+  right_profile: 1
+selection_policy:
+  mode: variable_by_pose
+  max_combinations: 7
+  balanced_seven_person_rotation: true
+  suggest_more_for_unstable_pose: true

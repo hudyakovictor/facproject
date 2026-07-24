@@ -1,4 +1,9 @@
+"""📤 Техническая сводка прогона: версии контрактов, покрытие модулей.
+🚪 API: build_technical_summary()
+💡 NOTE: идёт в отчёт как appendix; не содержит выводов о лице.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import Counter
 from typing import Any
@@ -7,9 +12,12 @@ SUMMARY_SCHEMA = "deeputin-stage2-technical-summary-v1.0"
 
 
 def build_technical_summary(rows: list[dict[str, Any]], changes: list[dict[str, Any]], manifest: dict[str, Any]) -> dict[str, Any]:
+    log_status("build_technical_summary", "complete")
     status_counts = Counter(str(r.get("status")) for r in rows)
     evidence_counts = Counter(str(r.get("evidence_state")) for r in rows)
     quality_limited = sum(bool(r.get("quality_limited")) for r in rows)
+    calibration_limited = sum(bool(r.get("calibration_limited")) for r in rows)
+    pose_leakage_limited = sum(bool(r.get("pose_leakage_limited")) for r in rows)
     mesh_measured = sum(str(r.get("mesh_status")) in {"measured_uncalibrated", "measured_calibrated"} for r in rows)
     texture_ready = sum(str(r.get("texture_pair_status")) == "texture_ready" for r in rows)
     return {
@@ -19,13 +27,19 @@ def build_technical_summary(rows: list[dict[str, Any]], changes: list[dict[str, 
         "status_counts": dict(status_counts),
         "evidence_state_counts": dict(evidence_counts),
         "quality_limited_pair_count": quality_limited,
+        "calibration_limited_pair_count": calibration_limited,
+        "pose_leakage_limited_pair_count": pose_leakage_limited,
         "mesh_measured_pair_count": mesh_measured,
         "texture_ready_pair_count": texture_ready,
+        "texture_policy": "visualization/morphing only; excluded from evidence metric channel",
         "manifest_core": {
             "schema_version": manifest.get("schema_version"),
             "main_record_count": manifest.get("main_record_count"),
             "calibration_record_count": manifest.get("calibration_record_count"),
             "mesh_calibration_status": manifest.get("mesh_calibration_status"),
+            "calibration_sensitivity_status": manifest.get("calibration_sensitivity_status"),
+            "pose_leakage_status": manifest.get("pose_leakage_status"),
+            "missing_mandatory_qc_record_count": manifest.get("missing_mandatory_qc_record_count"),
         },
         "public_safety": "observations only; no identity/medical/material verdict",
     }

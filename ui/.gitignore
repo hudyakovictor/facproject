@@ -1,0 +1,6 @@
+.data/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+generated/
+*.local

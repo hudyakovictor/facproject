@@ -1,4 +1,10 @@
+"""🎯 CRITICAL → Загрузка записей Stage 1 (npz+csv+sidecar) в Record-структуры.
+🚪 API: load_main(), load_calibration(), load_calibration_from_sidecar()
+🔗 DEPENDS ON: stage1.validator контракты (6 CSV + npz keys)
+🚨 WARNING: _missing_alpha() мягко помечает записи без α-каналов.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 import csv
 import json
@@ -15,7 +21,43 @@ def _rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
+def _required_npz_array(z: np.lib.npyio.NpzFile, key: str, shape: tuple[int, ...]) -> np.ndarray:
+    """Load a required finite array without legacy-space substitution."""
+    if key not in z.files:
+        raise ValueError(f"required NPZ array missing: {key}")
+    arr = np.asarray(z[key])
+    if arr.shape != shape:
+        raise ValueError(f"NPZ {key} shape {arr.shape}, expected {shape}")
+    if np.issubdtype(arr.dtype, np.number) and not np.isfinite(arr).all():
+        raise ValueError(f"NPZ {key} contains NaN/Inf")
+    return arr
+
+
 def load_main(stage1_root: Path) -> list[Record]:
+    """🎯 CRITICAL → Загрузка записей Stage 1 для анализа Stage 2.
+
+    Читает main_timeline.csv, затем для каждого фото:
+    - info.json (метаданные, pose, alignment quality)
+    - reconstruction.npz (вершины, ландмарки, видимость)
+
+    🔗 DEPENDS ON:
+      - engine.run() — вызывается в начале Stage 2
+      - stage1 output — структура папок photo_id/
+
+    APPLICABILITY:
+      - Требует chronology-aligned landmarks; legacy-space fallback запрещён.
+      - Source group сохраняется для диагностики и corroboration.
+
+    💡 NOTE:
+      - Фильтрует по validation.status == "complete"
+      - Сортирует по (date, sequence, record_id)
+      - Загружает alignment quality для фильтрации пар
+
+    🚨 WARNING:
+      - Если reconstruction.npz не содержит chronology arrays — fallback к старым данным!
+      - При отсутствии info.json — запись пропускается
+    """
+    log_status("load_main", "complete")
     index = stage1_root / "main_timeline.csv"
     if not index.is_file():
         raise FileNotFoundError(index)
@@ -36,11 +78,14 @@ def load_main(stage1_root: Path) -> list[Record]:
         qzones = load_quality_zone_summary(directory)
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
             idx106 = z["ldm106_vertex_indices"].astype(np.int64); idx134 = z["ldm134_vertex_indices"].astype(np.int64)
+            # CRITICAL: never substitute a different coordinate space.
+            ldm106_data = _required_npz_array(z, "ldm106_chronology_aligned", (106, 3)).astype(np.float32)
+            ldm134_data = _required_npz_array(z, "ldm134_chronology_aligned", (134, 3)).astype(np.float32)
             out.append(Record(
                 record_id=row["photo_id"], dataset_id="main", date=row["date"], sequence=int(row["same_date_sequence"]),
                 pose_bin=row["pose_bin"], angles=z["angle_deg_pitch_yaw_roll"].astype(np.float32),
-                ldm106=z.get("ldm106_object_normalized", z.get("ldm106_object_norm")).astype(np.float32),
-                ldm134=z.get("ldm134_object_normalized", z.get("ldm134_object_norm")).astype(np.float32),
+                ldm106=ldm106_data,
+                ldm134=ldm134_data,
                 visible106=z["ldm106_visible"].astype(bool), visible134=z["ldm134_visible"].astype(bool),
                 alpha_id=z["alpha_id"].astype(np.float32), alpha_exp=z["alpha_exp"].astype(np.float32),
                 identity_only106=(z["ldm106_identity_only"] if "ldm106_identity_only" in z else z["vertices_identity_only"][idx106]).astype(np.float32),
@@ -64,11 +109,20 @@ def _read_landmark_csv(path: Path, count: int) -> np.ndarray:
     by_id: dict[int, list[float]] = {}
     for row in rows:
         lid = int(float(row["landmark_id"]))
-        by_id[lid] = [float(row["x"]), float(row["y"]), float(row["z"])]
+        if lid in by_id:
+            raise ValueError(f"duplicate landmark_id {lid} in {path}")
+        if not 0 <= lid < count:
+            raise ValueError(f"landmark_id {lid} outside 0..{count - 1} in {path}")
+        xyz = [float(row["x"]), float(row["y"]), float(row["z"])]
+        if not np.isfinite(xyz).all():
+            raise ValueError(f"nonfinite landmark {lid} in {path}")
+        by_id[lid] = xyz
+    missing = sorted(set(range(count)) - set(by_id))
+    if missing:
+        raise ValueError(f"missing landmark ids in {path}: {missing[:10]}")
     out = np.full((count, 3), np.nan, np.float32)
     for lid, xyz in by_id.items():
-        if 0 <= lid < count:
-            out[lid] = np.asarray(xyz, np.float32)
+        out[lid] = np.asarray(xyz, np.float32)
     return out
 
 
@@ -85,6 +139,7 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
     Never treat aligned/bin_canonical CSV as object_normalized.
     Alpha is unavailable in the published sidecar layout → NaN vectors.
     """
+    log_status("load_calibration_from_sidecar", "complete")
     out: list[Record] = []
     for meta_path in sorted(root.glob("*/frame_*/metadata.json")):
         directory = meta_path.parent
@@ -133,6 +188,7 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
 
 
 def load_calibration(calibration_root: Path) -> list[Record]:
+    log_status("load_calibration", "complete")
     root = calibration_root
     # Native app6 Stage-1 same-day calibration output. This is the format
     # produced by the top-level run_calibration.py workflow.

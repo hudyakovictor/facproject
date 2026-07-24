@@ -1,0 +1,84 @@
+{
+ "scenario": {
+  "id": "S11_no_return_ABC_v04",
+  "block": "return",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "ABC: три разных человека — возврата быть не должно (анти-тест)",
+  "frames": [
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2001_03_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_01",
+    "yaw": 0,
+    "date": "2003_03_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_04",
+    "yaw": 0,
+    "date": "2005_03_10",
+    "group": "auto"
+   }
+  ],
+  "expect": [
+   {
+    "type": "baseline_return_events",
+    "max": 0
+   }
+  ],
+  "variant": 4
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_06",
+   "tag": "p06f0081",
+   "record_id": "frame_0081",
+   "yaw_target": 0,
+   "yaw_actual": 0.1733644902706146,
+   "date": "2001_03_10",
+   "date_iso": "2001-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0081.jpg",
+   "filename": "2001_03_10.jpg",
+   "stem": "2001_03_10"
+  },
+  {
+   "n": 2,
+   "person": "person_01",
+   "tag": "p01f000289",
+   "record_id": "frame_000289",
+   "yaw_target": 0,
+   "yaw_actual": 0.0025587594136595,
+   "date": "2003_03_10",
+   "date_iso": "2003-03-10",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_01/frame_000289.jpg",
+   "filename": "2003_03_10.jpg",
+   "stem": "2003_03_10"
+  },
+  {
+   "n": 3,
+   "person": "person_04",
+   "tag": "p04f000164",
+   "record_id": "frame_000164",
+   "yaw_target": 0,
+   "yaw_actual": 0.1044600531458854,
+   "date": "2005_03_10",
+   "date_iso": "2005-03-10",
+   "seq": 1,
+   "group": "src_c",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000164.jpg",
+   "filename": "2005_03_10.jpg",
+   "stem": "2005_03_10"
+  }
+ ],
+ "planned_only": false
+}

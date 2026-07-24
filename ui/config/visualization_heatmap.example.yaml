@@ -1,0 +1,28 @@
+schema: dpo-visualization-heatmap-v1
+role: visualization_only
+may_affect_metrics: false
+may_affect_evidence: false
+quantity: residual_shape_distance
+units: normalized_mesh_distance
+scale:
+  mode: symmetric
+  center: 0.0
+  range_source: percentile
+  lower_percentile: 2.0
+  upper_percentile: 98.0
+palette:
+  name: coolwarm
+  colorblind_safe: true
+  negative: "#3b82f6"
+  zero: "#111827"
+  positive: "#ef4444"
+  nan: "#6b7280"
+rendering:
+  opacity: 0.85
+  show_wireframe: false
+  show_landmarks: true
+  show_motion_vectors: false
+  zone_filter: all
+export:
+  include_in_fix_capsule: false
+  include_compact_config_json: true

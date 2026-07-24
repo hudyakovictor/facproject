@@ -1,0 +1,147 @@
+{
+ "scenario": {
+  "id": "S10_return_AABBAA_v02",
+  "block": "return",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "AABBAA: возврат после серии",
+  "frames": [
+   {
+    "person": "person_03",
+    "yaw": 0,
+    "date": "2001_03_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_03",
+    "yaw": 0,
+    "date": "2001_09_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2002_03_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2002_09_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_03",
+    "yaw": 0,
+    "date": "2003_03_10",
+    "group": "auto"
+   },
+   {
+    "person": "person_03",
+    "yaw": 0,
+    "date": "2003_09_10",
+    "group": "auto"
+   }
+  ],
+  "expect": [
+   {
+    "type": "baseline_return_events",
+    "min": 1
+   }
+  ],
+  "variant": 2
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_03",
+   "tag": "p03f000091",
+   "record_id": "frame_000091",
+   "yaw_target": 0,
+   "yaw_actual": 11.722548484802246,
+   "date": "2001_03_10",
+   "date_iso": "2001-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000091.jpg",
+   "filename": "2001_03_10.jpg",
+   "stem": "2001_03_10"
+  },
+  {
+   "n": 2,
+   "person": "person_03",
+   "tag": "p03f000106",
+   "record_id": "frame_000106",
+   "yaw_target": 0,
+   "yaw_actual": -8.715195655822754,
+   "date": "2001_09_10",
+   "date_iso": "2001-09-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000106.jpg",
+   "filename": "2001_09_10.jpg",
+   "stem": "2001_09_10"
+  },
+  {
+   "n": 3,
+   "person": "person_06",
+   "tag": "p06f0065",
+   "record_id": "frame_0065",
+   "yaw_target": 0,
+   "yaw_actual": -11.629557609558104,
+   "date": "2002_03_10",
+   "date_iso": "2002-03-10",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0065.jpg",
+   "filename": "2002_03_10.jpg",
+   "stem": "2002_03_10"
+  },
+  {
+   "n": 4,
+   "person": "person_06",
+   "tag": "p06f0095",
+   "record_id": "frame_0095",
+   "yaw_target": 0,
+   "yaw_actual": 10.969407081604004,
+   "date": "2002_09_10",
+   "date_iso": "2002-09-10",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0095.jpg",
+   "filename": "2002_09_10.jpg",
+   "stem": "2002_09_10"
+  },
+  {
+   "n": 5,
+   "person": "person_03",
+   "tag": "p03f000091",
+   "record_id": "frame_000091",
+   "yaw_target": 0,
+   "yaw_actual": 11.722548484802246,
+   "date": "2003_03_10",
+   "date_iso": "2003-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000091.jpg",
+   "filename": "2003_03_10.jpg",
+   "stem": "2003_03_10"
+  },
+  {
+   "n": 6,
+   "person": "person_03",
+   "tag": "p03f000106",
+   "record_id": "frame_000106",
+   "yaw_target": 0,
+   "yaw_actual": -8.715195655822754,
+   "date": "2003_09_10",
+   "date_iso": "2003-09-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000106.jpg",
+   "filename": "2003_09_10.jpg",
+   "stem": "2003_09_10"
+  }
+ ],
+ "planned_only": false
+}

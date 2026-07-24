@@ -1,4 +1,10 @@
+"""🎯 CRITICAL → Политика стабильных якорей (точки, неподвижные при мимике).
+🚪 API: stable_anchor_mask(), stable_anchor_indices()
+🔗 DEPENDS ON: core.robust_rigid_align — якоря подаются туда для выравнивания
+💡 NOTE: неверный якорь = смещение всех motion-метрик пары.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 import numpy as np
 
@@ -12,6 +18,7 @@ def stable_anchor_mask(points: np.ndarray, common_visible: np.ndarray, *, min_co
     are introduced. It avoids using the full face for alignment, reducing the chance that
     soft peripheral/mouth/jaw changes are absorbed by the transform.
     """
+    log_status("stable_anchor_mask", "complete")
     p = np.asarray(points, np.float32)
     common = np.asarray(common_visible, bool)
     anchor = np.zeros(len(p), bool)
@@ -41,6 +48,7 @@ def stable_anchor_mask(points: np.ndarray, common_visible: np.ndarray, *, min_co
 
 
 def stable_anchor_indices(points: np.ndarray, common_indices: np.ndarray, *, max_points: int = 6000, min_count: int = 1200) -> tuple[np.ndarray, dict[str, float | int | str]]:
+    log_status("stable_anchor_indices", "complete")
     common = np.asarray(common_indices, np.int64)
     mask = np.zeros(len(points), bool)
     mask[common[(common >= 0) & (common < len(points))]] = True

@@ -1,4 +1,9 @@
+"""📊 METRIC → Кросс-подтверждение событий между pose bins + агрегация.
+🚪 API: apply_cross_bin_corroboration(), aggregate_events()
+💡 NOTE: подтверждённое в ≥2 бинах событие повышает evidence-уровень.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import defaultdict
 from datetime import date
@@ -30,6 +35,7 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
     Cross-bin rows never contribute to the primary residual. They only corroborate
     already-frozen same-bin adjacent results inside a bounded temporal window.
     """
+    log_status("apply_cross_bin_corroboration", "complete")
     adjacent = [r for r in rows if r.get("pair_type") == "adjacent"]
     events: list[dict[str, Any]] = []
     for row in adjacent:
@@ -38,17 +44,32 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
             row["cross_bin_corroboration_status"] = "date_unavailable"
             row["cross_bin_support_count"] = 0
             continue
+        fam_row = {f for f in str(row.get("descriptor_top_families") or "").replace(",", "|").split("|") if f}
+        a1 = _date(row.get("date_a"))
         supports = []
+        family_matched = 0
         for other in adjacent:
             if other is row or other.get("pose_bin") == row.get("pose_bin"):
                 continue
             od = _date(other.get("date_b"))
             if od is None or abs((od - d).days) > int(window_days):
                 continue
+            # 🔧 FIX (аудит N3a): поддержка должна сама быть короткоинтервальной парой —
+            # изменение, размазанное на годы, не подтверждает событие с конкретной датой.
+            oa = _date(other.get("date_a"))
+            if oa is None or (od - oa).days > 2 * int(window_days):
+                continue
+            # 🔧 FIX (аудит N3b): интервалы изменения должны пересекаться (± окно);
+            # близости только даты B недостаточно.
+            if a1 is not None and (min(d, od) - max(a1, oa)).days < -int(window_days):
+                continue
             if str(other.get("status")) not in CANDIDATE_STATES:
                 continue
             if bool(other.get("quality_limited")):
                 continue
+            fam_other = {f for f in str(other.get("descriptor_top_families") or "").replace(",", "|").split("|") if f}
+            if fam_row and fam_other and (fam_row & fam_other):
+                family_matched += 1
             supports.append(other)
         pose_bins = sorted({str(x.get("pose_bin")) for x in supports})
         source_groups = sorted({str(x.get("source_group_b")) for x in supports if str(x.get("source_group_b") or "unknown") != "unknown"})
@@ -56,6 +77,7 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
         row["cross_bin_support_pose_count"] = len(pose_bins)
         row["cross_bin_support_pose_bins"] = "|".join(pose_bins)
         row["cross_bin_independent_source_count"] = len(source_groups)
+        row["cross_bin_family_matched_count"] = family_matched
         if str(row.get("status")) not in CANDIDATE_STATES:
             status = "not_a_candidate"
         elif len(pose_bins) >= 2:
@@ -86,6 +108,7 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
 
 def aggregate_events(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Aggregate same target-date observations without pretending files are independent."""
+    log_status("aggregate_events", "complete")
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if row.get("pair_type") == "adjacent" and row.get("date_b"):

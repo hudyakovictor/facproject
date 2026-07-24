@@ -1,5 +1,8 @@
 # DEEPUTIN app6
 
+⚠️ Все команды запуска должны использовать явный путь к интерпретатору:  
+`/Users/victorkhudyakov/work/.venv/bin/python`
+
 Полностью переписанный этап 1 для 3DDFA_V3. Главная цель — один раз извлечь и атомарно сохранить все дорогие данные, после чего этапы анализа и визуализации не запускают нейросеть повторно.
 
 ## Что исправлено
@@ -28,7 +31,7 @@
 - `assets/net_recon.pth` либо `assets/net_recon_mbnet.pth`;
 - `assets/large_base_net.pth`.
 
-В приложенном пользовательском архиве этих весов нет; app2 завершит работу до batch run с понятной ошибкой, а не создаст частичные результаты.
+В приложенном пользовательском архиве этих весов нет; app6 завершит работу до batch run с понятной ошибкой, а не создаст частичные результаты.
 
 ## Имена фотографий
 
@@ -49,10 +52,10 @@ EXIF не читается.
 ## Smoke run
 
 ```bash
-python3 app6/run_stage1.py \
+ /Users/victorkhudyakov/work/.venv/bin/python app6/run_stage1.py \
   --project-root . \
   --input dataset/main \
-  --output results/app2_smoke \
+  --output results/app6_smoke \
   --device cpu \
   --limit 2 \
   --fail-fast
@@ -62,25 +65,28 @@ python3 app6/run_stage1.py \
 
 ## Batch gates
 
-```bash
-# 10 фото
-python3 app6/run_stage1.py --input dataset/main --output results/stage1_v2 --device cpu --limit 10 --fail-fast
+ ```bash
+ # 10 фото
+ /Users/victorkhudyakov/work/.venv/bin/python app6/run_stage1.py --input dataset/main --output results/stage1_v2 --device cpu --limit 10 --fail-fast
 
-# 100 фото — убрать fail-fast, чтобы оценить error rate
-python3 app6/run_stage1.py --input dataset/main --output results/stage1_v2 --device cpu --limit 100
+ # 100 фото — убрать fail-fast, чтобы оценить error rate
+ /Users/victorkhudyakov/work/.venv/bin/python app6/run_stage1.py --input dataset/main --output results/stage1_v2 --device cpu --limit 100
 
-# полный набор
-python3 app6/run_stage1.py --input dataset/main --output results/stage1_v2 --device cpu
-```
+ # полный набор
+ /Users/victorkhudyakov/work/.venv/bin/python app6/run_stage1.py --input dataset/main --output results/stage1_v2 --device cpu
+ ```
 
 Не запускайте полный набор, пока 100-photo gate не завершился без structural validation errors.
 
 ## Тесты без весов
 
 ```bash
-python3 -m unittest discover -s app6/tests -v
+/Users/victorkhudyakov/work/.venv/bin/python -m unittest discover \
+  -s app6/test_module -p 'test*.py' -v
 ```
 
 ## Этап 2
 
-Полное ТЗ находится в `app6/STAGE2_SPEC.md`.
+Актуальные контракты Stage 2 описаны в `app6/AGENTS.md`; фактический статус
+реализации отслеживается в `app6/STATUS_AUDIT.py` и regression-тестах
+`app6/test_module/`.

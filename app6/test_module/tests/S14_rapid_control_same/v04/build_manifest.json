@@ -1,0 +1,69 @@
+{
+ "scenario": {
+  "id": "S14_rapid_control_same_v04",
+  "block": "rate",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "Один человек через 3 дня — контроль ложного rapid",
+  "frames": [
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2004_05_01",
+    "group": "auto"
+   },
+   {
+    "person": "person_06",
+    "yaw": 0,
+    "date": "2004_05_04",
+    "group": "auto"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_absent",
+    "statuses": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate"
+    ]
+   },
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 4
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_06",
+   "tag": "p06f0065",
+   "record_id": "frame_0065",
+   "yaw_target": 0,
+   "yaw_actual": -11.629557609558104,
+   "date": "2004_05_01",
+   "date_iso": "2004-05-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0065.jpg",
+   "filename": "2004_05_01.jpg",
+   "stem": "2004_05_01"
+  },
+  {
+   "n": 2,
+   "person": "person_06",
+   "tag": "p06f0095",
+   "record_id": "frame_0095",
+   "yaw_target": 0,
+   "yaw_actual": 10.969407081604004,
+   "date": "2004_05_04",
+   "date_iso": "2004-05-04",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0095.jpg",
+   "filename": "2004_05_04.jpg",
+   "stem": "2004_05_04"
+  }
+ ],
+ "planned_only": false
+}

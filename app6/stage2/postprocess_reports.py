@@ -1,4 +1,9 @@
+"""🏭 FACTORY → Пост-отчёты Stage 2: manual-review queue, public-safety, summary.
+🚪 API: write_postprocess_reports()
+🔗 DEPENDS ON: все evidence/quality структуры финализированного прогона.
+"""
 from __future__ import annotations
+from app6.stage1.status_logger import log_status
 
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -22,6 +27,8 @@ CANDIDATE_STATES = {
     "persistent_rate_change_candidate",
     "same_day_conflict_candidate",
     "quality_limited",
+    "calibration_limited",
+    "pose_leakage_limited",
 }
 
 
@@ -89,6 +96,10 @@ def _write_degraded_modules(out: Path, rows: list[dict[str, Any]]) -> dict[str, 
     for r in rows:
         if r.get("quality_limited"):
             counts["quality_limited"] += 1
+        if r.get("calibration_limited"):
+            counts["calibration_limited"] += 1
+        if r.get("pose_leakage_limited"):
+            counts["pose_leakage_limited"] += 1
         if str(r.get("mesh_status")) not in {"measured_uncalibrated", "measured_calibrated"}:
             counts["mesh_unavailable_or_insufficient"] += 1
         if str(r.get("mesh_calibration_status")) in {"insufficient_calibration", "unavailable"}:
@@ -135,7 +146,7 @@ def _write_texture_summary(out: Path, texture_zone_rows: list[dict[str, Any]]) -
         "texture_zone_row_count": len(texture_zone_rows),
         "usable_texture_zone_row_count": len(measured),
         "usable_by_zone": dict(by_zone),
-        "policy": "image-space texture deltas are technical observations and require quality/exposure caveats",
+        "policy": "visualization/morphing only; never identity evidence",
     }
     atomic_json(out / "texture_summary.json", report)
     return report
@@ -200,6 +211,7 @@ def write_postprocess_reports(
     changes: list[dict[str, Any]],
     evidence_packets: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    log_status("write_postprocess_reports", "complete")
     review_count = _write_manual_review_queue(out, rows)
     public_safety = _write_public_safety(out, evidence_packets)
     degraded = _write_degraded_modules(out, rows)

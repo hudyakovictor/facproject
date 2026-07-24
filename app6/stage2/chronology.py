@@ -1,8 +1,17 @@
+"""🎯 CRITICAL → Хронологические флаги: скорость изменения признака во времени.
+🚪 API: apply_chronology_rate_flags(), apply_biological_rate_flags()
+🔗 DEPENDS ON: stage1 chronology alignment (vertices_chronology_aligned)
+🚨 WARNING: требует >=2 дат; при одной дате флаги не выставляются.
+"""
 from __future__ import annotations
 from collections import defaultdict
 from datetime import date
 import math
 import numpy as np
+from app6.stage1.status_logger import log_status
+
+MIN_ALIGNMENT_QUALITY = 0.5
+MAX_EXPRESSION_MAGNITUDE = 1.5
 
 def _days(a: str | None, b: str | None) -> int | None:
     if not a or not b: return None
@@ -16,10 +25,48 @@ def _robust(vals: list[float]) -> tuple[float,float,float]:
     if arr.size==0: return 0.0,0.0,0.0
     med=float(np.median(arr)); mad=float(np.median(np.abs(arr-med))); p95=float(np.percentile(arr,95)); return med,mad,p95
 
+def _quality_exclusion_reason(row: dict) -> str | None:
+    """Return a fail-closed reason when pair-level chronology is not applicable."""
+    if bool(row.get('quality_limited')):
+        return 'quality_limited'
+    alignment = [row.get('alignment_quality_a'), row.get('alignment_quality_b')]
+    finite_alignment = [float(v) for v in alignment if v is not None and np.isfinite(v)]
+    if finite_alignment and min(finite_alignment) < MIN_ALIGNMENT_QUALITY:
+        return 'alignment_quality_low'
+    expression = [row.get('expression_magnitude_a'), row.get('expression_magnitude_b')]
+    finite_expression = [float(v) for v in expression if v is not None and np.isfinite(v)]
+    if finite_expression and max(finite_expression) > MAX_EXPRESSION_MAGNITUDE:
+        return 'expression_too_strong'
+    if row.get('status') == 'expression_dominated':
+        return 'expression_dominated'
+    return None
+
+def _mark_chronology_excluded(row: dict, reason: str) -> None:
+    row['days_delta'] = None
+    row['time_weighted_jump_rate'] = float('nan')
+    row['chronology_rate_z'] = float('nan')
+    row['chronology_rate_status'] = 'excluded'
+    row['chronology_rate_reason'] = reason
+    row['biological_rate_z'] = row['chronology_rate_z']
+    row['biological_rate_status'] = row['chronology_rate_status']
+    row['biological_reason'] = row['chronology_rate_reason']
+
 def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
+    """🎯 CRITICAL → Apply chronology rate flags to adjacent pairs.
+
+    💡 NOTE:
+    - Rate = p95_point_z * coherent_fraction / sqrt(days)
+    - Flags: same_day_structural_conflict, rapid_change_candidate
+    """
+    log_status("apply_chronology_rate_flags", "complete")
     refs={}; by=defaultdict(list)
     for r in rows:
-        if r.get('pair_type')=='adjacent': by[r['pose_bin']].append(r)
+        if r.get('pair_type')=='adjacent':
+            exclusion = _quality_exclusion_reason(r)
+            if exclusion:
+                _mark_chronology_excluded(r, exclusion)
+                continue
+            by[r['pose_bin']].append(r)
     for pose,group in by.items():
         rates=[]; coherent=[]
         for r in group:
@@ -73,6 +120,9 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     return refs
 
 
+# 🗑️ DEPRECATED alias → используйте apply_chronology_rate_flags
 def apply_biological_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     """Deprecated compatibility alias; use apply_chronology_rate_flags."""
+    # 🗑️ DEPRECATED (AUDIT-5): алиас логирует свой статус при вызове, делегирует основной функции
+    log_status("apply_biological_rate_flags", "deprecated", "Alias of apply_chronology_rate_flags")
     return apply_chronology_rate_flags(rows)

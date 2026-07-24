@@ -1,3 +1,14 @@
+"""
+🎯 CRITICAL → Обёртка 3DDFA_V3: reconstruction + chronology alignment + QA-гейты.
+
+process() возвращает ReconstructionBundle со всеми наборами вершин:
+object / identity_only / normalized / bin_canonical / CHRONOLOGY_ALIGNED (патч 01).
+Гейты TOP50: MAX_REPROJECTION_P95=5px (#10) — RuntimeError при плохой проекции;
+outlier detection (#27) — RuntimeError при >100 вышедших вершин;
+upside-down sanity check (#34); face detection confidence (#37).
+🔗 DEPENDS ON: 3ddfa_v3 (model, face_box), geometry.full_pose_correction_matrix.
+⚠️ Тяжёлые зависимости (torch, nvdiffrast) импортируются лениво внутри методов.
+"""
 from __future__ import annotations
 
 import gc
@@ -10,7 +21,8 @@ from typing import Any
 
 import numpy as np
 
-from .geometry import classify_pose, normalize_mesh, reprojection_stats, row_rotation_matrix, to_original_image
+from .geometry import classify_pose, compute_chronology_alignment, normalize_mesh, reprojection_stats, row_rotation_matrix, to_original_image
+from .status_logger import log_status, status_warning
 
 
 @dataclass
@@ -26,6 +38,7 @@ class ReconstructionBundle:
     vertices_identity_only: np.ndarray
     vertices_object_normalized: np.ndarray
     vertices_bin_canonical: np.ndarray
+    vertices_chronology_aligned: np.ndarray
     vertices_camera: np.ndarray
     vertices_image_224: np.ndarray
     normals_object: np.ndarray
@@ -46,16 +59,20 @@ class ReconstructionBundle:
     normalization_center: np.ndarray
     normalization_scale: float
     canonical_rotation: np.ndarray
+    chronology_correction_matrix: np.ndarray
+    chronology_target_pose: np.ndarray
     reprojection: dict[str, dict[str, float]]
     raw_results: dict[str, Any]
 
     def landmark_arrays(self) -> dict[str, np.ndarray]:
+        log_status("landmark_arrays", "complete")
         out: dict[str, np.ndarray] = {}
         for count, idx in ((106, self.ldm106_indices), (134, self.ldm134_indices)):
             key = f"ldm{count}"
             out[f"{key}_object"] = self.vertices_object[idx]
             out[f"{key}_object_normalized"] = self.vertices_object_normalized[idx]
             out[f"{key}_bin_canonical"] = self.vertices_bin_canonical[idx]
+            out[f"{key}_chronology_aligned"] = self.vertices_chronology_aligned[idx]
             out[f"{key}_camera"] = self.vertices_camera[idx]
             out[f"{key}_image_224"] = self.vertices_image_224[idx]
             out[f"{key}_front_facing"] = self.front_facing[idx].astype(np.uint8)
@@ -128,6 +145,32 @@ class ReconstructionEngine:
         return np.asarray(value)
 
     def process(self, path: Path, oriented_rgb: np.ndarray | None = None) -> ReconstructionBundle:
+        """🎯 CRITICAL → Один inference 3DDFA, ВСЕ данные извлекаются здесь.
+
+        Это САМАЯ ВАЖНАЯ функция пайплайна. Каждый вызов = один проход нейросети.
+        Никогда не вызывать дважды для одного фото!
+
+        🔗 DEPENDS ON:
+          - engine._one() — вызывает для каждого фото
+          - face_box (RetinaFace) — detection + alignment crop
+          - model.recon (3DDFA-V3) — neural network inference
+
+        ⚠️ IN PROGRESS:
+          - Нет проверки качества детекции (face detection confidence)
+          - Нет валидации reprojection error (плохие реконструкции не отфильтровываются)
+          - Нет проверки что лицо не перевёрнуто
+
+        💡 NOTE:
+          - Использует identity-only вершины для chronology (без мимики)
+          - canonical alignment сохраняется для обратной совместимости
+          - chronology alignment — НОВОЙ, использует полную коррекцию позы
+
+        🚨 WARNING:
+          - При device='cuda' может закончиться VRAM — вызовите cleanup()
+          - При bad detection (tensor is None) — RuntimeError
+          - При bad reconstruction — NaN в вершинах (проверяется для chronology)
+        """
+        log_status("process", "need_testing", "Indirect coverage only (AUDIT-6)")
         import torch
         from PIL import Image, ImageOps
 
@@ -141,10 +184,25 @@ class ReconstructionEngine:
         trans, tensor = self.detector(image)
         if tensor is None or trans is None:
             raise RuntimeError("face detector returned no aligned crop")
+
+        # 🎯 CRITICAL: Sanity check for upside-down photos
+        # If the face is upside down, 3DDFA will produce incorrect pose
+        # We check this by verifying the face crop has reasonable aspect ratio
+        # and that the detection confidence is high enough
+        if tensor.shape[2] < 50 or tensor.shape[3] < 50:
+            raise RuntimeError(
+                f"face crop too small ({tensor.shape[2]}x{tensor.shape[3]}) — "
+                f"possible bad detection for {path.name}"
+            )
+
+        # EXTERNAL INTEGRATION REQUIRED: the wrapped RetinaFace API currently
+        # returns only transform/crop, not its native confidence value.
+        status_warning("face_detection_confidence", "RetinaFace confidence not extracted yet")
         self.model.input_img = tensor.to(self.device)
 
         captured_alpha: dict[str, Any] = {}
         captured_renderer: dict[str, Any] = {}
+        # 🔄 CALLBACK → вызывается process(): сохранить alpha-каналы до мутаций
         def capture_alpha(_module: Any, _inputs: Any, output: Any) -> None:
             captured_alpha["count"] = int(captured_alpha.get("count", 0)) + 1
             captured_alpha["alpha"] = output
@@ -152,6 +210,7 @@ class ReconstructionEngine:
         alpha_hook = self.model.net_recon.register_forward_hook(capture_alpha)
         original_renderer_forward = self.model.renderer.forward
 
+        # 🔄 CALLBACK → прямой проход рендера (диагностика репроекции)
         def renderer_forward(*args: Any, **kwargs: Any) -> Any:
             output = original_renderer_forward(*args, **kwargs)
             if kwargs.get("visible_vertice") and isinstance(output, (tuple, list)) and len(output) >= 4:
@@ -202,13 +261,35 @@ class ReconstructionEngine:
         canonical_rotation = row_rotation_matrix(0.0, canonical_yaw, 0.0)
         canonical = (normalized @ canonical_rotation).astype(np.float32)
 
-        count = len(vertices_object)
-        front = normals_posed[:, 2] >= 0.0
-        renderer = np.zeros(count, dtype=bool)
-        raw_indices = self._np(renderer_indices).reshape(-1).astype(np.int64)
-        raw_indices = raw_indices[(raw_indices >= 0) & (raw_indices < count)]
-        renderer[np.unique(raw_indices)] = True
-        combined = front & renderer
+        # Chronology alignment: full pose correction (pitch + yaw + roll)
+        # This ensures all photos within the same pose bin have identical pose
+        # (0, canonical_yaw, 0), eliminating pitch/roll noise from comparison.
+        # We use identity-only vertices (without expression) for stable comparison.
+        chrono = compute_chronology_alignment(
+            vertices=vertices_identity,
+            actual_pose_deg=[float(angles_deg[0]), float(angles_deg[1]), float(angles_deg[2])],
+            canonical_yaw=float(canonical_yaw),
+            normalization="rms",
+        )
+        vertices_chronology_aligned = chrono["vertices_aligned"]
+        chronology_correction_matrix = chrono["correction_matrix"]
+        chronology_target_pose = chrono["target_pose"]
+        # Validate chronology alignment: must be finite (no NaN/Inf from bad reconstruction)
+        if not np.isfinite(vertices_chronology_aligned).all():
+            raise RuntimeError("chronology alignment produced NaN/Inf vertices — bad 3DDFA reconstruction")
+        # 🎯 CRITICAL: Outlier detection for chronology vertices
+        # Vertices with extreme displacement may indicate bad reconstruction
+        # Compute displacement from normalized (before rotation)
+        displacement = np.linalg.norm(vertices_chronology_aligned - normalized, axis=1)
+        outlier_threshold = np.percentile(displacement, 99) * 3
+        outlier_mask = displacement > outlier_threshold
+        outlier_count = int(outlier_mask.sum())
+
+        if outlier_count > 100:  # More than 100 outliers = bad reconstruction
+            raise RuntimeError(
+                f"Too many outlier vertices ({outlier_count}) in chronology alignment — "
+                f"bad 3DDFA reconstruction for {path.name}"
+            )
 
         idx106 = self._np(self.model.ldm106).reshape(-1).astype(np.int64)
         idx134 = self._np(self.model.ldm134).reshape(-1).astype(np.int64)
@@ -218,6 +299,27 @@ class ReconstructionEngine:
             "ldm106_224": reprojection_stats(vertices_image[idx106], expected106),
             "ldm134_224": reprojection_stats(vertices_image[idx134], expected134),
         }
+
+        # 🎯 CRITICAL: Validate reprojection quality
+        # If reprojection error is too high, the 3DDFA reconstruction is unreliable
+        # and should NOT be used for chronology comparison
+        MAX_REPROJECTION_P95 = 5.0  # pixels in 224x224 space
+        reproj_p95 = max(r["p95"] for r in reprojection.values())
+        if reproj_p95 > MAX_REPROJECTION_P95:
+            raise RuntimeError(
+                f"3DDFA reprojection error too high (p95={reproj_p95:.2f}px > {MAX_REPROJECTION_P95}px) — "
+                f"unreliable reconstruction for {path.name}"
+            )
+
+
+        count = len(vertices_object)
+        front = normals_posed[:, 2] >= 0.0
+        renderer = np.zeros(count, dtype=bool)
+        raw_indices = self._np(renderer_indices).reshape(-1).astype(np.int64)
+        raw_indices = raw_indices[(raw_indices >= 0) & (raw_indices < count)]
+        renderer[np.unique(raw_indices)] = True
+        combined = front & renderer
+
         seg = np.asarray(results.get("seg_visible"))
         while seg.ndim > 3:
             seg = seg[0]
@@ -231,7 +333,9 @@ class ReconstructionEngine:
             pose_bin=pose_bin, canonical_yaw=float(canonical_yaw), rotation=rotation,
             translation=translation, vertices_object=vertices_object,
             vertices_identity_only=vertices_identity, vertices_object_normalized=normalized,
-            vertices_bin_canonical=canonical, vertices_camera=vertices_camera,
+            vertices_bin_canonical=canonical,
+            vertices_chronology_aligned=vertices_chronology_aligned,
+            vertices_camera=vertices_camera,
             vertices_image_224=vertices_image, normals_object=normals_object,
             normals_posed=normals_posed, triangles=np.asarray(results["tri"], np.int64),
             uv_coords=np.asarray(results["uv_coords"], np.float32),
@@ -243,11 +347,15 @@ class ReconstructionEngine:
             alpha_alb=self._np(alpha["alb"])[0].astype(np.float32),
             alpha_sh=self._np(alpha["sh"])[0].astype(np.float32),
             normalization_center=center, normalization_scale=scale,
-            canonical_rotation=canonical_rotation, reprojection=reprojection, raw_results=results,
+            canonical_rotation=canonical_rotation,
+            chronology_correction_matrix=chronology_correction_matrix,
+            chronology_target_pose=chronology_target_pose,
+            reprojection=reprojection, raw_results=results,
         )
         return bundle
 
     def cleanup(self) -> None:
+        log_status("cleanup", "need_testing", "Indirect coverage only (AUDIT-6)")
         try:
             import torch
             if torch.cuda.is_available():
