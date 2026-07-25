@@ -54,14 +54,14 @@ UV/texture/authenticity/skin исключены по указанию владе
 47. **PASS** — Baseline vectors validate shape
 48. **PASS** — Stage2 evidence maps applicability statuses
 49. **PASS** — Regression suite passes: e: complete
-09:00:09 [INFO] ✅ full_pose_correction_matrix: complete
-09:00:09 [INFO] ✅ reprojection_stats: complete
-09:00:09 [INFO] ✅ apply_chronology_rate_flags: complete
-09:00:09 [INFO] ✅ apply_chronology_rate_flags: complete
-09:00:09 [INFO] ✅ compare_landmarks: complete
-09:00:09 [WARNING] ⚠️ compare_landmarks: Pose bin mismatch: frontal vs right_light
-09:00:09 [INFO] ✅ compare_landmarks: complete
-09:00:09 [INFO] ✅ aligned_point_motion: complete
-09:00:09 [INFO] ✅ aligned_point_motion: complete
+14:52:06 [INFO] ✅ full_pose_correction_matrix: complete
+14:52:06 [INFO] ✅ reprojection_stats: complete
+14:52:06 [INFO] ✅ apply_chronology_rate_flags: complete
+14:52:06 [INFO] ✅ apply_chronology_rate_flags: complete
+14:52:06 [INFO] ✅ compare_landmarks: complete
+14:52:06 [WARNING] ⚠️ compare_landmarks: Pose bin mismatch: frontal vs right_light
+14:52:06 [INFO] ✅ compare_landmarks: complete
+14:52:06 [INFO] ✅ aligned_point_motion: complete
+14:52:06 [INFO] ✅ aligned_point_motion: complete
 
-50. **PASS** — Regression suite breadth: tests=65
+50. **PASS** — Regression suite breadth: tests=70
