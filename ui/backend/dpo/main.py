@@ -74,6 +74,13 @@ def create_app(config_path: str | Path | None = None):
     dataset_registry = DatasetRegistry(settings.datasets)
     photo_index = PhotoIndex(settings.datasets.main_root)
 
+    from .contract import InterfaceContract
+    from .patch_center import PatchCenter
+    from .inspector3d import Inspector3DProvider
+    contract_engine = InterfaceContract()
+    patch_center = PatchCenter(settings.app6_root)
+    inspector_3d = Inspector3DProvider(settings.app6_root)
+
     def _investigate(run_id: str) -> dict | None:
         record = run_manager.get(run_id).to_dict()
         log_lines = [e["payload"].get("text", "") for e in run_manager.events(run_id) if e.get("type") == "log"]
@@ -358,6 +365,38 @@ def create_app(config_path: str | Path | None = None):
     @app.get("/api/calibration/run-groups/{group_id}/verify")
     def api_verify_calibration_run_group(group_id: str) -> dict:
         return {"group_id": group_id, "bundle_intact": calibration_registry.verify_bundle_integrity(group_id)}
+
+    @app.get("/api/contract/spec")
+    def api_contract_spec() -> dict:
+        return contract_engine.get_spec()
+
+    @app.post("/api/contract/validate")
+    def api_contract_validate(payload: dict) -> dict:
+        entity = str(payload.get("entity", ""))
+        data = payload.get("data", {})
+        errors = contract_engine.validate_payload(entity, data)
+        return {"valid": len(errors) == 0, "errors": errors}
+
+    @app.post("/api/patches/export-capsule")
+    def api_patch_export_capsule(payload: dict) -> dict:
+        task_id = str(payload.get("task_id", "task-1"))
+        files = payload.get("files", ["STATUS_AUDIT.py"])
+        raw = patch_center.export_fix_capsule(task_id, files)
+        import base64
+        return {"task_id": task_id, "size_bytes": len(raw), "base64_data": base64.b64encode(raw).decode("utf-8")}
+
+    @app.post("/api/patches/dry-run")
+    def api_patch_dry_run(payload: dict) -> dict:
+        diff = str(payload.get("diff", ""))
+        return patch_center.dry_run_patch(diff)
+
+    @app.get("/api/inspector3d/mesh/{record_id}")
+    def api_inspector_mesh(record_id: str) -> dict:
+        return inspector_3d.get_mesh_preview(record_id)
+
+    @app.get("/api/inspector3d/pair")
+    def api_inspector_pair(record_a: str, record_b: str) -> dict:
+        return inspector_3d.get_pair_comparison(record_a, record_b)
 
     # ── Serve built React frontend ─────────────────────────────────────���
     _frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
