@@ -37,7 +37,7 @@ class Iteration2ContractTest(unittest.TestCase):
   self.assertEqual(_pair_qc_decision(a,b,q,expression_threshold=1.5)['skip_reason'],'expression_too_strong')
  def test_uncalibrated_expression_is_telemetry_not_pair_exclusion(self):
   a=SimpleNamespace(record_id='a');b=SimpleNamespace(record_id='b');q={x:{'status':'available','alignment_quality':.9,'expression_magnitude':6.0,'reason':''} for x in ('a','b')}
-  d=_pair_qc_decision(a,b,q)
+  d=_pair_qc_decision(a,b,q,expression_threshold=None)
   self.assertTrue(d['applicable']);self.assertEqual(d['expression_qc_status'],'uncalibrated');self.assertIsNone(d['threshold'])
  def test_pair_valid_qc_is_applicable(self):
   a=SimpleNamespace(record_id='a');b=SimpleNamespace(record_id='b');q={x:{'status':'available','alignment_quality':.9,'expression_magnitude':.1,'reason':''} for x in ('a','b')}

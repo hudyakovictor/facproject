@@ -51,3 +51,5 @@ export async function verifyCalibrationRunGroup(groupId:string):Promise<{group_i
 
 import type { PosePolicy } from "./types";
 export async function loadPosePolicy():Promise<PosePolicy>{return unwrap<PosePolicy>(await fetch('/api/calibration/pose-policy'))}
+export async function getMeshPreview(recordId:string):Promise<any>{return unwrap<any>(await fetch(`/api/inspector3d/mesh/${recordId}`))}
+export async function getPairComparison(recordA:string,recordB:string):Promise<any>{return unwrap<any>(await fetch(`/api/inspector3d/pair?record_a=${encodeURIComponent(recordA)}&record_b=${encodeURIComponent(recordB)}`))}
