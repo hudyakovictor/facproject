@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 from .health import collect_health
+from .guide import build_guide_status
+from .photos import PhotoIndex
 from .catalog import bind_tests, build_catalog, index_tests, parse_status_audit
 from .canvas import LayoutStore, build_canvas_graph
 from .calibration import CalibrationRegistry, RunHashes, load_pose_bins
@@ -19,7 +23,7 @@ from .feedback import BackupManager, build_capsule, build_spec, classify_failure
 from .indexer import ProjectIndex
 from .indexer.events import ProjectEventHub
 from .indexer.watcher import IndexWatcher
-from .logging import configure_logging
+from .logging import GLOBAL_LOG_BUFFER, configure_logging
 from .settings import ProjectSettings
 
 
@@ -33,6 +37,24 @@ def create_app(config_path: str | Path | None = None):
     settings = ProjectSettings.load(config)
     configure_logging()
     app = FastAPI(title="DEEPUTIN Pipeline Observatory", version="0.1.0", docs_url="/api/docs")
+    http_logger = logging.getLogger("dpo.http")
+
+    @app.middleware("http")
+    async def log_http_request(request, call_next):
+        started = time.perf_counter()
+        request_id = request.headers.get("x-request-id") or f"http-{time.time_ns()}"
+        try:
+            response = await call_next(request)
+        except Exception:
+            elapsed_ms = round((time.perf_counter() - started) * 1000)
+            http_logger.exception("request crashed", extra={"event": "http_exception", "state": f"{request.method} {request.url.path} {elapsed_ms}ms"})
+            raise
+        elapsed_ms = round((time.perf_counter() - started) * 1000)
+        response.headers["x-request-id"] = request_id
+        if request.url.path != "/api/logs":
+            level = logging.WARNING if response.status_code >= 400 or elapsed_ms > 1500 else logging.INFO
+            http_logger.log(level, "%s %s -> %s in %sms", request.method, request.url.path, response.status_code, elapsed_ms, extra={"event": "http_request", "state": request_id})
+        return response
     project_index = ProjectIndex(settings.app6_root)
     project_index.refresh()
     app.state.project_index = project_index
@@ -50,6 +72,7 @@ def create_app(config_path: str | Path | None = None):
     capsule_root = settings.storage.control_root / "capsules"
     calibration_registry = CalibrationRegistry(settings.storage.control_root / "calibration_runs")
     dataset_registry = DatasetRegistry(settings.datasets)
+    photo_index = PhotoIndex(settings.datasets.main_root)
 
     def _investigate(run_id: str) -> dict | None:
         record = run_manager.get(run_id).to_dict()
@@ -96,6 +119,21 @@ def create_app(config_path: str | Path | None = None):
     @app.get("/api/health")
     def api_health() -> dict:
         return collect_health(settings).to_dict()
+
+    @app.get("/api/logs")
+    def api_logs(after: int = 0, limit: int = 500) -> dict:
+        entries = GLOBAL_LOG_BUFFER.since(after, limit)
+        return {"entries": entries, "last_seq": entries[-1]["seq"] if entries else after}
+
+    @app.get("/api/guide/status")
+    def api_guide_status() -> dict:
+        health = collect_health(settings, persist=False).to_dict()
+        photo_snapshot = photo_index.query(limit=1)
+        return build_guide_status(health, run_manager.records.values(), {"photo_index_count": photo_snapshot["summary"]["all_photos"]})
+
+    @app.get("/api/photos")
+    def api_photos(offset: int = 0, limit: int = 500, pose: str | None = None, year_from: int | None = None, year_to: int | None = None) -> dict:
+        return photo_index.query(offset=offset, limit=limit, pose=pose, year_from=year_from, year_to=year_to)
 
     @app.get("/api/system/health")
     def api_system_health() -> dict:
@@ -178,6 +216,20 @@ def create_app(config_path: str | Path | None = None):
     def api_scenario_plan(scenario_id: str, pose: str = "frontal", combinations: int = 1) -> dict:
         return scenario_lab.plan(scenario_id, pose, combinations)
 
+    @app.post("/api/scenarios/plan-maximum")
+    def api_scenario_plan_maximum() -> dict:
+        plan = scenario_lab.maximum_plan()
+        target = settings.storage.control_root / "scenario_plans" / "maximum.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temp = target.with_suffix(".tmp")
+        temp.write_text(__import__("json").dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(target)
+        return {**plan, "saved": True, "saved_path": str(target)}
+
+    @app.get("/api/scenarios/results-maximum")
+    def api_scenario_results_maximum() -> dict:
+        return scenario_lab.maximum_results()
+
     @app.get("/api/runners")
     def api_runners() -> dict:
         return {"runners": [{"id": x.id, "title": x.title, "module": x.module, "fixed_args": list(x.fixed_args), "timeout": x.timeout} for x in runner_registry.list()]}
@@ -185,7 +237,7 @@ def create_app(config_path: str | Path | None = None):
     @app.post("/api/runs")
     def api_start_run(payload: dict) -> dict:
         health = collect_health(settings, persist=False)
-        if health.storage.state != "ready": raise RuntimeError("External heavy storage is not ready")
+        if health.storage.get("state") != "ready": raise RuntimeError("External heavy storage is not ready")
         return run_manager.submit(str(payload.get("runner_id", "")), int(payload.get("seed", 0))).to_dict()
 
     @app.get("/api/runs/{run_id}")
@@ -307,6 +359,22 @@ def create_app(config_path: str | Path | None = None):
     def api_verify_calibration_run_group(group_id: str) -> dict:
         return {"group_id": group_id, "bundle_intact": calibration_registry.verify_bundle_integrity(group_id)}
 
+    # ── Serve built React frontend ─────────────────────────────────────���
+    _frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    if _frontend_dist.is_dir():
+        from fastapi.staticfiles import StaticFiles
+        from starlette.responses import FileResponse
+
+        app.mount("/assets", StaticFiles(directory=str(_frontend_dist / "assets")), name="static-assets")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        def _serve_spa(full_path: str) -> FileResponse:
+            candidate = _frontend_dist / full_path
+            if candidate.is_file():
+                return FileResponse(str(candidate))
+            return FileResponse(str(_frontend_dist / "index.html"))
+
+    # ── WebSockets ──────────────────────────────────────────────────────
     @app.websocket("/ws/runs/{run_id}")
     async def ws_run(websocket, run_id: str) -> None:
         await websocket.accept(); seq = 0

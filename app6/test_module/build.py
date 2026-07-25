@@ -77,6 +77,8 @@ def build_scenario(scn: dict, pool: list[dict], plan_only: bool = False) -> dict
         else:
             picked = picker.pick_extremes(person, yaw, count, require_photo=not plan_only)
         for k, r in enumerate(picked):
+            if start + k >= len(scn["frames"]):
+                break
             fs = scn["frames"][start + k]
             expected_bin = target_pose_bin(float(fs["yaw"]))
             if r["pose_bin"] != expected_bin:

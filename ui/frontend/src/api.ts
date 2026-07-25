@@ -1,6 +1,10 @@
-import type { CatalogResponse, ProjectHealth, SourceResponse } from "./types";
-async function unwrap<T>(r:Response):Promise<T>{if(!r.ok){let detail='';try{const body=await r.json();detail=(body&&typeof body.detail==='string')?body.detail:''}catch{}throw new Error(detail||`API error ${r.status}`)}return await r.json() as T}
+import type { BackendLogPage, CatalogResponse, GuideStatus, PhotoIndexResponse, ProjectHealth, SourceResponse } from "./types";
+import { uiLog } from "./logStore";
+async function unwrap<T>(r:Response):Promise<T>{if(!r.ok){let detail='';try{const body=await r.json();detail=(body&&typeof body.detail==='string')?body.detail:''}catch{}const message=detail||`API error ${r.status}`;if(!r.url.includes('/api/logs'))uiLog('error','api',`${r.url.replace(window.location.origin,'')} → ${message}`);throw new Error(message)}return await r.json() as T}
+export async function loadLogs(after=0):Promise<BackendLogPage>{return unwrap<BackendLogPage>(await fetch(`/api/logs?after=${after}`))}
 export async function loadHealth(signal?:AbortSignal):Promise<ProjectHealth>{return unwrap<ProjectHealth>(await fetch("/api/health",{signal}))}
+export async function loadGuideStatus():Promise<GuideStatus>{return unwrap<GuideStatus>(await fetch("/api/guide/status"))}
+export async function loadPhotos(filters:{offset?:number;limit?:number;pose?:string;yearFrom?:number;yearTo?:number}={}):Promise<PhotoIndexResponse>{const q=new URLSearchParams();q.set('offset',String(filters.offset??0));q.set('limit',String(filters.limit??2000));if(filters.pose)q.set('pose',filters.pose);if(filters.yearFrom!=null)q.set('year_from',String(filters.yearFrom));if(filters.yearTo!=null)q.set('year_to',String(filters.yearTo));return unwrap<PhotoIndexResponse>(await fetch(`/api/photos?${q}`))}
 export async function loadCatalog(signal?:AbortSignal):Promise<CatalogResponse>{return unwrap<CatalogResponse>(await fetch("/api/catalog",{signal}))}
 export async function loadSource(path:string,lineStart:number,lineEnd:number):Promise<SourceResponse>{const query=new URLSearchParams({path,line_start:String(lineStart),line_end:String(lineEnd)});return unwrap<SourceResponse>(await fetch(`/api/source?${query}`))}
 
@@ -16,9 +20,11 @@ export async function loadRun(id:string):Promise<RunRecord>{return unwrap<RunRec
 export async function loadRunEvents(id:string):Promise<RunEvent[]>{return (await unwrap<{events:RunEvent[]}>(await fetch(`/api/runs/${id}/events`))).events}
 export async function cancelRun(id:string):Promise<void>{await unwrap<unknown>(await fetch(`/api/runs/${id}/cancel`,{method:'POST'}))}
 
-import type { Scenario,ScenarioPlan } from './types';
+import type { Scenario,ScenarioMaximumPlan,ScenarioMaximumResults,ScenarioPlan } from './types';
 export async function loadScenarios():Promise<Scenario[]>{return (await unwrap<{scenarios:Scenario[]}>(await fetch('/api/scenarios'))).scenarios}
 export async function loadScenarioPlan(id:string,pose:string,combinations:number):Promise<ScenarioPlan>{const q=new URLSearchParams({scenario_id:id,pose,combinations:String(combinations)});return unwrap<ScenarioPlan>(await fetch(`/api/scenarios/plan?${q}`))}
+export async function createMaximumScenarioPlan():Promise<ScenarioMaximumPlan>{return unwrap<ScenarioMaximumPlan>(await fetch('/api/scenarios/plan-maximum',{method:'POST'}))}
+export async function loadMaximumScenarioResults():Promise<ScenarioMaximumResults>{return unwrap<ScenarioMaximumResults>(await fetch('/api/scenarios/results-maximum'))}
 
 import type { BackupManifest,Capsule,Investigation,IsolatedPatchResult,RevertResult } from './types';
 export async function loadInvestigation(runId:string):Promise<Investigation>{return unwrap<Investigation>(await fetch(`/api/runs/${runId}/investigation`))}

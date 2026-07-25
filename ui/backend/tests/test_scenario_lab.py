@@ -10,6 +10,10 @@ class ScenarioLabTests(unittest.TestCase):
  def test_rejects_unbounded_input(self):
   with self.assertRaises(ValueError):self.lab.plan('../x','all',7)
   with self.assertRaises(ValueError):self.lab.plan('S01_stability_frontal_A','frontal',2)
+ def test_maximum_plan_covers_all_21_by_9_by_7(self):
+  p=self.lab.maximum_plan();self.assertEqual(p['scenario_count'],21);self.assertEqual(p['pose_count'],9);self.assertEqual(p['combination_count'],7);self.assertEqual(p['case_count'],1323);self.assertIn('not a passed test',p['claim_boundary'])
+ def test_maximum_results_is_explicitly_not_run_without_check_files(self):
+  r=self.lab.maximum_results();self.assertEqual(r['expected_total'],1323);self.assertEqual(r['overall_state'],'not_run');self.assertEqual(r['passed'],0);self.assertEqual(r['not_run'],1323)
  def test_function_matrix_and_synthetic_boundary(self):
   self.assertGreaterEqual(len(self.lab.function_matrix()),11);self.assertIn('not accuracy',self.lab.synthetic()['claim_boundary'])
  def test_fresh5_never_emits_coordinates(self):

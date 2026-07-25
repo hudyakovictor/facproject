@@ -1,0 +1,89 @@
+{
+ "scenario": {
+  "id": "S14_rapid_control_same_p08_v04",
+  "block": "rate",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "Один человек через 3 дня — контроль ложного rapid",
+  "person_set": {
+   "A": "person_05",
+   "A2": "person_06",
+   "B": "person_06",
+   "C": "person_07",
+   "D": "person_01"
+  },
+  "frames": [
+   {
+    "person": "person_05",
+    "yaw": 45.0,
+    "date": "2004_05_01",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   },
+   {
+    "person": "person_05",
+    "yaw": 45.0,
+    "date": "2004_05_04",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_absent",
+    "statuses": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate"
+    ]
+   },
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 4,
+  "combo_no": 5,
+  "base_id": "S14_rapid_control_same",
+  "pose_no": 8,
+  "pose_bin": "right_deep",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_05",
+   "tag": "p05f000361",
+   "record_id": "frame_000361",
+   "yaw_target": 45.0,
+   "yaw_actual": 43.4369010925293,
+   "date": "2004_05_01",
+   "pose_bin_target": "right_deep",
+   "pose_bin_actual": "right_deep",
+   "date_iso": "2004-05-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000361.jpg",
+   "filename": "2004_05_01.jpg",
+   "stem": "2004_05_01"
+  },
+  {
+   "n": 2,
+   "person": "person_05",
+   "tag": "p05f000366",
+   "record_id": "frame_000366",
+   "yaw_target": 45.0,
+   "yaw_actual": 47.72779083251953,
+   "date": "2004_05_04",
+   "pose_bin_target": "right_deep",
+   "pose_bin_actual": "right_deep",
+   "date_iso": "2004-05-04",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000366.jpg",
+   "filename": "2004_05_04.jpg",
+   "stem": "2004_05_04"
+  }
+ ],
+ "planned_only": false
+}

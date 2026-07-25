@@ -1,0 +1,89 @@
+{
+ "scenario": {
+  "id": "S14_rapid_control_same_p04_v02",
+  "block": "rate",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "Один человек через 3 дня — контроль ложного rapid",
+  "person_set": {
+   "A": "person_03",
+   "A2": "person_04",
+   "B": "person_04",
+   "C": "person_05",
+   "D": "person_06"
+  },
+  "frames": [
+   {
+    "person": "person_03",
+    "yaw": -17.5,
+    "date": "2004_05_01",
+    "group": "auto",
+    "pose_no": 4,
+    "pose_bin_requested": "left_light"
+   },
+   {
+    "person": "person_03",
+    "yaw": -17.5,
+    "date": "2004_05_04",
+    "group": "auto",
+    "pose_no": 4,
+    "pose_bin_requested": "left_light"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_absent",
+    "statuses": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate"
+    ]
+   },
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 2,
+  "combo_no": 3,
+  "base_id": "S14_rapid_control_same",
+  "pose_no": 4,
+  "pose_bin": "left_light",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_03",
+   "tag": "p03f000108",
+   "record_id": "frame_000108",
+   "yaw_target": -17.5,
+   "yaw_actual": -12.065147399902344,
+   "date": "2004_05_01",
+   "pose_bin_target": "left_light",
+   "pose_bin_actual": "left_light",
+   "date_iso": "2004-05-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000108.jpg",
+   "filename": "2004_05_01.jpg",
+   "stem": "2004_05_01"
+  },
+  {
+   "n": 2,
+   "person": "person_03",
+   "tag": "p03f000112",
+   "record_id": "frame_000112",
+   "yaw_target": -17.5,
+   "yaw_actual": -19.27184295654297,
+   "date": "2004_05_04",
+   "pose_bin_target": "left_light",
+   "pose_bin_actual": "left_light",
+   "date_iso": "2004-05-04",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000112.jpg",
+   "filename": "2004_05_04.jpg",
+   "stem": "2004_05_04"
+  }
+ ],
+ "planned_only": false
+}

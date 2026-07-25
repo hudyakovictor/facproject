@@ -37,6 +37,33 @@ class CheckNoPairsRegressionTest(unittest.TestCase):
         self.assertIn("contains no measured pairs", no_red_pairs["detail"])
         self.assertIn("expression_too_strong", no_red_pairs["detail"])
 
+    def test_limited_red_pair_blocks_instead_of_failing(self) -> None:
+        manifest = {
+            "scenario": {"id": "limited-red", "expect": [{"type": "no_red_pairs"}]},
+            "frames": [{"n": 1, "tag": "p05f000001"}, {"n": 2, "tag": "p05f000002"}],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            stage2 = Path(tmp) / "stage2"
+            stage2.mkdir()
+            (stage2 / "analysis_validation.json").write_text(
+                json.dumps({"status": "complete", "errors": []}), encoding="utf-8"
+            )
+            (stage2 / "pair_metrics.csv").write_text(
+                "status,evidence_state,quality_limited,photo_a,photo_b\n"
+                "coherent_jump_candidate,quality_limited,True,p05f000001,p05f000002\n",
+                encoding="utf-8",
+            )
+            (stage2 / "skipped_pairs.csv").write_text(
+                "skip_reason,photo_a,photo_b\n", encoding="utf-8"
+            )
+            result = run_checks(manifest, Path(tmp))
+
+        self.assertEqual(result["outcome"], "blocked")
+        self.assertTrue(result["blocked"])
+        self.assertFalse(result["passed"])
+        no_red = next(item for item in result["checks"] if item["check"] == "no_red_pairs")
+        self.assertEqual(no_red["state"], "blocked")
+
 
 if __name__ == "__main__":
     unittest.main()

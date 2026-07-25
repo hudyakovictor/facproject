@@ -7,6 +7,8 @@ from app6.stage2.engine import _record_qc,_pair_qc_decision
 from app6.stage2.evidence import evidence_state,alternative_reasons
 from app6.stage2.technical_summary import build_technical_summary
 from app6.stage2b.engine import WEAK_STATES,NO_SUPPORT_STATES,UNCLASSIFIED_EVIDENCE_STATES
+from app6.test_module.fast_assemble import _reset_directory
+from app6.stage1.utils import json_ready
 
 class Iteration2ContractTest(unittest.TestCase):
  def record(self,root:Path,rid:str):
@@ -30,12 +32,27 @@ class Iteration2ContractTest(unittest.TestCase):
  def test_pair_low_alignment_is_excluded(self):
   a=SimpleNamespace(record_id='a');b=SimpleNamespace(record_id='b');q={x:{'status':'available','alignment_quality':.9,'expression_magnitude':.1,'reason':''} for x in ('a','b')};q['b']['alignment_quality']=.4
   self.assertEqual(_pair_qc_decision(a,b,q)['skip_reason'],'alignment_quality_low')
- def test_pair_expression_is_excluded(self):
+ def test_pair_expression_is_excluded_only_with_calibrated_threshold(self):
   a=SimpleNamespace(record_id='a');b=SimpleNamespace(record_id='b');q={x:{'status':'available','alignment_quality':.9,'expression_magnitude':.1,'reason':''} for x in ('a','b')};q['b']['expression_magnitude']=1.6
-  self.assertEqual(_pair_qc_decision(a,b,q)['skip_reason'],'expression_too_strong')
+  self.assertEqual(_pair_qc_decision(a,b,q,expression_threshold=1.5)['skip_reason'],'expression_too_strong')
+ def test_uncalibrated_expression_is_telemetry_not_pair_exclusion(self):
+  a=SimpleNamespace(record_id='a');b=SimpleNamespace(record_id='b');q={x:{'status':'available','alignment_quality':.9,'expression_magnitude':6.0,'reason':''} for x in ('a','b')}
+  d=_pair_qc_decision(a,b,q)
+  self.assertTrue(d['applicable']);self.assertEqual(d['expression_qc_status'],'uncalibrated');self.assertIsNone(d['threshold'])
  def test_pair_valid_qc_is_applicable(self):
   a=SimpleNamespace(record_id='a');b=SimpleNamespace(record_id='b');q={x:{'status':'available','alignment_quality':.9,'expression_magnitude':.1,'reason':''} for x in ('a','b')}
   self.assertTrue(_pair_qc_decision(a,b,q)['applicable'])
+ def test_expression_qc_limitation_is_explicit(self):
+  self.assertIn('expression_qc_uncalibrated',alternative_reasons({'expression_qc_status':'uncalibrated'}))
+ def test_fast_stage1_reset_removes_stale_tree(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/'stage1';(path/'nested').mkdir(parents=True);(path/'nested'/'stale.txt').write_text('stale')
+   _reset_directory(path)
+   self.assertTrue(path.is_dir());self.assertEqual(list(path.iterdir()),[])
+ def test_strict_evidence_json_converts_nonfinite_to_null(self):
+  payload=json_ready({'chronology_rate_z':float('nan'),'nested':[float('inf'),1.0]})
+  encoded=json.dumps(payload,allow_nan=False)
+  self.assertEqual(json.loads(encoded),{'chronology_rate_z':None,'nested':[None,1.0]})
  def test_evidence_downgrades_for_calibration(self):
   self.assertEqual(evidence_state('coherent_jump_candidate',calibration_limited=True),'calibration_limited')
  def test_evidence_downgrades_for_pose_leakage(self):

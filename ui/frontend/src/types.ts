@@ -17,6 +17,9 @@ export interface RunEvent{schema:string;seq:number;ts:string;type:string;payload
 
 export interface Scenario{id:string;block:string;priority:string;mode:string;description:string;frame_count:number;source:string}
 export interface ScenarioPlan{scenario_id:string;pose:string;poses:{pose_no:number;pose_bin:string}[];combinations:{combo_no:number;roles:Record<string,string>}[];case_count:number;synthetic_disclaimer:string}
+export interface ScenarioMaximumPlan{schema:string;profile:"MAXIMUM";scenario_count:number;pose_count:number;combination_count:number;case_count:number;scenarios:{id:string;block:string;priority:string;description:string;case_count:number}[];poses:{pose_no:number;pose_bin:string}[];claim_boundary:string;saved?:boolean;saved_path?:string}
+export interface ScenarioResultGroup{scenario_id:string;expected:number;passed:number;failed:number;not_run:number;state:"passed"|"failed"|"incomplete"|"not_run"}
+export interface ScenarioMaximumResults{schema:string;profile:"MAXIMUM";overall_state:"passed"|"failed"|"incomplete"|"not_run";expected_total:number;passed:number;failed:number;not_run:number;groups:ScenarioResultGroup[];failed_cases:{scenario_id:string;passed:boolean;failed_checks:string[];path:string;modified_ns:number}[];extra_result_count:number;pass_definition:string}
 
 export interface SuspectedFunction{code:string;what:string;status:string}
 export interface FixSpec{schema:string;priority:string;category:string;title:string;human_summary:string;technical_summary:string;reproduction:{runner_id:string|null;run_id:string|null;seed:number|null;scenario_id:string|null;code_hash:string|null};suspected_functions:SuspectedFunction[];acceptance_criteria:string[];created_at:string}
@@ -35,6 +38,15 @@ export interface TimelineState{completed:TimelineSpan[];active:TimelineSpan[];pe
 export interface RunHashesInput{dataset_hash:string;code_hash:string;model_hash:string;config_hash:string}
 export interface CalibrationMember{run_id:string;role:string;hashes:RunHashesInput;registered_at:string}
 export interface CalibrationRunGroup{schema:string;id:string;status:string;members:Record<string,CalibrationMember>;missing_roles:string[];created_at:string;updated_at:string;approved_at:string|null;approved_by:string|null;rejected_reason:string|null;trusted_table:Record<string,unknown>|null;bundle_hash:string|null}
+
+export interface BackendLogEntry{seq:number;ts?:string;level?:string;logger?:string;message?:string;event?:string;run_id?:string}
+export interface BackendLogPage{entries:BackendLogEntry[];last_seq:number}
+
+export interface GuideStep{id:string;phase:string;title:string;purpose:string;status:"complete"|"current"|"locked";action:"refresh"|"run"|"development"|"locked"|"none";action_label:string|null;runner_id:string|null;blocking_reason:string|null;evidence:string|null}
+export interface GuideStatus{schema:string;mode:"guided";current_step_id:string|null;completed:number;total:number;foundation_complete:boolean;analysis_unlocked:boolean;steps:GuideStep[]}
+
+export interface PhotoRecord{id:string;relative_path:string;filename:string;date:string|null;year:number|null;sequence:number;pose_bin_hint:string;pose_hint_source:string;size_bytes:number;modified_ns:number;processing_status:string;issues:string[]}
+export interface PhotoIndexResponse{schema:string;read_only:boolean;root:string;total:number;offset:number;limit:number;items:PhotoRecord[];summary:{all_photos:number;dated:number;undated:number;year_min:number|null;year_max:number|null;pose_counts:Record<string,number>;pose_values_are_hints:boolean}}
 
 export interface PosePolicyBin{name:string;code:string;yaw_min:number;yaw_max:number;canonical_yaw:number}
 export interface PosePolicy{bins:PosePolicyBin[];source:string;note:string}

@@ -1,0 +1,26 @@
+{
+ "scenario_id": "S04_fdr_stress_A_p05_v00",
+ "outcome": "failed",
+ "passed": false,
+ "blocked": false,
+ "checks": [
+  {
+   "check": "pipeline_complete",
+   "ok": true,
+   "state": "passed",
+   "detail": ""
+  },
+  {
+   "check": "no_red_pairs",
+   "ok": false,
+   "state": "blocked",
+   "detail": "{'blocked_limited_candidates': [(1, 3, 'coherent_jump_candidate', 'pose_leakage_limited'), (1, 11, 'coherent_jump_candidate', 'pose_leakage_limited'), (1, 12, 'coherent_jump_candidate', 'pose_leakage_limited'), (1, 13, 'coherent_jump_candidate', 'pose_leakage_limited'), (1, 14, 'coherent_jump_candidate', 'pose_leakage_limited'), (13, 14, 'coherent_jump_candidate', 'pose_leakage_limited')]}"
+  },
+  {
+   "check": "fdr_significant_fraction_max",
+   "ok": false,
+   "state": "failed",
+   "detail": "significant=15/25 frac=0.600"
+  }
+ ]
+}

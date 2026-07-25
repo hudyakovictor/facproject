@@ -6,6 +6,8 @@ from __future__ import annotations
 import csv
 import json
 import shutil
+import time
+import uuid
 from pathlib import Path
 
 
@@ -13,6 +15,30 @@ def _read_csv(p: Path):
     with p.open(encoding="utf-8") as f:
         rd = csv.DictReader(f)
         return list(rd), list(rd.fieldnames or [])
+
+
+def _reset_directory(path: Path) -> None:
+    """Atomically move a stale output aside, then remove it with retries.
+
+    macOS metadata/indexing can briefly recreate or hold files while rmtree is
+    walking a tree. Renaming first prevents stale content from contaminating a
+    new run and makes cleanup deterministic.
+    """
+    if path.exists():
+        stale = path.with_name(f"{path.name}.deleting-{uuid.uuid4().hex}")
+        path.replace(stale)
+        last_error: OSError | None = None
+        for attempt in range(4):
+            try:
+                shutil.rmtree(stale)
+                last_error = None
+                break
+            except OSError as exc:
+                last_error = exc
+                time.sleep(0.05 * (attempt + 1))
+        if stale.exists():
+            raise RuntimeError(f"cannot clean stale Stage 1 directory after retries: {stale}") from last_error
+    path.mkdir(parents=True, exist_ok=False)
 
 
 def assemble(manifest: dict, cache_stage1: Path, out_stage1: Path) -> None:
@@ -23,9 +49,7 @@ def assemble(manifest: dict, cache_stage1: Path, out_stage1: Path) -> None:
         for fr in manifest["frames"]:
             if fr["tag"] in pid:
                 by_tag.setdefault(fr["tag"], row)
-    if out_stage1.exists():
-        shutil.rmtree(out_stage1)
-    out_stage1.mkdir(parents=True)
+    _reset_directory(out_stage1)
     new_rows = []
     for fr in manifest["frames"]:
         crow = by_tag.get(fr["tag"])

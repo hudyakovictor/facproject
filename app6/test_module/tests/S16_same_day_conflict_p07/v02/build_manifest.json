@@ -1,0 +1,85 @@
+{
+ "scenario": {
+  "id": "S16_same_day_conflict_p07_v02",
+  "block": "same_day",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "A и B в один день — структурный конфликт обязан сработать",
+  "person_set": {
+   "A": "person_03",
+   "A2": "person_04",
+   "B": "person_04",
+   "C": "person_05",
+   "D": "person_06"
+  },
+  "frames": [
+   {
+    "person": "person_03",
+    "yaw": 32.5,
+    "date": "2003_06_15",
+    "group": "auto",
+    "pose_no": 7,
+    "pose_bin_requested": "right_mid"
+   },
+   {
+    "person": "person_04",
+    "yaw": 32.5,
+    "date": "2003_06_15",
+    "group": "auto",
+    "pose_no": 7,
+    "pose_bin_requested": "right_mid"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_present",
+    "any_of": [
+     "same_day_structural_conflict"
+    ]
+   }
+  ],
+  "variant": 2,
+  "combo_no": 3,
+  "base_id": "S16_same_day_conflict",
+  "pose_no": 7,
+  "pose_bin": "right_mid",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_03",
+   "tag": "p03f000082",
+   "record_id": "frame_000082",
+   "yaw_target": 32.5,
+   "yaw_actual": 31.66045570373535,
+   "date": "2003_06_15",
+   "pose_bin_target": "right_mid",
+   "pose_bin_actual": "right_mid",
+   "date_iso": "2003-06-15",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000082.jpg",
+   "filename": "2003_06_15.jpg",
+   "stem": "2003_06_15"
+  },
+  {
+   "n": 2,
+   "person": "person_04",
+   "tag": "p04f000121",
+   "record_id": "frame_000121",
+   "yaw_target": 32.5,
+   "yaw_actual": 33.07732391357422,
+   "date": "2003_06_15",
+   "pose_bin_target": "right_mid",
+   "pose_bin_actual": "right_mid",
+   "date_iso": "2003-06-15",
+   "seq": 2,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000121.jpg",
+   "filename": "2003_06_15_2.jpg",
+   "stem": "2003_06_15_2"
+  }
+ ],
+ "planned_only": false
+}

@@ -1,0 +1,89 @@
+{
+ "scenario": {
+  "id": "S12_rapid_change_p05_v03",
+  "block": "rate",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "A→B за 3 дня — биологически невероятная скорость",
+  "person_set": {
+   "A": "person_04",
+   "A2": "person_05",
+   "B": "person_05",
+   "C": "person_06",
+   "D": "person_07"
+  },
+  "frames": [
+   {
+    "person": "person_04",
+    "yaw": 0.0,
+    "date": "2004_05_01",
+    "group": "auto",
+    "pose_no": 5,
+    "pose_bin_requested": "frontal"
+   },
+   {
+    "person": "person_05",
+    "yaw": 0.0,
+    "date": "2004_05_04",
+    "group": "auto",
+    "pose_no": 5,
+    "pose_bin_requested": "frontal"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_present",
+    "any_of": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate",
+     "coherent_jump_candidate",
+     "alpha_id_jump_candidate",
+     "persistent_geometric_change"
+    ]
+   }
+  ],
+  "variant": 3,
+  "combo_no": 4,
+  "base_id": "S12_rapid_change",
+  "pose_no": 5,
+  "pose_bin": "frontal",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_04",
+   "tag": "p04f000164",
+   "record_id": "frame_000164",
+   "yaw_target": 0.0,
+   "yaw_actual": 0.1044600531458854,
+   "date": "2004_05_01",
+   "pose_bin_target": "frontal",
+   "pose_bin_actual": "frontal",
+   "date_iso": "2004-05-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000164.jpg",
+   "filename": "2004_05_01.jpg",
+   "stem": "2004_05_01"
+  },
+  {
+   "n": 2,
+   "person": "person_05",
+   "tag": "p05f000339",
+   "record_id": "frame_000339",
+   "yaw_target": 0.0,
+   "yaw_actual": -0.3221949338912964,
+   "date": "2004_05_04",
+   "pose_bin_target": "frontal",
+   "pose_bin_actual": "frontal",
+   "date_iso": "2004-05-04",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000339.jpg",
+   "filename": "2004_05_04.jpg",
+   "stem": "2004_05_04"
+  }
+ ],
+ "planned_only": false
+}

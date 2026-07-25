@@ -1,0 +1,89 @@
+{
+ "scenario": {
+  "id": "S12_rapid_change_p01_v03",
+  "block": "rate",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "A→B за 3 дня — биологически невероятная скорость",
+  "person_set": {
+   "A": "person_04",
+   "A2": "person_05",
+   "B": "person_05",
+   "C": "person_06",
+   "D": "person_07"
+  },
+  "frames": [
+   {
+    "person": "person_04",
+    "yaw": -70.0,
+    "date": "2004_05_01",
+    "group": "auto",
+    "pose_no": 1,
+    "pose_bin_requested": "left_profile"
+   },
+   {
+    "person": "person_05",
+    "yaw": -70.0,
+    "date": "2004_05_04",
+    "group": "auto",
+    "pose_no": 1,
+    "pose_bin_requested": "left_profile"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_present",
+    "any_of": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate",
+     "coherent_jump_candidate",
+     "alpha_id_jump_candidate",
+     "persistent_geometric_change"
+    ]
+   }
+  ],
+  "variant": 3,
+  "combo_no": 4,
+  "base_id": "S12_rapid_change",
+  "pose_no": 1,
+  "pose_bin": "left_profile",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_04",
+   "tag": "p04f000242",
+   "record_id": "frame_000242",
+   "yaw_target": -70.0,
+   "yaw_actual": -62.51227951049805,
+   "date": "2004_05_01",
+   "pose_bin_target": "left_profile",
+   "pose_bin_actual": "left_profile",
+   "date_iso": "2004-05-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000242.jpg",
+   "filename": "2004_05_01.jpg",
+   "stem": "2004_05_01"
+  },
+  {
+   "n": 2,
+   "person": "person_05",
+   "tag": "p05f000302",
+   "record_id": "frame_000302",
+   "yaw_target": -70.0,
+   "yaw_actual": -52.54779815673828,
+   "date": "2004_05_04",
+   "pose_bin_target": "left_profile",
+   "pose_bin_actual": "left_profile",
+   "date_iso": "2004-05-04",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_05/frame_000302.jpg",
+   "filename": "2004_05_04.jpg",
+   "stem": "2004_05_04"
+  }
+ ],
+ "planned_only": false
+}
