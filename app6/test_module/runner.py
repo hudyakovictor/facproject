@@ -48,6 +48,13 @@ def _run(args: list) -> None:
     subprocess.run(cmd, check=True, cwd=str(WORK_ROOT), env=env)
 
 
+def _result_label(res: dict) -> str:
+    outcome = str(res.get("outcome") or ("passed" if res.get("passed") else "failed"))
+    if outcome == "blocked":
+        return "🟡 BLOCKED "
+    return "✅ PASS " if outcome == "passed" else "❌ FAIL "
+
+
 def _load_scenarios(only: str | None = None, variant: int | None = None) -> list[dict]:
     out = []
     for p in sorted(SCENARIOS_DIR.glob("*.json")):
@@ -92,9 +99,30 @@ def cmd_cache(run: bool, device: str) -> None:
     print(f"в кэш-входе {len(seen)} уникальных кадров; нет фото для {missing}")
     if missing:
                 print("⚠️ часть фото ещё не выложена в calibration_dataset/photos/")
-    if run and seen:
+    # Check if Stage1 cache is already complete — skip re-running if so
+    stage1_dir = CACHE_DIR / "stage1"
+    stage1_complete = stage1_dir.is_dir()
+    if run and seen and stage1_complete:
+        # Stage1 stores output in subdirs named {DUMMY_DATE}_{tag}__{hash}
+        # seen keys are tags without date prefix; build the expected prefix
+        existing_prefixes: set[str] = set()
+        for d in stage1_dir.iterdir():
+            if d.is_dir() and "__" in d.name:
+                existing_prefixes.add(d.name.split("__")[0])
+        missing_npz = []
+        for tag in seen:
+            expected_prefix = f"{DUMMY_DATE}_{tag}"
+            if expected_prefix not in existing_prefixes:
+                missing_npz.append(tag)
+        if missing_npz:
+            print(f"⚠️ Stage1 cache incomplete: {len(missing_npz)}/{len(seen)} кадров без npz — запуск Stage1")
+            _run([APP6_DIR / "run_stage1.py", "--project-root", WORK_ROOT, "--input", inp,
+                  "--output", stage1_dir, "--device", device])
+        else:
+            print(f"✅ Stage1 cache полный ({len(seen)}/{len(seen)}), пропускаем перезапуск")
+    elif run and seen:
         _run([APP6_DIR / "run_stage1.py", "--project-root", WORK_ROOT, "--input", inp,
-              "--output", CACHE_DIR / "stage1", "--device", device])
+              "--output", stage1_dir, "--device", device])
     elif run:
         print("запуск stage1 пропущен — нет ни одного фото")
 
@@ -128,6 +156,7 @@ def cmd_execute(scenario: str, pose: str, combinations: int, stage: str, mode: s
         # Stage2+ uses FAST assembly from the shared Stage1 cache.
         cmd_cache(True, device)
     failures = 0
+    blocked = 0
     for s in selected:
         try:
             if check_only:
@@ -140,12 +169,16 @@ def cmd_execute(scenario: str, pose: str, combinations: int, stage: str, mode: s
                     continue
                 res = checkmod.run_checks(json.loads(mp.read_text(encoding="utf-8")), rdir)
                 (rdir / "check_result.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
-                print(("✅ PASS " if res["passed"] else "❌ FAIL ") + s["id"])
+                print(_result_label(res) + s["id"])
             elif stage in {"2", "2b", "3", "all"}:
                 res = _pipeline_one(s["id"], mode, device)
             else:
                 res = {"passed": True}
-            if not res.get("passed", False):
+            if res.get("outcome") == "blocked":
+                blocked += 1
+                if fail_fast:
+                    break
+            elif not res.get("passed", False):
                 failures += 1
                 if fail_fast:
                     break
@@ -154,8 +187,8 @@ def cmd_execute(scenario: str, pose: str, combinations: int, stage: str, mode: s
             failures += 1
             if fail_fast:
                 break
-    print(f"SUMMARY cases={len(selected)} failures={failures}")
-    return 1 if failures else 0
+    print(f"SUMMARY cases={len(selected)} failures={failures} blocked={blocked}")
+    return 1 if failures else (2 if blocked else 0)
 
 
 def _pipeline_one(tid: str, mode: str, device: str) -> dict:
@@ -182,7 +215,7 @@ def _pipeline_one(tid: str, mode: str, device: str) -> dict:
             print(f"⚠️ некритичная стадия упала: {e}")
     res = checkmod.run_checks(manifest, rdir)
     (rdir / "check_result.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(("✅ PASS " if res["passed"] else "❌ FAIL ") + tid)
+    print(_result_label(res) + tid)
     return res
 
 

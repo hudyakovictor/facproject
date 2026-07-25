@@ -1,0 +1,207 @@
+{
+ "scenario": {
+  "id": "S03_stability_all_poses_A_p06_v02",
+  "block": "stability",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "Один человек во всех ракурсах — проверка отсутствия утечки позы",
+  "person_set": {
+   "A": "person_03",
+   "A2": "person_04",
+   "B": "person_04",
+   "C": "person_05",
+   "D": "person_06"
+  },
+  "frames": [
+   {
+    "person": "person_03",
+    "yaw": 17.5,
+    "date": "2002_01_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_03",
+    "yaw": 0.0,
+    "date": "2002_02_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_03",
+    "yaw": 32.5,
+    "date": "2002_03_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_03",
+    "yaw": -32.5,
+    "date": "2002_04_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_03",
+    "yaw": 70.0,
+    "date": "2002_05_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_03",
+    "yaw": -45.0,
+    "date": "2002_06_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_03",
+    "yaw": 70.0,
+    "date": "2002_07_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   }
+  ],
+  "expect": [
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 2,
+  "combo_no": 3,
+  "base_id": "S03_stability_all_poses_A",
+  "pose_no": 6,
+  "pose_bin": "right_light",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_03",
+   "tag": "p03f000087",
+   "record_id": "frame_000087",
+   "yaw_target": 17.5,
+   "yaw_actual": 17.939889907836914,
+   "date": "2002_01_10",
+   "pose_bin_target": "right_light",
+   "pose_bin_actual": "right_light",
+   "date_iso": "2002-01-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000087.jpg",
+   "filename": "2002_01_10.jpg",
+   "stem": "2002_01_10"
+  },
+  {
+   "n": 2,
+   "person": "person_03",
+   "tag": "p03f000101",
+   "record_id": "frame_000101",
+   "yaw_target": 0.0,
+   "yaw_actual": -0.5264402031898499,
+   "date": "2002_02_10",
+   "pose_bin_target": "frontal",
+   "pose_bin_actual": "frontal",
+   "date_iso": "2002-02-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000101.jpg",
+   "filename": "2002_02_10.jpg",
+   "stem": "2002_02_10"
+  },
+  {
+   "n": 3,
+   "person": "person_03",
+   "tag": "p03f000082",
+   "record_id": "frame_000082",
+   "yaw_target": 32.5,
+   "yaw_actual": 31.66045570373535,
+   "date": "2002_03_10",
+   "pose_bin_target": "right_mid",
+   "pose_bin_actual": "right_mid",
+   "date_iso": "2002-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000082.jpg",
+   "filename": "2002_03_10.jpg",
+   "stem": "2002_03_10"
+  },
+  {
+   "n": 4,
+   "person": "person_03",
+   "tag": "p03f000117",
+   "record_id": "frame_000117",
+   "yaw_target": -32.5,
+   "yaw_actual": -34.701019287109375,
+   "date": "2002_04_10",
+   "pose_bin_target": "left_mid",
+   "pose_bin_actual": "left_mid",
+   "date_iso": "2002-04-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000117.jpg",
+   "filename": "2002_04_10.jpg",
+   "stem": "2002_04_10"
+  },
+  {
+   "n": 5,
+   "person": "person_03",
+   "tag": "p03f000057",
+   "record_id": "frame_000057",
+   "yaw_target": 70.0,
+   "yaw_actual": 73.22955322265625,
+   "date": "2002_05_10",
+   "pose_bin_target": "right_profile",
+   "pose_bin_actual": "right_profile",
+   "date_iso": "2002-05-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000057.jpg",
+   "filename": "2002_05_10.jpg",
+   "stem": "2002_05_10"
+  },
+  {
+   "n": 6,
+   "person": "person_03",
+   "tag": "p03f000120",
+   "record_id": "frame_000120",
+   "yaw_target": -45.0,
+   "yaw_actual": -46.774139404296875,
+   "date": "2002_06_10",
+   "pose_bin_target": "left_deep",
+   "pose_bin_actual": "left_deep",
+   "date_iso": "2002-06-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000120.jpg",
+   "filename": "2002_06_10.jpg",
+   "stem": "2002_06_10"
+  },
+  {
+   "n": 7,
+   "person": "person_03",
+   "tag": "p03f000069",
+   "record_id": "frame_000069",
+   "yaw_target": 70.0,
+   "yaw_actual": 67.09822845458984,
+   "date": "2002_07_10",
+   "pose_bin_target": "right_profile",
+   "pose_bin_actual": "right_profile",
+   "date_iso": "2002-07-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000069.jpg",
+   "filename": "2002_07_10.jpg",
+   "stem": "2002_07_10"
+  }
+ ],
+ "planned_only": false
+}

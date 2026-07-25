@@ -1,23 +1,145 @@
-import {useEffect,useState} from "react";
-import ReactFlow,{Background,Controls,Handle,MiniMap,Panel,Position,useEdgesState,useNodesState,useReactFlow} from "@xyflow/react";
+import { useEffect, useMemo, useState } from "react";
+import { Background, Controls, Handle, MiniMap, Panel, Position, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
 import ELK from "elkjs/lib/elk.bundled.js";
 import "@xyflow/react/dist/style.css";
-import type {CanvasGraph,CanvasNodeData} from "./types";
-import {loadCanvas,loadReadiness} from "./api";
-import type {ReadinessItem} from "./types";
-const elk=new ELK();
-function PipelineNode({data}:{data:CanvasNodeData}){return <div className={`pipeline-node ${data.kind} status-${data.status}`} tabIndex={0} aria-label={`${data.kind}: ${data.title}; статус ${data.status}`}><Handle type="target" position={Position.Left}/><b>{data.title}</b><small>{data.technical_name}</small><span>{data.status}</span>{data.badges.map(x=><i key={x}>{x}</i>)}<Handle type="source" position={Position.Right}/></div>}
-const nodeTypes={pipeline:PipelineNode};
-const DIM_LABELS:[string,string][]=[["implementation","Implementation"],["unit","Unit tests"],["synthetic","Synthetic"],["real_photo","Real photos"],["calibration","Calibration"]];
-function DimBars({dims}:{dims:{name:string;state:string;reason:string}[]}){return <div className="dim-bars">{DIM_LABELS.map(([key,label])=>{const d=dims.find(x=>x.name===key);const st=d?.state??'unknown';return <div className="dim-row" key={key} title={d?.reason??'Нет подтверждённого источника.'}><span className="dim-label">{label}</span><div className="dim-bar"><div className={`dim-bar-fill state-${st}`}/></div><small className={`dim-state state-${st}`}>{st==='passed'?'подтверждено':st==='failed'?'провалено':'нет данных'}</small></div>})}</div>}
-async function elkLayout(nodes:any[],edges:any[]){const graph=await elk.layout({id:'root',layoutOptions:{'elk.algorithm':'layered','elk.direction':'RIGHT','elk.spacing.nodeNode':'38','elk.layered.spacing.nodeNodeBetweenLayers':'90'},children:nodes.map(n=>({id:n.id,width:240,height:n.data.kind==='stage'?88:72})),edges:edges.map(e=>({id:e.id,sources:[e.source],targets:[e.target]}))});const pos=new Map((graph.children??[]).map(n=>[n.id,{x:n.x??0,y:n.y??0}]));return nodes.map(n=>({...n,position:pos.get(n.id)??n.position}))}
-export function PipelineCanvas(){
- const [graph,setGraph]=useState<CanvasGraph|null>(null),[readiness,setReadiness]=useState<ReadinessItem[]>([]),[selected,setSelected]=useState<string|null>(null),[preset,setPreset]=useState('Full'),[query,setQuery]=useState(''),[zoom,setZoom]=useState(1),[error,setError]=useState('');
- const [nodes,setNodes,onNodesChange]=useNodesState<any>([]),[edges,setEdges,onEdgesChange]=useEdgesState<any>([]);const rf=useReactFlow();
- useEffect(()=>{Promise.all([loadCanvas(),loadReadiness()]).then(([g,r])=>{setGraph(g);setReadiness(r)}).catch(e=>setError(String(e)))},[]);
- useEffect(()=>{if(!graph)return;const allowed=new Set(graph.presets[preset]??graph.presets.Full);const q=query.toLowerCase();const ns=graph.nodes.filter(n=>allowed.has(n.id)&&(!q||`${n.title} ${n.technical_name}`.toLowerCase().includes(q))).map(n=>({id:n.id,type:'pipeline',position:{x:n.x,y:n.y},data:n,hidden:zoom<.28&&n.kind!=='stage'||zoom<.5&&n.kind==='function'}));const ids=new Set(ns.map(n=>n.id));const es=graph.edges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&e.label!=='contains').map(e=>({id:e.id,source:e.source,target:e.target,label:e.confidence.startsWith('heuristic')?'?':undefined,animated:e.confidence==='runtime_observed',className:`edge-${e.confidence}`}));elkLayout(ns,es).then(x=>{setNodes(x);setEdges(es);setTimeout(()=>rf.fitView({padding:.12}),0)}).catch(e=>setError(String(e)))},[graph,preset,query,zoom]);
- const loading=!graph&&!error;
- return <section className="pipeline-canvas"><div className="canvas-toolbar"><input placeholder="Найти функцию…" value={query} onChange={e=>setQuery(e.target.value)} aria-label="Поиск узла"/>{graph&&Object.keys(graph.presets).map(x=><button className={preset===x?'active':''} onClick={()=>setPreset(x)} key={x}>{x}</button>)}</div>
- {error&&<p className="canvas-error">{error}</p>}
- {loading&&<p className="canvas-loading">Загрузка карты проекта…</p>}
- <div className="canvas-surface"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={(_,n)=>setSelected(String(n.data.technical_name))} onMove={(_,v)=>setZoom(v.zoom)} fitView colorMode="dark" minZoom={.08} maxZoom={2}><Background gap={22} size={1}/><MiniMap pannable zoomable nodeColor={n=>n.data.status==='complete'?'#287a52':n.data.criticality==='critical'?'#9b4b45':'#34465d'}/><Controls/><Panel position="top-right">{graph?.summary.nodes} nodes · semantic zoom</Panel>{selected&&(()=>{const r=readiness.find(x=>x.function_id===selected);return r?<Panel position="bottom-right"><aside className="readiness-card"><b>{r.status}</b><small>{r.policy}</small><p>{r.explanation}</p><DimBars dims={r.dimensions}/><span>Не закрыто: {r.missing.join(', ')||'нет'}</span>{r.blocked_by.length>0&&<span>Заблокировано: {r.blocked_by.join(', ')}</span>}</aside></Panel>:null})()}</ReactFlow></div></section>}
+import type { CanvasEdge, CanvasGraph, CanvasNodeData, ReadinessItem } from "./types";
+import { loadCanvas, loadReadiness } from "./api";
+import { uiLog } from "./logStore";
+
+const elk = new ELK();
+type Level = "stages" | "modules" | "functions" | "search";
+type DisplayNode = CanvasNodeData & { childCount?: number };
+
+function PipelineNode({ data }: { data: DisplayNode }) {
+  return <div className={`pipeline-node ${data.kind} status-${data.status}`} tabIndex={0}>
+    <Handle type="target" position={Position.Left} />
+    <div className="node-kicker">{data.kind}{data.childCount != null ? ` · ${data.childCount}` : ""}</div>
+    <b>{data.title}</b><small>{data.technical_name}</small>
+    <div className="node-footer"><span>{data.status}</span>{data.criticality === "critical" && <i>critical</i>}</div>
+    <Handle type="source" position={Position.Right} />
+  </div>;
+}
+const nodeTypes = { pipeline: PipelineNode };
+
+async function layout(nodes: any[], edges: any[]) {
+  const result = await elk.layout({ id: "root", layoutOptions: {
+    "elk.algorithm": "layered", "elk.direction": "RIGHT", "elk.spacing.nodeNode": "46",
+    "elk.layered.spacing.nodeNodeBetweenLayers": "120", "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+  }, children: nodes.map((n) => ({ id: n.id, width: 250, height: 96 })), edges: edges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })) });
+  const positions = new Map((result.children ?? []).map((n) => [n.id, { x: n.x ?? 0, y: n.y ?? 0 }]));
+  return nodes.map((n) => ({ ...n, position: positions.get(n.id) ?? { x: 0, y: 0 } }));
+}
+
+function uniqueEdges(edges: CanvasEdge[], representative: (id: string) => string | null, visible: Set<string>) {
+  const seen = new Set<string>();
+  const out: any[] = [];
+  for (const edge of edges) {
+    if (edge.label === "contains") continue;
+    const source = representative(edge.source), target = representative(edge.target);
+    if (!source || !target || source === target || !visible.has(source) || !visible.has(target)) continue;
+    const key = `${source}→${target}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: key, source, target, animated: edge.confidence === "runtime_observed", className: `edge-${edge.confidence}` });
+  }
+  return out;
+}
+
+function Explorer({ graph, readiness }: { graph: CanvasGraph; readiness: ReadinessItem[] }) {
+  const rf = useReactFlow();
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
+  const [level, setLevel] = useState<Level>("stages");
+  const [stage, setStage] = useState<string | null>(null);
+  const [moduleId, setModuleId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<DisplayNode | null>(null);
+  const [layoutBusy, setLayoutBusy] = useState(false);
+
+  const nodeMap = useMemo(() => new Map(graph.nodes.map((n) => [n.id, n])), [graph]);
+  const modules = useMemo(() => graph.nodes.filter((n) => n.kind === "module"), [graph]);
+  const functions = useMemo(() => graph.nodes.filter((n) => n.kind === "function"), [graph]);
+
+  const model = useMemo(() => {
+    let display: DisplayNode[] = [];
+    let representative: (id: string) => string | null = () => null;
+    const q = query.trim().toLowerCase();
+
+    if (q) {
+      display = functions.filter((n) => `${n.title} ${n.technical_name}`.toLowerCase().includes(q)).slice(0, 80);
+      const ids = new Set(display.map((n) => n.id));
+      representative = (id) => ids.has(id) ? id : null;
+    } else if (level === "stages") {
+      display = graph.nodes.filter((n) => n.kind === "stage").map((n) => ({ ...n, childCount: functions.filter((f) => f.stage === n.stage).length }));
+      representative = (id) => { const n = nodeMap.get(id); return n?.stage ? `stage:${n.stage}` : null; };
+    } else if (level === "modules" && stage) {
+      display = modules.map((n) => ({ ...n, childCount: functions.filter((f) => f.parent_id === n.id).length })).filter((n) => n.stage === stage && (n.childCount ?? 0) > 0);
+      representative = (id) => { const n = nodeMap.get(id); if (!n || n.stage !== stage) return null; return n.kind === "module" ? n.id : n.parent_id; };
+    } else if (moduleId) {
+      display = functions.filter((n) => n.parent_id === moduleId);
+      const ids = new Set(display.map((n) => n.id));
+      representative = (id) => ids.has(id) ? id : null;
+    }
+    const visible = new Set(display.map((n) => n.id));
+    return { display, edges: uniqueEdges(graph.edges, representative, visible), search: Boolean(q) };
+  }, [query, level, stage, moduleId, graph, functions, modules, nodeMap]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLayoutBusy(true);
+    const raw = model.display.map((n) => ({ id: n.id, type: "pipeline", position: { x: 0, y: 0 }, data: n }));
+    layout(raw, model.edges).then((positioned) => {
+      if (cancelled) return;
+      setNodes(positioned); setEdges(model.edges); setLayoutBusy(false);
+      window.requestAnimationFrame(() => rf.fitView({ padding: .18, duration: 240, maxZoom: 1 }));
+      uiLog("debug", "canvas", `Отображено ${positioned.length} узлов (${model.search ? "поиск" : level})`);
+    }).catch((e) => { if (!cancelled) { setLayoutBusy(false); uiLog("error", "canvas", String(e)); } });
+    return () => { cancelled = true; };
+  }, [model, level, setNodes, setEdges, rf]);
+
+  function drill(node: DisplayNode) {
+    setSelected(node);
+    if (query.trim()) return;
+    if (node.kind === "stage") { setStage(node.stage); setModuleId(null); setLevel("modules"); }
+    else if (node.kind === "module") { setModuleId(node.id); setLevel("functions"); }
+  }
+  function home() { setQuery(""); setStage(null); setModuleId(null); setLevel("stages"); setSelected(null); }
+  function back() {
+    setSelected(null);
+    if (query) { setQuery(""); return; }
+    if (level === "functions") { setModuleId(null); setLevel("modules"); }
+    else home();
+  }
+
+  const selectedReadiness = selected?.kind === "function" ? readiness.find((x) => x.function_id === selected.technical_name) : null;
+  const stageNode = stage ? nodeMap.get(`stage:${stage}`) : null;
+  const moduleNode = moduleId ? nodeMap.get(moduleId) : null;
+
+  return <div className="canvas-explorer">
+    <div className="canvas-commandbar">
+      <div className="breadcrumbs"><button onClick={home}>Pipeline</button>{stageNode && <><span>›</span><button onClick={() => { setModuleId(null); setLevel("modules"); }}>{stageNode.title}</button></>}{moduleNode && <><span>›</span><b>{moduleNode.title}</b></>}</div>
+      <input value={query} onChange={(e) => { setQuery(e.target.value); setSelected(null); }} placeholder="Найти функцию во всём проекте…" aria-label="Поиск функции" />
+      {(level !== "stages" || query) && <button className="back-button" onClick={back}>← Назад</button>}
+    </div>
+    <div className="canvas-body">
+      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={(_, n: any) => drill(n.data)} onPaneClick={() => setSelected(null)} colorMode="dark" minZoom={.15} maxZoom={1.8} onlyRenderVisibleElements fitView>
+        <Background gap={24} size={1} /><MiniMap pannable zoomable /><Controls showInteractive={false} />
+        <Panel position="top-left" className="canvas-stats">{layoutBusy ? "Раскладка…" : `${nodes.length} узлов · ${edges.length} связей`}</Panel>
+        <Panel position="top-right" className="canvas-actions"><button onClick={() => rf.fitView({ padding: .18, duration: 220, maxZoom: 1 })}>Вписать</button><button onClick={() => rf.zoomTo(1, { duration: 180 })}>100%</button></Panel>
+      </ReactFlow>
+      <aside className={`canvas-inspector ${selected ? "open" : ""}`}>
+        {selected ? <><button className="inspector-close" onClick={() => setSelected(null)}>×</button><p className="eyebrow">{selected.kind}</p><h2>{selected.title}</h2><code>{selected.technical_name}</code><dl><div><dt>Этап</dt><dd>{selected.stage}</dd></div><div><dt>Статус</dt><dd>{selected.status}</dd></div><div><dt>Критичность</dt><dd>{selected.criticality}</dd></div>{selected.childCount != null && <div><dt>Внутри</dt><dd>{selected.childCount}</dd></div>}</dl>{selected.kind !== "function" && <button className="drill-button" onClick={() => drill(selected)}>Открыть содержимое →</button>}{selectedReadiness && <div className="readiness-detail"><h3>Readiness</h3><b>{selectedReadiness.status}</b><p>{selectedReadiness.explanation}</p><small>Не закрыто: {selectedReadiness.missing.join(", ") || "нет"}</small></div>}</> : <div className="inspector-placeholder"><b>Инспектор</b><p>Выберите этап, модуль или функцию. Двойной объём данных больше не рендерится одновременно.</p></div>}
+      </aside>
+    </div>
+  </div>;
+}
+
+export function PipelineCanvas() {
+  const [graph, setGraph] = useState<CanvasGraph | null>(null);
+  const [readiness, setReadiness] = useState<ReadinessItem[]>([]);
+  const [error, setError] = useState("");
+  useEffect(() => { Promise.all([loadCanvas(), loadReadiness()]).then(([g, r]) => { setGraph(g); setReadiness(r); uiLog("info", "canvas", `Граф загружен: ${g.summary.nodes} узлов; включён поэтапный режим`); }).catch((e) => { setError(String(e)); uiLog("error", "canvas", String(e)); }); }, []);
+  if (error) return <div className="canvas-error">Не удалось загрузить карту: {error}</div>;
+  if (!graph) return <div className="canvas-loading">Загрузка карты проекта…</div>;
+  return <ReactFlowProvider><Explorer graph={graph} readiness={readiness} /></ReactFlowProvider>;
+}

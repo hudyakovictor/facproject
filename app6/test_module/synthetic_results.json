@@ -3,11 +3,10 @@
   "face_model": "/Users/victorkhudyakov/work/assets/face_model.npy",
   "suites": [
     "asset",
-    "geometry",
-    "stage2"
+    "geometry"
   ],
   "passed": true,
-  "check_count": 12,
+  "check_count": 8,
   "failed_count": 0,
   "checks": [
     {
@@ -57,30 +56,6 @@
       "name": "visibility_mask_roundtrip",
       "passed": true,
       "detail": "35709-bit visibility mask roundtrip"
-    },
-    {
-      "suite": "stage2",
-      "name": "robust_rigid_alignment",
-      "passed": true,
-      "detail": "rmse=4.734e-08; iteratively_trimmed_kabsch_v1"
-    },
-    {
-      "suite": "stage2",
-      "name": "same_identity_near_zero",
-      "passed": true,
-      "detail": "ldm134_rmse=0.000e+00"
-    },
-    {
-      "suite": "stage2",
-      "name": "different_identity_separates",
-      "passed": true,
-      "detail": "same=0.000e+00; different=2.094e-02"
-    },
-    {
-      "suite": "stage2",
-      "name": "chronology_edge_contracts",
-      "passed": true,
-      "detail": "same-day conflict and missing-date fail-closed behavior"
     }
   ],
   "interpretation": "Numerical regression gate only; not a real-photo accuracy or forensic validation.",

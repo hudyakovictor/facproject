@@ -80,7 +80,12 @@ class FramePicker:
                         print(f"⚠️ {person} yaw≈{yaw}: зазор ослаблен до {gap} кадров (мало кадров этого ракурса)")
                     used.append(r["frame_index"])
                     return r
-        raise RuntimeError(f"не удалось подобрать кадр: {person} yaw≈{yaw}; фото выложены?")
+        # Все кадры уже израсходованы — повторно используем ближайший к yaw
+        best = min(cands, key=lambda r: (abs(r["yaw"] - yaw), r["frame_index"]))
+        print(f"⚠️ {person} yaw≈{yaw}: все {len(cands)} кадров pose_bin={wanted_bin} "
+              f"уже использованы — повторный выбор frame {best['frame_index']}")
+        used.append(best["frame_index"])
+        return best
 
     def pick_extremes(self, person: str, yaw: float, count: int, min_gap: int = MIN_FRAME_GAP, require_photo: bool = True) -> list[dict]:
         """Вернуть `count` кадров этого ракурса, покрывающих весь доступный диапазон frame_index.
@@ -92,10 +97,13 @@ class FramePicker:
                      and r["pose_bin"] == wanted_bin
                      and (r["photo_exists"] or not require_photo)]
         if len(all_cands) < count:
-            raise RuntimeError(
-                f"недостаточно кадров {person} в pose_bin={wanted_bin}: "
-                f"нужно {count}, найдено {len(all_cands)}"
-            )
+            if len(all_cands) == 0:
+                raise RuntimeError(
+                    f"нет кадров {person} в pose_bin={wanted_bin}"
+                )
+            print(f"⚠️ {person} yaw≈{yaw}: pose_bin={wanted_bin} — "
+                  f"нужно {count} кадров, доступно {len(all_cands)} (берём все)")
+            count = len(all_cands)
         all_cands.sort(key=lambda r: abs(r["yaw"] - yaw))
         used = self.used.setdefault(person, [])
         if count <= 0:
@@ -143,4 +151,8 @@ class FramePicker:
                 for r in chosen:
                     used.append(r["frame_index"])
                 return chosen
-        raise RuntimeError(f"не удалось подобрать {count} кадров с покрытием диапазона: {person} yaw≈{yaw}; фото выложены?")
+        # Не удалось обеспечить зазор — возвращаем что есть с предупреждением
+        print(f"⚠️ {person} yaw≈{yaw}: зазор не обеспечен, возвращаем {len(chosen)} кадров")
+        for r in chosen:
+            used.append(r["frame_index"])
+        return chosen

@@ -64,6 +64,8 @@ def alternative_reasons(row: dict[str, Any]) -> list[str]:
     reasons: list[str] = []
     if row.get("quality_limited"):
         reasons.append("low_or_missing_quality")
+    if row.get("expression_qc_status") == "uncalibrated":
+        reasons.append("expression_qc_uncalibrated")
     if row.get("calibration_limited"):
         reasons.append("unstable_or_sparse_calibration")
     if row.get("pose_leakage_limited"):

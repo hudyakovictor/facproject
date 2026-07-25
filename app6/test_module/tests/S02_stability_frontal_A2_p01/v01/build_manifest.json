@@ -1,0 +1,157 @@
+{
+ "scenario": {
+  "id": "S02_stability_frontal_A2_p01_v01",
+  "block": "stability",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "AAAAA на другом человеке — контроль нормы на второй геометрии",
+  "person_set": {
+   "A": "person_02",
+   "A2": "person_03",
+   "B": "person_03",
+   "C": "person_04",
+   "D": "person_05"
+  },
+  "frames": [
+   {
+    "person": "person_03",
+    "yaw": -70.0,
+    "date": "2002_01_10",
+    "group": "auto",
+    "pose_no": 1,
+    "pose_bin_requested": "left_profile"
+   },
+   {
+    "person": "person_03",
+    "yaw": -70.0,
+    "date": "2002_07_15",
+    "group": "auto",
+    "pose_no": 1,
+    "pose_bin_requested": "left_profile"
+   },
+   {
+    "person": "person_03",
+    "yaw": -70.0,
+    "date": "2003_03_20",
+    "group": "auto",
+    "pose_no": 1,
+    "pose_bin_requested": "left_profile"
+   },
+   {
+    "person": "person_03",
+    "yaw": -70.0,
+    "date": "2004_01_11",
+    "group": "auto",
+    "pose_no": 1,
+    "pose_bin_requested": "left_profile"
+   },
+   {
+    "person": "person_03",
+    "yaw": -70.0,
+    "date": "2005_05_30",
+    "group": "auto",
+    "pose_no": 1,
+    "pose_bin_requested": "left_profile"
+   }
+  ],
+  "expect": [
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 1,
+  "combo_no": 2,
+  "base_id": "S02_stability_frontal_A2",
+  "pose_no": 1,
+  "pose_bin": "left_profile",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_03",
+   "tag": "p03f000124",
+   "record_id": "frame_000124",
+   "yaw_target": -70.0,
+   "yaw_actual": -54.47553634643555,
+   "date": "2002_01_10",
+   "pose_bin_target": "left_profile",
+   "pose_bin_actual": "left_profile",
+   "date_iso": "2002-01-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000124.jpg",
+   "filename": "2002_01_10.jpg",
+   "stem": "2002_01_10"
+  },
+  {
+   "n": 2,
+   "person": "person_03",
+   "tag": "p03f000129",
+   "record_id": "frame_000129",
+   "yaw_target": -70.0,
+   "yaw_actual": -60.67481994628906,
+   "date": "2002_07_15",
+   "pose_bin_target": "left_profile",
+   "pose_bin_actual": "left_profile",
+   "date_iso": "2002-07-15",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000129.jpg",
+   "filename": "2002_07_15.jpg",
+   "stem": "2002_07_15"
+  },
+  {
+   "n": 3,
+   "person": "person_03",
+   "tag": "p03f000134",
+   "record_id": "frame_000134",
+   "yaw_target": -70.0,
+   "yaw_actual": -64.48743438720703,
+   "date": "2003_03_20",
+   "pose_bin_target": "left_profile",
+   "pose_bin_actual": "left_profile",
+   "date_iso": "2003-03-20",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000134.jpg",
+   "filename": "2003_03_20.jpg",
+   "stem": "2003_03_20"
+  },
+  {
+   "n": 4,
+   "person": "person_03",
+   "tag": "p03f000139",
+   "record_id": "frame_000139",
+   "yaw_target": -70.0,
+   "yaw_actual": -66.62007904052734,
+   "date": "2004_01_11",
+   "pose_bin_target": "left_profile",
+   "pose_bin_actual": "left_profile",
+   "date_iso": "2004-01-11",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000139.jpg",
+   "filename": "2004_01_11.jpg",
+   "stem": "2004_01_11"
+  },
+  {
+   "n": 5,
+   "person": "person_03",
+   "tag": "p03f000144",
+   "record_id": "frame_000144",
+   "yaw_target": -70.0,
+   "yaw_actual": -68.72842407226562,
+   "date": "2005_05_30",
+   "pose_bin_target": "left_profile",
+   "pose_bin_actual": "left_profile",
+   "date_iso": "2005-05-30",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000144.jpg",
+   "filename": "2005_05_30.jpg",
+   "stem": "2005_05_30"
+  }
+ ],
+ "planned_only": false
+}

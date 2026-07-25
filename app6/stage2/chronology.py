@@ -11,7 +11,7 @@ import numpy as np
 from app6.stage1.status_logger import log_status
 
 MIN_ALIGNMENT_QUALITY = 0.5
-MAX_EXPRESSION_MAGNITUDE = 1.5
+LEGACY_MAX_EXPRESSION_MAGNITUDE = 1.5
 
 def _days(a: str | None, b: str | None) -> int | None:
     if not a or not b: return None
@@ -33,10 +33,16 @@ def _quality_exclusion_reason(row: dict) -> str | None:
     finite_alignment = [float(v) for v in alignment if v is not None and np.isfinite(v)]
     if finite_alignment and min(finite_alignment) < MIN_ALIGNMENT_QUALITY:
         return 'alignment_quality_low'
-    expression = [row.get('expression_magnitude_a'), row.get('expression_magnitude_b')]
-    finite_expression = [float(v) for v in expression if v is not None and np.isfinite(v)]
-    if finite_expression and max(finite_expression) > MAX_EXPRESSION_MAGNITUDE:
+    expression_status = row.get('expression_qc_status')
+    if expression_status == 'calibrated_exceeded':
         return 'expression_too_strong'
+    # Compatibility for old artifacts/tests only. New Stage 2 rows always
+    # carry expression_qc_status and never apply an uncalibrated raw cutoff.
+    if expression_status is None:
+        expression = [row.get('expression_magnitude_a'), row.get('expression_magnitude_b')]
+        finite_expression = [float(v) for v in expression if v is not None and np.isfinite(v)]
+        if finite_expression and max(finite_expression) > LEGACY_MAX_EXPRESSION_MAGNITUDE:
+            return 'expression_too_strong'
     if row.get('status') == 'expression_dominated':
         return 'expression_dominated'
     return None

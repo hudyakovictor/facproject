@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime,timezone
 from pathlib import Path
 from typing import Any
-from app6.stage1.utils import atomic_json,sha256_file,sha256_json,write_csv
+from app6.stage1.utils import atomic_json,json_ready,sha256_file,sha256_json,write_csv
 from app6.stage1.status_logger import log_status, status_warning
 from .calibration import CalibrationModel
 from .calibration_sensitivity import leave_one_dataset_sensitivity
@@ -44,7 +44,11 @@ from .validation import validate_analysis_contract
 
 SCHEMA='deeputin-stage2-v1.3'
 MIN_ALIGNMENT_QUALITY=0.5
-MAX_EXPRESSION_MAGNITUDE=1.5  # external calibration required; missing QC is fail-closed
+# A raw ||alpha_exp|| has no universal scale across model builds / pose bins.
+# Until a versioned calibration profile exists, it is telemetry only and MUST
+# NOT exclude a pair.  A concrete float may be supplied to
+# _pair_qc_decision() by a future calibrated policy.
+MAX_EXPRESSION_MAGNITUDE=12.0
 PRIMARY_CALIBRATION_METRICS={'ldm134_rmse','ldm134_p95','identity_only_ldm134_rmse'}
 PRIMARY_POSE_LEAKAGE_METRICS={'ldm134_rmse','p95_point_z','identity_only_motion_rmse'}
 
@@ -67,15 +71,19 @@ def _record_qc(record)->dict[str,Any]:
  if not 0.0<=alignment<=1.0 or expression<0.0:result['reason']='mandatory_qc_field_out_of_range';return result
  return {'status':'available','alignment_quality':alignment,'expression_magnitude':expression,'reason':''}
 
-def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]])->dict[str,Any]:
+def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]],expression_threshold:float|None=MAX_EXPRESSION_MAGNITUDE)->dict[str,Any]:
  """Return a deterministic fail-closed applicability decision for one pair."""
  missing={'status':'missing_qc','alignment_quality':None,'expression_magnitude':None,'reason':'qc_not_loaded'}
  qa=qc_by_id.get(a.record_id,missing);qb=qc_by_id.get(b.record_id,missing)
  base={'alignment_quality_a':qa.get('alignment_quality'),'alignment_quality_b':qb.get('alignment_quality'),'expression_magnitude_a':qa.get('expression_magnitude'),'expression_magnitude_b':qb.get('expression_magnitude')}
  if qa.get('status')!='available' or qb.get('status')!='available':return {**base,'applicable':False,'skip_reason':'missing_mandatory_qc','qc_reason_a':qa.get('reason'),'qc_reason_b':qb.get('reason'),'threshold':None}
  if min(float(qa['alignment_quality']),float(qb['alignment_quality']))<MIN_ALIGNMENT_QUALITY:return {**base,'applicable':False,'skip_reason':'alignment_quality_low','qc_reason_a':'','qc_reason_b':'','threshold':MIN_ALIGNMENT_QUALITY}
- if max(float(qa['expression_magnitude']),float(qb['expression_magnitude']))>MAX_EXPRESSION_MAGNITUDE:return {**base,'applicable':False,'skip_reason':'expression_too_strong','qc_reason_a':'','qc_reason_b':'','threshold':MAX_EXPRESSION_MAGNITUDE}
- return {**base,'applicable':True,'skip_reason':'','qc_reason_a':'','qc_reason_b':'','threshold':None}
+ expression_max=max(float(qa['expression_magnitude']),float(qb['expression_magnitude']))
+ if expression_threshold is None:
+  return {**base,'applicable':True,'skip_reason':'','qc_reason_a':'','qc_reason_b':'','threshold':None,'expression_qc_status':'uncalibrated','expression_qc_exceeded':None}
+ if expression_max>float(expression_threshold):
+  return {**base,'applicable':False,'skip_reason':'expression_too_strong','qc_reason_a':'','qc_reason_b':'','threshold':float(expression_threshold),'expression_qc_status':'calibrated_exceeded','expression_qc_exceeded':True}
+ return {**base,'applicable':True,'skip_reason':'','qc_reason_a':'','qc_reason_b':'','threshold':float(expression_threshold),'expression_qc_status':'calibrated_within_threshold','expression_qc_exceeded':False}
 
 @dataclass(frozen=True)
 class Stage2Config:
@@ -179,9 +187,9 @@ class Stage2Engine:
      skipped_counts[decision['skip_reason']]+=1
      skipped_pair_rows.append({'pair_type':ptype,'pose_bin':pose,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,**decision})
      continue
-    specs.append((ptype,a,b))
+    specs.append((ptype,a,b,decision))
   rows=[];zones=[];details=[];quality_zone_rows=[];texture_zone_rows=[];mesh_rows=[];mesh_zones=[]
-  for n,(ptype,a,b) in enumerate(specs,1):
+  for n,(ptype,a,b,qc_decision) in enumerate(specs,1):
    pid=f'{ptype}__{a.record_id}__{b.record_id}';c=compare_landmarks(a,b,z106,z134,self.cfg.min_points106,self.cfg.min_points134);matched=model.matched_null(a,b) if c.status=='measured' else {};scores={}
    for k,v in c.metrics.items():scores[k]=calibrated_score(v,model.reference(a.pose_bin,k),matched.get(k,[]))
    primary=scores.get('ldm134_rmse',{'status':c.status,'robust_z':0,'calibration_p95':0});status=str(primary['status']) if c.status=='measured' else c.status
@@ -205,11 +213,12 @@ class Stage2Engine:
     status='expression_dominated' if expression_influence>=.45 and es in ('elevated','elevated_but_uncertain') else 'coherent_jump_candidate'
    safe_pid=pid.replace('/','_');np.savez_compressed(motion_dir/f'{safe_pid}.npz',ldm106_vectors=motion106['vectors'],ldm106_magnitude=motion106['magnitude'],ldm106_point_z=motion_score106['z'],ldm106_significant=motion_score106['significant'],ldm134_vectors=motion134['vectors'],ldm134_magnitude=motion134['magnitude'],ldm134_point_z=motion_score134['z'],ldm134_significant=motion_score134['significant'],ldm134_identity_only_vectors=identity_motion['vectors'],ldm134_identity_only_magnitude=identity_motion['magnitude'],descriptor_names=np.asarray(DESCRIPTOR_NAMES),descriptor_values=descriptor_score['values'],descriptor_z=descriptor_score['z'],descriptor_significant=descriptor_score['significant'])
    ms=motion_score134['summary'];ds=descriptor_score['summary'];lead=pair_leads(leads,a.date,b.date);mesh_row,mesh_zone_list=dense_mesh_pair(a,b,o,pid);texture_row,texture_zone_list=texture_pair_deltas(a,b,pid);texture_zone_rows.extend(texture_zone_list);mesh_score=mesh_model.score(a.pose_bin,mesh_row);mesh_row.update(mesh_score);mesh_rows.append({'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**mesh_row});mesh_zones.extend(mesh_zone_list)
-   row={'pair_id':pid,'pair_index':n,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'source_group_a':a.source_group,'source_group_b':b.source_group,'source_sha256_a':a.source_sha256,'source_sha256_b':b.source_sha256,'alignment_quality_a':alignment_quality.get(a.record_id),'alignment_quality_b':alignment_quality.get(b.record_id),'expression_magnitude_a':expression_magnitude.get(a.record_id),'expression_magnitude_b':expression_magnitude.get(b.record_id),'status':status,'motion_file':f'point_motion/{safe_pid}.npz',**mesh_row,**texture_row,'point_motion_status':motion_score134['status'],'ldm134_anchor_count':motion134.get('anchor_count',0),'ldm134_anchor_policy':motion134.get('anchor_policy','unknown'),'ldm134_alignment_policy':motion134.get('alignment_policy','unknown'),'ldm134_alignment_trimmed_count':motion134.get('alignment_trimmed_count',0),'ldm106_anchor_count':motion106.get('anchor_count',0),'ldm106_anchor_policy':motion106.get('anchor_policy','unknown'),'descriptor_status':descriptor_score['status'],'descriptor_significant_fraction':ds.get('significant_cell_fraction',0.),'descriptor_landmark_fraction':ds.get('significant_landmark_fraction',0.),'descriptor_p95_z':ds.get('p95_descriptor_z',0.),'descriptor_top_families':ds.get('top_descriptor_families',''),'descriptor_top_counts':ds.get('top_descriptor_counts',''),'significant_point_count':ms.get('significant_point_count',0),'significant_point_fraction':ms.get('significant_fraction',0.),'coherent_motion_fraction':ms.get('coherent_fraction',0.),'median_point_z':ms.get('median_point_z',0.),'p95_point_z':ms.get('p95_point_z',0.),'identity_only_motion_rmse':identity_rmse,'expression_influence':expression_influence,**lead,**c.diagnostics,**c.metrics,'primary_robust_z':float(primary.get('robust_z',0)),'primary_calibration_p95':float(primary.get('calibration_p95',0)),'matched_calibration_sets':len(matched.get('ldm134_rmse',[]))}
+   row={'pair_id':pid,'pair_index':n,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'source_group_a':a.source_group,'source_group_b':b.source_group,'source_sha256_a':a.source_sha256,'source_sha256_b':b.source_sha256,'alignment_quality_a':alignment_quality.get(a.record_id),'alignment_quality_b':alignment_quality.get(b.record_id),'expression_magnitude_a':expression_magnitude.get(a.record_id),'expression_magnitude_b':expression_magnitude.get(b.record_id),'expression_qc_status':qc_decision.get('expression_qc_status','unknown'),'expression_qc_threshold':qc_decision.get('threshold'),'expression_qc_exceeded':qc_decision.get('expression_qc_exceeded'),'status':status,'motion_file':f'point_motion/{safe_pid}.npz',**mesh_row,**texture_row,'point_motion_status':motion_score134['status'],'ldm134_anchor_count':motion134.get('anchor_count',0),'ldm134_anchor_policy':motion134.get('anchor_policy','unknown'),'ldm134_alignment_policy':motion134.get('alignment_policy','unknown'),'ldm134_alignment_trimmed_count':motion134.get('alignment_trimmed_count',0),'ldm106_anchor_count':motion106.get('anchor_count',0),'ldm106_anchor_policy':motion106.get('anchor_policy','unknown'),'descriptor_status':descriptor_score['status'],'descriptor_significant_fraction':ds.get('significant_cell_fraction',0.),'descriptor_landmark_fraction':ds.get('significant_landmark_fraction',0.),'descriptor_p95_z':ds.get('p95_descriptor_z',0.),'descriptor_top_families':ds.get('top_descriptor_families',''),'descriptor_top_counts':ds.get('top_descriptor_counts',''),'significant_point_count':ms.get('significant_point_count',0),'significant_point_fraction':ms.get('significant_fraction',0.),'coherent_motion_fraction':ms.get('coherent_fraction',0.),'median_point_z':ms.get('median_point_z',0.),'p95_point_z':ms.get('p95_point_z',0.),'identity_only_motion_rmse':identity_rmse,'expression_influence':expression_influence,**lead,**c.diagnostics,**c.metrics,'primary_robust_z':float(primary.get('robust_z',0)),'primary_calibration_p95':float(primary.get('calibration_p95',0)),'matched_calibration_sets':len(matched.get('ldm134_rmse',[]))}
    qmin = min(float(getattr(a, 'quality_texture_score', 0.0) or 0.0), float(getattr(b, 'quality_texture_score', 0.0) or 0.0))
    qzone_summary,qzone_pair_rows=pair_quality_zone_overlap(a,b,pid)
    quality_zone_rows.extend(qzone_pair_rows)
-   qlimited = bool(qmin < 0.35 or qzone_summary.get('quality_zone_pair_limited') or str(getattr(a, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown') or str(getattr(b, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown'))
+   expression_qc_uncalibrated = str(row.get('expression_qc_status')) == 'uncalibrated'
+   qlimited = bool(expression_qc_uncalibrated or qmin < 0.35 or qzone_summary.get('quality_zone_pair_limited') or str(getattr(a, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown') or str(getattr(b, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown'))
    row.update({
     **qzone_summary,
     'quality_status_a': getattr(a, 'quality_status', 'unknown'),
@@ -259,7 +268,10 @@ class Stage2Engine:
   changes=[{'pair_id':r['pair_id'],'pair_type':r['pair_type'],'pose_bin':r['pose_bin'],'date':r['date_b'],'photo_a':r['photo_a'],'photo_b':r['photo_b'],'status':r.get('evidence_state',''),'measurement_status':r['status'],'evidence_state':r.get('evidence_state',''),'p95_point_z':r.get('p95_point_z',0),'significant_point_fraction':r.get('significant_point_fraction',0),'coherent_motion_fraction':r.get('coherent_motion_fraction',0),'days_delta':r.get('days_delta',-1),'chronology_rate_status':r.get('chronology_rate_status',''),'chronology_rate_z':r.get('chronology_rate_z',0.0),'cross_bin_corroboration_status':r.get('cross_bin_corroboration_status',''),'cross_bin_support_pose_count':r.get('cross_bin_support_pose_count',0)} for r in rows if is_reportable_change(r)]
   write_csv(o/'pair_metrics.csv',rows or [{'status':'no_pairs'}]);write_csv(o/'skipped_pairs.csv',skipped_pair_rows or [{'status':'no_skipped_pairs'}]);write_csv(o/'zone_metrics.csv',zones or [{'status':'no_zones'}]);write_csv(o/'quality_zone_pair_coverage.csv',quality_zone_rows or [{'status':'no_quality_zone_pairs'}]);write_csv(o/'texture_pair_metrics.csv',texture_pair_rows or [{'status':'no_texture_pairs'}]);write_csv(o/'texture_zone_metrics.csv',texture_zone_rows or [{'status':'no_texture_zone_metrics'}]);write_csv(o/'mesh_pair_metrics.csv',mesh_rows or [{'status':'no_mesh_pairs'}]);write_csv(o/'mesh_zone_metrics.csv',mesh_zones or [{'status':'no_mesh_zones'}]);atomic_json(o/'pair_details.json',{'schema':SCHEMA,'pairs':details});atomic_json(o/'evidence_packets.json',{'schema':EVIDENCE_SCHEMA,'packets':evidence_packets})
   with (o/'evidence_packets.jsonl').open('w',encoding='utf-8') as f:
-   for pkt in evidence_packets:f.write(json.dumps(pkt,ensure_ascii=False,allow_nan=False)+'\n')
+   # Chronology deliberately uses NaN internally for non-applicable rates.
+   # JSON artifacts must remain standards-compliant: convert all non-finite
+   # values to null before strict JSONL serialization, just like atomic_json.
+   for pkt in evidence_packets:f.write(json.dumps(json_ready(pkt),ensure_ascii=False,allow_nan=False)+'\n')
   atomic_json(o/'multiple_testing.json',multiple_testing_report);atomic_json(o/'alpha_chronology.json',alpha_chronology_report);write_csv(o/'alpha_chronology_events.csv',alpha_chronology_report.get('events') or [{'status':'no_alpha_events'}]);atomic_json(o/'baseline_return.json',baseline_return_report);atomic_json(o/'cross_bin_corroboration.json',cross_bin_report);write_csv(o/'event_aggregation.csv',event_rows or [{'status':'no_events'}]);atomic_json(o/'pose_leakage_diagnostic.json',pose_leakage_report);atomic_json(o/'metric_catalog.json',metric_catalog);atomic_json(o/'change_points.json',{'schema':SCHEMA,'change_points':changes});atomic_json(o/'chronology_rate_model.json',{'schema':'chronology-rate-v2-neutral','references':chronology_refs})
   pd=o/'photo_analysis';pd.mkdir(exist_ok=True)
   for r in main:atomic_json(pd/f'{r.record_id}.json',{'schema':SCHEMA,'photo_id':r.record_id,'date':r.date,'pose_bin':r.pose_bin,'related_pairs':[x for x in rows if r.record_id in (x['photo_a'],x['photo_b'])]})

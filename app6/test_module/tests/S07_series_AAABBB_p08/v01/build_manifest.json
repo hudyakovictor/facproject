@@ -1,0 +1,234 @@
+{
+ "scenario": {
+  "id": "S07_series_AAABBB_p08_v01",
+  "block": "identity_change",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "AAABBB: одно событие смены, внутри блоков чисто",
+  "person_set": {
+   "A": "person_02",
+   "A2": "person_03",
+   "B": "person_03",
+   "C": "person_04",
+   "D": "person_05"
+  },
+  "frames": [
+   {
+    "person": "person_02",
+    "yaw": 45.0,
+    "date": "2001_03_10",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   },
+   {
+    "person": "person_02",
+    "yaw": 45.0,
+    "date": "2001_09_10",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   },
+   {
+    "person": "person_02",
+    "yaw": 45.0,
+    "date": "2002_03_10",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   },
+   {
+    "person": "person_03",
+    "yaw": 45.0,
+    "date": "2003_03_10",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   },
+   {
+    "person": "person_03",
+    "yaw": 45.0,
+    "date": "2003_09_10",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   },
+   {
+    "person": "person_03",
+    "yaw": 45.0,
+    "date": "2004_03_10",
+    "group": "auto",
+    "pose_no": 8,
+    "pose_bin_requested": "right_deep"
+   }
+  ],
+  "expect": [
+   {
+    "type": "pair_status",
+    "frames": [
+     3,
+     4
+    ],
+    "any_of": [
+     "coherent_jump_candidate",
+     "alpha_id_jump_candidate",
+     "persistent_geometric_change"
+    ]
+   },
+   {
+    "type": "pair_status_not",
+    "frames": [
+     1,
+     2
+    ],
+    "none_of": [
+     "alpha_id_jump_candidate",
+     "coherent_jump_candidate",
+     "persistent_geometric_change",
+     "persistent_rapid_change_candidate",
+     "rapid_change_candidate",
+     "same_day_structural_conflict"
+    ]
+   },
+   {
+    "type": "pair_status_not",
+    "frames": [
+     2,
+     3
+    ],
+    "none_of": [
+     "alpha_id_jump_candidate",
+     "coherent_jump_candidate",
+     "persistent_geometric_change",
+     "persistent_rapid_change_candidate",
+     "rapid_change_candidate",
+     "same_day_structural_conflict"
+    ]
+   },
+   {
+    "type": "pair_status_not",
+    "frames": [
+     4,
+     5
+    ],
+    "none_of": [
+     "alpha_id_jump_candidate",
+     "coherent_jump_candidate",
+     "persistent_geometric_change",
+     "persistent_rapid_change_candidate",
+     "rapid_change_candidate",
+     "same_day_structural_conflict"
+    ]
+   },
+   {
+    "type": "pair_status_not",
+    "frames": [
+     5,
+     6
+    ],
+    "none_of": [
+     "alpha_id_jump_candidate",
+     "coherent_jump_candidate",
+     "persistent_geometric_change",
+     "persistent_rapid_change_candidate",
+     "rapid_change_candidate",
+     "same_day_structural_conflict"
+    ]
+   }
+  ],
+  "variant": 1,
+  "combo_no": 2,
+  "base_id": "S07_series_AAABBB",
+  "pose_no": 8,
+  "pose_bin": "right_deep",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_02",
+   "tag": "p02f000166",
+   "record_id": "frame_000166",
+   "yaw_target": 45.0,
+   "yaw_actual": 48.91153335571289,
+   "date": "2001_03_10",
+   "pose_bin_target": "right_deep",
+   "pose_bin_actual": "right_deep",
+   "date_iso": "2001-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000166.jpg",
+   "filename": "2001_03_10.jpg",
+   "stem": "2001_03_10"
+  },
+  {
+   "n": 2,
+   "person": "person_02",
+   "tag": "p02f000169",
+   "record_id": "frame_000169",
+   "yaw_target": 45.0,
+   "yaw_actual": 46.1195182800293,
+   "date": "2001_09_10",
+   "pose_bin_target": "right_deep",
+   "pose_bin_actual": "right_deep",
+   "date_iso": "2001-09-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000169.jpg",
+   "filename": "2001_09_10.jpg",
+   "stem": "2001_09_10"
+  },
+  {
+   "n": 3,
+   "person": "person_02",
+   "tag": "p02f000173",
+   "record_id": "frame_000173",
+   "yaw_target": 45.0,
+   "yaw_actual": 41.50282287597656,
+   "date": "2002_03_10",
+   "pose_bin_target": "right_deep",
+   "pose_bin_actual": "right_deep",
+   "date_iso": "2002-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_02/frame_000173.jpg",
+   "filename": "2002_03_10.jpg",
+   "stem": "2002_03_10"
+  },
+  {
+   "n": 4,
+   "person": "person_03",
+   "tag": "p03f000078",
+   "record_id": "frame_000078",
+   "yaw_target": 45.0,
+   "yaw_actual": 47.23029708862305,
+   "date": "2003_03_10",
+   "pose_bin_target": "right_deep",
+   "pose_bin_actual": "right_deep",
+   "date_iso": "2003-03-10",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000078.jpg",
+   "filename": "2003_03_10.jpg",
+   "stem": "2003_03_10"
+  },
+  {
+   "n": 5,
+   "person": "person_03",
+   "tag": "p03f000079",
+   "record_id": "frame_000079",
+   "yaw_target": 45.0,
+   "yaw_actual": 43.49787139892578,
+   "date": "2003_09_10",
+   "pose_bin_target": "right_deep",
+   "pose_bin_actual": "right_deep",
+   "date_iso": "2003-09-10",
+   "seq": 1,
+   "group": "src_b",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_03/frame_000079.jpg",
+   "filename": "2003_09_10.jpg",
+   "stem": "2003_09_10"
+  }
+ ],
+ "planned_only": false
+}

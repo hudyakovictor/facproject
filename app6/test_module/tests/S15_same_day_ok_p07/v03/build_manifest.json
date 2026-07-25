@@ -1,0 +1,88 @@
+{
+ "scenario": {
+  "id": "S15_same_day_ok_p07_v03",
+  "block": "same_day",
+  "priority": "P1",
+  "mode": "fast",
+  "description": "Два кадра одного человека в один день — конфликта нет",
+  "person_set": {
+   "A": "person_04",
+   "A2": "person_05",
+   "B": "person_05",
+   "C": "person_06",
+   "D": "person_07"
+  },
+  "frames": [
+   {
+    "person": "person_04",
+    "yaw": 32.5,
+    "date": "2003_06_15",
+    "group": "auto",
+    "pose_no": 7,
+    "pose_bin_requested": "right_mid"
+   },
+   {
+    "person": "person_04",
+    "yaw": 32.5,
+    "date": "2003_06_15",
+    "group": "auto",
+    "pose_no": 7,
+    "pose_bin_requested": "right_mid"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_absent",
+    "statuses": [
+     "same_day_structural_conflict"
+    ]
+   },
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 3,
+  "combo_no": 4,
+  "base_id": "S15_same_day_ok",
+  "pose_no": 7,
+  "pose_bin": "right_mid",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_04",
+   "tag": "p04f000118",
+   "record_id": "frame_000118",
+   "yaw_target": 32.5,
+   "yaw_actual": 37.26399993896485,
+   "date": "2003_06_15",
+   "pose_bin_target": "right_mid",
+   "pose_bin_actual": "right_mid",
+   "date_iso": "2003-06-15",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000118.jpg",
+   "filename": "2003_06_15.jpg",
+   "stem": "2003_06_15"
+  },
+  {
+   "n": 2,
+   "person": "person_04",
+   "tag": "p04f000123",
+   "record_id": "frame_000123",
+   "yaw_target": 32.5,
+   "yaw_actual": 29.823692321777344,
+   "date": "2003_06_15",
+   "pose_bin_target": "right_mid",
+   "pose_bin_actual": "right_mid",
+   "date_iso": "2003-06-15",
+   "seq": 2,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000123.jpg",
+   "filename": "2003_06_15_2.jpg",
+   "stem": "2003_06_15_2"
+  }
+ ],
+ "planned_only": false
+}

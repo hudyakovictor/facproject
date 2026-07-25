@@ -2,11 +2,12 @@
 from __future__ import annotations
 from dataclasses import asdict,dataclass
 from datetime import datetime,timezone
-import hashlib,json,os,queue,signal,subprocess,sys,threading,time,uuid
+import hashlib,json,logging,os,queue,signal,subprocess,sys,threading,time,uuid
 from pathlib import Path
 from typing import Any
 
 SCHEMA="dpo-run-event-v1";TERMINAL={"succeeded","failed","cancelled","timed_out","interrupted"}
+logger=logging.getLogger("dpo.runtime")
 def now()->str:return datetime.now(timezone.utc).isoformat()
 @dataclass(frozen=True)
 class RunnerSpec:
@@ -54,7 +55,7 @@ class RunManager:
    if r.status not in TERMINAL:r.status="interrupted";r.finished_at=now();r.reason="UI restarted";self._persist(r)
    self.records[r.id]=r
  def submit(self,runner_id:str,seed:int=0)->RunRecord:
-  self.registry.get(runner_id);rid=uuid.uuid4().hex;r=RunRecord(rid,runner_id,"queued",now(),code_hash=self._hash_tree(),config_hash=hashlib.sha256(f"{runner_id}:{seed}".encode()).hexdigest(),seed=int(seed));self.records[rid]=r;self.logs[rid]=EventLog(self.heavy/"runs"/rid/"events.jsonl");self._persist(r);self.logs[rid].emit("queued",runner_id=runner_id);self.q.put(rid);return r
+  self.registry.get(runner_id);rid=uuid.uuid4().hex;r=RunRecord(rid,runner_id,"queued",now(),code_hash=self._hash_tree(),config_hash=hashlib.sha256(f"{runner_id}:{seed}".encode()).hexdigest(),seed=int(seed));self.records[rid]=r;self.logs[rid]=EventLog(self.heavy/"runs"/rid/"events.jsonl");self._persist(r);self.logs[rid].emit("queued",runner_id=runner_id);logger.info("run queued",extra={"event":"run_queued","run_id":rid,"state":runner_id});self.q.put(rid);return r
  def get(self,rid:str)->RunRecord:
   if rid not in self.records:raise KeyError(rid)
   return self.records[rid]
@@ -73,7 +74,7 @@ class RunManager:
    if r.status=="cancelled":continue
    self._execute(r)
  def _execute(self,r:RunRecord):
-  spec=self.registry.get(r.runner_id);log=self.logs[r.id];r.status="running";r.started_at=now();self._persist(r);log.emit("started",runner_id=spec.id)
+  spec=self.registry.get(r.runner_id);log=self.logs[r.id];r.status="running";r.started_at=now();self._persist(r);log.emit("started",runner_id=spec.id);logger.info("run started",extra={"event":"run_started","run_id":r.id,"state":spec.id})
   cmd=[sys.executable,"-m",spec.module,*spec.fixed_args];p=subprocess.Popen(cmd,cwd=self.app_root.parent,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1,start_new_session=True,env={**os.environ,"PYTHONHASHSEED":str(r.seed),"PYTHONUNBUFFERED":"1"});self.procs[r.id]=p;r.pid=p.pid;self._persist(r);deadline=time.monotonic()+spec.timeout
   def stream_output():
    if p.stdout:
@@ -89,5 +90,5 @@ class RunManager:
   r.finished_at=now()
   if r.id in self.cancel_requested:r.status="cancelled"
   elif r.status=="running":r.status="succeeded" if r.exit_code==0 else "failed"
-  log.emit("finished",status=r.status,exit_code=r.exit_code,reason=r.reason);self._persist(r);self.procs.pop(r.id,None);self.cancel_requested.discard(r.id)
+  log.emit("finished",status=r.status,exit_code=r.exit_code,reason=r.reason);self._persist(r);logger.log(logging.INFO if r.status=="succeeded" else logging.ERROR,"run finished",extra={"event":"run_finished","run_id":r.id,"state":r.status});self.procs.pop(r.id,None);self.cancel_requested.discard(r.id)
  def shutdown(self):self.stop_event.set();self.worker.join(timeout=1)

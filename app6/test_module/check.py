@@ -66,8 +66,9 @@ def run_checks(manifest: dict, run_dir: Path) -> dict:
     tags = {fr["n"]: fr["tag"] for fr in manifest["frames"]}
     results: list[dict] = []
 
-    def add(name, ok, detail=""):
-        results.append({"check": name, "ok": bool(ok), "detail": str(detail)[:400]})
+    def add(name, ok, detail="", state=None):
+        state = state or ("passed" if ok else "failed")
+        results.append({"check": name, "ok": bool(ok), "state": state, "detail": str(detail)[:400]})
 
     val = _json(s2 / "analysis_validation.json")
     add("pipeline_complete", val.get("status") == "complete",
@@ -84,7 +85,7 @@ def run_checks(manifest: dict, run_dir: Path) -> dict:
                     if i < j and frozenset((i, j)) not in skip:
                         for r in _find_pairs(pairs, tags[i], tags[j]):
                             if str(r.get("status")) in RED_STATUSES:
-                                bad.append((i, j, r.get("status")))
+                                bad.append((i, j, r))
             if not pairs:
                 real_skips = [r for r in skipped if str(r.get("skip_reason", "")).strip()]
                 reasons = sorted({str(r["skip_reason"]) for r in real_skips})
@@ -95,7 +96,25 @@ def run_checks(manifest: dict, run_dir: Path) -> dict:
                 )
                 add(t, False, detail)
             else:
-                add(t, not bad, bad)
+                reportable = []
+                limited = []
+                for i, j, row in bad:
+                    item = (i, j, row.get("status"), row.get("evidence_state"))
+                    is_limited = (
+                        str(row.get("evidence_state", "")) in {
+                            "quality_limited", "calibration_limited", "pose_leakage_limited"
+                        }
+                        or _truthy(row.get("quality_limited"))
+                        or _truthy(row.get("calibration_limited"))
+                        or _truthy(row.get("pose_leakage_limited"))
+                    )
+                    (limited if is_limited else reportable).append(item)
+                if reportable:
+                    add(t, False, {"reportable": reportable, "limited": limited}, "failed")
+                elif limited:
+                    add(t, False, {"blocked_limited_candidates": limited}, "blocked")
+                else:
+                    add(t, True, [])
         elif t == "pair_status":
             found = _find_pairs(pairs, tags[exp["frames"][0]], tags[exp["frames"][1]])
             stats = {str(r.get("status")) for r in found}
@@ -139,4 +158,12 @@ def run_checks(manifest: dict, run_dir: Path) -> dict:
             add(t, bool(found) and bool(stats & set(exp["any_of"])), detail)
         else:
             add(t, False, "неизвестный тип проверки")
-    return {"scenario_id": manifest["scenario"]["id"], "passed": all(r["ok"] for r in results), "checks": results}
+    states = {str(r.get("state")) for r in results}
+    outcome = "failed" if "failed" in states else ("blocked" if "blocked" in states else "passed")
+    return {
+        "scenario_id": manifest["scenario"]["id"],
+        "outcome": outcome,
+        "passed": outcome == "passed",
+        "blocked": outcome == "blocked",
+        "checks": results,
+    }

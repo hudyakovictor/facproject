@@ -1,0 +1,89 @@
+{
+ "scenario": {
+  "id": "S14_rapid_control_same_p02_v03",
+  "block": "rate",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "Один человек через 3 дня — контроль ложного rapid",
+  "person_set": {
+   "A": "person_04",
+   "A2": "person_05",
+   "B": "person_05",
+   "C": "person_06",
+   "D": "person_07"
+  },
+  "frames": [
+   {
+    "person": "person_04",
+    "yaw": -45.0,
+    "date": "2004_05_01",
+    "group": "auto",
+    "pose_no": 2,
+    "pose_bin_requested": "left_deep"
+   },
+   {
+    "person": "person_04",
+    "yaw": -45.0,
+    "date": "2004_05_04",
+    "group": "auto",
+    "pose_no": 2,
+    "pose_bin_requested": "left_deep"
+   }
+  ],
+  "expect": [
+   {
+    "type": "status_absent",
+    "statuses": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate"
+    ]
+   },
+   {
+    "type": "no_red_pairs"
+   }
+  ],
+  "variant": 3,
+  "combo_no": 4,
+  "base_id": "S14_rapid_control_same",
+  "pose_no": 2,
+  "pose_bin": "left_deep",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_04",
+   "tag": "p04f000196",
+   "record_id": "frame_000196",
+   "yaw_target": -45.0,
+   "yaw_actual": -41.45875930786133,
+   "date": "2004_05_01",
+   "pose_bin_target": "left_deep",
+   "pose_bin_actual": "left_deep",
+   "date_iso": "2004-05-01",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000196.jpg",
+   "filename": "2004_05_01.jpg",
+   "stem": "2004_05_01"
+  },
+  {
+   "n": 2,
+   "person": "person_04",
+   "tag": "p04f000199",
+   "record_id": "frame_000199",
+   "yaw_target": -45.0,
+   "yaw_actual": -47.1855354309082,
+   "date": "2004_05_04",
+   "pose_bin_target": "left_deep",
+   "pose_bin_actual": "left_deep",
+   "date_iso": "2004-05-04",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_04/frame_000199.jpg",
+   "filename": "2004_05_04.jpg",
+   "stem": "2004_05_04"
+  }
+ ],
+ "planned_only": false
+}

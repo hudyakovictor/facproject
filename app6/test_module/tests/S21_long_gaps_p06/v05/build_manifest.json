@@ -1,0 +1,114 @@
+{
+ "scenario": {
+  "id": "S21_long_gaps_p06_v05",
+  "block": "edge",
+  "priority": "P2",
+  "mode": "fast",
+  "description": "Пропуски по 6 лет — никаких ложных rapid",
+  "person_set": {
+   "A": "person_06",
+   "A2": "person_07",
+   "B": "person_07",
+   "C": "person_01",
+   "D": "person_02"
+  },
+  "frames": [
+   {
+    "person": "person_06",
+    "yaw": 17.5,
+    "date": "2001_03_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_06",
+    "yaw": 17.5,
+    "date": "2007_03_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   },
+   {
+    "person": "person_06",
+    "yaw": 17.5,
+    "date": "2013_03_10",
+    "group": "auto",
+    "pose_no": 6,
+    "pose_bin_requested": "right_light"
+   }
+  ],
+  "expect": [
+   {
+    "type": "no_red_pairs"
+   },
+   {
+    "type": "status_absent",
+    "statuses": [
+     "rapid_change_candidate",
+     "persistent_rapid_change_candidate"
+    ]
+   }
+  ],
+  "variant": 5,
+  "combo_no": 6,
+  "base_id": "S21_long_gaps",
+  "pose_no": 6,
+  "pose_bin": "right_light",
+  "combination_count_for_base": 7
+ },
+ "frames": [
+  {
+   "n": 1,
+   "person": "person_06",
+   "tag": "p06f0097",
+   "record_id": "frame_0097",
+   "yaw_target": 17.5,
+   "yaw_actual": 11.3282470703125,
+   "date": "2001_03_10",
+   "pose_bin_target": "right_light",
+   "pose_bin_actual": "right_light",
+   "date_iso": "2001-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0097.jpg",
+   "filename": "2001_03_10.jpg",
+   "stem": "2001_03_10"
+  },
+  {
+   "n": 2,
+   "person": "person_06",
+   "tag": "p06f0102",
+   "record_id": "frame_0102",
+   "yaw_target": 17.5,
+   "yaw_actual": 15.429140090942385,
+   "date": "2007_03_10",
+   "pose_bin_target": "right_light",
+   "pose_bin_actual": "right_light",
+   "date_iso": "2007-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0102.jpg",
+   "filename": "2007_03_10.jpg",
+   "stem": "2007_03_10"
+  },
+  {
+   "n": 3,
+   "person": "person_06",
+   "tag": "p06f0107",
+   "record_id": "frame_0107",
+   "yaw_target": 17.5,
+   "yaw_actual": 20.730234146118164,
+   "date": "2013_03_10",
+   "pose_bin_target": "right_light",
+   "pose_bin_actual": "right_light",
+   "date_iso": "2013-03-10",
+   "seq": 1,
+   "group": "src_a",
+   "src": "/Users/victorkhudyakov/work/calibration_dataset/photos/person_06/frame_0107.jpg",
+   "filename": "2013_03_10.jpg",
+   "stem": "2013_03_10"
+  }
+ ],
+ "planned_only": false
+}
