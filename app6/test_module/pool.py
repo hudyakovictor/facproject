@@ -63,7 +63,7 @@ class FramePicker:
         self.pool = pool
         self.used: dict[str, list[int]] = {}
 
-    def pick(self, person: str, yaw: float, min_gap: int = MIN_FRAME_GAP, require_photo: bool = True) -> dict:
+    def pick(self, person: str, yaw: float, min_gap: int = MIN_FRAME_GAP, require_photo: bool = False) -> dict:
         wanted_bin = target_pose_bin(yaw)
         cands = [r for r in self.pool if r["person"] == person
                  and r["pose_bin"] == wanted_bin
@@ -87,7 +87,7 @@ class FramePicker:
         used.append(best["frame_index"])
         return best
 
-    def pick_extremes(self, person: str, yaw: float, count: int, min_gap: int = MIN_FRAME_GAP, require_photo: bool = True) -> list[dict]:
+    def pick_extremes(self, person: str, yaw: float, count: int, min_gap: int = MIN_FRAME_GAP, require_photo: bool = False) -> list[dict]:
         """Вернуть `count` кадров этого ракурса, покрывающих весь доступный диапазон frame_index.
         Сначала фильтруем кандидатов по близости к целевому yaw (±25°), затем сортируем по frame_index,
         разбиваем на `count` групп и берём из каждой группы по одному кадру (ближайший к центру группы).

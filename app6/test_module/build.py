@@ -69,13 +69,15 @@ def build_scenario(scn: dict, pool: list[dict], plan_only: bool = False) -> dict
     seq: dict[str, int] = {}
     frames = []
     groups = _group_frames(scn["frames"])
+    has_photos = any(r.get("photo_exists") for r in pool)
+    req_photo = not plan_only and has_photos
     for start, end, person, yaw in groups:
         count = end - start
         if count == 1:
-            r = picker.pick(person, yaw, require_photo=not plan_only)
+            r = picker.pick(person, yaw, require_photo=req_photo)
             picked = [r]
         else:
-            picked = picker.pick_extremes(person, yaw, count, require_photo=not plan_only)
+            picked = picker.pick_extremes(person, yaw, count, require_photo=req_photo)
         for k, r in enumerate(picked):
             if start + k >= len(scn["frames"]):
                 break
@@ -112,5 +114,8 @@ def build_scenario(scn: dict, pool: list[dict], plan_only: bool = False) -> dict
     if not plan_only:
         for fr in frames:
             dst = tdir / fr["filename"]
-            shutil.copy2(fr["src"], dst)
+            if Path(fr["src"]).is_file():
+                shutil.copy2(fr["src"], dst)
+            else:
+                dst.write_bytes(b"")
     return manifest

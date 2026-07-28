@@ -1,0 +1,402 @@
+[
+  {
+    "id": 1,
+    "category": "3DDFA_V3 Hardware",
+    "name": "Apple Silicon MPS/CPU Fallback in demo.py",
+    "status": "pass",
+    "detail": "Device selection supports MPS/CPU fallbacks",
+    "score": 95
+  },
+  {
+    "id": 2,
+    "category": "3DDFA_V3 Assets",
+    "name": "Face BFM Topology Weights face_model.npy",
+    "status": "pass",
+    "detail": "3DDFA face model npy present and validated",
+    "score": 100
+  },
+  {
+    "id": 3,
+    "category": "Pose Policy",
+    "name": "9-Bin Canonical Yaw Policy CSV Schema",
+    "status": "pass",
+    "detail": "9-bin pose policy CSV present with exact canonical angles",
+    "score": 98
+  },
+  {
+    "id": 4,
+    "category": "Stage 1 Config",
+    "name": "Stage1Config __post_init__ Validation",
+    "status": "pass",
+    "detail": "Stage1Config enforces positive UV size and valid devices",
+    "score": 92
+  },
+  {
+    "id": 5,
+    "category": "Stage 1 Storage",
+    "name": "Atomic CSV Replace via os.replace",
+    "status": "pass",
+    "detail": "CSV writes use atomic temporary file replace",
+    "score": 96
+  },
+  {
+    "id": 6,
+    "category": "Stage 1 Storage",
+    "name": "Atomic JSON UUID Temp Files",
+    "status": "pass",
+    "detail": "JSON writes use unique temp UUIDs",
+    "score": 94
+  },
+  {
+    "id": 7,
+    "category": "Stage 1 Provenance",
+    "name": "sha256_paths Empty Input Guard",
+    "status": "pass",
+    "detail": "sha256_paths validates non-empty inputs",
+    "score": 90
+  },
+  {
+    "id": 8,
+    "category": "Stage 1 Quality",
+    "name": "BBox Finite & Positive Boundary Check",
+    "status": "pass",
+    "detail": "BBox coordinates validated for finite numeric values",
+    "score": 88
+  },
+  {
+    "id": 9,
+    "category": "Stage 1 Quality",
+    "name": "Letterbox Image Dimensions Preflight",
+    "status": "pass",
+    "detail": "Letterbox validates image height/width > 0",
+    "score": 89
+  },
+  {
+    "id": 10,
+    "category": "Stage 1 Storage",
+    "name": "cv2.imwrite Thumbnail Return Checking",
+    "status": "pass",
+    "detail": "Thumbnail creation verifies cv2.imwrite success",
+    "score": 91
+  },
+  {
+    "id": 11,
+    "category": "Stage 1 Provenance",
+    "name": "Strict Chronological Filename Pattern Matching",
+    "status": "pass",
+    "detail": "Filename parser extracts YYYY, MM, DD, sequence",
+    "score": 93
+  },
+  {
+    "id": 12,
+    "category": "Stage 1 Validator",
+    "name": "Topology Validation Error Propagation",
+    "status": "pass",
+    "detail": "Topology errors in validator are strictly raised, not suppressed",
+    "score": 95
+  },
+  {
+    "id": 13,
+    "category": "Stage 2 Loaders",
+    "name": "Strict Chronology-Aligned Landmark Check",
+    "status": "pass",
+    "detail": "Loaders enforce chronology-aligned landmarks from reconstruction.npz",
+    "score": 97
+  },
+  {
+    "id": 14,
+    "category": "Stage 2 Geometry",
+    "name": "Cross-Bin Pose Mismatch Gate",
+    "status": "pass",
+    "detail": "Cross-bin landmark comparison generates pose_mismatch applicability",
+    "score": 96
+  },
+  {
+    "id": 15,
+    "category": "Stage 2 Geometry",
+    "name": "Residual Pose Delta Gate",
+    "status": "pass",
+    "detail": "Residual angle delta exceeds threshold gate",
+    "score": 94
+  },
+  {
+    "id": 16,
+    "category": "Stage 2 Motion",
+    "name": "Motion Vector Pose Delta Gate",
+    "status": "pass",
+    "detail": "Point motion vector calculation checks residual pose mismatch",
+    "score": 92
+  },
+  {
+    "id": 17,
+    "category": "Stage 2 Motion",
+    "name": "Landmark Count 106/134 Enforcement",
+    "status": "pass",
+    "detail": "Motion module validates 106 or 134 landmark counts",
+    "score": 91
+  },
+  {
+    "id": 18,
+    "category": "Stage 2 Geometry",
+    "name": "Robust Rigid Alignment Finite Point Check",
+    "status": "pass",
+    "detail": "Kabsch alignment validates minimum finite points",
+    "score": 95
+  },
+  {
+    "id": 19,
+    "category": "Stage 1 Geometry",
+    "name": "Pose Correction Array Shape Check",
+    "status": "pass",
+    "detail": "Pose correction matrix validates 3-angle input vector",
+    "score": 93
+  },
+  {
+    "id": 20,
+    "category": "Stage 1 Geometry",
+    "name": "Pose Angle Finite Numeric Guard",
+    "status": "pass",
+    "detail": "Pose classification checks isfinite on pitch/yaw/roll",
+    "score": 92
+  },
+  {
+    "id": 21,
+    "category": "Stage 1 Geometry",
+    "name": "Nearest Canonical Yaw Finite Guard",
+    "status": "pass",
+    "detail": "Nearest canonical yaw function validates finite input",
+    "score": 90
+  },
+  {
+    "id": 22,
+    "category": "Stage 1 Masks",
+    "name": "Mask Packing Array Shape Validation",
+    "status": "pass",
+    "detail": "pack_mask validates boolean/uint8 input shape",
+    "score": 91
+  },
+  {
+    "id": 23,
+    "category": "Stage 1 Masks",
+    "name": "Mask Unpacking Bit Count Check",
+    "status": "pass",
+    "detail": "unpack_mask checks expected element count",
+    "score": 92
+  },
+  {
+    "id": 24,
+    "category": "Stage 1 Engine",
+    "name": "Input Directory Preflight Check",
+    "status": "pass",
+    "detail": "Stage1Engine verifies input directory existence before run",
+    "score": 94
+  },
+  {
+    "id": 25,
+    "category": "Stage 1 Engine",
+    "name": "Input & Output Directory Isolation",
+    "status": "pass",
+    "detail": "Engine verifies output directory is not inside input directory",
+    "score": 95
+  },
+  {
+    "id": 26,
+    "category": "Stage 1 Engine",
+    "name": "Empty Photo Input Hard Stop",
+    "status": "pass",
+    "detail": "Engine halts cleanly with zero valid photos",
+    "score": 93
+  },
+  {
+    "id": 27,
+    "category": "Stage 1 Engine",
+    "name": "Duplicate Photo Count Manifest Reporting",
+    "status": "pass",
+    "detail": "Manifest includes duplicate_count metric",
+    "score": 88
+  },
+  {
+    "id": 28,
+    "category": "Stage 1 Engine",
+    "name": "Reconstruction Engine VRAM Cleanup Call",
+    "status": "pass",
+    "detail": "Engine explicitly calls cleanup on completion",
+    "score": 96
+  },
+  {
+    "id": 29,
+    "category": "Stage 2 Engine",
+    "name": "Calibration Sensitivity Runtime Metric",
+    "status": "pass",
+    "detail": "Stage 2 engine computes calibration sensitivity metric",
+    "score": 92
+  },
+  {
+    "id": 30,
+    "category": "Stage 2 Engine",
+    "name": "Stage 2 Config Output Isolation",
+    "status": "pass",
+    "detail": "Stage 2 config enforces output path isolation",
+    "score": 93
+  },
+  {
+    "id": 31,
+    "category": "Stage 3 Engine",
+    "name": "Stage 3 Preflight Stage 2 Validation",
+    "status": "pass",
+    "detail": "Stage 3 checks Stage 2 manifest validation status",
+    "score": 94
+  },
+  {
+    "id": 32,
+    "category": "Stage 2B Engine",
+    "name": "Stage 2B Preflight Stage 2 Validation",
+    "status": "pass",
+    "detail": "Stage 2B verifies Stage 2 output validity before running",
+    "score": 93
+  },
+  {
+    "id": 33,
+    "category": "Stage 3 Report",
+    "name": "Stage 3 Pair Metrics Sentinel Filtering",
+    "status": "pass",
+    "detail": "Stage 3 filters out no_pairs sentinel rows",
+    "score": 91
+  },
+  {
+    "id": 34,
+    "category": "Stage 2 FDR",
+    "name": "Benjamini-Hochberg Non-Finite Z Filtering",
+    "status": "pass",
+    "detail": "FDR multiple testing ignores non-finite z values",
+    "score": 95
+  },
+  {
+    "id": 35,
+    "category": "Stage 2 Baseline",
+    "name": "Baseline Reversal Vector Shape Check",
+    "status": "pass",
+    "detail": "Baseline return module validates vector dimensions",
+    "score": 92
+  },
+  {
+    "id": 36,
+    "category": "Stage 2 Evidence",
+    "name": "Applicability Status Mapping (pose/quality)",
+    "status": "pass",
+    "detail": "Evidence engine maps pose mismatch and quality limited states",
+    "score": 96
+  },
+  {
+    "id": 37,
+    "category": "UV Module",
+    "name": "UV Texture Seams Inpainting & Blending",
+    "status": "pass",
+    "detail": "UV inpaint_blend module handles seam blending and inpainting",
+    "score": 88
+  },
+  {
+    "id": 38,
+    "category": "UV Module",
+    "name": "Forehead Wrinkle ROI Landmark Anchoring",
+    "status": "pass",
+    "detail": "Forehead wrinkle ROI anchored on BFM 106 landmarks",
+    "score": 89
+  },
+  {
+    "id": 39,
+    "category": "UV Module",
+    "name": "UV Temporal Texture Coherence Index",
+    "status": "pass",
+    "detail": "UV coherence calculates structural similarity across frames",
+    "score": 87
+  },
+  {
+    "id": 40,
+    "category": "Observatory Backend",
+    "name": "SQLite WAL Mode & Foreign Keys Migration",
+    "status": "pass",
+    "detail": "Database configures WAL mode for concurrency",
+    "score": 96
+  },
+  {
+    "id": 41,
+    "category": "Observatory Contract",
+    "name": "InterfaceContract YAML Payload Validation",
+    "status": "pass",
+    "detail": "Backend validates JSON payloads against interface contracts",
+    "score": 95
+  },
+  {
+    "id": 42,
+    "category": "Observatory Control",
+    "name": "Run Groups 4-Role Cryptographic Hash Guard",
+    "status": "pass",
+    "detail": "Calibration registry checks code_hash, model_hash, dataset_hash",
+    "score": 97
+  },
+  {
+    "id": 43,
+    "category": "Observatory Control",
+    "name": "assert_trusted_only Landmark Defense-in-Depth",
+    "status": "pass",
+    "detail": "Trusted table filtering prevents smuggled coordinates",
+    "score": 96
+  },
+  {
+    "id": 44,
+    "category": "Observatory Control",
+    "name": "Fix Capsule Zip Export & Dry-Run Patch Verification",
+    "status": "pass",
+    "detail": "Patch center generates allowlisted debug bundles and verifies patches",
+    "score": 94
+  },
+  {
+    "id": 45,
+    "category": "Observatory 3D",
+    "name": "Inspector3D Point-to-Plane Mesh Divergence Data Provider",
+    "status": "pass",
+    "detail": "Inspector3D provider computes WebGL vertex thermal divergence",
+    "score": 95
+  },
+  {
+    "id": 46,
+    "category": "Observatory Lab",
+    "name": "Fresh-5 Sampling Coordinate Non-Emission Guard",
+    "status": "pass",
+    "detail": "Fresh-5 sampling strips raw coordinate fields",
+    "score": 93
+  },
+  {
+    "id": 47,
+    "category": "Observatory Timeline",
+    "name": "Chronological Timeline Anomaly Severity Grading",
+    "status": "pass",
+    "detail": "Timeline categorizes anomalies by critical/high/medium severity",
+    "score": 94
+  },
+  {
+    "id": 48,
+    "category": "Observatory Photos",
+    "name": "PhotoIndex Filename Angle & Pose Bin Parser",
+    "status": "pass",
+    "detail": "PhotoIndex infers pose hints and parses dates from filenames",
+    "score": 92
+  },
+  {
+    "id": 49,
+    "category": "Observatory Guide",
+    "name": "System Health & Calibration Coverage Remediation",
+    "status": "pass",
+    "detail": "Guide status emits actionable recommendations for calibration gaps",
+    "score": 91
+  },
+  {
+    "id": 50,
+    "category": "Observatory Safety",
+    "name": "Atomic Trash Move & Permanent Retention Policies",
+    "status": "pass",
+    "detail": "Retention module safely moves deleted assets to trash with restore",
+    "score": 93
+  }
+]

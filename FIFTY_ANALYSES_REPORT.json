@@ -32,21 +32,21 @@
     "category": "AST & Syntax Structure",
     "target": "app6/test_module",
     "status": "pass",
-    "details": "Files: 21, Classes: 11, Functions: 159, Syntax OK: True"
+    "details": "Files: 22, Classes: 11, Functions: 167, Syntax OK: True"
   },
   {
     "id": 6,
     "category": "AST & Syntax Structure",
     "target": "ui/backend/dpo",
     "status": "pass",
-    "details": "Files: 32, Classes: 63, Functions: 254, Syntax OK: True"
+    "details": "Files: 32, Classes: 63, Functions: 256, Syntax OK: True"
   },
   {
     "id": 7,
     "category": "AST & Syntax Structure",
     "target": "ui/backend/tests",
     "status": "pass",
-    "details": "Files: 22, Classes: 27, Functions: 124, Syntax OK: True"
+    "details": "Files: 22, Classes: 27, Functions: 123, Syntax OK: True"
   },
   {
     "id": 8,
@@ -109,7 +109,7 @@
     "category": "Core Module Metric",
     "target": "app6/stage2/engine.py",
     "status": "pass",
-    "details": "Exists: True, Lines: 297"
+    "details": "Exists: True, Lines: 302"
   },
   {
     "id": 17,
@@ -172,7 +172,7 @@
     "category": "Core Module Metric",
     "target": "ui/backend/dpo/main.py",
     "status": "pass",
-    "details": "Exists: True, Lines: 441"
+    "details": "Exists: True, Lines: 445"
   },
   {
     "id": 26,
