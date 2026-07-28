@@ -95,9 +95,9 @@ class PointNoiseModel:
         for r in self.records:groups[(r.dataset_id,r.pose_bin)].append(r)
         values=defaultdict(list);templates=defaultdict(list)
         for (_,pose),rs in groups.items():
-            rs=sorted(rs,key=lambda r:(float(r.angles[1]),float(r.angles[0]),r.sequence))
+            rs=sorted(rs,key=lambda r:r.date or str(r.sequence))
             for r in rs:templates[(pose,106)].append(r.ldm106);templates[(pose,134)].append(r.ldm134)
-            for off in (1,2):
+            for off in (1,2,3,5,10,20,50):
                 for a,b in zip(rs,rs[off:]):
                     if self._pose_distance(a,b)>2.5:continue
                     for count in (106,134):

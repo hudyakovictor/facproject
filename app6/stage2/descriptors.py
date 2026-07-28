@@ -49,8 +49,8 @@ class DescriptorNoiseModel:
         for r in records: groups[(r.dataset_id,r.pose_bin)].append(r); templates[r.pose_bin].append(r.ldm134)
         vals=defaultdict(list)
         for (_,pose),rs in groups.items():
-            rs=sorted(rs,key=lambda r:(float(r.angles[1]),float(r.angles[0]),r.sequence)); tpl=np.median(np.stack(templates[pose][:200]),axis=0)
-            for off in (1,2):
+            rs=sorted(rs,key=lambda r:r.date or str(r.sequence)); tpl=np.median(np.stack(templates[pose][:200]),axis=0)
+            for off in (1,2,3,5,10,20,50):
                 for a,b in zip(rs,rs[off:]):
                     if self._pd(a,b)<=2.5:
                         x=local_pair_descriptors(a,b,tpl)

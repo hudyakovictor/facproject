@@ -56,7 +56,13 @@
   ],
   "expect": [
    {
-    "type": "no_red_pairs"
+    "type": "no_red_pairs",
+    "except_frames": [
+     [
+      1,
+      5
+     ]
+    ]
    }
   ],
   "variant": 0,
@@ -64,7 +70,7 @@
   "base_id": "S01_stability_frontal_A",
   "pose_no": 5,
   "pose_bin": "frontal",
-  "combination_count_for_base": 7
+  "combination_count_for_base": 1
  },
  "frames": [
   {

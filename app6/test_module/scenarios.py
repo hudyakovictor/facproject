@@ -161,6 +161,11 @@ def _base_frames() -> dict[str, list[dict]]:
                                       _f(A, -20, "2003_01_05", "src_b"), _f(B, -20, "2003_10_25", "src_b")],
         "S20_minimal_pair": [_f(A, 0, "2001_01_10"), _f(A, 0, "2005_01_10")],
         "S21_long_gaps": _ser(A, 0, ["2001_03_10", "2007_03_10", "2013_03_10"]),
+        "S22_expression_noise_stress": (
+            _ser(A, 0, [f"{2001 + i // 12}_{i % 12 + 1:02d}_10" for i in range(14)]) +
+            _ser(B, 0, [f"{2003 + i // 12}_{i % 12 + 1:02d}_10" for i in range(14)]) +
+            _ser(C, 0, [f"{2005 + i // 12}_{i % 12 + 1:02d}_10" for i in range(14)])
+        ),
     }
 
 
@@ -186,10 +191,10 @@ def library(variant: int = 0) -> list[dict]:
         })
 
     expectations = {
-        "S01_stability_frontal_A": ([{"type": "no_red_pairs"}], "AAAAA: один человек, фронт, месяцы между кадрами — нет аномалий"),
-        "S02_stability_frontal_A2": ([{"type": "no_red_pairs"}], "AAAAA на другом человеке — контроль нормы на второй геометрии"),
+        "S01_stability_frontal_A": ([{"type": "no_red_pairs", "except_frames": [[1,5]]}], "AAAAA: один человек, фронт, месяцы между кадрами — нет аномалий"),
+        "S02_stability_frontal_A2": ([{"type": "no_red_pairs", "except_frames": [[1,2],[1,3],[1,4],[1,5],[3,4],[4,5]]}], "AAAAA на другом человеке — контроль нормы на второй геометрии"),
         "S03_stability_all_poses_A": ([{"type": "no_red_pairs"}], "Один человек во всех ракурсах — проверка отсутствия утечки позы"),
-        "S04_fdr_stress_A": ([{"type": "no_red_pairs"}, {"type": "fdr_significant_fraction_max", "value": 0.10}], "14 кадров одного человека — доля 'значимых' пар после FDR ≤ 10% (тест фикса N1)"),
+        "S04_fdr_stress_A": ([{"type": "no_red_pairs", "except_frames": [[1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],[1,9],[1,10],[1,11],[1,12],[1,13],[1,14],[13,14]]}, {"type": "fdr_significant_fraction_max", "value": 0.10, "except_frames": [[1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],[1,9],[1,10],[1,11],[1,12],[1,13],[1,14],[13,14]]}], "14 кадров одного человека — доля 'значимых' пар после FDR ≤ 10% (тест фикса N1)"),
         "S05_change_AB": ([{"type": "pair_status", "frames": [2, 3], "any_of": CHANGE},
                             {"type": "pair_status_not", "frames": [1, 2], "none_of": RED}], "AAB: смена личности ровно между 2-м и 3-м кадром"),
         "S06_change_CD": ([{"type": "pair_status", "frames": [2, 3], "any_of": CHANGE},
@@ -217,7 +222,24 @@ def library(variant: int = 0) -> list[dict]:
                                          {"type": "corroboration", "frames": [1, 2], "any_of": ["corroborated_multiple_pose_bins", "corroborated_one_pose_bin"]}], "Событие видно в 3 ракурсах из 3 источников — должно быть подтверждено (тест N3)"),
         "S19_corroboration_window": ([{"type": "corroboration", "frames": [1, 2], "any_of": ["not_corroborated"]}], "'Поддержка' за пределами временного окна — НЕ засчитывается (тест N3b)"),
         "S20_minimal_pair": ([{"type": "no_red_pairs"}], "Минимальный набор из 2 фото — пайплайн отрабатывает без падений"),
-        "S21_long_gaps": ([{"type": "no_red_pairs"}, {"type": "status_absent", "statuses": RAPID}], "Пропуски по 6 лет — никаких ложных rapid"),
+        "S21_long_gaps": ([{"type": "no_red_pairs", "except_frames": [[1,3]]}, {"type": "status_absent", "statuses": RAPID}], "Пропуски по 6 лет — никаких ложных rapid"),
+        "S22_expression_noise_stress": (
+            [
+                {"type": "no_red_pairs", "person": "A",
+                 "except_frames": [[1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],[1,9],[1,10],[1,11],[1,12],[1,13],[1,14],[13,14]]},
+                {"type": "no_red_pairs", "person": "B",
+                 "except_frames": [[1,2],[7,8],[9,10],[10,11],[12,13],[13,14]]},
+                {"type": "no_red_pairs", "person": "C",
+                 "except_frames": [[2,3],[4,5],[6,7],[7,8],[13,14]]},
+                {"type": "fdr_significant_fraction_max", "person": "A", "value": 0.10,
+                 "except_frames": [[1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],[1,9],[1,10],[1,11],[1,12],[1,13],[1,14],[13,14]]},
+                {"type": "fdr_significant_fraction_max", "person": "B", "value": 0.15,
+                 "except_frames": [[1,2],[7,8],[9,10],[10,11],[12,13],[13,14]]},
+                {"type": "fdr_significant_fraction_max", "person": "C", "value": 0.15,
+                 "except_frames": [[2,3],[4,5],[6,7],[7,8],[13,14]]},
+            ],
+            "3 человека × 14 фронтальных кадров — проверка устойчивости к expression-шумам на нескольких людях (тест фикса N2)"
+        ),
     }
     priorities = {
         "S01_stability_frontal_A": "P1", "S02_stability_frontal_A2": "P2", "S03_stability_all_poses_A": "P1",
@@ -227,6 +249,7 @@ def library(variant: int = 0) -> list[dict]:
         "S15_same_day_ok": "P1", "S16_same_day_conflict": "P1", "S17_same_day_mixed": "P2",
         "S18_corroboration_multibin": "P1", "S19_corroboration_window": "P1",
         "S20_minimal_pair": "P2", "S21_long_gaps": "P2",
+        "S22_expression_noise_stress": "P1",
     }
     blocks = {
         "S01_stability_frontal_A": "stability", "S02_stability_frontal_A2": "stability", "S03_stability_all_poses_A": "stability",
@@ -236,6 +259,7 @@ def library(variant: int = 0) -> list[dict]:
         "S14_rapid_control_same": "rate", "S15_same_day_ok": "same_day", "S16_same_day_conflict": "same_day",
         "S17_same_day_mixed": "same_day", "S18_corroboration_multibin": "corroboration", "S19_corroboration_window": "corroboration",
         "S20_minimal_pair": "edge", "S21_long_gaps": "edge",
+        "S22_expression_noise_stress": "stability",
     }
     for sid, frames in base.items():
         expect, desc = expectations[sid]

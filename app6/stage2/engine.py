@@ -243,17 +243,22 @@ class Stage2Engine:
   chronology_refs=apply_chronology_rate_flags(rows)
   cross_bin_report=apply_cross_bin_corroboration(rows)
   event_rows=aggregate_events(rows)
+  # Глобальный диагноз утечки позы — для информации
   pose_leakage_report=pose_leakage_diagnostic(rows)
   multiple_testing_report={'pair_fdr':apply_pair_fdr(rows),'zone_fdr':apply_zone_fdr(zones)}
   unstable_poses={str(x.get('pose_bin')) for x in unstable_calibration if x.get('pose_bin') and str(x.get('metric')) in PRIMARY_CALIBRATION_METRICS}
   sensitivity_incomplete=calibration_sensitivity.get('status')!='complete'
   primary_pose_leakage_metrics=sorted(set(pose_leakage_report.get('flagged_metrics',[])) & PRIMARY_POSE_LEAKAGE_METRICS)
-  pose_leakage_limited=bool(primary_pose_leakage_metrics)
+  global_pose_leakage_flagged=bool(primary_pose_leakage_metrics)
+  # ⚡ Per-pair pose leakage: блокируем только те пары, где поза действительно
+  # разная (pose_distance > 1.0). Если обе фото в анфас или близком ракурсе —
+  # утечка позы не имеет значения, метрики считаются.
+  POSE_LEAKAGE_DISTANCE_THRESHOLD=1.0
   for r in rows:
    r['calibration_limited']=bool(sensitivity_incomplete or str(r.get('pose_bin')) in unstable_poses)
    r['calibration_limitation_reason']='sensitivity_incomplete' if sensitivity_incomplete else ('unstable_or_sparse_pose_reference' if r['calibration_limited'] else '')
-   r['pose_leakage_limited']=pose_leakage_limited
-   r['evidence_state']=evidence_state(str(r.get('status','')),quality_limited=bool(r.get('quality_limited')),calibration_limited=r['calibration_limited'],pose_leakage_limited=pose_leakage_limited)
+   r['pose_leakage_limited']=global_pose_leakage_flagged and (float(r.get('pose_distance',999))>POSE_LEAKAGE_DISTANCE_THRESHOLD)
+   r['evidence_state']=evidence_state(str(r.get('status','')),quality_limited=bool(r.get('quality_limited')),calibration_limited=r['calibration_limited'],pose_leakage_limited=r['pose_leakage_limited'])
   states={r['pair_id']:r['status'] for r in rows}
   evidence_states={r['pair_id']:r['evidence_state'] for r in rows}
   for d in details:
