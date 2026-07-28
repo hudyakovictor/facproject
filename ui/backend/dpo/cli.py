@@ -13,7 +13,7 @@ from .storage import StorageManager, StorageUnavailable
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="dpo")
-    p.add_argument("--config", type=Path, default=Path(__file__).resolve().parents[2] / "config" / "project.example.yaml")
+    p.add_argument("--config", type=Path, default=Path(__file__).resolve().parents[2] / "config" / "project.yaml")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("health")
     init = sub.add_parser("init-storage")

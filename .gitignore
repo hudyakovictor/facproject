@@ -39,6 +39,15 @@ build/
 __pycache__/
 calibration_dataset/photos
 app6/test_module/cache/
+app6/test_module/tests/
+app6/test_module/runs/
+app6/test_module/builds/
+app6/test_module/Архив.zip
+_backups/
+testphoto_output/
+Архив.zip
+Без названия *.txt
+*.tar.gz
 # Allow generated UV test artifacts to be committed (override *.png above)
 !test_results/
 !test_results/**/*.png

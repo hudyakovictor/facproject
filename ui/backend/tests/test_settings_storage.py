@@ -20,7 +20,7 @@ class ProjectFixture:
         self.volume = root / "SDCARD"
         self.heavy = self.volume / "uidata"
         self.main = self.volume / "photo" / "main"
-        self.calibration = self.volume / "photo" / "calibration"
+        self.calibration = self.volume / "calibration"
         for path in (self.config_dir, self.app6, self.volume, self.main, self.calibration / "photos"):
             path.mkdir(parents=True, exist_ok=True)
         self.config = self.config_dir / "project.yaml"

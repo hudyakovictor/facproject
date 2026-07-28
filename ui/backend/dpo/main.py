@@ -33,7 +33,7 @@ def create_app(config_path: str | Path | None = None):
     except ImportError as exc:  # pragma: no cover - exercised after dependencies are installed
         raise RuntimeError("FastAPI is not installed; run: pip install -e 'ui[dev]'") from exc
 
-    config = Path(config_path or os.environ.get("DPO_CONFIG", Path(__file__).resolve().parents[2] / "config" / "project.example.yaml"))
+    config = Path(config_path or os.environ.get("DPO_CONFIG", Path(__file__).resolve().parents[2] / "config" / "project.yaml"))
     settings = ProjectSettings.load(config)
     configure_logging()
     app = FastAPI(title="DEEPUTIN Pipeline Observatory", version="0.1.0", docs_url="/api/docs")
