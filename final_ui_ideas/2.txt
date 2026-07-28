@@ -1,0 +1,94 @@
+Рекомендуемый стек для production-сборки
+Ядро (уже есть в проекте)
+React 18+ + TypeScript 5
+Vite 5+ — быстрый dev-сервер и сборка
+Tailwind CSS 4 — utility-first стили
+Рекомендуемые дополнения (2023–2026)
+1. UI-компоненты: shadcn/ui (2023–2026)
+Почему лучший выбор:
+
+Не библиотека, а копируемые компоненты (можно кастомизировать под forensic dark theme)
+Базируется на Radix UI (headless primitives) + Tailwind
+Активно развивается: 40K+ GitHub stars, еженедельные обновления
+Готовые компоненты: Dropdown, Dialog, Command Palette, Context Menu, Scroll Area, Slider — всё что нужно для Filter Bar и Settings
+Где взять: ui.shadcn.com
+
+2. Графики и визуализация: Visx (Airbnb, 2023+)
+Почему для forensic timeline:
+
+Low-level React-обёртки над D3 — максимальная гибкость
+Идеально для custom timeline с 1809 точками
+Отличная производительность (SVG + React memoization)
+Компоненты: Line, Area, Bar, ScatterPlot, Brush, Zoom
+Альтернатива для больших данных: Apache ECharts (если нужно рендерить >10K точек) — canvas-рендеринг, built-in zoom/brush.
+
+3. Virtualization: TanStack Virtual v3 (2023–2025)
+Почему:
+
+Стандарт индустрии для виртуализации больших списков
+Поддержка horizontal scroll (нужно для filmstrip)
+Отличная производительность
+От одного автора, что и TanStack Query
+4. State management: Zustand (2023–2025)
+Почему:
+
+Легковесный (1 KB), без boilerplate
+Идеально для синхронизации scrollRatio, playheadIdx, filters между зонами
+Встроенные devtools
+Альтернатива: Jotai (atomic state) — если нужна более гранулярная реактивность.
+
+5. Drag & Drop: dnd-kit (2023–2025)
+Для чего:
+
+Drag-selection на filmstrip
+Reorder lanes в TrackPanel (как в ТЗ)
+Drag-to-scrub playhead
+Готовые шаблоны и dashboard-киты (2023–2026)
+🏆 Tremor v3 (2023)
+Лучший выбор для data-dense forensic dashboard.
+
+Готовые chart'ы: Area, Line, Bar, Sparkline, Donut — всё на Tailwind
+Data-dense компоненты: Metric Cards, KPI Blocks, Table, Badge
+Dark mode из коробки
+Отличная документация, Tremor Raw (для shadcn-совместимости)
+Где взять: tremor.so — есть free и pro версии
+Шаблоны: Tremor Dashboard Templates на GitHub
+
+🥈 Horizon UI (2023–2024)
+Подходит для cinematic dark theme.
+
+Chakra UI + Tailwind
+Готовые блоки: Charts, Tables, Kanban, Timeline
+Есть версия с Shadcn (2024)
+Premium look, подходит для forensic/cinematic интерфейсов
+Где взять: horizon-ui.com
+
+🥉 Aceternity UI (2024)
+Для современных UI-эффектов.
+
+Framer Motion компоненты
+Spotlight effects, Animated borders, Gradient borders — подойдёт для акцентов на критических метриках
+Отлично сочетается с shadcn/ui
+Где взять: ui.aceternity.com
+
+Рекомендуемый итоговый стек
+text
+
+React 18 + TypeScript 5 + Vite 5
+├── UI:         shadcn/ui + Radix UI
+├── Charts:     Visx (timeline) + Tremor (dashboard panels)
+├── State:      Zustand
+├── Virtualization: TanStack Virtual v3
+├── DnD:        dnd-kit
+├── Animation:  Framer Motion
+├── Icons:      Lucide React (уже подходит — см. ТЗ anti-patterns)
+├── Dates:      date-fns (русские локали)
+├── PDF export: jsPDF + html2canvas
+└── Data fetch: TanStack Query
+Готовые блоки для сборки:
+
+Tremor — dashboard chrome, charts, metric cards
+shadcn/ui — buttons, dialogs, dropdown, sliders (Filter Bar)
+Visx — кастомный timeline с tracks (с заменой текущего SVG-TrackPanel)
+dnd-kit — drag-selection + lane reorder
+Для production-релиза этого стека достаточно, чтобы закрыть 95+ баллов по ТЗ. Главный gap — 3D mesh overlay (Three.js) — остаётся отдельной задачей.
