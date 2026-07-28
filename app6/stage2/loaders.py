@@ -14,6 +14,7 @@ import numpy as np
 
 from .core import Record
 from .quality_integration import load_quality_zone_summary
+from .robustness import validate_landmarks, validate_serialized_record
 
 
 def _rows(path: Path) -> list[dict[str, str]]:
@@ -74,6 +75,7 @@ def load_main(stage1_root: Path) -> list[Record]:
         source_parts = Path(relative_source).parts
         source_group = source_parts[0] if len(source_parts) > 1 else "unknown"
         qsum = info.get("quality_summary") or {}
+        chronology_info = info.get("chronology") or {}
         gtq = qsum.get("global_texture_quality") or {}
         qzones = load_quality_zone_summary(directory)
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
@@ -97,6 +99,7 @@ def load_main(stage1_root: Path) -> list[Record]:
                 record_dir=str(directory),
                 source_group=source_group,
                 source_sha256=info.get("source_sha256"),
+                coordinate_noise_sigma=float(chronology_info.get("coordinate_noise_sigma", 0.0) or 0.0),
             ))
     return sorted(out, key=lambda r: (r.date or "9999", r.sequence, r.record_id))
 
@@ -123,6 +126,7 @@ def _read_landmark_csv(path: Path, count: int) -> np.ndarray:
     out = np.full((count, 3), np.nan, np.float32)
     for lid, xyz in by_id.items():
         out[lid] = np.asarray(xyz, np.float32)
+    validate_landmarks(out, ids=np.arange(count), expected_count=count)
     return out
 
 
@@ -190,6 +194,7 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
 def load_calibration(calibration_root: Path) -> list[Record]:
     log_status("load_calibration", "complete")
     root = calibration_root
+    index_candidates = [root / "all_calibration_index.csv", root.parent / "all_calibration_index.csv"]
     # Native app6 Stage-1 same-day calibration output. This is the format
     # produced by the top-level run_calibration.py workflow.
     if (root / "main_timeline.csv").is_file():
@@ -209,12 +214,29 @@ def load_calibration(calibration_root: Path) -> list[Record]:
         with np.load(npz_path, allow_pickle=False) as z:
             alpha_id = z["alpha_id"].astype(np.float32) if "alpha_id" in z.files else _missing_alpha(80)
             alpha_exp = z["alpha_exp"].astype(np.float32) if "alpha_exp" in z.files else _missing_alpha(64)
+            key106 = "ldm106_object_norm" if "ldm106_object_norm" in z.files else "ldm106_object_normalized"
+            key134 = "ldm134_object_norm" if "ldm134_object_norm" in z.files else "ldm134_object_normalized"
+            ldm106 = _required_npz_array(z, key106, (106, 3)).astype(np.float32)
+            ldm134 = _required_npz_array(z, key134, (134, 3)).astype(np.float32)
+            angles = _required_npz_array(z, "angle_deg_pitch_yaw_roll", (3,)).astype(np.float32)
+            vis106 = _required_npz_array(z, "ldm106_visible_original", (106,)).astype(bool)
+            vis134 = _required_npz_array(z, "ldm134_visible_original", (134,)).astype(bool)
+            validate_landmarks(ldm106, visibility=vis106, expected_count=106)
+            validate_landmarks(ldm134, visibility=vis134, expected_count=134)
+            raw106_path = directory / "ldm106_raw.csv"
+            if raw106_path.is_file() and "object_normalization_center" in z.files and "object_normalization_scale" in z.files:
+                raw106 = _read_landmark_csv(raw106_path, 106).astype(np.float64)
+                center = np.asarray(z["object_normalization_center"], np.float64).reshape(1, 3)
+                scale = float(np.asarray(z["object_normalization_scale"]).reshape(-1)[0])
+                reconstructed = ((raw106 - center) / scale).astype(np.float32)
+                meta_pose = meta.get("pose") or {}
+                meta_angles = [meta_pose.get("pitch"), meta_pose.get("yaw"), meta_pose.get("roll")]
+                validate_serialized_record(reconstructed, ldm106, meta_angles, angles)
             out.append(Record(
                 record_id=meta["record_id"], dataset_id=meta["dataset_id"], date=None, sequence=int(meta.get("frame_index", 0)),
-                pose_bin=meta["pose_bin"], angles=z["angle_deg_pitch_yaw_roll"].astype(np.float32),
-                ldm106=z.get("ldm106_object_norm", z.get("ldm106_object_normalized")).astype(np.float32),
-                ldm134=z.get("ldm134_object_norm", z.get("ldm134_object_normalized")).astype(np.float32),
-                visible106=z["ldm106_visible_original"].astype(bool), visible134=z["ldm134_visible_original"].astype(bool),
+                pose_bin=meta["pose_bin"], angles=angles,
+                ldm106=ldm106, ldm134=ldm134,
+                visible106=vis106, visible134=vis134,
                 alpha_id=alpha_id, alpha_exp=alpha_exp,
                 record_dir=str(directory),
             ))
@@ -224,6 +246,20 @@ def load_calibration(calibration_root: Path) -> list[Record]:
                 raise ValueError(
                     f"Calibration record {rec.record_id} has no landmark data. "
                     "Expected 'ldm106_object_norm' or 'ldm106_object_normalized' in record.npz"
+                )
+        index_path = next((p for p in index_candidates if p.is_file()), None)
+        if index_path is not None:
+            index_rows = _rows(index_path)
+            expected = {(str(r.get("dataset_id")), str(r.get("record_id"))) for r in index_rows if r.get("dataset_id") and r.get("record_id")}
+            if len(expected) != len(index_rows):
+                raise ValueError(f"duplicate or incomplete calibration index rows: {index_path}")
+            actual = {(r.dataset_id, r.record_id) for r in out}
+            missing = sorted(expected - actual)
+            extra = sorted(actual - expected)
+            if missing or extra:
+                raise ValueError(
+                    f"calibration index/data mismatch: missing={missing[:10]} extra={extra[:10]} "
+                    f"expected={len(expected)} actual={len(actual)}"
                 )
         return out
     # Published archive often ships metadata+CSV sidecars only.

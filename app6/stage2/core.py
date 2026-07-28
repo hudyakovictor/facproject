@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from .anchor_policy import stable_anchor_mask
+from .robustness import noise_adjusted_threshold
 from app6.stage1.status_logger import log_status, status_warning
 
 
@@ -43,6 +44,7 @@ class Record:
     record_dir: str | None = None
     source_group: str = "unknown"
     source_sha256: str | None = None
+    coordinate_noise_sigma: float = 0.0
 
 
 @dataclass
@@ -288,7 +290,10 @@ def robust_reference(values: list[float]) -> dict[str, float | int]:
             "p95": float(np.percentile(arr, 95)), "p99": float(np.percentile(arr, 99))}
 
 
-def calibrated_score(value: float, reference: dict[str, float | int], matched: list[float]) -> dict[str, float | str]:
+def calibrated_score(
+    value: float, reference: dict[str, float | int], matched: list[float],
+    *, coordinate_noise_sigma: float = 0.0,
+) -> dict[str, float | str]:
     """📊 METRIC — Calibrated score для одного значения.
 
     Сравнивает value с калибровочным распределением (same-person noise).
@@ -299,6 +304,9 @@ def calibrated_score(value: float, reference: dict[str, float | int], matched: l
     threshold = float(reference.get("p95", 0.0))
     if matched_arr.size:
         threshold = max(threshold, float(np.percentile(matched_arr, 95)))
+    unadjusted_threshold = threshold
+    if coordinate_noise_sigma > 0:
+        threshold = noise_adjusted_threshold(threshold, coordinate_noise_sigma)
     median = float(reference.get("median", 0.0)); mad = float(reference.get("mad", 0.0))
     z = float((value - median) / max(1.4826 * mad, 1e-8))
     if int(reference.get("count", 0)) < 7:
@@ -309,16 +317,19 @@ def calibrated_score(value: float, reference: dict[str, float | int], matched: l
         status = "elevated_but_uncertain"
     else:
         status = "elevated"
-    return {"calibration_median": median, "calibration_p95": threshold, "robust_z": z, "status": status}
+    return {"calibration_median": median, "calibration_p95": threshold,
+            "calibration_p95_unadjusted": unadjusted_threshold,
+            "coordinate_noise_sigma": float(coordinate_noise_sigma),
+            "robust_z": z, "status": status}
 
 
 # 🎯 CRITICAL: Zone weights for weighted scoring
 # Bone zones (high priority) get higher weight, soft tissue zones get lower weight
 ZONE_WEIGHTS = {
     # Bone zones (most stable, highest weight)
-    "x_0_0": 1.0, "x_1_0": 1.0, "x_2_0": 1.0,  # forehead/brow
-    "x_0_1": 0.9, "x_1_1": 1.2, "x_2_1": 0.9,  # nose/cheeks (nose=high)
-    "x_0_2": 0.7, "x_1_2": 0.8, "x_2_2": 0.7,  # jaw/chin (less stable)
+    "x_low_low": 1.0, "x_center_low": 1.0, "x_high_low": 1.0,
+    "x_low_center": 0.9, "x_center_center": 1.2, "x_high_center": 0.9,
+    "x_low_high": 0.7, "x_center_high": 0.8, "x_high_high": 0.7,
 }
 
 
