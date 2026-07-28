@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/calibrationpanel.tsx","./src/catalog.tsx","./src/guidedsetup.tsx","./src/investigationpanel.tsx","./src/investigationworkspace.tsx","./src/logconsole.tsx","./src/pipelinecanvas.tsx","./src/runtimepanel.tsx","./src/scenariolab.tsx","./src/timelinepanel.tsx","./src/api.ts","./src/logstore.ts","./src/main.tsx","./src/types.ts"],"version":"5.9.3"}
