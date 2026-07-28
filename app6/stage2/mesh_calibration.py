@@ -101,9 +101,9 @@ class MeshNoiseModel:
         unavailable = 0
         pose_counts: dict[str, int] = defaultdict(int)
         for (_, pose), rs in groups.items():
-            rs = sorted(rs, key=lambda r: (float(r.angles[1]), float(r.angles[0]), r.sequence))
+            rs = sorted(rs, key=lambda r: r.date or str(r.sequence))
             local_pairs = 0
-            for off in (1, 2):
+            for off in (1, 2, 3, 5, 10, 20, 50):
                 for a, b in zip(rs, rs[off:]):
                     if local_pairs >= self.max_pairs_per_pose:
                         break

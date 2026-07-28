@@ -74,15 +74,47 @@ def run_checks(manifest: dict, run_dir: Path) -> dict:
     add("pipeline_complete", val.get("status") == "complete",
         val.get("errors") or ("нет analysis_validation.json" if not val else ""))
 
+    def _person_of(n: int) -> str | None:
+        """Return the person label (A/B/C) for frame index n, or None."""
+        person_set_rev = {v: k for k, v in manifest.get("scenario", {}).get("person_set", {}).items()}
+        for fr in manifest.get("frames", []):
+            if fr.get("n") == n:
+                pname = fr.get("person")
+                if pname in person_set_rev:
+                    return person_set_rev[pname]
+                return pname
+        return None
+
+    def _person_frame_range(plabel: str) -> tuple[int, int] | None:
+        """Return (first_n, last_n) for a person label (A/B/C), or None."""
+        person_set = manifest.get("scenario", {}).get("person_set", {})
+        pname = person_set.get(plabel)
+        if pname is None:
+            return None
+        ns = [fr["n"] for fr in manifest.get("frames", []) if fr.get("person") == pname]
+        return (min(ns), max(ns)) if ns else None
+
     for exp in manifest["scenario"].get("expect", []):
         t = exp["type"]
+        person_filter = exp.get("person")
+        # Shift person-relative except_frames to global indices
+        _except_raw = exp.get("except_frames", [])
+        if person_filter and _except_raw:
+            prange = _person_frame_range(person_filter)
+            if prange:
+                base_n = prange[0] - 1  # person index 1 → global index base_n+1
+                _except_raw = [[a + base_n, b + base_n] for a, b in _except_raw]
         if t == "no_red_pairs":
-            skip = {frozenset(x) for x in exp.get("except_frames", [])}
+            skip = {frozenset(x) for x in _except_raw}
             bad = []
             ks = sorted(tags)
             for i in ks:
                 for j in ks:
                     if i < j and frozenset((i, j)) not in skip:
+                        if person_filter is not None:
+                            pi, pj = _person_of(i), _person_of(j)
+                            if pi != person_filter or pj != person_filter:
+                                continue
                         for r in _find_pairs(pairs, tags[i], tags[j]):
                             if str(r.get("status")) in RED_STATUSES:
                                 bad.append((i, j, r))
@@ -141,11 +173,31 @@ def run_checks(manifest: dict, run_dir: Path) -> dict:
             ok = int(exp.get("min", 0)) <= n <= int(exp.get("max", 10 ** 9))
             add(t, ok, f"event_count={n}")
         elif t == "fdr_significant_fraction_max":
-            tested = [r for r in pairs if str(r.get("mt_q_value", "")).strip() not in ("", "None")]
+            skip = {frozenset(x) for x in _except_raw}
+            tested_all = [r for r in pairs if str(r.get("mt_q_value", "")).strip() not in ("", "None")]
+            tested = []
+            for r in tested_all:
+                pa, pb = str(r.get("photo_a", "")), str(r.get("photo_b", ""))
+                na = nb = None
+                for n, tag in tags.items():
+                    if tag in pa:
+                        na = n
+                    if tag in pb:
+                        nb = n
+                if person_filter is not None:
+                    pi, pj = _person_of(na), _person_of(nb) if na is not None and nb is not None else (None, None)
+                    if pi != person_filter or pj != person_filter:
+                        continue
+                if na is not None and nb is not None and frozenset((na, nb)) in skip:
+                    continue
+                tested.append(r)
             sig = [r for r in tested if _truthy(r.get("mt_significant_fdr10"))]
             frac = (len(sig) / len(tested)) if tested else 0.0
+            skipped_count = len(tested_all) - len(tested)
             detail = f"significant={len(sig)}/{len(tested)} frac={frac:.3f}"
-            if not tested:
+            if skipped_count:
+                detail += f" (skipped {skipped_count} pairs by except_frames)"
+            if not tested_all:
                 real_skips = [r for r in skipped if r.get('skip_reason')]
                 detail += f" | no FDR-tested rows; skipped_pairs={len(real_skips)}"
             add(t, bool(tested) and frac <= float(exp["value"]), detail)

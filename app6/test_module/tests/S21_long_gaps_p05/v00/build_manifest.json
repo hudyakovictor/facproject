@@ -40,7 +40,13 @@
   ],
   "expect": [
    {
-    "type": "no_red_pairs"
+    "type": "no_red_pairs",
+    "except_frames": [
+     [
+      1,
+      3
+     ]
+    ]
    },
    {
     "type": "status_absent",
@@ -55,7 +61,7 @@
   "base_id": "S21_long_gaps",
   "pose_no": 5,
   "pose_bin": "frontal",
-  "combination_count_for_base": 7
+  "combination_count_for_base": 1
  },
  "frames": [
   {

@@ -1,10 +1,12 @@
 """⚡ FAST-режим: сборка stage1-выхода сценария из кэша БЕЗ инференса.
-Копирует готовые папки photo_id из cache/stage1 и переписывает только даты/
+Симлинкует готовые папки photo_id из cache/stage1 (тяжёлые файлы — mesh,
+текстуры, uv, реконструкция — остаются в кэше) и переписывает только даты/
 последовательность/источник в main_timeline.csv и info.json.
 Само сравнение (Stage 2→2B→3) всегда считается честно заново."""
 from __future__ import annotations
 import csv
 import json
+import os
 import shutil
 import time
 import uuid
@@ -59,7 +61,17 @@ def assemble(manifest: dict, cache_stage1: Path, out_stage1: Path) -> None:
         # Keep the deterministic source tag in every scenario photo_id. The
         # checker uses it to map expected frame numbers to pair_metrics rows.
         new_id = f"{fr['stem']}__{fr['tag']}"
-        shutil.copytree(cache_stage1 / cache_id, out_stage1 / new_id)
+        src = cache_stage1 / cache_id
+        dst = out_stage1 / new_id
+        dst.mkdir(parents=True, exist_ok=False)
+        for item in src.iterdir():
+            if item.name == "info.json":
+                # info.json модифицируется дальше — нужна реальная копия
+                shutil.copy2(item, dst / item.name)
+            else:
+                # Всё остальное — симлинк: mesh.obj, uv_texture.png,
+                # reconstruction.npz, uv.npz, face_*.png, ldm*.csv и т.д.
+                os.symlink(os.fspath(item), os.fspath(dst / item.name))
         y, m, d = fr["date"].split("_")
         rel = f"{fr['group']}/{fr['filename']}"
         info_path = out_stage1 / new_id / "info.json"

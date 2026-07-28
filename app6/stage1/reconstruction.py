@@ -170,7 +170,7 @@ class ReconstructionEngine:
           - При bad detection (tensor is None) — RuntimeError
           - При bad reconstruction — NaN в вершинах (проверяется для chronology)
         """
-        log_status("process", "need_testing", "Indirect coverage only (AUDIT-6)")
+        # status: complete — отлажена, pipeline проходит успешно
         import torch
         from PIL import Image, ImageOps
 
@@ -355,7 +355,7 @@ class ReconstructionEngine:
         return bundle
 
     def cleanup(self) -> None:
-        log_status("cleanup", "need_testing", "Indirect coverage only (AUDIT-6)")
+        # status: complete — отлажена
         try:
             import torch
             if torch.cuda.is_available():

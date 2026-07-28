@@ -30,8 +30,8 @@ class CalibrationModel:
         values: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
         for (dataset, pose_bin), group in self.by_dataset_bin.items():
             if len(group) < 2: continue
-            group = sorted(group, key=lambda r: (float(r.angles[1]), float(r.angles[0]), r.sequence))
-            for offset in (1, 2):
+            group = sorted(group, key=lambda r: r.date or str(r.sequence))
+            for offset in (1, 2, 3, 5, 10, 20, 50):
                 for a, b in zip(group, group[offset:]):
                     if self._pose_distance(a, b) > 2.5: continue
                     comp = compare_landmarks(a, b, self.zone106, self.zone134)
