@@ -1,4 +1,0 @@
-schema: dpo-readiness-approvals-v1
-# Approval value must equal the current function code_hash.
-# Only integration, real_photo and calibration may be manually approved.
-approvals: {}
