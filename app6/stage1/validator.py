@@ -238,7 +238,7 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                 for key in ("mask_original", "mask_crop", "mask_face", "mask_alpha_u8", "bbox_original"):
                     if key not in fmz:
                         raise ValidationError(f"face_mask.npz missing {key}")
-                if fmz["mask_face"].shape != (500, 424) or fmz["mask_alpha_u8"].shape != (500, 424):
+                if fmz["mask_face"].shape != fmz["mask_crop"].shape or fmz["mask_alpha_u8"].shape != fmz["mask_crop"].shape:
                     raise ValidationError("face_mask.npz face mask shape invalid")
 
         if files.get("quality"):

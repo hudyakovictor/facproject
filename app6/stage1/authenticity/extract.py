@@ -25,8 +25,7 @@ def _load_face_mask_rgba(face_mask_png: Path) -> tuple[np.ndarray, np.ndarray]:
         rgba = np.asarray(im.convert("RGBA"))
     if rgba.ndim != 3 or rgba.shape[2] != 4:
         raise ValueError("face_mask.png must be RGBA")
-    if rgba.shape[:2] != (500, 424):
-        rgba = cv2.resize(rgba, (424, 500), interpolation=cv2.INTER_AREA)
+    # Размер может быть любым — сохраняется оригинальное crop-разрешение
     rgb = rgba[..., :3].copy()
     mask = rgba[..., 3] > 16
     if int(mask.sum()) < 1500:

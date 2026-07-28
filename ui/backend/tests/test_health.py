@@ -23,7 +23,7 @@ class HealthTests(unittest.TestCase):
             (app6 / "module.py").write_text("def x():\n    return 1\n", encoding="utf-8")
             volume = root / "SDCARD"
             main = volume / "photo" / "main"
-            calibration = volume / "photo" / "calibration"
+            calibration = volume / "calibration"
             (calibration / "photos" / "person_01").mkdir(parents=True)
             main.mkdir(parents=True)
             (main / "a.jpg").write_bytes(b"a")

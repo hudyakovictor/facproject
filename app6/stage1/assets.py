@@ -221,20 +221,18 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
       - engine._one() — вызывается после build_mask_bundle
       - mask.hard_original — binary mask в original resolution
 
-    ⚠️ IN PROGRESS:
-      - Нет проверки что маска покрывает достаточно кожи
-      - Нет проверки что bbox корректный (не выходит за изображение)
-
     💡 NOTE:
-      - face_mask.png — RGBA визуальный превью (424x500 letterboxed)
+      - face_mask.png — RGBA в оригинальном разрешении кропа (без letterbox)
       - face_mask.npz — числовые маски (original, crop, face, alpha)
       - mask_original — в original resolution (может быть большим!)
+      - В отличие от face_crop.jpg (424×500 letterbox), face_mask.png сохраняет
+        оригинальное разрешение лица для максимальной детализации текстурного анализа.
 
     🚨 WARNING:
       - При hard_mask = None — возвращает None (mask unavailable)
       - При ошибке записи — engine пишет face_mask_failure.json
     """
-    # status: complete — отлажена, работает
+    # status: refactored — сохранение в оригинальном crop-разрешении
     if hard_mask is None or hard_mask.size == 0:
         return None
 
@@ -258,45 +256,33 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
     if w <= 0 or h <= 0:
         return None
 
-    # Extract face crop and mask
+    # Extract face crop and mask at ORIGINAL resolution (no letterbox resize)
     crop = bgr[y1:y2, x1:x2]
     mask_crop = hard_mask[y1:y2, x1:x2]
 
-    # Letterbox to 424x500 (same as face_crop)
-    face, transform = _letterbox(crop)
-    mh, mw = mask_crop.shape[:2]
-    scale = transform["scale"]
-    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
-    ox, oy = transform["offset_x"], transform["offset_y"]
-
-    # Resize mask with same letterbox transform
-    mask_resized = cv2.resize(mask_crop, (nw, nh), interpolation=cv2.INTER_LINEAR)
-    mask_canvas = np.zeros((500, 424), np.uint8)
-    if oy + nh <= 500 and ox + nw <= 424:
-        mask_canvas[oy:oy + nh, ox:ox + nw] = mask_resized
-
-    # Create RGBA visual preview.
-    rgba = cv2.cvtColor(face, cv2.COLOR_BGR2BGRA)
-    rgba[:, :, 3] = mask_canvas
+    # Create RGBA at original crop resolution.
+    # Alpha channel = skin mask (255 = skin, 0 = background).
+    rgba = cv2.cvtColor(crop, cv2.COLOR_BGR2BGRA)
+    rgba[:, :, 3] = mask_crop
     if not cv2.imwrite(str(out / "face_mask.png"), rgba):
         raise OSError(f"failed to write face_mask.png to {out / 'face_mask.png'}")
 
     mask_original_bool = hard_mask > 0
     mask_crop_bool = mask_crop > 0
-    mask_face_bool = mask_canvas > 0
+    mask_face_bool = mask_crop > 0
     np.savez_compressed(
         out / "face_mask.npz",
         mask_original=mask_original_bool,
         mask_crop=mask_crop_bool,
         mask_face=mask_face_bool,
-        mask_alpha_u8=mask_canvas,
+        mask_alpha_u8=mask_crop,
         bbox_original=np.asarray([x1, y1, w, h], np.int32),
         original_shape=np.asarray(hard_mask.shape[:2], np.int32),
         crop_shape=np.asarray(mask_crop.shape[:2], np.int32),
-        face_shape=np.asarray(mask_canvas.shape[:2], np.int32),
-        letterbox_scale=np.asarray([float(scale)], np.float32),
-        letterbox_offset=np.asarray([int(ox), int(oy)], np.int32),
-        letterbox_content_size=np.asarray([int(nw), int(nh)], np.int32),
+        face_shape=np.asarray(mask_crop.shape[:2], np.int32),
+        letterbox_scale=np.asarray([1.0], np.float32),
+        letterbox_offset=np.asarray([0, 0], np.int32),
+        letterbox_content_size=np.asarray([int(w), int(h)], np.int32),
         skin_pixels_original=np.asarray([int(np.count_nonzero(mask_original_bool))], np.int64),
         skin_pixels_crop=np.asarray([int(np.count_nonzero(mask_crop_bool))], np.int64),
         skin_pixels_face=np.asarray([int(np.count_nonzero(mask_face_bool))], np.int64),
@@ -305,7 +291,7 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
         skin_coverage_face=np.asarray([float(np.mean(mask_face_bool))], np.float32),
         semantics=np.asarray(
             "face_mask.npz: numeric skin/face mask bundle; mask_original is in original image space; "
-            "mask_crop is the original-resolution bbox crop; mask_face is the 424x500 letterboxed preview alpha"
+            "mask_crop is the original-resolution bbox crop; mask_face is the original-resolution crop alpha"
         ),
     )
     return {"face_mask": "face_mask.png", "face_mask_data": "face_mask.npz"}

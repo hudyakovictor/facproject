@@ -15,9 +15,10 @@ class PatchCenter:
         """Export allowlisted compact summary files into a safe tar/zip fix capsule."""
         allowlisted_exts = {".log", ".txt", ".json", ".jsonl", ".csv", ".md", ".yaml", ".yml"}
         allowed_paths: list[Path] = []
+        project_root_resolved = self.project_root.resolve()
         for rel in files:
             p = (self.project_root / rel).resolve()
-            if not str(p).startswith(str(self.project_root.resolve())):
+            if not str(p).startswith(str(project_root_resolved)):
                 continue
             if p.is_file() and p.suffix.lower() in allowlisted_exts:
                 allowed_paths.append(p)
@@ -32,7 +33,7 @@ class PatchCenter:
             tar.addfile(tarinfo, io.BytesIO(meta_bytes))
 
             for p in allowed_paths:
-                rel = p.relative_to(self.project_root)
+                rel = p.relative_to(project_root_resolved)
                 tar.add(p, arcname=str(rel))
         buf.seek(0)
         return buf.read()
