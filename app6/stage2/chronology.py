@@ -132,3 +132,57 @@ def apply_biological_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     # 🗑️ DEPRECATED (AUDIT-5): алиас логирует свой статус при вызове, делегирует основной функции
     log_status("apply_biological_rate_flags", "deprecated", "Alias of apply_chronology_rate_flags")
     return apply_chronology_rate_flags(rows)
+
+
+def apply_cumulative_drift_flags(
+    rows: list[dict], *, point_z_floor: float = 2.5, cusum_threshold: float = 6.0,
+    anchor_threshold: float = 4.5,
+) -> dict[str, object]:
+    """Detect gradual drift missed by individually small adjacent changes.
+
+    Adjacent rows receive a one-sided CUSUM of excess calibrated point-z.
+    Existing baseline rows act as explicit anchor comparisons.  Quality-limited
+    or otherwise excluded rows never contribute evidence.
+    """
+    by_pose=defaultdict(list)
+    for row in rows:
+        if row.get('pair_type') in ('adjacent','baseline'):
+            by_pose[str(row.get('pose_bin','unknown'))].append(row)
+    events=[]; summaries={}
+    for pose, group in by_pose.items():
+        adjacent=sorted((r for r in group if r.get('pair_type')=='adjacent'),
+                        key=lambda r:(r.get('date_b') or '',r.get('pair_index',0)))
+        cusum=0.0; max_cusum=0.0
+        for row in adjacent:
+            reason=_quality_exclusion_reason(row)
+            z=float(row.get('p95_point_z',float('nan')))
+            if reason or not np.isfinite(z):
+                row['cumulative_drift_status']='excluded'
+                row['cumulative_drift_reason']=reason or 'nonfinite_point_z'
+                row['cumulative_drift_cusum']=float('nan')
+                continue
+            cusum=max(0.0,cusum+(z-float(point_z_floor)))
+            max_cusum=max(max_cusum,cusum)
+            row['cumulative_drift_cusum']=cusum
+            row['cumulative_drift_status']='within_cumulative_noise'
+            row['cumulative_drift_reason']=''
+            if cusum>=float(cusum_threshold):
+                row['cumulative_drift_status']='cumulative_drift_candidate'
+                row['cumulative_drift_reason']='several sub-threshold adjacent changes accumulated'
+                events.append({'pair_id':row.get('pair_id'),'pose_bin':pose,'type':'cusum',
+                               'score':cusum,'date':row.get('date_b')})
+        anchor_events=0
+        for row in (r for r in group if r.get('pair_type')=='baseline'):
+            reason=_quality_exclusion_reason(row)
+            z=float(row.get('p95_point_z',float('nan')))
+            sig=float(row.get('significant_point_fraction',0.0) or 0.0)
+            row['anchor_drift_status']='excluded' if reason else 'within_anchor_noise'
+            if not reason and np.isfinite(z) and z>=float(anchor_threshold) and sig>=0.15:
+                row['anchor_drift_status']='anchor_drift_candidate'; anchor_events+=1
+                events.append({'pair_id':row.get('pair_id'),'pose_bin':pose,'type':'anchor',
+                               'score':z,'date':row.get('date_b')})
+        summaries[pose]={'adjacent_count':len(adjacent),'max_cusum':max_cusum,
+                         'anchor_event_count':anchor_events}
+    return {'schema':'cumulative-drift-v1','events':events,'event_count':len(events),
+            'pose_summaries':summaries,'point_z_floor':point_z_floor,
+            'cusum_threshold':cusum_threshold,'anchor_threshold':anchor_threshold}

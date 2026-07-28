@@ -10,7 +10,8 @@ from typing import Any, Iterable
 
 import numpy as np
 
-from .core import Comparison, Record, compare_landmarks, robust_reference
+from .core import Comparison, Record, compare_landmarks
+from .robustness import balanced_reference
 
 
 class CalibrationModel:
@@ -27,20 +28,26 @@ class CalibrationModel:
         return float(np.linalg.norm((a.angles - b.angles) / np.array([15.0, 20.0, 15.0])))
 
     def _build_references(self) -> dict[str, dict[str, dict[str, float | int]]]:
-        values: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+        values: dict[str, dict[str, dict[str, list[float]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(list))
+        )
         for (dataset, pose_bin), group in self.by_dataset_bin.items():
             if len(group) < 2: continue
-            group = sorted(group, key=lambda r: r.date or str(r.sequence))
+            group = sorted(group, key=lambda r: (float(r.angles[1]), float(r.angles[0]), r.sequence))
             for offset in (1, 2, 3, 5, 10, 20, 50):
                 for a, b in zip(group, group[offset:]):
                     if self._pose_distance(a, b) > 2.5: continue
                     comp = compare_landmarks(a, b, self.zone106, self.zone134)
                     if comp.status != "measured": continue
-                    for key, value in comp.metrics.items(): values[pose_bin][key].append(value)
+                    for key, value in comp.metrics.items():
+                        values[pose_bin][key][dataset].append(value)
                     for zone in comp.zones:
                         if zone.get("status") == "measured":
-                            values[pose_bin][f"zone::{zone['zone']}::rmse"].append(float(zone["rmse"]))
-        return {pose: {metric: robust_reference(v) for metric, v in metrics.items()} for pose, metrics in values.items()}
+                            values[pose_bin][f"zone::{zone['zone']}::rmse"][dataset].append(float(zone["rmse"]))
+        return {
+            pose: {metric: balanced_reference(by_dataset) for metric, by_dataset in metrics.items()}
+            for pose, metrics in values.items()
+        }
 
     def _nearest(self, target: Record, dataset: str, exclude: str | None = None) -> Record | None:
         candidates = [r for r in self.by_dataset_bin.get((dataset, target.pose_bin), []) if r.record_id != exclude]
