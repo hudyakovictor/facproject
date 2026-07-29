@@ -192,11 +192,25 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
 
 
 def load_calibration(calibration_root: Path) -> list[Record]:
+    """Загрузка калибровочных записей через Stage 1 из сырых фото.
+
+    🔥 ВАЖНО: данные в calibration_dataset/person_*/frame_*/ признаны
+    неактуальными (извлечены неверно). Используются ТОЛЬКО сырые фото
+    из calibration_dataset/photos/ с переизвлечением через Stage 1.
+
+    Порядок работы:
+    1. Если calibration_root содержит main_timeline.csv — читает свежий
+       результат Stage 1 (формат run_calibration.py).
+    2. Иначе запускает Stage 1 pipeline на calibration_dataset/photos/
+       и возвращает результат.
+
+    🚨 Если веса моделей (net_recon.pth, retinaface_*.pth) отсутствуют —
+    вызывает FileNotFoundError с инструкцией по установке.
+    """
     log_status("load_calibration", "complete")
     root = calibration_root
-    index_candidates = [root / "all_calibration_index.csv", root.parent / "all_calibration_index.csv"]
-    # Native app6 Stage-1 same-day calibration output. This is the format
-    # produced by the top-level run_calibration.py workflow.
+
+    # ✅ Свежий результат Stage 1 (предварительный прогон run_calibration.py)
     if (root / "main_timeline.csv").is_file():
         records = load_main(root)
         for record in records:
@@ -205,62 +219,68 @@ def load_calibration(calibration_root: Path) -> list[Record]:
         if not records:
             raise FileNotFoundError(f"no valid Stage-1 calibration records under {root}")
         return records
-    if (root / "calibration_datasets").is_dir():
-        root = root / "calibration_datasets"
-    out: list[Record] = []
-    for npz_path in sorted(root.glob("*/*/record.npz")):
-        directory = npz_path.parent
-        meta = json.loads((directory / "metadata.json").read_text(encoding="utf-8"))
-        with np.load(npz_path, allow_pickle=False) as z:
-            alpha_id = z["alpha_id"].astype(np.float32) if "alpha_id" in z.files else _missing_alpha(80)
-            alpha_exp = z["alpha_exp"].astype(np.float32) if "alpha_exp" in z.files else _missing_alpha(64)
-            key106 = "ldm106_object_norm" if "ldm106_object_norm" in z.files else "ldm106_object_normalized"
-            key134 = "ldm134_object_norm" if "ldm134_object_norm" in z.files else "ldm134_object_normalized"
-            ldm106 = _required_npz_array(z, key106, (106, 3)).astype(np.float32)
-            ldm134 = _required_npz_array(z, key134, (134, 3)).astype(np.float32)
-            angles = _required_npz_array(z, "angle_deg_pitch_yaw_roll", (3,)).astype(np.float32)
-            vis106 = _required_npz_array(z, "ldm106_visible_original", (106,)).astype(bool)
-            vis134 = _required_npz_array(z, "ldm134_visible_original", (134,)).astype(bool)
-            validate_landmarks(ldm106, visibility=vis106, expected_count=106)
-            validate_landmarks(ldm134, visibility=vis134, expected_count=134)
-            raw106_path = directory / "ldm106_raw.csv"
-            if raw106_path.is_file() and "object_normalization_center" in z.files and "object_normalization_scale" in z.files:
-                raw106 = _read_landmark_csv(raw106_path, 106).astype(np.float64)
-                center = np.asarray(z["object_normalization_center"], np.float64).reshape(1, 3)
-                scale = float(np.asarray(z["object_normalization_scale"]).reshape(-1)[0])
-                reconstructed = ((raw106 - center) / scale).astype(np.float32)
-                meta_pose = meta.get("pose") or {}
-                meta_angles = [meta_pose.get("pitch"), meta_pose.get("yaw"), meta_pose.get("roll")]
-                validate_serialized_record(reconstructed, ldm106, meta_angles, angles)
-            out.append(Record(
-                record_id=meta["record_id"], dataset_id=meta["dataset_id"], date=None, sequence=int(meta.get("frame_index", 0)),
-                pose_bin=meta["pose_bin"], angles=angles,
-                ldm106=ldm106, ldm134=ldm134,
-                visible106=vis106, visible134=vis134,
-                alpha_id=alpha_id, alpha_exp=alpha_exp,
-                record_dir=str(directory),
-            ))
-    if out:
-        for rec in out:
-            if rec.ldm106 is None or rec.ldm134 is None:
-                raise ValueError(
-                    f"Calibration record {rec.record_id} has no landmark data. "
-                    "Expected 'ldm106_object_norm' or 'ldm106_object_normalized' in record.npz"
-                )
-        index_path = next((p for p in index_candidates if p.is_file()), None)
-        if index_path is not None:
-            index_rows = _rows(index_path)
-            expected = {(str(r.get("dataset_id")), str(r.get("record_id"))) for r in index_rows if r.get("dataset_id") and r.get("record_id")}
-            if len(expected) != len(index_rows):
-                raise ValueError(f"duplicate or incomplete calibration index rows: {index_path}")
-            actual = {(r.dataset_id, r.record_id) for r in out}
-            missing = sorted(expected - actual)
-            extra = sorted(actual - expected)
-            if missing or extra:
-                raise ValueError(
-                    f"calibration index/data mismatch: missing={missing[:10]} extra={extra[:10]} "
-                    f"expected={len(expected)} actual={len(actual)}"
-                )
-        return out
-    # Published archive often ships metadata+CSV sidecars only.
-    return load_calibration_from_sidecar(root)
+
+    # 🔥 Запуск Stage 1 на сырых фото из calibration_dataset/photos/
+    photos_dir = root / "photos"
+    if not photos_dir.is_dir():
+        raise FileNotFoundError(
+            f"каталог сырых фото не найден: {photos_dir}. "
+            "Ожидается структура: calibration_dataset/photos/person_*/frame_*.jpg"
+        )
+
+    # Проверка наличия весов моделей
+    assets_dir = root.parent / "assets"
+    required_weights = [
+        "net_recon.pth", "large_base_net.pth",
+        "retinaface_resnet50_2020-07-20_old_torch.pth",
+        "similarity_Lm3D_all.mat",
+    ]
+    missing_weights = [w for w in required_weights if not (assets_dir / w).is_file()]
+    if missing_weights:
+        raise FileNotFoundError(
+            f"отсутствуют веса моделей Stage 1: {missing_weights}. "
+            f"Скопируйте их в {assets_dir} или выполните:\n"
+            f"  python app6/scripts/fetch_external_assets.py\n"
+            f"После установки весов запустите калибровку:\n"
+            f"  python app6/run_calibration.py --input {photos_dir} --output runs/calibration_stage1"
+        )
+
+    # Запуск Stage 1 pipeline
+    from app6.stage1.config import Stage1Config
+    from app6.stage1.engine import Stage1Engine
+
+    output_dir = root / "runs" / "calibration_stage1"
+    cfg = Stage1Config(
+        project_root=root.parent,
+        input_dir=photos_dir,
+        output_dir=output_dir,
+        device="auto",
+        overwrite=True,
+    )
+    engine = Stage1Engine(cfg)
+
+    photos = sorted(
+        p for p in photos_dir.rglob("*")
+        if p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png")
+        and not p.name.startswith("._")
+    )
+    if not photos:
+        raise FileNotFoundError(f"нет фото в {photos_dir}")
+
+    for path in photos:
+        try:
+            engine._one(path)
+        except Exception as e:
+            log_status("load_calibration", f"warn: {path.name}: {e}")
+
+    # Чтение свежего результата
+    if not (output_dir / "main_timeline.csv").is_file():
+        raise FileNotFoundError(
+            f"Stage 1 не создал main_timeline.csv в {output_dir}. "
+            f"Проверьте логи выше."
+        )
+    records = load_main(output_dir)
+    for record in records:
+        record.dataset_id = "same_day_calibration"
+        record.date = None
+    return records

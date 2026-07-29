@@ -12,7 +12,9 @@ os.chdir(ROOT)
 # 🔧 FIX (D13): пути к данным больше не зашиты в код. Раньше здесь стояли
 # абсолютные пути к съёмному носителю конкретной машины, из-за чего даже
 # `--help` падал с FileNotFoundError и скрипт был непереносим.
-DEFAULT_INPUT=Path('dataset/calibration_input')
+# 🔥 ВАЖНО: pre-extracted данные в calibration_dataset/person_*/frame_*/
+# признаны неактуальными. Используются ТОЛЬКО сырые фото из photos/.
+DEFAULT_INPUT=Path('calibration_dataset/photos')
 DEFAULT_OUTPUT=Path('runs/calibration_stage1')
 
 # 🚪 ENTRY POINT → см. модульный docstring
