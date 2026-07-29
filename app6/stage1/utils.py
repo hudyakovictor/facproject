@@ -22,8 +22,15 @@ import numpy as np
 
 
 def digest_file(path: Path) -> str:
-    # status: closed — отлажена, работает без нареканий
-    h = hashlib.blake2b(digest_size=16)
+    """Content hash for provenance/dedup — 64 lowercase hex chars.
+
+    🔧 FIX (2026-07-29): `digest_size=16` produced 32 hex chars, which failed
+    `naming.make_photo_id()`'s `[0-9a-f]{64}` contract on every real photo
+    (only ever exercised indirectly, since Stage 1 requires 3DDFA_V3 weights
+    not present in prior test runs). `digest_size=32` yields the required
+    64-char digest; this only changes the digest length, not its role.
+    """
+    h = hashlib.blake2b(digest_size=32)
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
