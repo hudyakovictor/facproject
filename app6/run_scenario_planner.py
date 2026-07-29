@@ -26,20 +26,12 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-SCENARIOS: dict[str, dict[str, Any]] = {
-    "S01": {"question": "Отличает ли система шум от реального изменения?",
-            "pattern": ["A", "A", "A"], "expect": "без аномалий: стабильная серия"},
-    "S02": {"question": "Замечает ли система смену личности?",
-            "pattern": ["A", "A", "B"], "expect": "расхождение на переходе A→B"},
-    "S03": {"question": "Детектируется ли возврат A→B→A?",
-            "pattern": ["A", "B", "A"], "expect": "irreversible_return_anomaly"},
-    "S04": {"question": "Не путает ли система смену ракурса со сменой лица?",
-            "pattern": ["A", "A"], "cross_pose": True, "expect": "pose_mismatch, а не аномалия"},
-    "S05": {"question": "Устойчив ли вывод при чередовании носителей?",
-            "pattern": ["A", "B", "A", "B"], "expect": "повторяющиеся переходы"},
-    "S06": {"question": "Копится ли постепенный дрейф?",
-            "pattern": ["A", "A", "A", "A", "A"], "expect": "cumulative_drift при накоплении"},
-}
+# 🔗 DEPENDS ON: app6.test_module.scenarios — единственный источник истины для
+# сценариев S01..S06. Раньше этот словарь дублировался здесь и в
+# `app6/test_module/runner.py` с расходящимися формулировками `expect`;
+# теперь оба используют один реестр, а лестница минимальных прогонов
+# (`AGENTS.md`) не может проверять план и исполнение по разным критериям.
+from app6.test_module.scenarios import SCENARIOS  # noqa: E402
 
 
 def build_plan(scenario: str, pose: str, archive_root: Path | None = None) -> dict[str, Any]:
@@ -52,6 +44,7 @@ def build_plan(scenario: str, pose: str, archive_root: Path | None = None) -> di
         raise ValueError(f"неизвестный сценарий {scenario}; доступны {sorted(SCENARIOS)}")
     if pose != "all" and pose not in POSE_BINS:
         raise ValueError(f"неизвестный ракурс {pose}; доступны {list(POSE_BINS)}")
+
 
     spec = SCENARIOS[scenario]
     records = load_archive_records(archive_root) if archive_root else []

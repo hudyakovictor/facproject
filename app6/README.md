@@ -88,5 +88,25 @@ EXIF не читается.
 ## Этап 2
 
 Актуальные контракты Stage 2 описаны в `app6/AGENTS.md`; фактический статус
-реализации отслеживается в `app6/STATUS_AUDIT.py` и regression-тестах
-`app6/test_module/`.
+реализации отслеживается репродуцируемым аудитом
+`app6/scripts/audit_50_implementation_checks.py` (генерирует
+`app6/AUDIT_50_REPORT.{json,md}`, не хранится в git — см. `.gitignore`) и
+regression-тестами `app6/test_module/`.
+
+## Сценарная лестница минимальных запусков
+
+`app6/test_module/runner.py` реализует «обязательную лестницу минимальных
+запусков» из `AGENTS.md`/`SKILL.md`:
+
+```bash
+$PY -m app6.test_module.runner execute \
+  --scenario S01 --pose frontal --combinations 1 \
+  --stage all --mode fast --device cpu --fail-fast
+```
+
+Список сценариев: `$PY -m app6.test_module.runner list`. Сценарии проверяются
+на публикуемом архиве `selected_photos_7x9x3_data.tar.gz` (7 персон × 9
+ракурсов, только геометрия). Regression-тест самого runner'а
+(`app6/test_module/test_runner.py`) использует полностью синтетический архив
+(`app6/test_module/synthetic_archive.py`) и не требует внешних файлов.
+

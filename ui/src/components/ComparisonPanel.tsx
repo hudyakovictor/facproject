@@ -91,7 +91,7 @@ export default function ComparisonPanel({ rangeA, rangeB, onClose, onSetSide, ac
             className={`px-2 py-1 font-mono text-[10px] tracking-forensic border ${activeSide === "A" ? "bg-info/20 border-info" : "border-border text-text-muted"}`}>{t.setA}</button>
           <button onClick={() => onSetSide("B")}
             className={`px-2 py-1 font-mono text-[10px] tracking-forensic border ${activeSide === "B" ? "bg-info/20 border-info" : "border-border text-text-muted"}`}>{t.setB}</button>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center border border-border hover:bg-critical/30"><Icon name="x" size={14} /></button>
+          <button onClick={onClose} aria-label="Закрыть" className="w-7 h-7 flex items-center justify-center border border-border hover:bg-critical/30"><Icon name="x" size={14} /></button>
         </div>
       </div>
 
