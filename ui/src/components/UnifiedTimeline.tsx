@@ -7,7 +7,8 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { Photo, HYPOTHESIS_COLORS, EVENT_PINS, EventPin, FUZZY_COLORS, ERA_META, REF } from "../data";
 import Icon from "./Icon";
-import { t } from "../i18n";
+import { t, useLanguage } from "../i18n";
+
 
 export interface TrackDef {
   id: string;
@@ -20,24 +21,33 @@ export interface TrackDef {
   dashed?: boolean;
 }
 
-const GEOM_TRACKS: TrackDef[] = [
-  { id: "BONE", label: t.trackBone, weight: "—", color: "#4f98a3", metric: p => p.boneScore, ref: REF.boneScore, filled: true },
-  { id: "ORBIT", label: t.trackOrbits, weight: "1.0", color: "#6daa45", metric: p => p.orbit, ref: REF.orbit },
-  { id: "CHIN", label: t.trackChin, weight: "1.0", color: "#e8af34", metric: p => p.chin, ref: REF.chin },
-  { id: "JAW", label: t.trackJaw, weight: "0.8", color: "#fdab43", metric: p => p.jaw, ref: REF.jaw },
-  { id: "CHEEK", label: t.trackCheek, weight: "0.7", color: "#a86fdf", metric: p => p.cheek, ref: REF.cheek },
-  { id: "SYM", label: t.trackSymmetry, weight: "0.6", color: "#5591c7", metric: p => p.symmetry, ref: REF.symmetry },
-  { id: "YAW", label: t.trackYaw, weight: "—", color: "#797876", metric: p => p.yaw, ref: REF.yaw, dashed: true },
-];
-const TEX_TRACKS: TrackDef[] = [
-  { id: "SIL", label: t.trackSilicone, weight: "—", color: "#a13544", metric: p => p.siliconeProb, ref: REF.siliconeProb },
-  { id: "SPEC", label: t.trackSpecular, weight: "—", color: "#4f98a3", metric: p => p.specular, ref: REF.specular },
-  { id: "LBP", label: t.trackLBP, weight: "—", color: "#6daa45", metric: p => p.lbpEntropy, ref: REF.lbpEntropy },
-  { id: "FRA", label: t.trackFrangi, weight: "—", color: "#5591c7", metric: p => p.frangi, ref: REF.frangi },
-  { id: "WRI", label: t.trackWrinkle, weight: "—", color: "#e8af34", metric: p => p.wrinkle, ref: REF.wrinkle },
-  { id: "SUB", label: t.trackSubsurface, weight: "—", color: "#a86fdf", metric: p => p.subsurface, ref: REF.subsurface },
-];
-const AGE_TRACK: TrackDef = { id: "AGE", label: t.trackVisualAge, weight: "Δкал", color: "#fdab43", metric: p => p.visualAge, ref: REF.visualAge, filled: true };
+/** 🔧 Функции, не константы уровня модуля: `t.xxx` — живой Proxy (i18n.ts),
+ * иначе перевод "заморозился" бы на моменте первого импорта модуля. */
+function buildGeomTracks(): TrackDef[] {
+  return [
+    { id: "BONE", label: t.trackBone, weight: "—", color: "#4f98a3", metric: p => p.boneScore, ref: REF.boneScore, filled: true },
+    { id: "ORBIT", label: t.trackOrbits, weight: "1.0", color: "#6daa45", metric: p => p.orbit, ref: REF.orbit },
+    { id: "CHIN", label: t.trackChin, weight: "1.0", color: "#e8af34", metric: p => p.chin, ref: REF.chin },
+    { id: "JAW", label: t.trackJaw, weight: "0.8", color: "#fdab43", metric: p => p.jaw, ref: REF.jaw },
+    { id: "CHEEK", label: t.trackCheek, weight: "0.7", color: "#a86fdf", metric: p => p.cheek, ref: REF.cheek },
+    { id: "SYM", label: t.trackSymmetry, weight: "0.6", color: "#5591c7", metric: p => p.symmetry, ref: REF.symmetry },
+    { id: "YAW", label: t.trackYaw, weight: "—", color: "#797876", metric: p => p.yaw, ref: REF.yaw, dashed: true },
+  ];
+}
+function buildTexTracks(): TrackDef[] {
+  return [
+    { id: "SIL", label: t.trackSilicone, weight: "—", color: "#a13544", metric: p => p.siliconeProb, ref: REF.siliconeProb },
+    { id: "SPEC", label: t.trackSpecular, weight: "—", color: "#4f98a3", metric: p => p.specular, ref: REF.specular },
+    { id: "LBP", label: t.trackLBP, weight: "—", color: "#6daa45", metric: p => p.lbpEntropy, ref: REF.lbpEntropy },
+    { id: "FRA", label: t.trackFrangi, weight: "—", color: "#5591c7", metric: p => p.frangi, ref: REF.frangi },
+    { id: "WRI", label: t.trackWrinkle, weight: "—", color: "#e8af34", metric: p => p.wrinkle, ref: REF.wrinkle },
+    { id: "SUB", label: t.trackSubsurface, weight: "—", color: "#a86fdf", metric: p => p.subsurface, ref: REF.subsurface },
+  ];
+}
+function buildAgeTrack(): TrackDef {
+  return { id: "AGE", label: t.trackVisualAge, weight: "Δкал", color: "#fdab43", metric: p => p.visualAge, ref: REF.visualAge, filled: true };
+}
+
 
 interface Props {
   photos: Photo[];
@@ -77,6 +87,11 @@ export default function UnifiedTimeline({
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [dragSel, setDragSel] = useState<{ i0: number; i1: number } | null>(null);
+  const [language] = useLanguage();
+  const GEOM_TRACKS = useMemo(buildGeomTracks, [language]);
+  const TEX_TRACKS = useMemo(buildTexTracks, [language]);
+  const AGE_TRACK = useMemo(buildAgeTrack, [language]);
+
 
   useEffect(() => {
     const ro = new ResizeObserver(entries => {

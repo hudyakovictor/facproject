@@ -1,19 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS } from "../data";
 import Icon from "./Icon";
 import { t } from "../i18n";
+import { fetchPhotoDetail, type PhotoDetail } from "../api";
+import MeshViewer from "./MeshViewer";
 
 interface Props {
   photo: Photo;
   onClose: () => void;
 }
 
-// 3D wireframe mesh + 21-zone heatmap overlay (3DDFA-V3 emulation, 106 landmarks)
+// Реальный 3D landmark-просмотрщик (three.js, MeshViewer) поверх подлинных
+// координат из /api/v1/photos/{id} (106/134 точки 3DDFA-V3-совместимого
+// контракта). Если API/фото недоступны (например, фронтендовый demo-набор
+// без соответствующего backend-id), используется прежняя иллюстративная
+// 2D-проекция как явно обозначенный fallback, а не тихая подмена данных.
 export default function FullPhotoOverlay({ photo, onClose }: Props) {
   const [meshOn, setMeshOn] = useState(true);
   const [heatmapOn, setHeatmapOn] = useState(true);
   const [landmarksOn, setLandmarksOn] = useState(true);
+  const [detail, setDetail] = useState<PhotoDetail | null>(null);
+  const [detailStatus, setDetailStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const color = HYPOTHESIS_COLORS[photo.dominant];
+
+  useEffect(() => {
+    let cancelled = false;
+    setDetailStatus("loading");
+    fetchPhotoDetail(photo.id)
+      .then(d => { if (!cancelled) { setDetail(d); setDetailStatus("ready"); } })
+      .catch(() => { if (!cancelled) setDetailStatus("unavailable"); });
+    return () => { cancelled = true; };
+  }, [photo.id]);
 
   // 21 zones with z-scores derived from photo
   const zones = [
@@ -48,25 +65,20 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
     return "#6daa45";
   };
 
-  // 106 landmarks (synthetic positions around face boundary + features)
-  const landmarks = [
-    // jaw line 17 pts
+  // Illustrative fallback positions, used only while detailStatus !== "ready".
+  const illustrativeLandmarks = [
     ...Array.from({ length: 17 }, (_, i) => ({ x: 12 + i * 2.25, y: 35 + Math.sin((i / 16) * Math.PI) * 22 })),
-    // eyebrows 5+5
     ...Array.from({ length: 5 }, (_, i) => ({ x: 17 + i * 2, y: 28 + Math.sin(i) * 0.5 })),
     ...Array.from({ length: 5 }, (_, i) => ({ x: 33 + i * 2, y: 28 + Math.sin(i) * 0.5 })),
-    // nose 9
     ...Array.from({ length: 9 }, (_, i) => ({ x: 30 + Math.cos(i) * 0.5, y: 30 + i * 1.4 })),
-    // eyes 6+6
     ...Array.from({ length: 6 }, (_, i) => ({ x: 19 + Math.cos((i / 6) * Math.PI * 2) * 2.5, y: 32 + Math.sin((i / 6) * Math.PI * 2) * 1.2 })),
     ...Array.from({ length: 6 }, (_, i) => ({ x: 38 + Math.cos((i / 6) * Math.PI * 2) * 2.5, y: 32 + Math.sin((i / 6) * Math.PI * 2) * 1.2 })),
-    // mouth 20
     ...Array.from({ length: 20 }, (_, i) => ({ x: 23 + Math.cos((i / 20) * Math.PI * 2) * 4, y: 49 + Math.sin((i / 20) * Math.PI * 2) * 1.5 })),
-    // forehead 12
     ...Array.from({ length: 12 }, (_, i) => ({ x: 15 + i * 2.5, y: 18 + Math.sin((i / 11) * Math.PI) * -2 })),
-    // contour & extras 13
     ...Array.from({ length: 13 }, (_, i) => ({ x: 13 + Math.cos((i / 13) * Math.PI * 2) * 18, y: 38 + Math.sin((i / 13) * Math.PI * 2) * 22 })),
   ];
+
+  const hasRealMesh = detailStatus === "ready" && !!detail;
 
   return (
     <div data-no-pan className="fixed inset-0 z-[100] bg-black/95 flex items-stretch animate-[fadeIn_0.18s_ease-out]">
@@ -74,68 +86,83 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <div>
             <div className="font-display text-lg font-semibold tracking-forensic" style={{ color }}>{photo.id}</div>
-            <div className="font-mono text-[11px] text-text-muted">{new Date(photo.t).toLocaleDateString("ru-RU")} · {photo.bucket} · качество {photo.quality.toFixed(2)} · {t.fullMeshTitle}</div>
+            <div className="font-mono text-[11px] text-text-muted">
+              {new Date(photo.t).toLocaleDateString("ru-RU")} · {photo.bucket} · качество {photo.quality.toFixed(2)} · {t.fullMeshTitle}
+              {hasRealMesh ? " · real landmarks" : detailStatus === "loading" ? " · loading…" : " · illustrative fallback"}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <ToolBtn active={meshOn} onClick={() => setMeshOn(!meshOn)} icon="layers" label={t.meshLabel} />
             <ToolBtn active={heatmapOn} onClick={() => setHeatmapOn(!heatmapOn)} icon="circle-dot" label={t.heatmapLabel} />
             <ToolBtn active={landmarksOn} onClick={() => setLandmarksOn(!landmarksOn)} icon="crosshair" label={t.landmarksLabel} />
-            <button onClick={onClose} className="ml-4 w-8 h-8 flex items-center justify-center bg-surface-2 border border-border hover:bg-critical/30">
+            <button onClick={onClose} aria-label="Закрыть" className="ml-4 w-8 h-8 flex items-center justify-center bg-surface-2 border border-border hover:bg-critical/30">
               <Icon name="x" size={16} />
             </button>
           </div>
         </div>
 
         <div className="relative" style={{ width: 540, height: 720 }}>
-          <div className="absolute inset-0" style={{ border: `2px solid ${color}`, background: `radial-gradient(ellipse at 50% 35%, ${color}33, #0d0d0f 70%)` }}>
-            <svg viewBox="0 0 60 80" className="absolute inset-0 w-full h-full">
-              <ellipse cx="30" cy="35" rx={16 + photo.cheek * 4} ry={22 + photo.chin * 4} fill={`${color}22`} stroke={color} strokeWidth="0.3" />
-              <ellipse cx="22" cy="32" rx="2.5" ry={1.4 + photo.orbit * 1.5} fill={color} fillOpacity="0.8" />
-              <ellipse cx="38" cy="32" rx="2.5" ry={1.4 + photo.orbit * 1.5} fill={color} fillOpacity="0.8" />
-              <path d={`M 22 ${46 + photo.jaw * 4} Q 30 ${50 + photo.chin * 10} 38 ${46 + photo.jaw * 4}`} stroke={color} strokeWidth="0.5" fill="none" />
-
-              {meshOn && (
-                <g stroke="#5591c7" strokeWidth="0.12" fill="none" opacity="0.7">
-                  {Array.from({ length: 26 }).map((_, i) => (
-                    <line key={`h${i}`} x1="10" y1={14 + i * 2} x2="50" y2={14 + i * 2} />
-                  ))}
-                  {Array.from({ length: 22 }).map((_, i) => (
-                    <line key={`v${i}`} x1={10 + i * 2} y1="14" x2={10 + i * 2} y2="66" />
-                  ))}
-                  {/* triangulation along face contour */}
-                  {Array.from({ length: 36 }).map((_, i) => {
-                    const a = (i / 36) * Math.PI * 2;
-                    return <line key={`r${i}`} x1="30" y1="38" x2={30 + Math.cos(a) * 18} y2={38 + Math.sin(a) * 22} />;
-                  })}
-                </g>
-              )}
-
-              {heatmapOn && zones.map((z, i) => (
-                <g key={i}>
-                  <circle cx={z.cx} cy={z.cy} r={z.r} fill={zoneColor(z.z)} fillOpacity={0.18 + Math.min(0.4, Math.abs(z.z) * 0.12)} stroke={zoneColor(z.z)} strokeWidth="0.2" />
-                  {Math.abs(z.z) > 2 && (
-                    <circle cx={z.cx} cy={z.cy} r={z.r + 1} fill="none" stroke={zoneColor(z.z)} strokeWidth="0.3" opacity="0.6">
-                      <animate attributeName="r" values={`${z.r};${z.r + 2.5};${z.r}`} dur="2s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                  )}
-                </g>
-              ))}
-
-              {landmarksOn && landmarks.map((l, i) => (
-                <circle key={i} cx={l.x} cy={l.y} r="0.32" fill="#ffffff" opacity="0.9" />
-              ))}
-            </svg>
-
-            {/* corner annotations */}
-            <div className="absolute top-2 left-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5">{photo.id}</div>
-            <div className="absolute top-2 right-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5">{photo.bucket} · поворот {photo.yaw.toFixed(0)}°</div>
-            <div className="absolute bottom-2 left-2 font-mono text-[9px] px-1.5 py-0.5 font-semibold" style={{ background: zoneColor(photo.zChinProj), color: "#000" }}>
-              подбородок z = {photo.zChinProj.toFixed(2)}
+          {hasRealMesh ? (
+            <div className="absolute inset-0" style={{ border: `2px solid ${color}`, background: "#0d0d0f" }}>
+              <MeshViewer
+                points134={detail!.landmarks_134}
+                wireframe={meshOn}
+                showPoints={landmarksOn}
+                heatmapPoints={heatmapOn ? detail!.landmarks_134.map(([x, y, z], i) => ({
+                  x, y, z, value: detail!.visible_134[i] ? 0.02 : 0.1,
+                })) : undefined}
+              />
             </div>
-            <div className="absolute bottom-2 right-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5" style={{ color: FUZZY_COLORS[photo.fuzzy] }}>
-              {t.fuzzy[photo.fuzzy]}
+          ) : (
+            <div className="absolute inset-0" style={{ border: `2px solid ${color}`, background: `radial-gradient(ellipse at 50% 35%, ${color}33, #0d0d0f 70%)` }}>
+              <svg viewBox="0 0 60 80" className="absolute inset-0 w-full h-full">
+                <ellipse cx="30" cy="35" rx={16 + photo.cheek * 4} ry={22 + photo.chin * 4} fill={`${color}22`} stroke={color} strokeWidth="0.3" />
+                <ellipse cx="22" cy="32" rx="2.5" ry={1.4 + photo.orbit * 1.5} fill={color} fillOpacity="0.8" />
+                <ellipse cx="38" cy="32" rx="2.5" ry={1.4 + photo.orbit * 1.5} fill={color} fillOpacity="0.8" />
+                <path d={`M 22 ${46 + photo.jaw * 4} Q 30 ${50 + photo.chin * 10} 38 ${46 + photo.jaw * 4}`} stroke={color} strokeWidth="0.5" fill="none" />
+
+                {meshOn && (
+                  <g stroke="#5591c7" strokeWidth="0.12" fill="none" opacity="0.7">
+                    {Array.from({ length: 26 }).map((_, i) => (
+                      <line key={`h${i}`} x1="10" y1={14 + i * 2} x2="50" y2={14 + i * 2} />
+                    ))}
+                    {Array.from({ length: 22 }).map((_, i) => (
+                      <line key={`v${i}`} x1={10 + i * 2} y1="14" x2={10 + i * 2} y2="66" />
+                    ))}
+                    {Array.from({ length: 36 }).map((_, i) => {
+                      const a = (i / 36) * Math.PI * 2;
+                      return <line key={`r${i}`} x1="30" y1="38" x2={30 + Math.cos(a) * 18} y2={38 + Math.sin(a) * 22} />;
+                    })}
+                  </g>
+                )}
+
+                {heatmapOn && zones.map((z, i) => (
+                  <g key={i}>
+                    <circle cx={z.cx} cy={z.cy} r={z.r} fill={zoneColor(z.z)} fillOpacity={0.18 + Math.min(0.4, Math.abs(z.z) * 0.12)} stroke={zoneColor(z.z)} strokeWidth="0.2" />
+                    {Math.abs(z.z) > 2 && (
+                      <circle cx={z.cx} cy={z.cy} r={z.r + 1} fill="none" stroke={zoneColor(z.z)} strokeWidth="0.3" opacity="0.6">
+                        <animate attributeName="r" values={`${z.r};${z.r + 2.5};${z.r}`} dur="2s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
+                      </circle>
+                    )}
+                  </g>
+                ))}
+
+                {landmarksOn && illustrativeLandmarks.map((l, i) => (
+                  <circle key={i} cx={l.x} cy={l.y} r="0.32" fill="#ffffff" opacity="0.9" />
+                ))}
+              </svg>
             </div>
+          )}
+
+          {/* corner annotations */}
+          <div className="absolute top-2 left-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5">{photo.id}</div>
+          <div className="absolute top-2 right-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5">{photo.bucket} · поворот {photo.yaw.toFixed(0)}°</div>
+          <div className="absolute bottom-2 left-2 font-mono text-[9px] px-1.5 py-0.5 font-semibold" style={{ background: zoneColor(photo.zChinProj), color: "#000" }}>
+            подбородок z = {photo.zChinProj.toFixed(2)}
+          </div>
+          <div className="absolute bottom-2 right-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5" style={{ color: FUZZY_COLORS[photo.fuzzy] }}>
+            {t.fuzzy[photo.fuzzy]}
           </div>
         </div>
 

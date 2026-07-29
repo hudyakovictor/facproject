@@ -9,11 +9,17 @@ import FullPhotoOverlay from "./components/FullPhotoOverlay";
 import ComparisonPanel from "./components/ComparisonPanel";
 import { ClusterView } from "./components/AltViews";
 import UnifiedTimeline from "./components/UnifiedTimeline";
-import { t } from "./i18n";
+import { t, useLanguage } from "./i18n";
 import AnalysisViews from "./components/AnalysisViews";
+import SettingsModal from "./components/SettingsModal";
+import CalibrationView from "./components/CalibrationView";
+import DataManagementView from "./components/DataManagementView";
+import PairCompareView from "./components/PairCompareView";
 import { exportFixCapsule, loadTimeline, type DataMode } from "./api";
 
-type ViewMode = "FULL" | "MATRIX" | "CLUSTER" | "COMPARE" | "INSPECTOR" | "DRIFT" | "METRICS" | "STATS";
+
+type ViewMode = "FULL" | "MATRIX" | "CLUSTER" | "COMPARE" | "INSPECTOR" | "DRIFT" | "METRICS" | "STATS" | "PAIR_COMPARE" | "CALIBRATION" | "DATA";
+
 
 interface Filters {
   showOnlyAnomalies: boolean;
@@ -48,6 +54,8 @@ export default function App() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [fullPhoto, setFullPhoto] = useState<Photo | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [language, setLanguage] = useLanguage();
 
   const [rangeA, setRangeA] = useState<{ t0: number; t1: number; photos: Photo[] } | null>(null);
   const [rangeB, setRangeB] = useState<{ t0: number; t1: number; photos: Photo[] } | null>(null);
@@ -163,7 +171,17 @@ export default function App() {
   }, [showCompare, rangeA, rangeB]);
 
   return (
-    <div ref={appRef} className="w-screen h-screen flex flex-col text-text font-sans overflow-hidden relative" style={themeVars}>
+    <>
+      <div className="small-viewport-notice fixed inset-0 z-[200] bg-bg text-text items-center justify-center p-8 text-center font-mono">
+        <div>
+          <div className="font-display text-lg mb-3">DEEPUTIN</div>
+          <p className="text-sm text-text-muted max-w-sm mx-auto">
+            Этот интерфейс — плотная forensic-рабочая станция (многодорожечный таймлайн, 3D-инспектор),
+            рассчитанная на экран не менее 1024px. На меньших экранах корректная работа не гарантируется.
+          </p>
+        </div>
+      </div>
+      <div ref={appRef} className="app-shell w-screen h-screen flex flex-col text-text font-sans overflow-hidden relative" style={themeVars}>
       <HeaderBar
         thumbSize={thumbSize} setThumbSize={setThumbSize}
         filters={filters} setFilters={setFilters}
@@ -200,6 +218,9 @@ ${EVENT_PINS.map(e => `[${new Date(e.t).toLocaleDateString("ru-RU")}] ${e.title}
         leftPanelOpen={leftPanelOpen}
         onToggleLeftPanel={() => setLeftPanelOpen(!leftPanelOpen)}
         onOpenFilters={() => setShowFilters(true)}
+        onOpenSettings={() => setShowSettings(true)}
+        onToggleLanguage={() => setLanguage(language === "ru" ? "en" : "ru")}
+        language={language}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -276,6 +297,10 @@ ${EVENT_PINS.map(e => `[${new Date(e.t).toLocaleDateString("ru-RU")}] ${e.title}
         {(["MATRIX", "COMPARE", "INSPECTOR", "DRIFT", "METRICS", "STATS"] as const).includes(viewMode as any) && (
           <AnalysisViews kind={viewMode as "MATRIX" | "COMPARE" | "INSPECTOR" | "DRIFT" | "METRICS" | "STATS"} photos={photosWithHidden} selected={selectedPhoto} onSelect={setSelectedId} onInspect={setFullPhoto} onCompare={() => rangeA && setShowCompare(true)} />
         )}
+
+        {viewMode === "PAIR_COMPARE" && <PairCompareView photos={photosWithHidden} />}
+        {viewMode === "CALIBRATION" && <CalibrationView />}
+        {viewMode === "DATA" && <DataManagementView />}
       </div>
 
       <CurrentStateBar era={currentEra} playheadT={playheadT} photos={photosWithHidden} hiddenCount={hiddenIds.size} thumbSize={thumbSize} />
@@ -289,11 +314,13 @@ ${EVENT_PINS.map(e => `[${new Date(e.t).toLocaleDateString("ru-RU")}] ${e.title}
       {showCompare && rangeA && (
         <ComparisonPanel rangeA={rangeA} rangeB={rangeB} onClose={() => setShowCompare(false)} activeSide={compareSide} onSetSide={setCompareSide} />
       )}
-    </div>
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onApplied={() => undefined} />}
+      </div>
+    </>
   );
 }
 
-function HeaderBar({ thumbSize, setThumbSize, filters, setFilters, onSources, onExport, onToggleTheme, theme, viewMode, setViewMode, stats, dataMode, dataMessage, onFixCapsule, leftPanelOpen, onToggleLeftPanel, onOpenFilters }: any) {
+function HeaderBar({ thumbSize, setThumbSize, filters, setFilters, onSources, onExport, onToggleTheme, theme, viewMode, setViewMode, stats, dataMode, dataMessage, onFixCapsule, leftPanelOpen, onToggleLeftPanel, onOpenFilters, onOpenSettings, onToggleLanguage, language }: any) {
   return (
     <div data-no-pan className="h-12 bg-surface border-b border-border-strong flex items-center px-3 gap-3 flex-shrink-0">
       <div className="flex items-center gap-2">
@@ -325,7 +352,7 @@ function HeaderBar({ thumbSize, setThumbSize, filters, setFilters, onSources, on
 
       <div className="flex-1 min-w-2" />
 
-      <button onClick={onToggleLeftPanel} className={`w-8 h-7 flex items-center justify-center border ${leftPanelOpen ? "bg-info/20 border-info" : "border-border text-text-muted hover:text-text bg-surface-2"}`} title={t.detailPanel}>
+      <button onClick={onToggleLeftPanel} aria-label={t.detailPanel} className={`w-8 h-7 flex items-center justify-center border ${leftPanelOpen ? "bg-info/20 border-info" : "border-border text-text-muted hover:text-text bg-surface-2"}`} title={t.detailPanel}>
         <Icon name="panel-left" size={14} />
       </button>
 
@@ -360,16 +387,28 @@ function HeaderBar({ thumbSize, setThumbSize, filters, setFilters, onSources, on
           { v: "MATRIX", l: "МАТРИЦА" },
           { v: "CLUSTER", l: "КЛАСТЕРЫ" },
           { v: "COMPARE", l: "СРАВНЕНИЕ" },
+          { v: "PAIR_COMPARE", l: "ФОТО A/B" },
           { v: "INSPECTOR", l: "3D" },
           { v: "DRIFT", l: "DRIFT" },
           { v: "METRICS", l: "МЕТРИКИ" },
           { v: "STATS", l: "СТАТИСТИКА" },
+          { v: "CALIBRATION", l: "КАЛИБРОВКА" },
+          { v: "DATA", l: "ДАННЫЕ" },
         ] as const).map(m => (
           <button key={m.v} onClick={() => setViewMode(m.v)} className={`px-2 py-1 font-mono text-[10px] tracking-forensic ${viewMode === m.v ? "bg-info/30 text-text" : "text-text-muted hover:text-text"}`}>{m.l}</button>
         ))}
       </div>
 
-      <div title={dataMessage} className={`px-2 py-1 border font-mono text-[9px] tracking-forensic ${dataMode === "api" ? "border-nominal/50 text-nominal" : dataMode === "loading" ? "border-info/50 text-info" : "border-warning/50 text-warning"}`}>{dataMode === "api" ? "API" : dataMode === "loading" ? "LOADING" : "DEMO"} · НЕ ВЕРДИКТ</div>
+      <button onClick={onOpenSettings} aria-label={t.openSettings} className="px-2 py-1 font-mono text-[10px] tracking-forensic text-text-muted hover:text-text border border-border bg-surface-2 flex items-center gap-1" title={t.openSettings}>
+        <Icon name="sliders" size={11} />
+      </button>
+
+      <button onClick={onToggleLanguage} aria-label={t.languageToggle} className="px-2 py-1 font-mono text-[10px] tracking-forensic text-text-muted hover:text-text border border-border bg-surface-2" title={t.languageToggle}>
+        {language.toUpperCase()}
+      </button>
+
+      <div title={dataMessage} className={`px-2 py-1 border font-mono text-[9px] tracking-forensic ${dataMode === "research" ? "border-nominal/50 text-nominal" : dataMode === "loading" ? "border-info/50 text-info" : "border-warning/50 text-warning"}`}>{dataMode === "research" ? "RESEARCH" : dataMode === "loading" ? "LOADING" : "DEMO"} · НЕ ВЕРДИКТ</div>
+
       <button onClick={onFixCapsule} className="px-2 py-1 font-mono text-[9px] tracking-forensic border border-info/50 bg-info/10 hover:bg-info/25">FIX CAPSULE</button>
 
       <button onClick={onOpenFilters} className="px-2 py-1 font-mono text-[10px] tracking-forensic text-text-muted hover:text-text border border-border bg-surface-2 flex items-center gap-1">
@@ -382,7 +421,7 @@ function HeaderBar({ thumbSize, setThumbSize, filters, setFilters, onSources, on
         <Icon name="download" size={11} /> {t.exportReport}
       </button>
 
-      <button onClick={onToggleTheme} className="w-7 h-7 flex items-center justify-center border border-border bg-surface-2 text-text-muted hover:text-text" title={t.toggleTheme}>
+      <button onClick={onToggleTheme} aria-label={t.toggleTheme} className="w-7 h-7 flex items-center justify-center border border-border bg-surface-2 text-text-muted hover:text-text" title={t.toggleTheme}>
         <Icon name={theme === "dark" ? "sun" : "moon"} size={13} />
       </button>
 
@@ -474,7 +513,7 @@ function FilterPanel({ filters, setFilters, onClose }: { filters: Filters; setFi
       <div className="bg-surface border border-border-strong w-[680px] p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <div className="font-display text-lg tracking-forensic flex items-center gap-2"><Icon name="filter" size={16} /> {t.filtersTitle}</div>
-          <button onClick={onClose} className="text-text-muted hover:text-text"><Icon name="x" size={18} /></button>
+          <button onClick={onClose} aria-label="Закрыть" className="text-text-muted hover:text-text"><Icon name="x" size={18} /></button>
         </div>
 
         <div className="grid grid-cols-2 gap-5">
@@ -560,7 +599,7 @@ function PinCard({ pin, onClose, onJump }: { pin: EventPin; onClose: () => void;
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div className="font-mono text-[9px] text-text-muted tracking-forensic">{t.pinEvent} · {pin.type}</div>
-          <button onClick={onClose} className="text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
+          <button onClick={onClose} aria-label="Закрыть" className="text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
         </div>
         <div className="flex items-center gap-2 mb-1">
           <div className="w-7 h-7 flex items-center justify-center" style={{ background: pin.color }}>
@@ -605,7 +644,7 @@ function SourcesPanel({ onClose, onJump }: { onClose: () => void; onJump: (t: nu
     <div data-no-pan className="absolute right-0 top-12 bottom-0 z-40 w-[360px] bg-surface border-l border-border-strong shadow-2xl flex flex-col animate-[slideInRight_0.18s_ease-out]">
       <div className="p-3 border-b border-border flex items-center justify-between">
         <div className="font-display tracking-forensic flex items-center gap-2"><Icon name="file-text" size={14} /> {t.sourcesTitle}</div>
-        <button onClick={onClose} className="text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
+        <button onClick={onClose} aria-label="Закрыть" className="text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
       </div>
       <div className="flex gap-1 p-2 border-b border-border bg-surface-2">
         {([
