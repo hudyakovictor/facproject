@@ -36,6 +36,9 @@ STATUS_TO_EVIDENCE_STATE = {
     "persistent_rapid_change_candidate": "persistent_rate_change_candidate",
     "insufficient_visibility": "insufficient_visibility",
     "insufficient_calibration": "insufficient_calibration",
+    # D1: нефинитная метрика — отсутствие измерения, а не слабая аномалия.
+    # Без явной записи она попадала бы в fallback "elevated_uncertain".
+    "not_measurable": "not_measurable",
     "unsupported_pose": "unsupported_pose",
     "pose_mismatch": "inapplicable_pose",
     "residual_pose_mismatch": "inapplicable_pose",

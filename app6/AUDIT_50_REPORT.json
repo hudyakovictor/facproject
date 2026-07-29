@@ -63,7 +63,7 @@
       "id": 10,
       "name": "No untrusted allow_pickle=True",
       "status": "pass",
-      "detail": "test_module/synthetic_runner.py"
+      "detail": ""
     },
     {
       "id": 11,
@@ -297,13 +297,13 @@
       "id": 49,
       "name": "Regression suite passes",
       "status": "pass",
-      "detail": "e: complete\n22:47:19 [INFO] ✅ full_pose_correction_matrix: complete\n22:47:19 [INFO] ✅ reprojection_stats: complete\n22:47:19 [INFO] ✅ apply_chronology_rate_flags: complete\n22:47:19 [INFO] ✅ apply_chronology_rate_flags: complete\n22:47:19 [INFO] ✅ compare_landmarks: complete\n22:47:19 [WARNING] ⚠️ compare_landmarks: Pose bin mismatch: frontal vs right_light\n22:47:19 [INFO] ✅ compare_landmarks: complete\n22:47:19 [INFO] ✅ aligned_point_motion: complete\n22:47:19 [INFO] ✅ aligned_point_motion: complete\n"
+      "detail": "........................................................................ [ 67%]\n...................................                                      [100%]\n107 passed in 3.90s\n"
     },
     {
       "id": 50,
       "name": "Regression suite breadth",
       "status": "pass",
-      "detail": "tests=87"
+      "detail": "tests=107"
     }
   ]
 }
