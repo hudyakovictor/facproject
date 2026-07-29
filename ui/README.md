@@ -20,6 +20,17 @@ npm run build
 npm run preview
 ```
 
+## Проверки перед релизом
+
+```bash
+python scripts/check_contract.py   # исходники: контракт React/Vite, поз, режимов, API
+npm run build                      # production-сборка в dist/
+python scripts/smoke_ui.py         # dist/: реальная раздача статики + маркеры после минификации
+```
+
+`app6/scripts/project_readiness.py` требует наличия обоих скриптов и
+`ui/dist/index.html`, иначе помечает `ui_ready: false`.
+
 ## Реализовано
 
 - 9 нормативных pose bins: профиль, глубокий, средний и лёгкий ракурс слева; фронтальный; четыре симметричных справа;
