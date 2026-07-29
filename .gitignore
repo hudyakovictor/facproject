@@ -56,5 +56,4 @@ testphoto_output/
 runs/
 assets/
 # Symlink to 3ddfav3/assets (absolute path, not portable)
-patch/
 
