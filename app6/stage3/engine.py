@@ -9,7 +9,7 @@ import numpy as np
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from app6.stage1.utils import atomic_json,sha256_file
+from app6.stage1.utils import atomic_json,digest_file
 from app6.stage1.status_logger import log_status
 from app6.stage2.evidence import is_reportable_change
 SCHEMA='deeputin-stage3-v1.4'
@@ -71,7 +71,7 @@ class Stage3Engine:
   narrative=[f"Исследование охватывает {manifest.get('main_record_count',0)} фотографий"+(f" за период {dates[0]} — {dates[-1]}" if dates else '')+f". Хронология разделена на {len(poses)} независимых ракурсных ряда.",f"Для каждой пары движение 134 точек сопоставлено с same-person noise семи калибровочных наборов. Полное покрытие семью наборами отсутствовало у {poor} соседних сравнений.",f"Архив прежних зацепок содержит {leads.get('date_count',0)} дат и {leads.get('metric_count',0)} названий метрик. В новой хронологии напрямую пересекаются {len(lead_pairs)} соседних пар. Старые выводы используются только как цели перепроверки.",f"Помимо движения точек проверяются 13 локальных семейств shape. Отдельно подсчитывается биологически маловероятный темп: скачок нормируется на количество дней между кадрами и помечается только как candidate, а не как доказанный факт.",f"Найдено {bio} соседних пар с аномальным темпом изменения и {len(changes)} сильных change-point candidates. Мимика контролируется через identity-only landmarks и alpha_exp.","Ни один статус сам по себе не доказывает подмену личности, маску, операцию или причину изменения. Отчёт отделяет наблюдаемое движение точек от интерпретации."]
   data={'schema_version':SCHEMA,'analysis_manifest':manifest,'summary':{'pair_count':len(pairs),'zone_count':len(zones),'change_count':len(changes),'lead_pair_count':len(lead_pairs),'status_counts':statuses,'pose_counts':poses},'narrative':narrative,'timelines':timelines,'motion_maps':motion_maps,'pairs':pairs,'lead_pairs':lead_pairs,'lead_registry':leads,'metric_catalog':metric_catalog,'zones':zones,'change_points':changes,'methodology':{'stage1':'Single 3DDFA inference with validated immutable extraction.','stage2':'Chronology is isolated by pose bin; every landmark and every local descriptor family has a same-person calibration noise distribution.','interpretation':'Prior leads define coverage targets, never ground truth. Statuses do not establish identity replacement, masks, surgery, or medical facts.'}}
   atomic_json(o/'report_data.json',data);(o/'index.html').write_text(self._html(data),encoding='utf-8')
-  validation={'schema_version':'stage3-validation-v1','status':'complete','errors':[],'analysis_manifest_sha256':sha256_file(a/'analysis_manifest.json'),'files':['index.html','report_data.json']};atomic_json(o/'report_validation.json',validation);return validation
+  validation={'schema_version':'stage3-validation-v1','status':'complete','errors':[],'analysis_manifest_digest':digest_file(a/'analysis_manifest.json'),'files':['index.html','report_data.json']};atomic_json(o/'report_validation.json',validation);return validation
  def _html(self,data):
   payload=json.dumps(data,ensure_ascii=False).replace('</','<\\/')
   return TEMPLATE.replace('__DATA__',payload)

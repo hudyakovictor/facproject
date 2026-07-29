@@ -61,8 +61,8 @@ def _utc() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
+def _digest(path: Path) -> str:
+    h = hashlib.blake2b(digest_size=16)
     with path.open("rb") as f:
         for block in iter(lambda: f.read(1024 * 1024), b""):
             h.update(block)
@@ -184,7 +184,7 @@ class PrivateHypothesisEngine:
                     results.write(json.dumps(result, ensure_ascii=False, allow_nan=False) + "\n")
                     if retest["status"] == "retested_with_current_alignment": retested += 1; source_retested += 1
                     else: pending += 1
-                source_reports.append({"source": source_name, "path": relative, "status": "imported", "record_count": len(records), "imported_count": source_imported, "retested_count": source_retested, "sha256": _sha256(path)})
+                source_reports.append({"source": source_name, "path": relative, "status": "imported", "record_count": len(records), "imported_count": source_imported, "retested_count": source_retested, "digest": _digest(path)})
         coverage = imported / max(total, 1)
         manifest = {
             "schema": SCHEMA, "created_at_utc": _utc(),

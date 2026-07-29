@@ -118,7 +118,7 @@ def load_archive_records(archive_root: Path) -> list[Record]:
             alpha_exp=alpha_exp,
             record_dir=str(directory),
             source_group=str(meta.get("dataset_id") or "archive"),
-            source_sha256=meta.get("source_sha256"),
+            source_digest=meta.get("source_digest"),
         ))
 
     if not records:

@@ -98,7 +98,7 @@ def load_main(stage1_root: Path) -> list[Record]:
                 quality_zones=qzones,
                 record_dir=str(directory),
                 source_group=source_group,
-                source_sha256=info.get("source_sha256"),
+                source_digest=info.get("source_digest"),
                 coordinate_noise_sigma=float(chronology_info.get("coordinate_noise_sigma", 0.0) or 0.0),
             ))
     return sorted(out, key=lambda r: (r.date or "9999", r.sequence, r.record_id))
@@ -184,7 +184,7 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
             alpha_exp=_missing_alpha(64),
             record_dir=str(directory),
             source_group=str(meta.get("dataset_id") or directory.parent.name),
-            source_sha256=meta.get("source_sha256"),
+            source_digest=meta.get("source_digest"),
         ))
     if not out:
         raise FileNotFoundError(f"no sidecar calibration frames under {root}")

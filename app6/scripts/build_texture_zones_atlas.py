@@ -6,7 +6,7 @@
 💡 NOTE (AUDIT-8): ассет отсутствовал в гите → 6 тестов падали (wrinkle_zones 4 error,
    skin_v3 2 fail). Геометрическая разметка синтетическая (равномерная), но КОНТРАКТ
    полон: A20/S40/W14/Q nesting/parent-containment — проверяется самим AtlasRegistry.
-🚨 WARNING: topology_tri_sha256 — хэш детерминированной синтетической сетки-заглушки;
+🚨 WARNING: topology_tri_digest — хэш детерминированной синтетической сетки-заглушки;
    verify_topology() против реальной BFM-сетки ДОЛЖЕН падать (fail-loud by design),
    пока ассет не будет перегенерирован с реальной топологией (нужен assets/face_model.npy).
 """
@@ -60,7 +60,7 @@ def build() -> dict:
     tri_stub = (
         np.stack([idx, (idx + 1) % T, (idx + 2) % T], axis=1)
     ).astype("<i4")
-    topo_hash = hashlib.sha256(tri_stub.tobytes(order="C")).hexdigest()
+    topo_hash = hashlib.digest(tri_stub.tobytes(order="C")).hexdigest()
 
     return {
         "schema_version": np.array(3, np.int32),
@@ -76,7 +76,7 @@ def build() -> dict:
         "subzone_codes": np.array(subcodes),
         "focus_codes": np.array(wcodes),
         "subzone_parent_main": s_parent,
-        "topology_tri_sha256": np.array(topo_hash),
+        "topology_tri_digest": np.array(topo_hash),
     }
 
 

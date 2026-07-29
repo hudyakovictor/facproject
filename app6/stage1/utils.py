@@ -1,7 +1,7 @@
 """
 💡 NOTE → Низкоуровневые утилиты Stage 1: хеширование и атомарная запись.
 
-sha256_file/sha256_json/sha256_paths — контент-хеши для photo_id и дедупликации;
+digest_file/digest_json/digest_paths — контент-хеши для photo_id и дедупликации;
 atomic_json/write_csv — запись через временный файл + os.replace (crash-safe);
 runtime_versions — фиксация версий для воспроизводимости info.json.
 Используется engine.py, validator, run-скриптами. Все функции чистые, без глобального состояния.
@@ -21,24 +21,24 @@ from typing import Any, Iterable
 import numpy as np
 
 
-def sha256_file(path: Path) -> str:
+def digest_file(path: Path) -> str:
     # status: closed — отлажена, работает без нареканий
-    h = hashlib.sha256()
+    h = hashlib.blake2b(digest_size=16)
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
 
 
-def sha256_json(value: Any) -> str:
+def digest_json(value: Any) -> str:
     # status: closed — отлажена
     raw = json.dumps(json_ready(value), ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(raw).hexdigest()
+    return hashlib.md5(raw).hexdigest()
 
 
-def sha256_paths(paths: Iterable[Path], root: Path | None = None) -> str:
+def digest_paths(paths: Iterable[Path], root: Path | None = None) -> str:
     # status: closed — отлажена
-    h = hashlib.sha256()
+    h = hashlib.blake2b(digest_size=16)
     count = 0
     for path in sorted((Path(p) for p in paths), key=lambda x: str(x)):
         if not path.is_file():
@@ -50,7 +50,7 @@ def sha256_paths(paths: Iterable[Path], root: Path | None = None) -> str:
             for chunk in iter(lambda: f.read(1024 * 1024), b""):
                 h.update(chunk)
     if count == 0:
-        raise ValueError("sha256_paths received no existing files")
+        raise ValueError("digest_paths received no existing files")
     return h.hexdigest()
 
 

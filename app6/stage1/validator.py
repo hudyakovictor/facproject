@@ -301,14 +301,14 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
     return result
 
 
-def is_resumable(directory: Path, source_sha256: str, code_hash: str, config_hash: str, model_hash: str) -> tuple[bool, dict[str, Any] | None]:
+def is_resumable(directory: Path, source_digest: str, code_hash: str, config_hash: str, model_hash: str) -> tuple[bool, dict[str, Any] | None]:
     log_status("is_resumable", "complete")
     if not directory.is_dir():
         return False, None
     try:
         info = json.loads((directory / "info.json").read_text(encoding="utf-8"))
         expected = {
-            "source_sha256": source_sha256, "code_hash": code_hash,
+            "source_digest": source_digest, "code_hash": code_hash,
             "config_hash": config_hash, "model_hash": model_hash,
         }
         if any(info.get(k) != v for k, v in expected.items()):

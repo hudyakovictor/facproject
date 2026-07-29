@@ -43,7 +43,7 @@ class Record:
     quality_zones: dict[str, Any] = field(default_factory=dict)
     record_dir: str | None = None
     source_group: str = "unknown"
-    source_sha256: str | None = None
+    source_digest: str | None = None
     coordinate_noise_sigma: float = 0.0
 
 

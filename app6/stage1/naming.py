@@ -1,5 +1,5 @@
 """🏭 FACTORY → Парсинг имён фото и детерминированная генерация photo_id.
-🔗 DEPENDS ON: utils.sha256_file — photo_id включает хэш содержимого
+🔗 DEPENDS ON: utils.digest_file — photo_id включает хэш содержимого
 📤 API: parse_photo_name(), make_photo_id()
 💡 NOTE: дата из имени файла — первичный источник хронологии для stage2.
 """
@@ -60,16 +60,16 @@ def parse_photo_name(path: Path) -> PhotoName:
     return PhotoName(parsed.isoformat(), parsed.year, parsed.month, parsed.day, seq, canonical_stem)
 
 
-def make_photo_id(parsed: PhotoName, source_sha256: str | None) -> str:
+def make_photo_id(parsed: PhotoName, source_digest: str | None) -> str:
     """Collision-safe controlled slug plus source-byte hash prefix.
 
     Copy spellings normalised by ``parse_photo_name`` remain identical, while
     different bytes can never silently publish to the same photo directory.
     """
     log_status("make_photo_id", "complete")
-    if not source_sha256:
+    if not source_digest:
         return parsed.canonical_stem
-    digest = str(source_sha256).lower()
+    digest = str(source_digest).lower()
     if not re.fullmatch(r"[0-9a-f]{64}", digest):
-        raise ValueError("source_sha256 must be 64 lowercase/uppercase hex characters")
+        raise ValueError("source_digest must be 64 lowercase/uppercase hex characters")
     return f"{parsed.canonical_stem}__{digest[:12]}"

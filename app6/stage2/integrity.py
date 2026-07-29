@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Final, Iterable
 
-from app6.stage1.utils import sha256_file, sha256_paths
+from app6.stage1.utils import digest_file, digest_paths
 
 INTEGRITY_SCHEMA: Final[str] = "deeputin-integrity-guard-v1.0"
 
@@ -84,7 +84,7 @@ def compute_dataset_hash(index_path: Path) -> str:
     path = Path(index_path)
     if not path.is_file():
         raise FileNotFoundError(f"индекс калибровки не найден: {path}")
-    return sha256_file(path)
+    return digest_file(path)
 
 
 def compute_code_hash(project_root: Path, patterns: Iterable[str] = ("app6/stage1/*.py", "app6/stage2/*.py")) -> str:
@@ -95,4 +95,4 @@ def compute_code_hash(project_root: Path, patterns: Iterable[str] = ("app6/stage
         files.extend(sorted(root.glob(pattern)))
     if not files:
         raise FileNotFoundError(f"нет файлов кода под {root} по шаблонам {list(patterns)}")
-    return sha256_paths(files, root)
+    return digest_paths(files, root)

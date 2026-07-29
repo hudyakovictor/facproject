@@ -11,7 +11,7 @@ from typing import Any
 
 import numpy as np
 
-from app6.stage1.utils import atomic_json, sha256_file, write_csv
+from app6.stage1.utils import atomic_json, digest_file, write_csv
 
 POSTPROCESS_SCHEMA = "deeputin-stage2-postprocess-v1.0"
 FORBIDDEN_PUBLIC_TERMS = (
@@ -183,7 +183,7 @@ def _write_artifact_index(out: Path) -> dict[str, Any]:
     entries: list[dict[str, Any]] = []
     for p in sorted(out.iterdir()):
         if p.is_file() and p.name not in {"artifact_index.json"}:
-            entries.append({"name": p.name, "size_bytes": p.stat().st_size, "sha256": sha256_file(p)})
+            entries.append({"name": p.name, "size_bytes": p.stat().st_size, "digest": digest_file(p)})
     report = {"schema": POSTPROCESS_SCHEMA, "artifact_count": len(entries), "artifacts": entries}
     atomic_json(out / "artifact_index.json", report)
     return report

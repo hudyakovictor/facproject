@@ -33,7 +33,7 @@ import colorsys
 import json
 import logging
 from dataclasses import asdict, dataclass
-from hashlib import sha256
+from hashlib import blake2b
 from pathlib import Path
 
 import cv2
@@ -42,11 +42,11 @@ import numpy as np
 logger = logging.getLogger(__name__)
 import logging
 from dataclasses import asdict, dataclass
-from hashlib import sha256
+from hashlib import blake2b
 from pathlib import Path
 import logging
 from dataclasses import asdict, dataclass
-from hashlib import sha256
+from hashlib import blake2b
 from pathlib import Path
 from typing import Literal
 
@@ -223,7 +223,7 @@ def export_contract() -> dict:
         "analysis_space": "original photo pixels",
         "segmentation_excluded_zones": [z.name for z in ZONES if z.excluded_by_segmentation],
     }
-    payload["atlas_hash"] = sha256(repr(payload).encode()).hexdigest()
+    payload["atlas_hash"] = blake2b(repr(payload).encode(), digest_size=16).hexdigest()
     return payload
 
 
