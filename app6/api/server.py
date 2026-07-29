@@ -28,7 +28,8 @@ from app6.stage1.naming import make_photo_id, parse_photo_name
 from app6.stage1.utils import digest_file
 
 from .bfm_topology import is_bfm_available
-from .calibration import load_calibration_health
+from .calibration import find_matching_calibration_frames, load_calibration_health
+
 from .compare import compare_records, full_mesh_compare
 from .demo_data import DemoPhoto, build_demo_records, build_demo_zone_maps, full_mesh_for_photo
 from .jobs import JobManager, make_extract_runner, make_recompute_metrics_runner
@@ -318,6 +319,35 @@ async def compare_with_upload(photo_id: str, file: UploadFile = File(...)) -> di
 def calibration_health() -> dict[str, Any]:
     try:
         return load_calibration_health(_calibration_root())
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/calibration/match")
+def calibration_match(photo_id: str | None = None, yaw: float | None = None,
+                      pitch: float | None = None, roll: float | None = None,
+                      pose_bin: str | None = None, limit: int = 5) -> dict[str, Any]:
+    """🚪 API → Подобрать калибровочные кадры для угловой компенсации шума.
+
+    Принимает либо `photo_id` (углы берутся из уже известной demo/research
+    записи), либо явные `yaw`/`pitch`/`roll` (например, для кадра, ещё не
+    сохранённого в базе). См. `app6/api/calibration.find_matching_calibration_frames`.
+    """
+    if photo_id is not None:
+        by_id = _get_demo_photos() and _demo_cache["by_id"]
+        photo = by_id.get(photo_id)
+        if photo is None:
+            raise HTTPException(status_code=404, detail=f"unknown photo id: {photo_id}")
+        yaw = float(photo.record.angles[1])
+        pitch = float(photo.record.angles[0])
+        roll = float(photo.record.angles[2])
+        pose_bin = pose_bin or photo.pose_bin
+    if yaw is None or pitch is None or roll is None:
+        raise HTTPException(status_code=400, detail="provide either photo_id or yaw/pitch/roll")
+    try:
+        return find_matching_calibration_frames(
+            _calibration_root(), yaw=yaw, pitch=pitch, roll=roll, pose_bin=pose_bin, limit=limit,
+        )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

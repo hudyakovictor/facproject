@@ -108,4 +108,34 @@ describe("PairCompareView", () => {
     // The morph slider must appear once the full mesh result is available.
     await waitFor(() => expect(screen.getByRole("slider")).toBeInTheDocument());
   });
+
+  it("shows calibration match candidates after a successful comparison", async () => {
+    const photos = [samplePhoto("A1", "frontal"), samplePhoto("A2", "frontal")];
+    vi.spyOn(api, "fetchSettings").mockResolvedValue({
+      schema: "s", heatmap: { stop_blue_cyan: 0.25, stop_cyan_green: 0.5, stop_green_red: 0.75, stop_saturated_red: 1, max_residual_reference: 0.12 },
+      thresholds: { confidence_min: 0, quality_min: 0, geometry_zone_delta_limit: 0.018, texture_zone_delta_limit: 0.04, expression_smile: 0.92, expression_jaw_open: 0.28 },
+      detail_level: "standard", language: "ru",
+    });
+    vi.spyOn(api, "comparePhotos").mockResolvedValue({
+      schema: "s", status: "measured", metrics: { ldm134_rmse: 0.01 }, zones: [], diagnostics: {}, not_a_verdict: true,
+      heatmap_points: [{ index: 0, x: 0, y: 0, z: 0, residual: 0.01 }],
+      heatmap_stats: { min: 0, max: 0.01, median: 0.005, p95: 0.009 },
+      source_mode: "demo",
+      photo_a: { id: "A1", date: "1999-01-01", bucket: "frontal" },
+      photo_b: { id: "A2", date: "1999-01-01", bucket: "frontal" },
+    });
+    vi.spyOn(api, "fetchCalibrationMatchForPhoto").mockImplementation(async (photoId: string) => ({
+      schema: "s", not_a_verdict: true, query: { yaw: 0, pitch: 0, roll: 0, pose_bin: "frontal" },
+      candidate_count: 1,
+      candidates: [{ dataset_id: "person_01", record_id: `frame_for_${photoId}`, pose_bin: "frontal", yaw: 0, pitch: 0, roll: 0, angle_distance: 0.5, source_filename: "x.jpg" }],
+      note: "test",
+    }));
+
+    const user = userEvent.setup();
+    render(<PairCompareView photos={photos} />);
+    await user.click(screen.getByRole("button", { name: /СРАВНИТЬ/i }));
+
+    await waitFor(() => expect(screen.getByText(/frame_for_A1/)).toBeInTheDocument());
+    expect(screen.getByText(/frame_for_A2/)).toBeInTheDocument();
+  });
 });
