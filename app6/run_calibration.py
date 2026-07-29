@@ -3,19 +3,29 @@
 
 🚪 CONVENTIONS v2 → ENTRY POINT калибровки; статус: ✅ VERIFIED
 """
-import sys,os
+import argparse,sys,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT))
 os.chdir(ROOT)
+
+# 🔧 FIX (D13): пути к данным больше не зашиты в код. Раньше здесь стояли
+# абсолютные пути к съёмному носителю конкретной машины, из-за чего даже
+# `--help` падал с FileNotFoundError и скрипт был непереносим.
+DEFAULT_INPUT=Path('dataset/calibration_input')
+DEFAULT_OUTPUT=Path('runs/calibration_stage1')
 
 # 🚪 ENTRY POINT → см. модульный docstring
 def main():
  from app6.stage1.config import Stage1Config
  from app6.stage1.engine import Stage1Engine
 
- inp=Path('/Volumes/SDCARD/storage/calibration_input')
- out=Path('/Volumes/SDCARD/storage/stage1')
+ parser=argparse.ArgumentParser(description='DEEPUTIN calibration stage1 run')
+ parser.add_argument('--input',type=Path,default=DEFAULT_INPUT,help='каталог калибровочных фото')
+ parser.add_argument('--output',type=Path,default=DEFAULT_OUTPUT,help='каталог вывода Stage 1')
+ args=parser.parse_args()
+ inp=args.input.resolve()
+ out=args.output.resolve()
 
  cfg=Stage1Config(project_root=ROOT,input_dir=inp,output_dir=out,device='auto',overwrite=True)
  engine=Stage1Engine(cfg)
