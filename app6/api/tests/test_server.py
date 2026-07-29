@@ -238,8 +238,10 @@ def test_compare_full_mesh_returns_real_topology_and_residuals(client: TestClien
     assert body["vertex_count"] == 35709
     assert body["triangle_count"] == 70789
     assert len(body["residuals"]) == 35709
+    assert len(body["vertices_b_aligned"]) == 35709
     assert body["residual_stats"]["max"] > 0
     assert body["not_a_verdict"] is True
+
 
 
 def test_compare_full_mesh_unknown_photo_404(client: TestClient) -> None:

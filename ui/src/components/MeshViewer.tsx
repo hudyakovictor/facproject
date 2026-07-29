@@ -12,6 +12,9 @@ export interface FullMeshData {
   triangles: [number, number, number][];
   /** Опционально: значение на вершину для окраски тепловой картой (например, residual). */
   vertexValues?: number[];
+  /** Опционально: вторая форма (та же топология/вершин-в-соответствии) для
+   * линейного морфинга A→B. Требует `morphT` для управления интерполяцией. */
+  verticesTarget?: [number, number, number][];
 }
 
 interface Props {
@@ -22,7 +25,11 @@ interface Props {
    * или /api/v1/compare/full_mesh). Когда задано, рендерится настоящая
    * поверхность (THREE.Mesh) вместо приближённого k-NN каркаса по landmarks. */
   fullMesh?: FullMeshData;
+  /** Доля морфинга A→B в [0,1]: 0 = чистая A, 1 = выровненная B. Требует
+   * `fullMesh.verticesTarget`. Игнорируется, если target не задан. */
+  morphT?: number;
   wireframe?: boolean;
+
   showPoints?: boolean;
   heatmapStops?: { blueCyan: number; cyanGreen: number; greenRed: number; saturatedRed: number; maxReference: number };
   className?: string;
@@ -62,7 +69,7 @@ function heatColor(t: number, stops: typeof DEFAULT_STOPS): THREE.Color {
  * координаты, полученные от `/api/v1/photos/{id}`, `/api/v1/photos/{id}/mesh`
  * или `/api/v1/compare[/full_mesh]`. */
 export default function MeshViewer({
-  points106, points134, heatmapPoints, fullMesh, wireframe = true, showPoints = true,
+  points106, points134, heatmapPoints, fullMesh, morphT = 0, wireframe = true, showPoints = true,
   heatmapStops = DEFAULT_STOPS, className, backgroundColor = "#0d0d0f",
 }: Props) {
 
@@ -168,8 +175,17 @@ export default function MeshViewer({
       const positions = new Float32Array(vertexCount * 3);
       const colors = new Float32Array(vertexCount * 3);
       const maxRef = Math.max(1e-6, heatmapStops.maxReference);
+      const target = fullMesh.verticesTarget;
+      const t = target ? Math.min(1, Math.max(0, morphT)) : 0;
       fullMesh.vertices.forEach(([x, y, z], i) => {
-        positions[i * 3] = x; positions[i * 3 + 1] = y; positions[i * 3 + 2] = z;
+        // Linear morph A→B when a target shape is provided (real BFM
+        // vertex correspondence — same topology, Kabsch-aligned by the
+        // backend — so per-vertex lerp is anatomically meaningful, not a
+        // pixel-space cross-fade).
+        const [tx, ty, tz] = target ? target[i] : [x, y, z];
+        positions[i * 3] = x + (tx - x) * t;
+        positions[i * 3 + 1] = y + (ty - y) * t;
+        positions[i * 3 + 2] = z + (tz - z) * t;
         const raw = fullMesh.vertexValues?.[i];
         const normalized = raw !== undefined ? raw / maxRef : 0.1;
         const color = heatColor(normalized, heatmapStops);
@@ -182,6 +198,7 @@ export default function MeshViewer({
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
       geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
       geometry.setIndex(new THREE.BufferAttribute(indices, 1));
       geometry.computeVertexNormals();
@@ -250,7 +267,7 @@ export default function MeshViewer({
       const lineMaterial = new THREE.LineBasicMaterial({ color: 0x5591c7, transparent: true, opacity: 0.35 });
       state.group.add(new THREE.LineSegments(lineGeometry, lineMaterial));
     }
-  }, [points106, points134, heatmapPoints, fullMesh, wireframe, showPoints, heatmapStops]);
+  }, [points106, points134, heatmapPoints, fullMesh, morphT, wireframe, showPoints, heatmapStops]);
 
 
   return <div ref={containerRef} className={className} style={{ width: "100%", height: "100%" }} />;

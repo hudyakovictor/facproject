@@ -106,6 +106,7 @@ def full_mesh_compare(photo_a: DemoPhoto, photo_b: DemoPhoto) -> dict[str, Any] 
         "vertex_count": int(shape_a.shape[0]),
         "triangle_count": int(bfm.triangles.shape[0]),
         "vertices_a": shape_a.astype(np.float32).tolist(),
+        "vertices_b_aligned": aligned_b.astype(np.float32).tolist(),
         "residuals": residuals.astype(np.float32).tolist(),
         "triangles": bfm.triangles.tolist(),
         "primary_zone_ids": bfm.primary_zone_ids,
@@ -118,7 +119,10 @@ def full_mesh_compare(photo_a: DemoPhoto, photo_b: DemoPhoto) -> dict[str, Any] 
         "not_a_verdict": True,
         "note": (
             "Identity-only reconstruction (alpha_exp=0): костная форма без мимики. "
-            "Полная топология BFM (не landmark-подмножество)."
+            "Полная топология BFM (не landmark-подмножество). vertices_b_aligned — "
+            "форма B после Kabsch-выравнивания в систему координат A, готова для "
+            "линейной интерполяции (морфинга) A→B на фронтенде."
         ),
     }
+
 

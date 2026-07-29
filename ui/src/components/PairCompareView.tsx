@@ -29,6 +29,8 @@ export default function PairCompareView({ photos }: Props) {
   const [fullMeshResult, setFullMeshResult] = useState<FullMeshCompareResult | null>(null);
   const [useFullMesh, setUseFullMesh] = useState(false);
   const [fullMeshUnavailable, setFullMeshUnavailable] = useState(false);
+  const [morphT, setMorphT] = useState(0);
+
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -42,7 +44,9 @@ export default function PairCompareView({ photos }: Props) {
     setStatus("loading");
     setResult(null);
     setFullMeshResult(null);
+    setMorphT(0);
     try {
+
       const compareResult = await comparePhotos(photoAId, photoBId);
       setResult(compareResult);
       if (useFullMesh && compareResult.status === "measured") {
@@ -130,23 +134,37 @@ export default function PairCompareView({ photos }: Props) {
 
       {result && result.status === "measured" && (
         <div className="grid grid-cols-[1fr_320px] gap-4">
-          <div className="bg-surface border border-border" style={{ height: 480 }}>
-            {fullMeshResult ? (
-              <MeshViewer
-                fullMesh={{
-                  vertices: fullMeshResult.vertices_a,
-                  triangles: fullMeshResult.triangles,
-                  vertexValues: fullMeshResult.residuals,
-                }}
-                heatmapStops={stops}
-                wireframe
-              />
-            ) : (
-              <MeshViewer
-                heatmapPoints={result.heatmap_points.map(p => ({ x: p.x, y: p.y, z: p.z, value: p.residual }))}
-                heatmapStops={stops}
-                wireframe
-              />
+          <div className="flex flex-col gap-2">
+            <div className="bg-surface border border-border" style={{ height: 480 }}>
+              {fullMeshResult ? (
+                <MeshViewer
+                  fullMesh={{
+                    vertices: fullMeshResult.vertices_a,
+                    verticesTarget: fullMeshResult.vertices_b_aligned,
+                    triangles: fullMeshResult.triangles,
+                    vertexValues: fullMeshResult.residuals,
+                  }}
+                  morphT={morphT}
+                  heatmapStops={stops}
+                  wireframe
+                />
+              ) : (
+                <MeshViewer
+                  heatmapPoints={result.heatmap_points.map(p => ({ x: p.x, y: p.y, z: p.z, value: p.residual }))}
+                  heatmapStops={stops}
+                  wireframe
+                />
+              )}
+            </div>
+            {fullMeshResult && (
+              <div className="bg-surface border border-border p-2 flex items-center gap-3">
+                <span className="font-mono text-[9px] tracking-forensic text-info w-6 text-center">A</span>
+                <input type="range" min={0} max={1} step={0.01} value={morphT}
+                  onChange={e => setMorphT(+e.target.value)} className="flex-1"
+                  aria-label={t.morphSliderLabel} />
+                <span className="font-mono text-[9px] tracking-forensic text-warning w-6 text-center">B</span>
+                <span className="font-mono text-[10px] text-text-muted w-12 text-right">{(morphT * 100).toFixed(0)}%</span>
+              </div>
             )}
           </div>
           <aside className="space-y-3">

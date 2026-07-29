@@ -113,6 +113,7 @@ export interface FullMeshCompareResult {
   vertex_count: number;
   triangle_count: number;
   vertices_a: [number, number, number][];
+  vertices_b_aligned: [number, number, number][];
   residuals: number[];
   triangles: [number, number, number][];
   primary_zone_ids: string[];
