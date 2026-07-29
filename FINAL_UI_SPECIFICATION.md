@@ -359,7 +359,7 @@
 
 **Источник данных**:
 - `ldm106_aligned.csv` / `ldm134_aligned.csv` — 3D-координаты ландмарок, выровненные в каноническое пространство
-- `metadata.json` — `pose_bin` (frontal_0, frontal_yaw15, frontal_yaw30, profile_L, profile_R, left_light, left_mid, left_deep, right_light, right_mid, right_deep)
+- `metadata.json` — `pose_bin`, одно из девяти нормативных значений: `left_profile`, `left_deep`, `left_mid`, `left_light`, `frontal`, `right_light`, `right_mid`, `right_deep`, `right_profile`
 - `all_calibration_index.csv` — хронология всех кадров
 
 **Реализация**:
@@ -455,12 +455,26 @@
 // core/types.ts
 
 export type Era = "ERA_1" | "ERA_2" | "ERA_3" | "ERA_4" | "ERA_5";
-export type PoseBucket = "frontal_0" | "frontal_yaw15" | "frontal_yaw30" | "profile_L" | "profile_R";
-export type PoseBucketFull =
-  | "frontal" | "left_profile" | "right_profile"
-  | "left_light" | "right_light"
-  | "left_mid" | "right_mid"
-  | "left_deep" | "right_deep";
+
+// ИСПРАВЛЕНО 2026-07-29. Единственный нормативный словарь ракурсов — девять
+// бинов из app6/atlas/pose_policy_v3_9bins.csv, они же в calibration_dataset
+// (943 записи) и в pose_policy бэкенда. Прежний PoseBucket из пяти значений
+// ("frontal_0", "frontal_yaw15", "profile_L", ...) в данных НЕ существует:
+// такие имена не вернёт ни один эндпоинт. Использовать только PoseBucket ниже.
+export type PoseBucket =
+  | "left_profile" | "left_deep" | "left_mid" | "left_light"
+  | "frontal"
+  | "right_light" | "right_mid" | "right_deep" | "right_profile";
+
+/** @deprecated Историческое имя; оставлено как алиас на время миграции. */
+export type PoseBucketFull = PoseBucket;
+
+/** Центры бинов по yaw. Отрицательный yaw — левый профиль (конвенция v3). */
+export const POSE_BUCKET_YAW: Record<PoseBucket, number> = {
+  left_profile: -60, left_deep: -40, left_mid: -25, left_light: -10,
+  frontal: 0,
+  right_light: 10, right_mid: 25, right_deep: 40, right_profile: 60,
+};
 export type Hypothesis = "H0" | "H1" | "H2";
 
 export type FuzzyLabel =
@@ -781,19 +795,41 @@ interface AppStore {
 
 ### 12.3. Структура metadata.json
 
+> **Исправлено 2026-07-29 по фактическим данным.** Прежняя версия раздела
+> описывала `frame_000205` как фронтальный кадр (`pose_bin: "frontal_0"`,
+> `yaw: -2.3`) и приводила углы плоскими полями. В репозитории это **левый
+> профиль** с `yaw ≈ -79.6°`, а углы лежат во вложенном объекте `pose`.
+> Ниже — реальное содержимое `calibration_dataset/person_01/frame_000205/metadata.json`.
+
 ```json
 {
-  "dataset_id": "calibration",
-  "record_id": "person_01_frame_000205",
+  "schema_version": "deeputin-calibration-seven-datasets-v7",
+  "dataset_id": "person_01",
+  "record_id": "frame_000205",
   "source_filename": "frame_000205.jpg",
   "frame_index": 205,
-  "yaw": -2.3,
-  "pitch": 8.1,
-  "roll": -1.5,
-  "pose_bin": "frontal_0",
-  "canonical_yaw": 0.0
+  "sequence_id": "person_01",
+  "pose": {
+    "yaw": -79.5689468383789,
+    "pitch": 4.7526535987854,
+    "roll": -9.202227592468262
+  },
+  "pose_bin": "left_profile",
+  "canonical_yaw": -70.0,
+  "alignment": {
+    "raw": "3DDFA object-space landmarks before pose/translation/camera",
+    "aligned": "full-mesh normalized object-space landmarks rotated to pose-bin canonical yaw"
+  }
 }
 ```
+
+**Важно для реализации:**
+
+- углы читаются как `metadata.pose.yaw`, а не `metadata.yaw`;
+- `record.npz` **отсутствует** в git (`.gitignore: *.npz`) — API обязан
+  корректно отдавать 404 и деградировать без 3D, когда файла нет;
+- для фронтального эталона используйте кадр с `pose_bin: "frontal"`,
+  например из `calibration_dataset/person_01/` с `canonical_yaw: 0.0`.
 
 ### 12.4. Распределение ракурсов в наборе
 
@@ -1143,7 +1179,7 @@ GET  /api/v1/calibration/stats         — статистика калибров
       "date": "2000-01-01",
       "year": 2000,
       "era": "ERA_1",
-      "pose": "frontal_0",
+      "pose": "frontal",
       "quality": 0.85,
       "fuzzyLabel": "STRONGLY_MATCHING",
       "dominant": "H0",
@@ -1170,6 +1206,34 @@ GET  /api/v1/calibration/stats         — статистика калибров
   }
 }
 ```
+
+---
+
+## 17.3. Границы формулировок (обязательно к соблюдению)
+
+> Добавлено 2026-07-29. Раздел разрешает конфликт между UI-моделью `H0/H1/H2`
+> и `app6/AGENTS.md`, который запрещает категоричный вывод о личности.
+
+Бэкенд **не выдаёт** и UI **не отображает** утверждений вида «другой человек»,
+«двойник», «маска». Вероятности `p0/p1/p2` — диагностическая величина, а не
+вердикт. Правила отображения:
+
+1. Рядом с любой гипотезой обязательно показывается `evidence_state`
+   (`within_noise`, `elevated_uncertain`, `insufficient_calibration`,
+   `not_measurable`, `quality_limited`, `pose_leakage_limited`) и список
+   применённых гейтов.
+2. Если `texture_conclusions_allowed === false` (сработал гейт качества,
+   см. ТЗ п.8), текстурные метрики отображаются серым с пометкой
+   «недостаточное качество источника» и не участвуют в агрегате.
+3. Метрика `not_measurable` не приравнивается к нулю и не рисуется как точка на
+   треке: пропуск данных отображается разрывом линии.
+4. Любая аномалия сопровождается полем `alternative_explanations` из ответа API.
+5. Формулировка результата: «обнаружено статистически необычное расхождение при
+   данных условиях», а не «доказан другой человек».
+
+Метрика текстуры называется `texture_anomaly_score` — она измеряет отклонение
+от нормы реальной кожи (модель one-class на 402 образцах), а **не** вероятность
+силикона. Подпись «вероятность силикона» в интерфейсе недопустима.
 
 ---
 

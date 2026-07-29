@@ -95,12 +95,21 @@ def balanced_person_threshold(values_by_person, quantile=0.95):
     return float(np.median(per))
 
 
-def balanced_reference(values_by_person):
+MIN_REFERENCE_PERSONS = 3
+
+
+def balanced_reference(values_by_person, min_persons: int = MIN_REFERENCE_PERSONS):
     """Build a robust reference with equal weight per calibration person.
 
     A participant with hundreds of adjacent video frames must not dominate a
     participant represented by a small independent session.  Quantiles are
     computed per person and aggregated by their median.
+
+    D6: a reference derived from fewer than ``min_persons`` people is not a
+    population reference at all — it is one person's noise.  Such a reference is
+    returned with ``count=0`` and an explicit status so that ``calibrated_score``
+    reports ``insufficient_calibration`` instead of silently trusting it.  This
+    mirrors ``balanced_person_threshold``, which already required three people.
     """
     summaries=[]
     total=0
@@ -110,9 +119,12 @@ def balanced_reference(values_by_person):
         total += len(x)
         med=float(np.median(x)); mad=float(np.median(np.abs(x-med)))
         summaries.append((med,mad,float(np.quantile(x,.95)),float(np.quantile(x,.99))))
-    if not summaries:
-        return {'count':0,'dataset_count':0,'median':0.0,'mad':0.0,'p95':0.0,'p99':0.0,
-                'policy':'equal_person_median_of_quantiles_v1'}
+    if len(summaries) < int(min_persons):
+        return {'count':0,'dataset_count':len(summaries),'median':0.0,'mad':0.0,'p95':0.0,'p99':0.0,
+                'policy':'equal_person_median_of_quantiles_v1',
+                'status':'insufficient_persons',
+                'required_persons':int(min_persons),
+                'observed_value_count':int(total)}
     a=np.asarray(summaries,float)
     return {'count':int(total),'dataset_count':int(len(a)),'median':float(np.median(a[:,0])),
             'mad':float(np.median(a[:,1])),'p95':float(np.median(a[:,2])),

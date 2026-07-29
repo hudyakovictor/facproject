@@ -39,6 +39,8 @@ def main()->int:
     p.add_argument('--stage1-root',type=Path)
     p.add_argument('--output',type=Path)
     p.add_argument('--skip-calibration-file-check',action='store_true')
+    p.add_argument('--expected-dataset-hash',help='Блокировать запуск, если хеш калибровки отличается (ТЗ п.11)')
+    p.add_argument('--expected-code-hash',help='Блокировать запуск, если хеш кода стадий отличается')
     a=p.parse_args();root=a.project_root.resolve();cal=a.calibration_root.resolve();idx=(a.calibration_index or cal/'all_calibration_index.csv').resolve()
     report={'schema':'deeputin-release-preflight-v1','project_root':str(root),'calibration_root':str(cal),'errors':[],'warnings':[]}
     if not idx.is_file(): report['errors'].append(f'missing calibration index: {idx}')
@@ -54,6 +56,23 @@ def main()->int:
         s=a.stage1_root.resolve();needed=['main_timeline.csv','stage1_manifest.json']
         absent=[x for x in needed if not (s/x).is_file()];report['stage1']={'root':str(s),'missing':absent}
         if absent: report['errors'].append('stage1 output incomplete: '+','.join(absent))
+    # 🔒 GUARD (ТЗ п.11 / D8): хеши целостности сверяются до запуска, а не только
+    # вычисляются. Проверка выполняется лишь когда эталон передан явно, чтобы
+    # первый прогон мог зафиксировать базовые значения.
+    if idx.is_file():
+        sys.path.insert(0, str(root))
+        from app6.stage2.integrity import compute_code_hash, compute_dataset_hash, verify_integrity_hashes
+        actual={'dataset_hash':compute_dataset_hash(idx),'code_hash':compute_code_hash(root)}
+        expected={k:v for k,v in (('dataset_hash',a.expected_dataset_hash),('code_hash',a.expected_code_hash)) if v}
+        integrity={'schema':'deeputin-integrity-guard-v1.0','actual':actual,'checked':bool(expected)}
+        if expected:
+            result=verify_integrity_hashes(expected,actual,required_keys=tuple(expected),strict=False)
+            integrity.update(result)
+            if result['status']!='ok':
+                report['errors'].append(f"integrity check failed: mismatched={result['mismatched']} missing={result['missing']}")
+        else:
+            integrity['note']='эталонные хеши не переданы; значения зафиксированы для последующих прогонов'
+        report['integrity']=integrity
     report['status']='ready' if not report['errors'] else 'blocked'
     text=json.dumps(report,ensure_ascii=False,indent=2);print(text)
     if a.output:a.output.write_text(text+'\n',encoding='utf-8')
