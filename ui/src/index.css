@@ -120,3 +120,35 @@ select {
     transparent 3px
   );
 }
+
+/* Accessibility: visible keyboard focus ring everywhere (WCAG 2.4.7).
+   Mouse/touch users don't see it (`:focus-visible`), keyboard users always do. */
+:focus-visible {
+  outline: 2px solid var(--color-info);
+  outline-offset: 2px;
+}
+
+/* Respect prefers-reduced-motion: disable decorative pulsing/blinking for
+   users with vestibular disorders or motion sensitivity (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  .pulse-critical, .blink-critical, .scanlines {
+    animation: none !important;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Small-viewport notice: this timeline is a dense forensic workstation
+   (Adobe-Premiere-style multi-track view) and is not designed to be usable
+   below ~1024px. Rather than silently render a broken layout, we show an
+   explicit, honest notice instead of the app shell. */
+.small-viewport-notice {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .app-shell { display: none !important; }
+  .small-viewport-notice { display: flex; }
+}

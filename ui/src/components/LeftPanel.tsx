@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
 import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS, REF, PHOTOS, EVENT_PINS } from "../data";
 import Icon from "./Icon";
-import { t } from "../i18n";
+import { t, useLanguage } from "../i18n";
+
 
 interface Props {
   photo: Photo | null;
@@ -12,13 +14,19 @@ interface Props {
 
 type Tab = "PHOTO" | "GEOMETRY" | "SKIN" | "VERDICT" | "CONTEXT";
 
-const TABS: { id: Tab; label: string; iconName: "image" | "triangle" | "circle-dot" | "scale" | "crosshair" }[] = [
-  { id: "PHOTO", label: t.tabPhoto, iconName: "image" },
-  { id: "GEOMETRY", label: t.tabGeometry, iconName: "triangle" },
-  { id: "SKIN", label: t.tabSkin, iconName: "circle-dot" },
-  { id: "VERDICT", label: t.tabVerdict, iconName: "scale" },
-  { id: "CONTEXT", label: t.tabContext, iconName: "crosshair" },
-];
+/** 🔧 Строится внутри рендера, а не на уровне модуля: `t.xxx` — живой Proxy
+ * (см. `i18n.ts`), и константа уровня модуля "заморозила" бы перевод на
+ * момент первого импорта, не реагируя на переключение языка. */
+function buildTabs(): { id: Tab; label: string; iconName: "image" | "triangle" | "circle-dot" | "scale" | "crosshair" }[] {
+  return [
+    { id: "PHOTO", label: t.tabPhoto, iconName: "image" },
+    { id: "GEOMETRY", label: t.tabGeometry, iconName: "triangle" },
+    { id: "SKIN", label: t.tabSkin, iconName: "circle-dot" },
+    { id: "VERDICT", label: t.tabVerdict, iconName: "scale" },
+    { id: "CONTEXT", label: t.tabContext, iconName: "crosshair" },
+  ];
+}
+
 
 const GEOM_ZONES = [
   "orbit_depth", "orbit_fossa", "chin_projection", "gonial_angle",
@@ -32,13 +40,16 @@ const GEOM_ZONES = [
 export default function LeftPanel({ photo, onClose, onHide, onExpandMesh }: Props) {
   const [tab, setTab] = useState<Tab>("PHOTO");
   const [meshOn, setMeshOn] = useState(true);
+  const [language] = useLanguage();
+  const tabs = useMemo(buildTabs, [language]);
+
 
   if (!photo) {
     return (
       <div className="w-12 h-full bg-surface border-r border-border flex flex-col items-center pt-2 gap-2">
-        {TABS.map(t => (
-          <div key={t.id} className="w-8 h-8 flex items-center justify-center text-text-muted">
-            <Icon name={t.iconName} size={14} />
+        {tabs.map(tabDef => (
+          <div key={tabDef.id} className="w-8 h-8 flex items-center justify-center text-text-muted">
+            <Icon name={tabDef.iconName} size={14} />
           </div>
         ))}
       </div>
@@ -55,18 +66,19 @@ export default function LeftPanel({ photo, onClose, onHide, onExpandMesh }: Prop
           <div className="font-display text-sm font-semibold tracking-forensic" style={{ color }}>{photo.id}</div>
           <div className="font-mono text-[10px] text-text-muted">{photo.date} · {photo.bucket}</div>
         </div>
-        <button onClick={onClose} className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
+        <button onClick={onClose} aria-label="Закрыть" className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
       </div>
 
       <div className="flex border-b border-border bg-surface-2">
-        {TABS.map(t => (
-          <button key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex-1 px-1 py-2 font-mono text-[9px] tracking-forensic border-b-2 transition-colors flex flex-col items-center gap-0.5 ${tab === t.id ? "border-info text-text" : "border-transparent text-text-muted hover:text-text"}`}>
-            <Icon name={t.iconName} size={11} />
-            <span>{t.label}</span>
+        {tabs.map(tabDef => (
+          <button key={tabDef.id}
+            onClick={() => setTab(tabDef.id)}
+            className={`flex-1 px-1 py-2 font-mono text-[9px] tracking-forensic border-b-2 transition-colors flex flex-col items-center gap-0.5 ${tab === tabDef.id ? "border-info text-text" : "border-transparent text-text-muted hover:text-text"}`}>
+            <Icon name={tabDef.iconName} size={11} />
+            <span>{tabDef.label}</span>
           </button>
         ))}
+
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
