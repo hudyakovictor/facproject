@@ -185,6 +185,25 @@ export async function fetchCalibrationHealth(): Promise<CalibrationHealth> {
   return apiJson<CalibrationHealth>("/api/v1/calibration/health");
 }
 
+export interface CalibrationCandidate {
+  dataset_id: string; record_id: string; pose_bin: string;
+  yaw: number; pitch: number; roll: number; angle_distance: number; source_filename: string;
+}
+export interface CalibrationMatch {
+  schema: string; not_a_verdict: boolean;
+  query: { yaw: number; pitch: number; roll: number; pose_bin: string | null };
+  candidate_count: number;
+  candidates: CalibrationCandidate[];
+  note: string;
+}
+
+/** Подобрать калибровочные кадры для фото по ID (использует уже известные
+ * углы записи) — раздел ТЗ "к парам основного анализа подбирается пара из
+ * калибровочного датасета" для вычитания углового шума. */
+export async function fetchCalibrationMatchForPhoto(photoId: string): Promise<CalibrationMatch> {
+  return apiJson<CalibrationMatch>(`/api/v1/calibration/match?photo_id=${encodeURIComponent(photoId)}`);
+}
+
 export interface SystemHealth {
   schema: string; python_version: string; platform: string;
   dependencies: Record<string, { available: boolean; version: string | null }>;

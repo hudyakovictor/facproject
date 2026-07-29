@@ -101,3 +101,80 @@ def load_calibration_health(calibration_root: Path) -> dict[str, Any]:
         "recommendations": recommendations,
         "source": str(index_path),
     }
+
+
+CALIBRATION_MATCH_SCHEMA = "deeputin-api-calibration-match-v1.0"
+
+
+def find_matching_calibration_frames(
+    calibration_root: Path,
+    *,
+    yaw: float,
+    pitch: float,
+    roll: float,
+    pose_bin: str | None = None,
+    limit: int = 5,
+) -> dict[str, Any]:
+    """🔍 QUERY → Подобрать калибровочные кадры, ближайшие по углам к анализируемому фото.
+
+    Реализует раздел ТЗ "к парам основного анализа подбирается пара из
+    калибровочного датасета... по данным калибровочной пары различия будут
+    указывать на шум из-за разницы в углах наклона головы": возвращает
+    ранжированный список кандидатов по евклидову расстоянию в пространстве
+    (yaw, pitch, roll), с обязательным фильтром по pose_bin, если он задан
+    (сравнение поперёк ракурсов запрещено политикой проекта — см.
+    `app6/AGENTS.md`, "Девять ракурсов").
+
+    Использует ТОЛЬКО метаданные `all_calibration_index.csv` (углы, ракурс,
+    идентификатор персоны) — не landmark-координаты, которые признаны
+    невыровненными в `calibration_dataset/person_*/frame_*/` (см.
+    `app6/stage2/loaders.load_calibration`). Список кандидатов — это только
+    указание, ГДЕ искать; реальное сравнение всё равно требует Stage 1
+    переизвлечения из `calibration_dataset/photos/`.
+
+    Raises:
+        FileNotFoundError: если индекс калибровки недоступен.
+    """
+    index_path = calibration_root / "all_calibration_index.csv"
+    if not index_path.is_file():
+        raise FileNotFoundError(f"calibration index not found: {index_path}")
+    with index_path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    candidates = [r for r in rows if pose_bin is None or r.get("pose_bin") == pose_bin]
+
+    def _distance(row: dict[str, str]) -> float:
+        try:
+            dy = float(row["yaw"]) - yaw
+            dp = float(row["pitch"]) - pitch
+            dr = float(row["roll"]) - roll
+        except (KeyError, ValueError):
+            return float("inf")
+        return (dy * dy + dp * dp + dr * dr) ** 0.5
+
+    ranked = sorted(candidates, key=_distance)
+    top = ranked[:limit]
+
+    return {
+        "schema": CALIBRATION_MATCH_SCHEMA,
+        "not_a_verdict": True,
+        "query": {"yaw": yaw, "pitch": pitch, "roll": roll, "pose_bin": pose_bin},
+        "candidate_count": len(candidates),
+        "candidates": [
+            {
+                "dataset_id": r.get("dataset_id"),
+                "record_id": r.get("record_id"),
+                "pose_bin": r.get("pose_bin"),
+                "yaw": float(r["yaw"]), "pitch": float(r["pitch"]), "roll": float(r["roll"]),
+                "angle_distance": round(_distance(r), 4),
+                "source_filename": r.get("source_filename"),
+            }
+            for r in top
+        ],
+        "note": (
+            "Кандидаты ранжированы только по углам позы из метаданных калибровки. "
+            "Реальное численное сравнение требует переизвлечения через Stage 1 из "
+            "calibration_dataset/photos/ — см. app6/stage2/loaders.load_calibration."
+        ),
+    }
+

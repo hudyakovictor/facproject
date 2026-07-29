@@ -121,6 +121,37 @@ def test_calibration_health_reflects_real_dataset(client: TestClient) -> None:
     }
 
 
+def test_calibration_match_by_explicit_angles(client: TestClient) -> None:
+    response = client.get("/api/v1/calibration/match", params={"yaw": 0.0, "pitch": 0.0, "roll": 0.0, "pose_bin": "frontal"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["candidate_count"] > 0
+    assert len(body["candidates"]) <= 5
+    assert all(c["pose_bin"] == "frontal" for c in body["candidates"])
+    # Results must be ranked by ascending angle distance.
+    distances = [c["angle_distance"] for c in body["candidates"]]
+    assert distances == sorted(distances)
+
+
+def test_calibration_match_by_photo_id(client: TestClient) -> None:
+    photos = client.get("/api/v1/photos").json()["photos"]
+    photo_id = photos[0]["id"]
+    response = client.get("/api/v1/calibration/match", params={"photo_id": photo_id})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["candidate_count"] > 0
+
+
+def test_calibration_match_requires_angles_or_photo_id(client: TestClient) -> None:
+    response = client.get("/api/v1/calibration/match")
+    assert response.status_code == 400
+
+
+def test_calibration_match_unknown_photo_404(client: TestClient) -> None:
+    response = client.get("/api/v1/calibration/match", params={"photo_id": "NOPE"})
+    assert response.status_code == 404
+
+
 def test_system_health_reports_missing_weights_honestly(client: TestClient) -> None:
     response = client.get("/api/v1/system/health")
     body = response.json()

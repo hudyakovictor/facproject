@@ -4,11 +4,12 @@ import type { Photo } from "../data";
 import Icon from "./Icon";
 import { t } from "../i18n";
 import {
-  comparePhotos, comparePhotosFullMesh, fetchPhotoDetail, fetchSettings,
-  type CompareResult, type FullMeshCompareResult, type AppSettings,
+  comparePhotos, comparePhotosFullMesh, fetchCalibrationMatchForPhoto, fetchPhotoDetail, fetchSettings,
+  type CalibrationMatch, type CompareResult, type FullMeshCompareResult, type AppSettings,
 } from "../api";
 import MeshViewer from "./MeshViewer";
 import SettingsModal from "./SettingsModal";
+
 
 interface Props {
   photos: Photo[];
@@ -30,6 +31,9 @@ export default function PairCompareView({ photos }: Props) {
   const [useFullMesh, setUseFullMesh] = useState(false);
   const [fullMeshUnavailable, setFullMeshUnavailable] = useState(false);
   const [morphT, setMorphT] = useState(0);
+  const [calibrationA, setCalibrationA] = useState<CalibrationMatch | null>(null);
+  const [calibrationB, setCalibrationB] = useState<CalibrationMatch | null>(null);
+
 
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -45,6 +49,8 @@ export default function PairCompareView({ photos }: Props) {
     setResult(null);
     setFullMeshResult(null);
     setMorphT(0);
+    setCalibrationA(null);
+    setCalibrationB(null);
     try {
 
       const compareResult = await comparePhotos(photoAId, photoBId);
@@ -58,11 +64,14 @@ export default function PairCompareView({ photos }: Props) {
           setFullMeshUnavailable(true);
         }
       }
+      fetchCalibrationMatchForPhoto(photoAId).then(setCalibrationA).catch(() => undefined);
+      fetchCalibrationMatchForPhoto(photoBId).then(setCalibrationB).catch(() => undefined);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
       setErrorMessage(err instanceof Error ? err.message : String(err));
     }
+
   };
 
   const stops = settings ? {
@@ -203,6 +212,24 @@ export default function PairCompareView({ photos }: Props) {
               not_a_verdict: {String(result.not_a_verdict)}
               {fullMeshResult && <div className="mt-1">{fullMeshResult.note}</div>}
             </div>
+            {(calibrationA || calibrationB) && (
+              <div className="bg-surface border border-border p-3">
+                <div className="font-mono text-[9px] tracking-forensic text-text-muted mb-2">{t.calibrationMatchTitle}</div>
+                {[["A", calibrationA], ["B", calibrationB]].map(([label, match]) => (
+                  match && (match as CalibrationMatch).candidates.length > 0 ? (
+                    <div key={label as string} className="font-mono text-[10px] mb-2">
+                      <div className="text-text-muted">{t.calibrationMatchFor} {label as string}:</div>
+                      {(match as CalibrationMatch).candidates.slice(0, 2).map(c => (
+                        <div key={c.record_id} className="flex justify-between pl-2">
+                          <span>{c.dataset_id}/{c.record_id}</span>
+                          <span className="text-text-faint">Δ{c.angle_distance.toFixed(2)}°</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+                ))}
+              </div>
+            )}
           </aside>
         </div>
       )}

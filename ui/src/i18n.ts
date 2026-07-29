@@ -205,6 +205,8 @@ const ru = {
   fullMeshToggle: "ПОЛНЫЙ BFM-МЕШ (35 709 вершин)",
   fullMeshUnavailable: "Полный BFM-меш недоступен на backend; показан landmark-уровень (134 точки)",
   morphSliderLabel: "Морфинг A → B",
+  calibrationMatchTitle: "БЛИЖАЙШИЕ КАЛИБРОВОЧНЫЕ КАДРЫ (по углам позы)",
+  calibrationMatchFor: "для",
   // Era compare view
   eraColumn: "фото",
   anomCount: "аномалий",
@@ -552,6 +554,8 @@ const en: Dict = {
   fullMeshToggle: "FULL BFM MESH (35,709 vertices)",
   fullMeshUnavailable: "Full BFM mesh unavailable on backend; showing landmark-level (134 points)",
   morphSliderLabel: "Morph A → B",
+  calibrationMatchTitle: "NEAREST CALIBRATION FRAMES (by pose angle)",
+  calibrationMatchFor: "for",
   eraColumn: "photos",
   anomCount: "anomalies",
   clusterView: "CLUSTER VIEW",
