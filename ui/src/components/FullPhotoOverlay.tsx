@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { modalProps, useModal } from "../useModal";
+import { useReducedMotion } from "../useReducedMotion";
+import { fmt } from "../format";
 import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS } from "../data";
-import Icon from "./Icon";
+import Icon, { type IconName } from "./Icon";
 import { t } from "../i18n";
 import { fetchPhotoDetail, fetchPhotoFullMesh, type PhotoDetail, type FullMesh } from "../api";
-import MeshViewer from "./MeshViewer";
+import MeshViewer from "./LazyMeshViewer";
 
 interface Props {
   photo: Photo;
@@ -19,7 +22,12 @@ interface Props {
 //      backend недоступен вовсе.
 // Тихая подмена данных не допускается — каждый уровень явно виден в заголовке.
 export default function FullPhotoOverlay({ photo, onClose }: Props) {
+  const [meshDegraded, setMeshDegraded] = useState(false);
+  const dialogRef = useModal<HTMLDivElement>(onClose);
   const [meshOn, setMeshOn] = useState(true);
+  // WCAG 2.3.3: SVG SMIL не подчиняется CSS `animation:none`, поэтому
+  // пульсацию отключаем на уровне рендера.
+  const reducedMotion = useReducedMotion();
   const [heatmapOn, setHeatmapOn] = useState(true);
   const [landmarksOn, setLandmarksOn] = useState(true);
   const [detail, setDetail] = useState<PhotoDetail | null>(null);
@@ -37,16 +45,31 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
         setDetail(d);
         setDetailStatus("ready");
         if (d.full_mesh_available) {
-          fetchPhotoFullMesh(photo.id).then(m => { if (!cancelled) setFullMesh(m); }).catch(() => undefined);
+          // Полный меш необязателен: при неудаче остаёмся на landmarks,
+          // но факт деградации фиксируем — иначе «упрощённая геометрия»
+          // неотличима от «настоящей».
+          fetchPhotoFullMesh(photo.id)
+            .then(m => { if (!cancelled) setFullMesh(m); })
+            .catch(() => { if (!cancelled) setMeshDegraded(true); });
         }
       })
       .catch(() => { if (!cancelled) setDetailStatus("unavailable"); });
     return () => { cancelled = true; };
   }, [photo.id]);
 
-  // 21 zones with z-scores derived from photo
+  /** P1.6 (DEV_FIX_TZ 2.6): зоны без реального z-score из API больше НЕ
+   * получают выдуманные значения (0.2…0.8), выдаваемые за анализ.
+   *
+   * `z: null` означает «нет данных»: такая зона рисуется нейтрально-серой,
+   * не участвует в ранжировании по |z| и явно помечается в таблице. Это
+   * прямое требование `app6/AGENTS.md`: отсутствующие данные не заменяются
+   * числом ради красивой картинки, а `inconclusive` не маскируется под
+   * измерение. Как только backend начнёт отдавать per-zone z-score, здесь
+   * подставляется поле ответа, а не константа. */
+  interface ZoneMark { name: string; cx: number; cy: number; r: number; z: number | null; }
 
-  const zones = [
+  const zones: ZoneMark[] = [
+    // Зоны, для которых есть измеренные z-score в записи фото.
     { name: "orbit_depth", cx: 22, cy: 32, r: 4, z: photo.zOrbitDepth },
     { name: "orbit_depth_r", cx: 38, cy: 32, r: 4, z: photo.zOrbitDepth * 0.9 },
     { name: "chin_projection", cx: 30, cy: 56, r: 5, z: photo.zChinProj },
@@ -55,22 +78,26 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
     { name: "jaw_width", cx: 30, cy: 52, r: 4, z: photo.zJawWidth },
     { name: "zygomatic_l", cx: 18, cy: 38, r: 3.5, z: photo.zCheek },
     { name: "zygomatic_r", cx: 42, cy: 38, r: 3.5, z: photo.zCheek },
-    { name: "nasal_bridge", cx: 30, cy: 35, r: 2.5, z: 0.3 },
-    { name: "nasal_root", cx: 30, cy: 30, r: 2, z: 0.5 },
-    { name: "frontal_slope", cx: 30, cy: 22, r: 5, z: 0.4 },
-    { name: "supraorbital", cx: 30, cy: 27, r: 3.5, z: 0.8 },
-    { name: "temporal_l", cx: 15, cy: 28, r: 3, z: 0.6 },
-    { name: "temporal_r", cx: 45, cy: 28, r: 3, z: 0.6 },
-    { name: "maxillary", cx: 30, cy: 44, r: 3, z: 0.7 },
-    { name: "philtrum", cx: 30, cy: 47, r: 1.5, z: 0.2 },
     { name: "ramus_l", cx: 17, cy: 44, r: 2.5, z: photo.zJawWidth * 0.6 },
     { name: "ramus_r", cx: 43, cy: 44, r: 2.5, z: photo.zJawWidth * 0.6 },
-    { name: "interorbital", cx: 30, cy: 33, r: 2, z: 0.4 },
-    { name: "occipital", cx: 30, cy: 18, r: 4, z: 0.3 },
-    { name: "parietal", cx: 30, cy: 16, r: 5, z: 0.3 },
+    // Зоны БЕЗ измерения в текущем контракте API — честно помечены как «нет данных».
+    { name: "nasal_bridge", cx: 30, cy: 35, r: 2.5, z: null },
+    { name: "nasal_root", cx: 30, cy: 30, r: 2, z: null },
+    { name: "frontal_slope", cx: 30, cy: 22, r: 5, z: null },
+    { name: "supraorbital", cx: 30, cy: 27, r: 3.5, z: null },
+    { name: "temporal_l", cx: 15, cy: 28, r: 3, z: null },
+    { name: "temporal_r", cx: 45, cy: 28, r: 3, z: null },
+    { name: "maxillary", cx: 30, cy: 44, r: 3, z: null },
+    { name: "philtrum", cx: 30, cy: 47, r: 1.5, z: null },
+    { name: "interorbital", cx: 30, cy: 33, r: 2, z: null },
+    { name: "occipital", cx: 30, cy: 18, r: 4, z: null },
+    { name: "parietal", cx: 30, cy: 16, r: 5, z: null },
   ];
 
-  const zoneColor = (z: number) => {
+  const NO_DATA_COLOR = "#4a4a52";
+
+  const zoneColor = (z: number | null) => {
+    if (z === null) return NO_DATA_COLOR;
     const az = Math.abs(z);
     if (az > 3) return "#ff3b30";
     if (az > 2) return "#fdab43";
@@ -95,21 +122,28 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
   const hasFullMesh = hasRealMesh && !!fullMesh;
 
   return (
-    <div data-no-pan className="fixed inset-0 z-[100] bg-black/95 flex items-stretch animate-[fadeIn_0.18s_ease-out]">
+    <div ref={dialogRef} data-no-pan {...modalProps(`${t.fullPhotoLabel}: ${photo.id}`)}
+      className="fixed inset-0 z-[100] bg-black/95 flex items-stretch animate-[fadeIn_0.18s_ease-out] outline-none">
       <div className="flex-1 flex items-center justify-center p-8 relative">
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
           <div>
             <div className="font-display text-lg font-semibold tracking-forensic" style={{ color }}>{photo.id}</div>
             <div className="font-mono text-[11px] text-text-muted">
-              {new Date(photo.t).toLocaleDateString("ru-RU")} · {photo.bucket} · качество {photo.quality.toFixed(2)} · {t.fullMeshTitle}
+              {new Date(photo.t).toLocaleDateString("ru-RU")} · {photo.bucket} · качество {fmt(photo.quality, 2)} · {t.fullMeshTitle}
               {hasFullMesh ? " · real BFM mesh (35 709 vertices)" : hasRealMesh ? " · real landmarks" : detailStatus === "loading" ? " · loading…" : " · illustrative fallback"}
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {meshDegraded && (
+              <span role="status" title={t.meshDegradedHint}
+                className="px-1.5 py-0.5 border border-warning/50 text-warning font-mono text-[8px] tracking-forensic">
+                {t.meshDegraded}
+              </span>
+            )}
             <ToolBtn active={meshOn} onClick={() => setMeshOn(!meshOn)} icon="layers" label={t.meshLabel} />
             <ToolBtn active={heatmapOn} onClick={() => setHeatmapOn(!heatmapOn)} icon="circle-dot" label={t.heatmapLabel} />
             <ToolBtn active={landmarksOn} onClick={() => setLandmarksOn(!landmarksOn)} icon="crosshair" label={t.landmarksLabel} />
-            <button onClick={onClose} aria-label="Закрыть" className="ml-4 w-8 h-8 flex items-center justify-center bg-surface-2 border border-border hover:bg-critical/30">
+            <button onClick={onClose} aria-label={t.closeLabel} className="ml-4 w-8 h-8 flex items-center justify-center bg-surface-2 border border-border hover:bg-critical/30">
               <Icon name="x" size={16} />
             </button>
           </div>
@@ -154,12 +188,22 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
 
                 {heatmapOn && zones.map((z, i) => (
                   <g key={i}>
-                    <circle cx={z.cx} cy={z.cy} r={z.r} fill={zoneColor(z.z)} fillOpacity={0.18 + Math.min(0.4, Math.abs(z.z) * 0.12)} stroke={zoneColor(z.z)} strokeWidth="0.2" />
-                    {Math.abs(z.z) > 2 && (
-                      <circle cx={z.cx} cy={z.cy} r={z.r + 1} fill="none" stroke={zoneColor(z.z)} strokeWidth="0.3" opacity="0.6">
-                        <animate attributeName="r" values={`${z.r};${z.r + 2.5};${z.r}`} dur="2s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
-                      </circle>
+                    <circle cx={z.cx} cy={z.cy} r={z.r} fill={zoneColor(z.z)}
+                      fillOpacity={z.z === null ? 0.08 : 0.18 + Math.min(0.4, Math.abs(z.z) * 0.12)}
+                      stroke={zoneColor(z.z)} strokeWidth="0.2"
+                      strokeDasharray={z.z === null ? "0.6 0.6" : undefined}>
+                      <title>{z.z === null ? `${z.name}: ${t.zoneNoData}` : `${z.name}: z=${z.z.toFixed(2)}`}</title>
+                    </circle>
+                    {z.z !== null && Math.abs(z.z) > 2 && (
+                      reducedMotion ? (
+                        <circle cx={z.cx} cy={z.cy} r={z.r + 1.5} fill="none"
+                          stroke={zoneColor(z.z)} strokeWidth="0.5" opacity="0.8" />
+                      ) : (
+                        <circle cx={z.cx} cy={z.cy} r={z.r + 1} fill="none" stroke={zoneColor(z.z)} strokeWidth="0.3" opacity="0.6">
+                          <animate attributeName="r" values={`${z.r};${z.r + 2.5};${z.r}`} dur="2s" repeatCount="indefinite" />
+                          <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
+                        </circle>
+                      )
                     )}
                   </g>
                 ))}
@@ -173,9 +217,9 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
 
           {/* corner annotations */}
           <div className="absolute top-2 left-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5">{photo.id}</div>
-          <div className="absolute top-2 right-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5">{photo.bucket} · поворот {photo.yaw.toFixed(0)}°</div>
+          <div className="absolute top-2 right-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5">{photo.bucket} · поворот {fmt(photo.yaw, 0)}°</div>
           <div className="absolute bottom-2 left-2 font-mono text-[9px] px-1.5 py-0.5 font-semibold" style={{ background: zoneColor(photo.zChinProj), color: "#000" }}>
-            подбородок z = {photo.zChinProj.toFixed(2)}
+            подбородок z = {fmt(photo.zChinProj, 2)}
           </div>
           <div className="absolute bottom-2 right-2 font-mono text-[9px] text-text-muted bg-bg/60 px-1.5 py-0.5" style={{ color: FUZZY_COLORS[photo.fuzzy] }}>
             {t.fuzzy[photo.fuzzy]}
@@ -189,6 +233,7 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
           <span className="flex items-center gap-1"><div className="w-3 h-3" style={{ background: "#e8af34" }} /> 1–2</span>
           <span className="flex items-center gap-1"><div className="w-3 h-3" style={{ background: "#fdab43" }} /> 2–3</span>
           <span className="flex items-center gap-1"><div className="w-3 h-3" style={{ background: "#ff3b30" }} /> &gt;3 ({t.zCrit})</span>
+          <span className="flex items-center gap-1"><div className="w-3 h-3 border border-dashed border-text-faint" style={{ background: NO_DATA_COLOR }} /> {t.zoneNoData}</span>
         </div>
       </div>
 
@@ -196,27 +241,40 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
       <div className="w-72 border-l border-border bg-surface overflow-y-auto p-3" data-scroll>
         <div className="font-display text-sm tracking-forensic mb-2">{t.zoneScoreboard}</div>
         <div className="space-y-0.5">
-          {zones.sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).map(z => (
+          {[...zones]
+            .sort((a, b) => {
+              // Измеренные зоны — сверху по убыванию |z|; «нет данных» — в конце.
+              if (a.z === null && b.z === null) return a.name.localeCompare(b.name);
+              if (a.z === null) return 1;
+              if (b.z === null) return -1;
+              return Math.abs(b.z) - Math.abs(a.z);
+            })
+            .map(z => (
             <div key={z.name} className="grid grid-cols-12 gap-1 px-2 py-1 font-mono text-[10px] bg-surface-2 border-l-2" style={{ borderLeftColor: zoneColor(z.z) }}>
-              <div className="col-span-7 text-text">{z.name}</div>
-              <div className="col-span-3 text-right" style={{ color: zoneColor(z.z) }}>z={z.z.toFixed(2)}</div>
-              <div className="col-span-2 text-right text-text-muted">{Math.abs(z.z) > 3 ? t.crit : Math.abs(z.z) > 2 ? t.warn : "OK"}</div>
+              <div className={`col-span-7 ${z.z === null ? "text-text-muted" : "text-text"}`}>{z.name}</div>
+              <div className="col-span-3 text-right" style={{ color: zoneColor(z.z) }}>
+                {z.z === null ? "—" : `z=${z.z.toFixed(2)}`}
+              </div>
+              <div className="col-span-2 text-right text-text-muted">
+                {z.z === null ? t.zoneNoData : Math.abs(z.z) > 3 ? t.crit : Math.abs(z.z) > 2 ? t.warn : "OK"}
+              </div>
             </div>
           ))}
+          <div className="mt-2 font-mono text-[9px] text-text-faint leading-snug">{t.zoneNoDataHint}</div>
         </div>
         <div className="mt-3 p-2 bg-surface-2 border border-border font-mono text-[10px] space-y-1">
           <div className="text-text-muted tracking-forensic mb-1">{t.verdictShort}</div>
           <div className="flex justify-between"><span>P(H0)</span><span style={{ color: HYPOTHESIS_COLORS.H0 }}>{(photo.p0 * 100).toFixed(0)}%</span></div>
           <div className="flex justify-between"><span>P(H1)</span><span style={{ color: HYPOTHESIS_COLORS.H1 }}>{(photo.p1 * 100).toFixed(0)}%</span></div>
           <div className="flex justify-between"><span>P(H2)</span><span style={{ color: HYPOTHESIS_COLORS.H2 }}>{(photo.p2 * 100).toFixed(0)}%</span></div>
-          <div className="flex justify-between pt-1 border-t border-border"><span>{t.confidence}</span><span>{photo.confidence.toFixed(2)}</span></div>
+          <div className="flex justify-between pt-1 border-t border-border"><span>{t.confidence}</span><span>{fmt(photo.confidence, 2)}</span></div>
         </div>
       </div>
     </div>
   );
 }
 
-function ToolBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: any; label: string }) {
+function ToolBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: IconName; label: string }) {
   return (
     <button onClick={onClick}
       className={`flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[10px] tracking-forensic border ${active ? "bg-info/20 border-info text-text" : "bg-surface-2 border-border text-text-muted hover:text-text"}`}>

@@ -6,15 +6,22 @@ from PIL import Image
 from types import SimpleNamespace
 import torch.nn.functional as F
 
-PYTHON = "/Users/victorkhudyakov/work/.venv/bin/python"
-TDDFA = "/Users/victorkhudyakov/work/3ddfa_v3"
-FFHQ  = "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles"
+# DEV_FIX_TZ B4/P1.14: путь к интерпретатору больше не зашит строкой —
+# дочерние процессы наследуют ТОТ ЖЕ интерпретатор, что запустил скрипт,
+# а значит и то же окружение с теми же пакетами.
+from pathlib import Path  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import FFHQ_ROOT, pushd, python_executable, tddfa_root  # noqa: E402
+
+PYTHON = python_executable()
+TDDFA = str(tddfa_root())
+FFHQ = str(FFHQ_ROOT)
 os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ── Init 3DDFA ──
-os.chdir(TDDFA); sys.path.insert(0, TDDFA)
+sys.path.insert(0, TDDFA)
 from face_box import face_box
 from model.recon import face_model
 from util.cpu_renderer import MeshRenderer_UV_cpu
@@ -22,8 +29,9 @@ from util.cpu_renderer import MeshRenderer_UV_cpu
 args = SimpleNamespace(device=device, iscrop=True, detector="retinaface",
     backbone="resnet50", ldm68=False, ldm106=False, ldm106_2d=False, ldm134=False,
     seg=False, seg_visible=False, useTex=False, extractTex=False)
-recon_model = face_model(args)
-facebox_detector = face_box(args).detector
+with pushd(TDDFA):
+    recon_model = face_model(args)
+    facebox_detector = face_box(args).detector
 
 # ── Load zones ──
 with np.load(f"{TDDFA}/atlas/texture_zones_bfm35709_v3.npz") as data:
@@ -39,7 +47,7 @@ nose_tri = np.isin(tri_main_label, [7, 10, 11])
 focus_tri = tri_focus  # (14, 70789) bool
 
 # ── Init wrinkle UNet ──
-os.chdir(FFHQ); sys.path.insert(0, FFHQ)
+sys.path.insert(0, FFHQ)
 from torchvision import transforms
 from unet import UNet
 ckpt = torch.load(f"{FFHQ}/res/cp/wrinkle_model.pth", map_location=device)

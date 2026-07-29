@@ -197,19 +197,78 @@ def test_upload_accepts_valid_filename_and_dedups(client: TestClient) -> None:
 
 
 
-def test_extract_job_reports_blocked_without_weights(client: TestClient, tmp_path: Path) -> None:
+def test_extract_runner_blocks_when_model_weights_absent(tmp_path: Path) -> None:
+    """P1.9 (DEV_FIX_TZ 2.9): тест проверяет ПОВЕДЕНИЕ, а не окружение.
+
+    Прежняя версия ходила через HTTP и ожидала `blocked`, неявно полагаясь на
+    отсутствие весов 3DDFA_V3 у разработчика. На машине, где все пять весов
+    присутствуют, задание корректно уходило в `running`, и тест падал —
+    сигнализируя о состоянии окружения, а не о дефекте кода.
+
+    Здесь `project_root` — заведомо пустой tmp-каталог без `assets/`, поэтому
+    результат детерминирован в любом окружении: extract обязан отказаться
+    работать и назвать причину.
+    """
+    from app6.api.jobs import Job, _JobBlocked, make_extract_runner
+
+    input_dir = tmp_path / "photos"
+    input_dir.mkdir()
+    (input_dir / "1999_08_09.jpg").write_bytes(b"not-a-real-jpeg-but-a-listed-input")
+
+    runner = make_extract_runner(
+        input_dir=input_dir,
+        output_dir=tmp_path / "out",
+        project_root=tmp_path / "empty_project_root",
+    )
+    with pytest.raises(_JobBlocked) as excinfo:
+        runner(Job(id="test", kind="extract"))
+    assert "веса модели" in str(excinfo.value) or "Python-пакеты" in str(excinfo.value)
+
+
+def test_extract_runner_blocks_on_empty_input_directory(tmp_path: Path) -> None:
+    """P3.14 (DEV_FIX_TZ): пустой вход — `blocked`, а не «успешно 0 фото».
+
+    Проверяется только в окружении, где веса присутствуют: иначе сработает
+    более ранний гейт по весам, и тест ничего не докажет.
+    """
+    from app6.api.jobs import Job, _JobBlocked, _check_stage1_dependencies, make_extract_runner
+
+    project_root = Path(__file__).resolve().parents[3]
+    required = ["face_model.npy", "net_recon.pth", "large_base_net.pth",
+                "retinaface_resnet50_2020-07-20_old_torch.pth", "similarity_Lm3D_all.mat"]
+    assets = project_root / "assets"
+    if _check_stage1_dependencies() or any(not (assets / w).is_file() for w in required):
+        pytest.skip("веса/зависимости Stage 1 отсутствуют — сработает гейт по весам, не по пустому входу")
+
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    runner = make_extract_runner(input_dir=empty_dir, output_dir=tmp_path / "out",
+                                project_root=project_root)
+    with pytest.raises(_JobBlocked) as excinfo:
+        runner(Job(id="test", kind="extract"))
+    assert "нет входных изображений" in str(excinfo.value)
+
+
+def test_extract_job_via_api_reaches_terminal_status(client: TestClient, tmp_path: Path) -> None:
+    """Контракт HTTP-слоя: задание обязано дойти до терминального статуса и,
+    если оно не завершилось успешно, объяснить причину. Конкретный исход
+    (`blocked` при отсутствии весов либо `complete`) зависит от окружения и
+    здесь намеренно не фиксируется — за это отвечают два теста выше."""
+    (tmp_path / "1999_08_09.jpg").write_bytes(b"placeholder")
     response = client.post("/api/v1/jobs", json={"kind": "extract", "input_dir": str(tmp_path)})
     assert response.status_code == 200
     job_id = response.json()["job_id"]
 
     import time
-    for _ in range(50):
+    job = client.get(f"/api/v1/jobs/{job_id}").json()
+    for _ in range(100):
         job = client.get(f"/api/v1/jobs/{job_id}").json()
-        if job["status"] in ("blocked", "failed", "complete"):
+        if job["status"] in ("blocked", "failed", "complete", "cancelled"):
             break
         time.sleep(0.05)
-    assert job["status"] == "blocked"
-    assert job["error"]
+    assert job["status"] in ("blocked", "failed", "complete", "cancelled")
+    if job["status"] in ("blocked", "failed"):
+        assert job["error"]
 
 
 def test_unknown_job_kind_rejected(client: TestClient) -> None:
@@ -285,3 +344,104 @@ def test_photo_detail_reports_full_mesh_availability(client: TestClient) -> None
     response = client.get(f"/api/v1/photos/{photos[0]['id']}")
     assert "full_mesh_available" in response.json()
 
+
+
+def test_zones_catalog_served_from_atlas(client: TestClient) -> None:
+    response = client.get("/api/v1/zones/catalog")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["zone_count"] == 40
+    names = {z["name"] for z in body["zones"]}
+    assert "forehead_center" in names
+    # Веки/губы всегда исключены сегментацией — мягкие ткани, зависят от мимики.
+    lip = next(z for z in body["zones"] if z["name"] == "upper_lip")
+    assert lip["excluded_by_segmentation"] is True
+
+
+def test_skin_zones_refuses_to_fake_data_in_demo_mode(client: TestClient) -> None:
+    """В demo-режиме реального анализа кожи нет — эндпоинт обязан отказать.
+
+    Это защита от главного класса дефектов интерфейса: показать синтетическое
+    число как измерение кожи (`app6/AGENTS.md`).
+    """
+    photos = client.get("/api/v1/photos").json()["photos"]
+    response = client.get(f"/api/v1/photos/{photos[0]['id']}/skin_zones")
+    assert response.status_code == 409
+    assert "Stage 1" in response.json()["detail"]
+
+
+def test_photo_image_rejects_unknown_kind(client: TestClient) -> None:
+    response = client.get("/api/v1/photos/whatever/image?kind=../../etc/passwd")
+    assert response.status_code == 400
+    assert "unknown image kind" in response.json()["detail"]
+
+
+def test_photo_image_refuses_demo_mode_instead_of_serving_a_stub(client: TestClient) -> None:
+    """В demo-режиме исходных фото не существует — нужен явный отказ.
+
+    Заглушка вместо кадра в forensic-интерфейсе недопустима: её можно принять
+    за реальное изображение из архива.
+    """
+    response = client.get("/api/v1/photos/any/image?kind=original")
+    assert response.status_code == 409
+    assert "Stage 1" in response.json()["detail"]
+
+
+def test_compare_exposes_per_point_data_for_landmark_analysis(client: TestClient) -> None:
+    """Каждая точка отдаётся с позицией A, выровненной B и знаковым смещением.
+
+    Без `bx/by/bz` невозможен морфинг A→B на фронтенде, без `dx/dy/dz` — показ
+    направления ухода точки.
+    """
+    photos = [p for p in client.get("/api/v1/photos").json()["photos"] if p["bucket"] == "frontal"]
+    body = client.post("/api/v1/compare",
+                       json={"photo_a": photos[0]["id"], "photo_b": photos[12]["id"]}).json()
+    assert body["status"] == "measured"
+    points = body["heatmap_points"]
+    assert body["landmark_count"] == len(points)
+
+    measured = [p for p in points if p["visible"]]
+    assert measured, "нет ни одной измеренной точки"
+    sample = measured[0]
+    for key in ("x", "y", "z", "bx", "by", "bz", "dx", "dy", "dz", "residual", "zone"):
+        assert key in sample, f"поле {key} отсутствует"
+
+    # Смещение согласовано с координатами: dx == bx - x.
+    assert sample["dx"] == pytest.approx(sample["bx"] - sample["x"], abs=1e-6)
+    # Зоны — координатные, а не анатомические (контракт Stage 2).
+    assert "НЕ анатомические" in body["zone_policy"]
+
+
+def test_compare_keeps_invisible_points_as_no_data(client: TestClient) -> None:
+    """Невидимая точка сохраняется с residual=None, а не выбрасывается.
+
+    Молча удалённая точка на тепловой карте читается как «совпала».
+    """
+    photos = [p for p in client.get("/api/v1/photos").json()["photos"] if p["bucket"] == "frontal"]
+    body = client.post("/api/v1/compare",
+                       json={"photo_a": photos[0]["id"], "photo_b": photos[12]["id"]}).json()
+    for point in body["heatmap_points"]:
+        if not point["visible"]:
+            assert point["residual"] is None
+            assert point["x"] is None
+
+
+def test_settings_merge_adds_new_sections_to_a_stored_file(tmp_path: Path) -> None:
+    """Файл настроек от прежней версии не должен скрывать новые секции.
+
+    Без слияния с умолчаниями `landmark_shift` приходил бы как None, и пороги
+    классификации молча исчезали бы из интерфейса.
+    """
+    import json as _json
+
+    from app6.api.settings import DEFAULT_SETTINGS, load_settings
+
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    (runs / "api_settings.json").write_text(
+        _json.dumps({"heatmap": {"max_residual_reference": 0.99}}), encoding="utf-8")
+
+    merged = load_settings(tmp_path)
+    assert merged["heatmap"]["max_residual_reference"] == 0.99      # пользовательское сохранено
+    assert merged["landmark_shift"] == DEFAULT_SETTINGS["landmark_shift"]  # новое добавлено
+    assert "thresholds" in merged

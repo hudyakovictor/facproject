@@ -26,6 +26,33 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "stop_saturated_red": 1.0,
         "max_residual_reference": 0.12,
     },
+    # Пороги классификации смещения ОДНОЙ ключевой точки. Значения по
+    # умолчанию — стартовая точка для калибровки, а НЕ установленная норма:
+    # допустимый разброс зависит от ракурса и качества съёмки и должен
+    # уточняться по калибровочному набору (`app6/AGENTS.md`).
+    # Градиент тепловой карты с ПОСЕГМЕНТНОЙ резкостью перехода.
+    # `sharpness` задаёт характер перехода ОТ остановки к следующей:
+    # 0 — плавно (внутри допустимой изменчивости), 1 — ступенька (на границе
+    # аномалии, где важно мгновенно различить «ниже/выше порога»).
+    # Прежние `heatmap.stop_*` сохранены для обратной совместимости.
+    "gradient": {
+        "max_reference": 0.12,
+        "stops": [
+            {"position": 0.00, "color": "#1d4ed8", "sharpness": 0.00, "label": "норма"},
+            {"position": 0.25, "color": "#22d3ee", "sharpness": 0.15, "label": "верх нормы"},
+            {"position": 0.50, "color": "#facc15", "sharpness": 0.55, "label": "внимание"},
+            {"position": 0.75, "color": "#ef4444", "sharpness": 0.85, "label": "аномалия"},
+            {"position": 1.00, "color": "#7f1d1d", "sharpness": 0.00, "label": "предел"},
+        ],
+    },
+    "landmark_shift": {
+        # ≤ tolerance — в пределах внутрисубъектной изменчивости
+        "tolerance": 0.02,
+        # tolerance..suspect — заметное смещение, требует внимания
+        "suspect": 0.05,
+        # > suspect — аномальное смещение
+        "calibrated": False,   # порог подтверждён калибровкой?
+    },
     "thresholds": {
         "confidence_min": 0.0,
         "quality_min": 0.0,
@@ -50,9 +77,24 @@ def load_settings(project_root: Path) -> dict[str, Any]:
     if not path.is_file():
         return dict(DEFAULT_SETTINGS)
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        stored = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return dict(DEFAULT_SETTINGS)
+    if not isinstance(stored, dict):
+        return dict(DEFAULT_SETTINGS)
+    # 🔀 Слияние с умолчаниями: файл настроек, сохранённый прежней версией, не
+    # содержит новых секций. Без слияния такие ключи приходили бы как None, и
+    # интерфейс получал бы "настройка отсутствует" вместо значения по
+    # умолчанию — с порогами это означало бы молчаливую потерю классификации.
+    merged = dict(DEFAULT_SETTINGS)
+    for key, value in stored.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            section = dict(merged[key])
+            section.update(value)
+            merged[key] = section
+        else:
+            merged[key] = value
+    return merged
 
 
 def save_settings(project_root: Path, payload: dict[str, Any]) -> dict[str, Any]:

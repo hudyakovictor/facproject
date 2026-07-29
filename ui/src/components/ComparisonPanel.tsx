@@ -1,4 +1,6 @@
 import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS } from "../data";
+import { useModal } from "../useModal";
+import { useThresholds } from "../settings";
 import Icon from "./Icon";
 import { t } from "../i18n";
 
@@ -14,10 +16,14 @@ interface Props {
   activeSide: "A" | "B";
 }
 
+/** P3.12 (DEV_FIX_TZ): корректная медиана. Для чётной длины берётся среднее
+ * двух центральных значений, а не нижнее из них — иначе сравнение диапазонов
+ * A/B систематически смещалось вниз на выборках чётного размера. */
 function median(arr: number[]) {
   if (!arr.length) return 0;
   const s = [...arr].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid];
 }
 
 function summary(range: RangeData) {
@@ -51,12 +57,26 @@ function mode<T extends string>(arr: T[]): T {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0] as T;
 }
 
-const POLICY_DELTA: Record<string, number> = {
-  bone: 0.018, orbit: 0.018, chin: 0.018, jaw: 0.018, cheek: 0.018, sym: 0.018,
-  sil: 0.04, spec: 0.04, lbp: 0.04, fra: 0.04, wri: 0.04, sub: 0.04,
-};
+/** Числовые метрики сводки диапазона. Явный union вместо `Record<string, …>`
+ * + `as any` (DEV_FIX_TZ P2.1/1.10): опечатка в ключе метрики теперь ошибка
+ * компиляции, а не `undefined` в таблице сравнения. */
+type MetricKey = "bone" | "orbit" | "chin" | "jaw" | "cheek" | "sym"
+  | "sil" | "spec" | "lbp" | "fra" | "wri" | "sub";
+
+/** Геометрические метрики берут лимит `geometry_zone_delta_limit`,
+ * текстурные — `texture_zone_delta_limit`.
+ *
+ * 🔧 Раньше здесь стоял `POLICY_DELTA` с зашитыми `0.018`/`0.04` — буквально
+ * копия дефолтов из `app6/api/settings.DEFAULT_SETTINGS`. Пользователь
+ * двигал ползунок в настройках, значение сохранялось на диск, а сравнение
+ * продолжало считать по константе: интерфейс заявлял управление, которого
+ * не было. */
+const TEXTURE_METRICS: ReadonlySet<MetricKey> = new Set<MetricKey>(
+  ["sil", "spec", "lbp", "fra", "wri", "sub"]);
 
 export default function ComparisonPanel({ rangeA, rangeB, onClose, onSetSide, activeSide }: Props) {
+  const dialogRef = useModal<HTMLDivElement>(onClose);
+  const thresholds = useThresholds();
   const a = summary(rangeA);
   const b = rangeB ? summary(rangeB) : null;
 
@@ -75,10 +95,14 @@ export default function ComparisonPanel({ rangeA, rangeB, onClose, onSetSide, ac
     { k: "fra", label: t.trackFrangi },
     { k: "wri", label: t.trackWrinkle },
     { k: "sub", label: t.trackSubsurface },
-  ] as const;
+  ] satisfies { k: MetricKey; label: string }[];
 
   return (
-    <div data-no-pan className="absolute left-0 right-0 bottom-0 z-40 bg-surface border-t-2 border-info shadow-2xl"
+    /* Не `aria-modal`: панель занимает нижнюю треть, фон остаётся рабочим —
+       объявлять её модальной означало бы соврать screen reader'у. Region с
+       именем + закрытие по Escape (WCAG 2.1.2, 1.3.1). */
+    <div ref={dialogRef} data-no-pan role="region" aria-label={t.comparisonMode} tabIndex={-1}
+      className="absolute left-0 right-0 bottom-0 z-40 bg-surface border-t-2 border-info shadow-2xl outline-none"
       style={{ height: 280 }}>
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface-2">
         <div className="flex items-center gap-3">
@@ -91,7 +115,7 @@ export default function ComparisonPanel({ rangeA, rangeB, onClose, onSetSide, ac
             className={`px-2 py-1 font-mono text-[10px] tracking-forensic border ${activeSide === "A" ? "bg-info/20 border-info" : "border-border text-text-muted"}`}>{t.setA}</button>
           <button onClick={() => onSetSide("B")}
             className={`px-2 py-1 font-mono text-[10px] tracking-forensic border ${activeSide === "B" ? "bg-info/20 border-info" : "border-border text-text-muted"}`}>{t.setB}</button>
-          <button onClick={onClose} aria-label="Закрыть" className="w-7 h-7 flex items-center justify-center border border-border hover:bg-critical/30"><Icon name="x" size={14} /></button>
+          <button onClick={onClose} aria-label={t.closeLabel} className="w-7 h-7 flex items-center justify-center border border-border hover:bg-critical/30"><Icon name="x" size={14} /></button>
         </div>
       </div>
 
@@ -127,10 +151,12 @@ export default function ComparisonPanel({ rangeA, rangeB, onClose, onSetSide, ac
                 <div className="col-span-2 text-right">{t.colPolicy}</div>
               </div>
               {metrics.map(m => {
-                const va = (a as any)[m.k] as number;
-                const vb = (b as any)[m.k] as number;
+                const va = a[m.k];
+                const vb = b[m.k];
                 const delta = va - vb;
-                const limit = POLICY_DELTA[m.k];
+                const limit = TEXTURE_METRICS.has(m.k)
+                  ? thresholds.texture_zone_delta_limit
+                  : thresholds.geometry_zone_delta_limit;
                 const exceeded = Math.abs(delta) > limit;
                 return (
                   <div key={m.k} className={`grid grid-cols-12 px-2 py-0.5 font-mono text-[10px] border-t border-border ${exceeded ? "bg-critical/15" : ""}`}>
@@ -138,7 +164,7 @@ export default function ComparisonPanel({ rangeA, rangeB, onClose, onSetSide, ac
                     <div className="col-span-2 text-right">{va.toFixed(3)}</div>
                     <div className="col-span-2 text-right">{vb.toFixed(3)}</div>
                     <div className="col-span-2 text-right" style={{ color: exceeded ? "#ff3b30" : "#7a7a8a" }}>{delta >= 0 ? "+" : ""}{delta.toFixed(3)}</div>
-                    <div className="col-span-2 text-right text-text-faint">±{limit}</div>
+                    <div className="col-span-2 text-right text-text-faint">±{limit.toFixed(3)}</div>
                   </div>
                 );
               })}

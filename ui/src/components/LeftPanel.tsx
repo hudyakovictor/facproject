@@ -1,25 +1,40 @@
 import { useState, useMemo } from "react";
+import { fmt } from "../format";
 
-import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS, REF, PHOTOS, EVENT_PINS } from "../data";
+import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS, REF, EVENT_PINS } from "../data";
 import Icon from "./Icon";
 import { t, useLanguage } from "../i18n";
+import SkinZonesPanel from "./SkinZonesPanel";
+import PhotoKeysPanel from "./PhotoKeysPanel";
+import ProvenancePopup from "./ProvenancePopup";
 
 
 interface Props {
   photo: Photo | null;
+  /** Полный текущий набор кадров — источник для «соседних кадров».
+   *
+   * 🔧 Раньше `ContextTab` брал соседей из встроенного демо-набора
+   * `PHOTOS`, а не из показанных данных. В research-режиме это означало,
+   * что рядом с реальным кадром выводились ВЫДУМАННЫЕ соседи с
+   * синтетическими метриками — ровно та подмена, которую запрещает
+   * `app6/AGENTS.md`. */
+  photos: Photo[];
   onClose: () => void;
   onHide: (id: string) => void;
   onExpandMesh?: () => void;
 }
 
-type Tab = "PHOTO" | "GEOMETRY" | "SKIN" | "VERDICT" | "CONTEXT";
+type Tab = "PHOTO" | "FRAME" | "GEOMETRY" | "SKIN" | "VERDICT" | "CONTEXT";
 
 /** 🔧 Строится внутри рендера, а не на уровне модуля: `t.xxx` — живой Proxy
  * (см. `i18n.ts`), и константа уровня модуля "заморозила" бы перевод на
  * момент первого импорта, не реагируя на переключение языка. */
-function buildTabs(): { id: Tab; label: string; iconName: "image" | "triangle" | "circle-dot" | "scale" | "crosshair" }[] {
+function buildTabs(): { id: Tab; label: string; iconName: "image" | "triangle" | "circle-dot" | "scale" | "crosshair" | "layers" }[] {
   return [
     { id: "PHOTO", label: t.tabPhoto, iconName: "image" },
+    // Категории C и H карты размещения ключей: Stage 1 сохраняет 156
+    // значений на кадр, интерфейс использовал около восьми.
+    { id: "FRAME", label: t.tabFrame, iconName: "layers" },
     { id: "GEOMETRY", label: t.tabGeometry, iconName: "triangle" },
     { id: "SKIN", label: t.tabSkin, iconName: "circle-dot" },
     { id: "VERDICT", label: t.tabVerdict, iconName: "scale" },
@@ -37,9 +52,10 @@ const GEOM_ZONES = [
   "occipital_curve", "parietal_width", "symmetry_score",
 ];
 
-export default function LeftPanel({ photo, onClose, onHide, onExpandMesh }: Props) {
+export default function LeftPanel({ photo, photos, onClose, onHide, onExpandMesh }: Props) {
   const [tab, setTab] = useState<Tab>("PHOTO");
   const [meshOn, setMeshOn] = useState(true);
+  const [provenance, setProvenance] = useState(false);
   const [language] = useLanguage();
   const tabs = useMemo(buildTabs, [language]);
 
@@ -66,7 +82,7 @@ export default function LeftPanel({ photo, onClose, onHide, onExpandMesh }: Prop
           <div className="font-display text-sm font-semibold tracking-forensic" style={{ color }}>{photo.id}</div>
           <div className="font-mono text-[10px] text-text-muted">{photo.date} · {photo.bucket}</div>
         </div>
-        <button onClick={onClose} aria-label="Закрыть" className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
+        <button onClick={onClose} aria-label={t.closeLabel} className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text"><Icon name="x" size={14} /></button>
       </div>
 
       <div className="flex border-b border-border bg-surface-2">
@@ -82,17 +98,37 @@ export default function LeftPanel({ photo, onClose, onHide, onExpandMesh }: Prop
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
-        {tab === "PHOTO" && <PhotoTab photo={photo} color={color} meshOn={meshOn} setMeshOn={setMeshOn} onHide={onHide} onExpandMesh={onExpandMesh} />}
+        {tab === "PHOTO" && <PhotoTab photo={photo} color={color} meshOn={meshOn} setMeshOn={setMeshOn} onHide={onHide} onExpandMesh={onExpandMesh} onProvenance={() => setProvenance(true)} />}
+        {tab === "FRAME" && <FrameTab photo={photo} />}
         {tab === "GEOMETRY" && <GeometryTab photo={photo} />}
         {tab === "SKIN" && <SkinTab photo={photo} />}
         {tab === "VERDICT" && <VerdictTab photo={photo} color={color} fuzzyColor={fuzzyColor} />}
-        {tab === "CONTEXT" && <ContextTab photo={photo} />}
+        {tab === "CONTEXT" && <ContextTab photo={photo} photos={photos} />}
       </div>
+
+      {provenance && <ProvenancePopup photoId={photo.id} onClose={() => setProvenance(false)} />}
     </div>
   );
 }
 
-function PhotoTab({ photo, color, meshOn, setMeshOn, onHide, onExpandMesh }: { photo: Photo; color: string; meshOn: boolean; setMeshOn: (b: boolean) => void; onHide: (id: string) => void; onExpandMesh?: () => void }) {
+/** Вкладка «Кадр» — категории C и H карты размещения ключей.
+ *
+ * Stage 1 сохраняет на каждый кадр параметры резкости и шума
+ * (`quality_inputs`), доли площади восьми семантических каналов маски,
+ * покрытие и достоверность UV-развёртки, ошибку репроекции и карту
+ * файлов артефактов — 156 листовых значений. Интерфейс показывал около
+ * восьми, а два из показанных были синтетическими.
+ */
+function FrameTab({ photo }: { photo: Photo }) {
+  return (
+    <div className="space-y-2">
+      <div className="font-mono text-[9px] text-text-muted tracking-forensic">{t.tabFrame}</div>
+      <PhotoKeysPanel photoId={photo.id} only={["C", "H", "D"]} />
+    </div>
+  );
+}
+
+function PhotoTab({ photo, color, meshOn, setMeshOn, onHide, onExpandMesh, onProvenance }: { photo: Photo; color: string; meshOn: boolean; setMeshOn: (b: boolean) => void; onHide: (id: string) => void; onExpandMesh?: () => void; onProvenance?: () => void }) {
   return (
     <div className="space-y-3">
       <div className="relative w-full aspect-[3/4] overflow-hidden border group cursor-zoom-in" style={{ borderColor: color, background: `linear-gradient(135deg, ${color}22, #0d0d0f)` }}
@@ -123,18 +159,18 @@ function PhotoTab({ photo, color, meshOn, setMeshOn, onHide, onExpandMesh }: { p
         <div className="absolute top-1 left-1 font-mono text-[9px] bg-bg/70 px-1">{photo.id}</div>
         <div className="absolute bottom-1 right-1 font-mono text-[9px] bg-bg/70 px-1">{photo.bucket}</div>
         {onExpandMesh && (
-          <button onClick={onExpandMesh} className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-bg/80 border border-border hover:bg-info/30">
+          <button onClick={onExpandMesh} aria-label={t.a11yExpandMesh} title={t.a11yExpandMesh} className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-bg/80 border border-border hover:bg-info/30">
             <Icon name="maximize" size={11} />
           </button>
         )}
       </div>
 
       <div className="flex gap-2">
-        <button onClick={() => setMeshOn(!meshOn)} className="flex-1 font-mono text-[10px] py-1.5 bg-surface-2 hover:bg-surface-3 border border-border tracking-forensic flex items-center justify-center gap-1.5">
+        <button onClick={() => setMeshOn(!meshOn)} aria-pressed={meshOn} aria-label={t.a11yToggleMesh} className="flex-1 font-mono text-[10px] py-1.5 bg-surface-2 hover:bg-surface-3 border border-border tracking-forensic flex items-center justify-center gap-1.5">
           <Icon name="layers" size={11} /> {t.meshOverlay} {meshOn ? t.on : t.off}
         </button>
         {onExpandMesh && (
-          <button onClick={onExpandMesh} className="font-mono text-[10px] py-1.5 px-2 bg-info/20 hover:bg-info/40 border border-info/40 tracking-forensic flex items-center gap-1.5">
+          <button onClick={onExpandMesh} aria-label={t.a11yExpandMesh} className="font-mono text-[10px] py-1.5 px-2 bg-info/20 hover:bg-info/40 border border-info/40 tracking-forensic flex items-center gap-1.5">
             <Icon name="maximize" size={11} /> {t.expand}
           </button>
         )}
@@ -142,14 +178,24 @@ function PhotoTab({ photo, color, meshOn, setMeshOn, onHide, onExpandMesh }: { p
 
       <div className="font-mono text-[10px] space-y-1 bg-surface-2 p-2 border border-border">
         <div className="flex justify-between"><span className="text-text-muted">ID фото</span><span>{photo.id}</span></div>
-        <div className="flex justify-between"><span className="text-text-muted">{t.source}</span><span className="text-text-faint">archive/{photo.era.toLowerCase()}/...</span></div>
         <div className="flex justify-between"><span className="text-text-muted">{t.hoverDate}</span><span>{new Date(photo.t).toLocaleDateString("ru-RU")}</span></div>
         <div className="flex justify-between"><span className="text-text-muted">{t.hoverBucket}</span><span>{photo.bucket}</span></div>
-        <div className="flex justify-between"><span className="text-text-muted">{t.qualityOverall}</span><span>{photo.quality.toFixed(3)}</span></div>
-        <div className="flex justify-between"><span className="text-text-muted">{t.qualityBlur}</span><span>{(0.12 + photo.quality * 0.3).toFixed(3)}</span></div>
-        <div className="flex justify-between"><span className="text-text-muted">{t.qualityNoise}</span><span>{(0.08 + (1 - photo.quality) * 0.25).toFixed(3)}</span></div>
-        <div className="flex justify-between"><span className="text-text-muted">{t.poseYawDeg}</span><span>{photo.yaw.toFixed(1)}°</span></div>
+        <div className="flex justify-between"><span className="text-text-muted">{t.qualityOverall}</span><span>{fmt(photo.quality, 3)}</span></div>
+        <div className="flex justify-between"><span className="text-text-muted">{t.poseYawDeg}</span><span>{fmt(photo.yaw, 1)}°</span></div>
       </div>
+
+      {/* 🔧 Прежде здесь стояли `0.12 + quality*0.3` (размытие) и
+          `0.08 + (1-quality)*0.25` (шум) — производные от общего балла
+          качества, выдаваемые за независимые измерения, и строка источника
+          `archive/{era}/...`, которой нет ни в одном артефакте. Реальные
+          `laplacian_variance`, `noise_residual_mean` и путь к исходнику
+          живут в Stage 1 и показываются во вкладке «Кадр» и в провенансе. */}
+      {onProvenance && (
+        <button onClick={onProvenance}
+          className="w-full font-mono text-[10px] py-1.5 bg-surface-2 hover:bg-surface-3 border border-border tracking-forensic flex items-center justify-center gap-1.5">
+          <Icon name="crosshair" size={11} /> {t.provenanceOpen}
+        </button>
+      )}
 
       {photo.exifAnomaly && (
         <div className="bg-critical/15 border border-critical p-2 font-mono text-[10px] text-critical flex items-start gap-2">
@@ -204,7 +250,7 @@ function GeometryTab({ photo }: { photo: Photo }) {
         })}
       </div>
       <div className="bg-surface-2 border border-border p-2 font-mono text-[10px] space-y-1">
-        <div className="flex justify-between"><span className="text-text-muted">{t.geometryScore}</span><span>{photo.boneScore.toFixed(3)}</span></div>
+        <div className="flex justify-between"><span className="text-text-muted">{t.geometryScore}</span><span>{fmt(photo.boneScore, 3)}</span></div>
         <div className="flex justify-between"><span className="text-text-muted">{t.evidenceMode}</span><span className="text-info">КАЛИБРОВАНО</span></div>
         <div className="flex justify-between"><span className="text-text-muted">{t.reliability}</span><span>{(0.75 + photo.confidence * 0.2).toFixed(2)}</span></div>
       </div>
@@ -213,13 +259,16 @@ function GeometryTab({ photo }: { photo: Photo }) {
 }
 
 function SkinTab({ photo }: { photo: Photo }) {
+  // Только каналы, которые действительно приходят из данных. Ранее в этом
+  // списке были `glcm_contrast` (= 0.4 + lbp*0.3) и `wrinkle_nasolabial`
+  // (= wrinkle*0.85) — производные константы, показанные как самостоятельные
+  // измерения. Такая «метрика» не несёт информации сверх исходной и вводит
+  // читателя отчёта в заблуждение, поэтому удалена.
   const metrics = [
     { k: "specular_gloss", v: photo.specular, ref: REF.specular.median },
     { k: "lbp_entropy", v: photo.lbpEntropy, ref: REF.lbpEntropy.median },
-    { k: "glcm_contrast", v: 0.4 + photo.lbpEntropy * 0.3, ref: 0.55 },
     { k: "frangi_vesselness", v: photo.frangi, ref: REF.frangi.median },
-    { k: "wrinkle_forehead", v: photo.wrinkle, ref: REF.wrinkle.median },
-    { k: "wrinkle_nasolabial", v: photo.wrinkle * 0.85, ref: REF.wrinkle.median * 0.85 },
+    { k: "wrinkle", v: photo.wrinkle, ref: REF.wrinkle.median },
     { k: "silicone_prob", v: photo.siliconeProb, ref: REF.siliconeProb.median },
     { k: "subsurface_scatter", v: photo.subsurface, ref: REF.subsurface.median },
   ];
@@ -269,6 +318,12 @@ function SkinTab({ photo }: { photo: Photo }) {
             </div>
           );
         })}
+      </div>
+
+      {/* Per-zone данные из артефактов Stage 1 (ничего не пересчитывается). */}
+      <div className="pt-3 mt-1 border-t border-border">
+        <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-2">{t.skinZonesTitle}</div>
+        <SkinZonesPanel photoId={photo.id} />
       </div>
     </div>
   );
@@ -320,7 +375,7 @@ function VerdictTab({ photo, color }: { photo: Photo; color: string; fuzzyColor:
       </div>
 
       <div className="font-mono text-[10px] space-y-1 bg-surface-2 p-2 border border-border">
-        <div className="flex justify-between"><span className="text-text-muted">{t.confidence}</span><span>{photo.confidence.toFixed(2)}</span></div>
+        <div className="flex justify-between"><span className="text-text-muted">{t.confidence}</span><span>{fmt(photo.confidence, 2)}</span></div>
         <div className="flex justify-between"><span className="text-text-muted">{t.snrGeom}</span><span className={snrG > 2 ? "text-nominal" : "text-warning"}>{snrG.toFixed(2)} {snrG > 2 ? t.snrSignal : t.snrUncertain}</span></div>
         <div className="flex justify-between"><span className="text-text-muted">{t.snrTex}</span><span className={snrT > 2 ? "text-nominal" : "text-warning"}>{snrT.toFixed(2)} {snrT > 2 ? t.snrSignal : t.snrUncertain}</span></div>
         <div className="flex justify-between"><span className="text-text-muted">{t.hoverDominant}</span><span style={{ color }}>{photo.dominant} · {t.hypothesisShort[photo.dominant]}</span></div>
@@ -361,9 +416,10 @@ function VerdictTab({ photo, color }: { photo: Photo; color: string; fuzzyColor:
   );
 }
 
-function ContextTab({ photo }: { photo: Photo }) {
-  const idx = PHOTOS.findIndex(p => p.id === photo.id);
-  const neighbors = PHOTOS.slice(Math.max(0, idx - 4), Math.min(PHOTOS.length, idx + 5));
+function ContextTab({ photo, photos }: { photo: Photo; photos: Photo[] }) {
+  // Соседи — из ТЕКУЩЕГО набора, а не из встроенного демо-массива.
+  const idx = photos.findIndex(p => p.id === photo.id);
+  const neighbors = idx < 0 ? [] : photos.slice(Math.max(0, idx - 4), Math.min(photos.length, idx + 5));
 
   // nearest event pin
   const nearest = EVENT_PINS.reduce((a, b) =>
@@ -376,13 +432,13 @@ function ContextTab({ photo }: { photo: Photo }) {
         <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-1.5">{t.sparkline9}</div>
         <svg viewBox="0 0 200 50" className="w-full bg-surface-2 border border-border">
           {neighbors.map((n, i) => {
-            const x = (i / (neighbors.length - 1)) * 190 + 5;
+            const x = (neighbors.length > 1 ? i / (neighbors.length - 1) : 0.5) * 190 + 5;
             const y = 45 - n.boneScore * 35;
             const isCurr = n.id === photo.id;
             return (
               <g key={n.id}>
                 {i > 0 && (
-                  <line x1={(i - 1) / (neighbors.length - 1) * 190 + 5}
+                  <line x1={(neighbors.length > 1 ? (i - 1) / (neighbors.length - 1) : 0.5) * 190 + 5}
                     y1={45 - neighbors[i - 1].boneScore * 35}
                     x2={x} y2={y}
                     stroke="#4f98a3" strokeWidth="0.6" />

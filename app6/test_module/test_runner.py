@@ -60,13 +60,12 @@ def test_negative_control_stable_series_check_can_fail(synthetic_archive) -> Non
     from app6.test_module.runner import _check_stable_series
     from app6.test_module.scenarios import timeline_from_combo
     from app6.stage2.irreversible_return import detect_irreversible_return
-    import tarfile
+    from app6.test_module.archive_adapter import safe_extract_archive
 
     extract_dir = synthetic_archive.parent / "extracted_for_negative_control"
     if not extract_dir.exists():
         extract_dir.mkdir()
-        with tarfile.open(synthetic_archive) as tar:
-            tar.extractall(extract_dir)
+        safe_extract_archive(synthetic_archive, extract_dir)
     grouped = group_by_person_pose(load_archive_records(extract_dir))
     person_a = grouped[("person_01", "frontal")]
     person_b = grouped[("person_02", "frontal")]

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { modalProps, useModal } from "../useModal";
+import { Skeleton } from "./Loading";
 import Icon from "./Icon";
 import { t } from "../i18n";
 import { fetchSettings, saveSettings, resetSettings, type AppSettings } from "../api";
-import { DEFAULT_HEATMAP_STOPS, heatColor } from "./MeshViewer";
+import { DEFAULT_HEATMAP_STOPS, heatHex } from "../heatscale";
 
 interface Props {
   onClose: () => void;
@@ -12,6 +14,8 @@ interface Props {
 /** Попап настроек (большой, не покидая текущую страницу — как требовалось в ТЗ):
  * пороги перехода тепловой карты, пороги фильтров/QC, уровень детализации. */
 export default function SettingsModal({ onClose, onApplied }: Props) {
+  // Focus trap + Escape + возврат фокуса (WCAG 2.1.2 / 2.4.3 / 4.1.2).
+  const dialogRef = useModal<HTMLDivElement>(onClose);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
@@ -65,23 +69,35 @@ export default function SettingsModal({ onClose, onApplied }: Props) {
   } : DEFAULT_HEATMAP_STOPS;
 
   return (
-    <div data-no-pan className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-6">
-      <div className="w-full max-w-3xl max-h-[85vh] overflow-y-auto bg-surface border border-border-strong shadow-2xl" data-scroll>
+    <div data-no-pan className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-6"
+      onClick={onClose}>
+      <div ref={dialogRef} {...modalProps(t.settingsTitle)}
+        onClick={event => event.stopPropagation()}
+        className="w-full max-w-3xl max-h-[85vh] overflow-y-auto bg-surface border border-border-strong shadow-2xl outline-none" data-scroll>
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-2 sticky top-0 z-10">
           <div className="flex items-center gap-2">
             <Icon name="sliders" size={16} color="#5591c7" />
             <div className="font-display tracking-forensic text-sm">{t.settingsTitle}</div>
           </div>
-          <button onClick={onClose} aria-label="Закрыть" className="w-7 h-7 flex items-center justify-center border border-border hover:bg-critical/30">
+          <button onClick={onClose} aria-label={t.closeLabel} className="w-7 h-7 flex items-center justify-center border border-border hover:bg-critical/30">
             <Icon name="x" size={14} />
           </button>
         </div>
 
         <div className="p-4 space-y-5">
-          {status === "loading" && <div className="font-mono text-[10px] text-text-muted">{t.loading}…</div>}
+          {status === "loading" && <Skeleton lines={5} />}
           {status === "error" && (
-            <div className="bg-critical/15 border border-critical p-2 font-mono text-[10px] text-critical">
+            <div role="alert" className="bg-critical/15 border border-critical p-2 font-mono text-[10px] text-critical">
               {errorMessage}
+            </div>
+          )}
+          {/* P2.12 (DEV_FIX_TZ 3.12): если настройки не загрузились, честно
+              сообщаем об этом и НЕ делаем вид, что редактор пустой по другой
+              причине. Значения тепловой карты в остальном UI при этом падают
+              на DEFAULT_HEATMAP_STOPS — это видно пользователю. */}
+          {status === "error" && !settings && (
+            <div role="status" className="bg-warning/15 border border-warning p-2 font-mono text-[10px] text-warning">
+              {t.settingsLoadFailed}
             </div>
           )}
 
@@ -92,7 +108,7 @@ export default function SettingsModal({ onClose, onApplied }: Props) {
                 <div className="font-mono text-[10px] text-text-muted mb-3">{t.heatmapSectionHint}</div>
 
                 <div className="h-6 w-full mb-3 border border-border" style={{
-                  background: `linear-gradient(to right, ${Array.from({ length: 41 }, (_, i) => `#${heatColor(i / 40, stops).getHexString()} ${(i / 40) * 100}%`).join(", ")})`,
+                  background: `linear-gradient(to right, ${Array.from({ length: 41 }, (_, i) => `${heatHex(i / 40, stops)} ${(i / 40) * 100}%`).join(", ")})`,
                 }} />
 
                 {([
@@ -103,9 +119,12 @@ export default function SettingsModal({ onClose, onApplied }: Props) {
                 ] as const).map(([key, label]) => (
                   <div key={key} className="flex items-center gap-3 mb-2">
                     <span className="font-mono text-[10px] text-text-muted w-40">{label}</span>
+                    {/* Подпись слева — визуальная: screen reader читает
+                        поля отдельно от соседнего span, поэтому ползунок
+                        обязан иметь собственное имя. */}
                     <input type="range" min={0} max={1} step={0.01} value={settings.heatmap[key]}
                       onChange={e => update(s => { s.heatmap[key] = +e.target.value; })}
-                      className="flex-1" />
+                      aria-label={label} className="flex-1" />
                     <span className="font-mono text-[10px] w-12 text-right">{(settings.heatmap[key] * 100).toFixed(0)}%</span>
                   </div>
                 ))}
@@ -113,7 +132,7 @@ export default function SettingsModal({ onClose, onApplied }: Props) {
                   <span className="font-mono text-[10px] text-text-muted w-40">{t.maxResidualReference}</span>
                   <input type="range" min={0.01} max={0.5} step={0.005} value={settings.heatmap.max_residual_reference}
                     onChange={e => update(s => { s.heatmap.max_residual_reference = +e.target.value; })}
-                    className="flex-1" />
+                    aria-label={t.maxResidualReference} className="flex-1" />
                   <span className="font-mono text-[10px] w-16 text-right">{settings.heatmap.max_residual_reference.toFixed(3)}</span>
                 </div>
               </section>
@@ -132,7 +151,7 @@ export default function SettingsModal({ onClose, onApplied }: Props) {
                     <span className="font-mono text-[10px] text-text-muted w-56">{label}</span>
                     <input type="range" min={min} max={max} step={step} value={settings.thresholds[key]}
                       onChange={e => update(s => { s.thresholds[key] = +e.target.value; })}
-                      className="flex-1" />
+                      aria-label={label} className="flex-1" />
                     <span className="font-mono text-[10px] w-14 text-right">{settings.thresholds[key].toFixed(3)}</span>
                   </div>
                 ))}
@@ -143,11 +162,13 @@ export default function SettingsModal({ onClose, onApplied }: Props) {
                 <div className="flex gap-2">
                   {(["simple", "standard", "expert"] as const).map(level => (
                     <button key={level} onClick={() => update(s => { s.detail_level = level; })}
+                      aria-pressed={settings.detail_level === level} aria-label={`${t.a11yDetailLevel}: ${t.detailLevelLabel[level]}`}
                       className={`px-3 py-1.5 font-mono text-[10px] tracking-forensic border ${settings.detail_level === level ? "bg-info/20 border-info" : "border-border text-text-muted"}`}>
                       {t.detailLevelLabel[level]}
                     </button>
                   ))}
                 </div>
+                <p className="font-mono text-[9px] text-text-faint mt-1.5">{t.detailLevelHint}</p>
               </section>
             </>
           )}
@@ -159,7 +180,7 @@ export default function SettingsModal({ onClose, onApplied }: Props) {
             {t.resetDefaults}
           </button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-3 py-1.5 font-mono text-[10px] tracking-forensic border border-border text-text-muted">
+            <button onClick={onClose} aria-label={t.a11yCloseSettings} className="px-3 py-1.5 font-mono text-[10px] tracking-forensic border border-border text-text-muted">
               {t.cancel}
             </button>
             <button onClick={handleSave} disabled={status === "saving" || !settings}

@@ -125,7 +125,7 @@ def make_extract_runner(input_dir: Path, output_dir: Path, project_root: Path,
                         device: str = "auto", limit: int = 0) -> Callable[[Job], None]:
     """🏭 FACTORY → Runner Stage 1 extract job для `JobManager.submit`."""
 
-    def _runner(job: Job) -> None:
+    def _extract_runner(job: Job) -> None:
         missing = _check_stage1_dependencies()
         assets_dir = project_root / "assets"
         required_weights = [
@@ -151,6 +151,14 @@ def make_extract_runner(input_dir: Path, output_dir: Path, project_root: Path,
             p for p in input_dir.rglob("*")
             if p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png") and not p.name.startswith("._")
         )
+        # P3.14 (DEV_FIX_TZ): пустой вход — это blocked, а не "успешно
+        # обработано 0 фото". Раньше задание завершалось как complete и
+        # создавало ложное впечатление выполненного извлечения.
+        if not photos:
+            raise _JobBlocked(
+                f"нет входных изображений (.jpg/.jpeg/.png) в {input_dir}; "
+                "извлечение не запускалось"
+            )
         if limit > 0:
             photos = photos[:limit]
         job.progress_total = len(photos)
@@ -174,14 +182,14 @@ def make_extract_runner(input_dir: Path, output_dir: Path, project_root: Path,
             job.progress_done += 1
         job.result = {"ok": ok, "fail": fail, "total": len(photos), "output_dir": str(output_dir)}
 
-    return _runner
+    return _extract_runner
 
 
 def make_recompute_metrics_runner(stage1_root: Path, calibration_root: Path,
                                   output_dir: Path) -> Callable[[Job], None]:
     """🏭 FACTORY → Runner Stage 2 recompute job для `JobManager.submit`."""
 
-    def _runner(job: Job) -> None:
+    def _recompute_runner(job: Job) -> None:
         if not (stage1_root / "main_timeline.csv").is_file():
             raise _JobBlocked(f"нет валидного вывода Stage 1 в {stage1_root} (main_timeline.csv отсутствует)")
         from app6.stage2 import Stage2Config, Stage2Engine  # local import: heavy deps only if reachable
@@ -195,5 +203,5 @@ def make_recompute_metrics_runner(stage1_root: Path, calibration_root: Path,
         job.result = {"manifest": manifest if isinstance(manifest, dict) else str(manifest),
                      "output_dir": str(output_dir)}
 
-    return _runner
+    return _recompute_runner
 

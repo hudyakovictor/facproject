@@ -120,10 +120,60 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
     rows = list(photos_by_id.values())
     rows.sort(key=lambda r: (r["date"] or "", r["id"]))
 
+    # === Хронологические аномалии из манифеста Stage 2 =======================
+    # Stage 2 уже считает возвраты к базовой линии, необратимые возвраты и
+    # биологически невозможные скорости, но раньше НИЧЕГО из этого не доходило
+    # до интерфейса. Пробрасываем сводки как есть (не пересчитывая) и
+    # проставляем соответствующие флаги на затронутых кадрах.
+    anomaly_summaries: dict[str, Any] = {}
+    for key in ("irreversible_return", "baseline_return", "chronology_rate",
+                "biological_rate", "cumulative_drift"):
+        payload = manifest.get(key)
+        if isinstance(payload, dict) and payload:
+            anomaly_summaries[key] = payload
+
+    # Годы, в которых Stage 2 зафиксировал возврат формы: помечаем кадры.
+    return_years: set[int] = set()
+    for key in ("irreversible_return", "baseline_return"):
+        years = (anomaly_summaries.get(key) or {}).get("years")
+        if isinstance(years, list):
+            return_years.update(int(y) for y in years if isinstance(y, (int, float)))
+    if return_years:
+        for row in rows:
+            date_iso = row.get("date")
+            if not date_iso:
+                continue
+            try:
+                year = int(str(date_iso)[:4])
+            except ValueError:
+                continue
+            if year in return_years and "RETURN_TO_BASELINE" not in row["flags"]:
+                row["flags"].append("RETURN_TO_BASELINE")
+
+    # `era` для research-режима: сегменты строятся из фактических дат по годам,
+    # иначе весь набор оказывается одним сегментом "STAGE2_RESEARCH" и
+    # хронологическая раскладка теряется.
+    era_meta: dict[str, dict[str, str]] = {}
+    dated = [r for r in rows if r.get("date")]
+    if dated:
+        for row in dated:
+            year = str(row["date"])[:4]
+            era_id = f"STAGE2_{year}"
+            row["era"] = era_id
+            bounds = era_meta.setdefault(era_id, {"label": f"Stage 2 · {year}",
+                                                  "start": str(row["date"])[:10],
+                                                  "end": str(row["date"])[:10]})
+            bounds["start"] = min(bounds["start"], str(row["date"])[:10])
+            bounds["end"] = max(bounds["end"], str(row["date"])[:10])
+    else:
+        era_meta["STAGE2_RESEARCH"] = {"label": "Stage 2 research", "start": "", "end": ""}
+
     return {
         "schema": RESEARCH_TIMELINE_SCHEMA,
         "source_mode": "research",
         "not_a_verdict": True,
+        "era_meta": era_meta,
+        "chronology_anomalies": anomaly_summaries,
         "note": (
             "Реальный вывод Stage 2. P(H0..H2) не заполнены отдельным Байесовским "
             "полем в текущей реализации Stage 2 (bayesianProjectionAvailable=false "

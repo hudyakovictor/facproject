@@ -62,7 +62,18 @@ def run_audit() -> int:
     add(8,"No eval/exec",not re.search(r"\b(eval|exec)\s*\(",alltxt),"")
     add(9,"No subprocess shell=True","shell=True" not in alltxt,"")
     pickle_hits = [str(p.relative_to(ROOT)) for p in FILES if "allow_pickle=True" in p.read_text(encoding="utf-8")]
-    trusted_pickle_loaders = {"test_module/synthetic_runner.py"}
+    # DEV_FIX_TZ P1.7: `api/bfm_topology.py` десериализует pickled .npy РОВНО
+    # один раз — при конвертации закоммиченного в репозиторий face_model.tar.gz
+    # в безопасный .npz, после сверки SHA-256 источника. Все последующие
+    # загрузки (прод, CI) идут через `allow_pickle=False`. Это доверенный
+    # конвертер, а не загрузка недоверенного файла; проверка ниже требует,
+    # чтобы такой файл содержал и проверку целостности, и безопасный путь.
+    trusted_pickle_loaders = {"test_module/synthetic_runner.py", "api/bfm_topology.py"}
+    bfm = ROOT / "api" / "bfm_topology.py"
+    if bfm.is_file():
+        bfm_text = bfm.read_text(encoding="utf-8")
+        if not ("sha256" in bfm_text and "allow_pickle=False" in bfm_text):
+            trusted_pickle_loaders.discard("api/bfm_topology.py")
     add(10,"No untrusted allow_pickle=True",set(pickle_hits) <= trusted_pickle_loaders,"; ".join(pickle_hits))
     add(11,"No FIXME markers","FIXME" not in alltxt,"")
     todo_hits = [str(p.relative_to(ROOT)) for p in FILES if re.search(r"^\s*#\s*TODO\b", p.read_text(encoding="utf-8"), re.M)]

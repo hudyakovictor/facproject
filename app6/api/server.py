@@ -14,14 +14,16 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import uuid
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from app6.stage1.naming import make_photo_id, parse_photo_name
@@ -33,12 +35,24 @@ from .calibration import find_matching_calibration_frames, load_calibration_heal
 from .compare import compare_records, full_mesh_compare
 from .demo_data import DemoPhoto, build_demo_records, build_demo_zone_maps, full_mesh_for_photo
 from .jobs import JobManager, make_extract_runner, make_recompute_metrics_runner
+from .noise_calibration import (
+    apply_noise_subtraction, build_noise_index, noise_coverage_report, resolve_tolerance,
+)
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
+from .skin_zones import SKIN_ZONES_SCHEMA, load_skin_zone_report, zone_catalog
 from .system_health import build_system_health
 from .timeline import build_demo_timeline
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+#: P1.8 — предел размера одной загружаемой фотографии. 32 МиБ с запасом
+#: покрывает исходники исследуемого набора (600–800px JPEG, единицы сотен КБ)
+#: и снимки полного разрешения, но не позволяет заполнить диск одним запросом.
+#: Переопределяется переменной окружения DEEPUTIN_MAX_UPLOAD_MB.
+MAX_UPLOAD_BYTES = int(float(os.environ.get("DEEPUTIN_MAX_UPLOAD_MB", "32")) * 1024 * 1024)
+#: Размер блока потокового чтения тела запроса.
+UPLOAD_CHUNK_BYTES = 1024 * 1024
 
 app = FastAPI(title="DEEPUTIN Forensic Workstation API", version="1.0.0")
 app.add_middleware(
@@ -194,6 +208,104 @@ class UploadResponse(BaseModel):
     message: str
 
 
+@app.get("/api/v1/zones/catalog")
+def zones_catalog() -> dict[str, Any]:
+    """🚪 API → Каталог зон кожи из нормативного атласа (для легенды UI).
+
+    Отдаёт то, что реально записано в `app6/atlas/skin_zone_atlas.json`.
+    Веса зон не синтезируются: атлас их не содержит, а придумывать их в API
+    значило бы подменить нормативную схему (`app6/AGENTS.md`).
+    """
+    zones = zone_catalog()
+    return {
+        "schema": SKIN_ZONES_SCHEMA, "not_a_verdict": True,
+        "zone_count": len(zones), "zones": zones,
+    }
+
+
+@app.get("/api/v1/photos/{photo_id}/skin_zones")
+def get_photo_skin_zones(photo_id: str) -> dict[str, Any]:
+    """🚪 API → Per-zone кожа/качество из УЖЕ сохранённых артефактов Stage 1.
+
+    Ничего не пересчитывает: читает `skin_zone_quality.json`, `quality.json` и
+    `wrinkle_zones.json` рядом с фотографией. В demo-режиме (нет
+    `DEEPUTIN_STAGE1_ROOT`) настоящих текстурных артефактов не существует,
+    поэтому возвращается HTTP 409 с явной причиной — вместо синтетических
+    чисел, выдаваемых за анализ кожи.
+    """
+    stage1_root = _stage1_root()
+    if stage1_root is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "текстурные артефакты доступны только для вывода Stage 1. "
+                "Задайте DEEPUTIN_STAGE1_ROOT и выполните извлечение "
+                "(POST /api/v1/jobs {\"kind\": \"extract\"}). Демо-режим не "
+                "содержит реального анализа кожи."
+            ),
+        )
+    photo_dir = stage1_root / photo_id
+    if not photo_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"no Stage 1 output for {photo_id}")
+    report = load_skin_zone_report(photo_dir)
+    return {**report, "source_mode": "research", "photo_id": photo_id}
+
+
+#: Изображения, которые Stage 1 сохраняет рядом с фото (`info.json → files`).
+#: Ключ запроса → имя файла на диске. Произвольные пути не принимаются:
+#: параметр `kind` — закрытый словарь, поэтому path traversal невозможен.
+_PHOTO_IMAGE_KINDS = {
+    "original": "original.jpg",
+    "thumbnail": "thumb.jpg",
+    "face_crop": "face_crop.jpg",
+    "uv_texture": "uv_texture.png",
+    "zones_overlay": "_zones_overlay.png",
+}
+
+
+@app.get("/api/v1/photos/{photo_id}/image")
+def get_photo_image(photo_id: str, kind: str = "original") -> FileResponse:
+    """🚪 API → Отдать сохранённое Stage 1 изображение фотографии.
+
+    Нужно интерфейсу, чтобы показывать кадры A и B рядом при сравнении
+    (ТЗ: «визуализацией обоих изображений рядом»). Ничего не генерирует —
+    только отдаёт уже лежащий на диске файл.
+
+    🚨 В demo-режиме исходных изображений не существует: возвращается 409 с
+    объяснением, а не заглушка, которую можно принять за реальный кадр.
+    """
+    if kind not in _PHOTO_IMAGE_KINDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown image kind: {kind}; expected one of {sorted(_PHOTO_IMAGE_KINDS)}",
+        )
+    stage1_root = _stage1_root()
+    if stage1_root is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "изображения доступны только для вывода Stage 1. Задайте "
+                "DEEPUTIN_STAGE1_ROOT и выполните извлечение. Демо-режим не "
+                "содержит исходных фотографий."
+            ),
+        )
+    photo_dir = stage1_root / photo_id
+    # Защита от выхода за пределы каталога Stage 1 через photo_id.
+    try:
+        resolved_dir = photo_dir.resolve()
+        resolved_dir.relative_to(stage1_root.resolve())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid photo_id") from None
+    if not resolved_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"no Stage 1 output for {photo_id}")
+
+    target = resolved_dir / _PHOTO_IMAGE_KINDS[kind]
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail=f"{kind} not saved for {photo_id}")
+    media = "image/png" if target.suffix.lower() == ".png" else "image/jpeg"
+    return FileResponse(target, media_type=media)
+
+
 @app.post("/api/v1/photos/upload")
 async def upload_photo(file: UploadFile = File(...)) -> dict[str, Any]:
     """🚪 API → Загрузка фото в постоянное хранилище (участвует в будущих Stage 1 прогонах).
@@ -209,9 +321,44 @@ async def upload_photo(file: UploadFile = File(...)) -> dict[str, Any]:
     if suffix not in (".jpg", ".jpeg", ".png"):
         raise HTTPException(status_code=400, detail="only .jpg/.jpeg/.png are accepted")
 
-    temp_path = uploads_dir / f"_incoming{suffix}"
-    content = await file.read()
-    temp_path.write_bytes(content)
+    # P1.8 (DEV_FIX_TZ 2.8): жёсткий лимит размера загрузки. Раньше тело
+    # читалось целиком в память без ограничений — загрузка одного огромного
+    # файла заполняла диск и RAM. Читаем потоково и прерываемся при превышении,
+    # не доводя данные до диска. Content-Length не является доверенным
+    # источником (его можно подделать), поэтому считаем фактические байты.
+    declared = file.size if getattr(file, "size", None) is not None else None
+    if declared is not None and declared > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"file too large: {declared} bytes > limit {MAX_UPLOAD_BYTES} bytes",
+        )
+
+    temp_path = uploads_dir / f"_incoming_{uuid.uuid4().hex}{suffix}"
+    received = 0
+    try:
+        with temp_path.open("wb") as handle:
+            while True:
+                chunk = await file.read(UPLOAD_CHUNK_BYTES)
+                if not chunk:
+                    break
+                received += len(chunk)
+                if received > MAX_UPLOAD_BYTES:
+                    handle.close()
+                    temp_path.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"file too large: exceeds limit {MAX_UPLOAD_BYTES} bytes",
+                    )
+                handle.write(chunk)
+    except HTTPException:
+        raise
+    except OSError as exc:
+        temp_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"failed to store upload: {exc}") from exc
+
+    if received == 0:
+        temp_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="empty file")
     try:
         parsed = parse_photo_name(Path(file.filename or "upload.jpg"))
     except ValueError as exc:
@@ -313,6 +460,272 @@ async def compare_with_upload(photo_id: str, file: UploadFile = File(...)) -> di
             "через /api/v1/compare по photo_id."
         ),
     )
+
+
+class NoiseSubtractionRequest(BaseModel):
+    photo_a: str
+    photo_b: str
+    tolerance: dict[str, float] | None = None
+
+
+@app.post("/api/v1/calibration/subtract_noise")
+def calibration_subtract_noise(request: NoiseSubtractionRequest) -> dict[str, Any]:
+    """🚪 API → Вычесть угловой шум из метрик пары по калибровочному набору.
+
+    Реализует ключевое требование ТЗ: «к парам основного анализа подбирается
+    пара из калибровочного датасета... по этим данным шум можно вычесть».
+    Механизм существовал в `app6/stage2/angle_noise.py`, но не вызывался
+    ниоткуда, кроме тестов.
+
+    Возвращает СЫРОЕ и компенсированное значение вместе, с признаками
+    `uncompensated` и `degenerate_match`: компенсация уменьшает расхождение,
+    и подменять ею исходное число молча недопустимо.
+    """
+    by_id = _get_demo_photos() and _demo_cache["by_id"]
+    photo_a = by_id.get(request.photo_a)
+    photo_b = by_id.get(request.photo_b)
+    if photo_a is None or photo_b is None:
+        missing = [pid for pid in (request.photo_a, request.photo_b) if pid not in by_id]
+        raise HTTPException(status_code=404, detail=f"unknown photo id(s): {missing}")
+
+    comparison = compare_records(photo_a.record, photo_b.record)
+    if comparison.get("status") != "measured":
+        return {
+            "schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True,
+            "status": comparison.get("status"),
+            "uncompensated": True,
+            "reason": "сравнение не в статусе measured — компенсировать нечего",
+            "metrics": {},
+        }
+
+    outcome = apply_noise_subtraction(
+        comparison.get("metrics") or {},
+        photo_a.record.angles, photo_b.record.angles,
+        photo_a.pose_bin,
+        tolerance=request.tolerance,
+        exclude_records=(photo_a.record.record_id, photo_b.record.record_id),
+    )
+    return {**outcome, "source_mode": "demo", "status": "measured",
+            "photo_a": {"id": photo_a.id, "bucket": photo_a.pose_bin},
+            "photo_b": {"id": photo_b.id, "bucket": photo_b.pose_bin}}
+
+
+@app.get("/api/v1/calibration/noise_model")
+def calibration_noise_model(
+    yaw: float | None = None, pitch: float | None = None, roll: float | None = None,
+    sample: int = 40,
+) -> dict[str, Any]:
+    """🚪 API → Состояние модели шума и покрытие компенсации при данных допусках.
+
+    Позволяет интерфейсу показать, для какой доли пар шум вообще удаётся
+    вычесть при выбранных допусках. Без этого переключатель
+    «сырые/компенсированные» вводит в заблуждение.
+    """
+    tolerance = resolve_tolerance({"yaw": yaw, "pitch": pitch, "roll": roll})
+    index = build_noise_index()
+
+    photos = _get_demo_photos()
+    by_bin: dict[str, list[Any]] = {}
+    for photo in photos:
+        by_bin.setdefault(photo.pose_bin, []).append(photo)
+
+    # Репрезентативная выборка пар внутри одного ракурса: сравнение поперёк
+    # ракурсов запрещено политикой проекта, такие пары в покрытие не входят.
+    probes: list[tuple[dict[str, float], Any, Any, str | None]] = []
+    for pose_bin, group in by_bin.items():
+        for i in range(0, min(len(group) - 1, max(1, sample // max(1, len(by_bin))))):
+            a, b = group[i], group[i + 1]
+            comparison = compare_records(a.record, b.record)
+            if comparison.get("status") != "measured":
+                continue
+            probes.append((comparison.get("metrics") or {},
+                           a.record.angles, b.record.angles, pose_bin))
+
+    coverage = noise_coverage_report(probes, tolerance=tolerance)
+    per_bin: dict[str, int] = {}
+    for pair in index:
+        key = str(pair.get("pose_bin"))
+        per_bin[key] = per_bin.get(key, 0) + 1
+
+    return {
+        "schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True,
+        "tolerance": tolerance,
+        "index_size": len(index),
+        "pairs_per_pose_bin": per_bin,
+        "coverage": coverage,
+        "note": (
+            "Индекс построен по кадрам одной персоны: их расхождение и есть "
+            "оценка шума при данной разнице углов."
+        ),
+    }
+
+
+# =============================================================================
+# Полные метрики Stage 2 (категории A–I карты размещения ключей)
+# =============================================================================
+# 🚨 До этих эндпоинтов интерфейс видел 13 колонок `pair_metrics.csv` из 186:
+# `research_timeline.py` читал ровно то, что нужно таймлайну. Статистика
+# множественных сравнений, mesh-канал, текстура, дескрипторы и корроборация
+# оставались на диске. См. `ui/KEYS_PLACEMENT_MAP.md`.
+
+
+def _require_stage2() -> Path:
+    """Каталог Stage 2 или HTTP 409 с указанием, чего не хватает."""
+    stage2_root = _stage2_root()
+    if stage2_root is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "полные метрики доступны только для вывода Stage 2. Задайте "
+                "DEEPUTIN_STAGE2_ROOT на каталог с analysis_manifest.json. "
+                "Демо-режим не содержит реального попарного анализа."
+            ),
+        )
+    return stage2_root
+
+
+@app.get("/api/v1/pairs/{photo_a}/{photo_b}/metrics")
+def get_pair_metrics(photo_a: str, photo_b: str) -> dict[str, Any]:
+    """🚪 API → Все 186 колонок `pair_metrics.csv` для пары, по категориям A–I.
+
+    Один эндпоинт закрывает категории A (статзначимость), B (меш),
+    C (качество), D (точки/дескрипторы), E (текстура), F (хронология),
+    G (провенанс пары) карты размещения ключей.
+    """
+    from .pair_metrics import load_pair_metrics
+    stage2_root = _require_stage2()
+    try:
+        return load_pair_metrics(stage2_root, photo_a, photo_b)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"пара отсутствует в выводе Stage 2: {photo_a} / {photo_b}. "
+                "Stage 2 строит пары только внутри одного pose bin."
+            ),
+        ) from exc
+
+
+@app.get("/api/v1/run/summary")
+def get_run_summary() -> dict[str, Any]:
+    """🚪 API → Сводка прогона: манифест, техотчёт, каталог метрик, артефакты.
+
+    Категория I карты размещения ключей: `technical_summary.json` и
+    `limitations`/`skipped_pair_counts` не имели ни одного потребителя.
+    """
+    from .pair_metrics import load_run_summary
+    stage2_root = _require_stage2()
+    try:
+        return load_run_summary(stage2_root)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/run/artifacts/{name}")
+def get_run_artifact(name: str) -> dict[str, Any]:
+    """🚪 API → Один артефакт Stage 2 из нормативного перечня.
+
+    Имя принимается только из `key_catalog.ARTIFACT_PLACEMENT`, поэтому
+    произвольные пути невозможны.
+    """
+    from .pair_metrics import load_stage2_artifact
+    stage2_root = _require_stage2()
+    try:
+        return load_stage2_artifact(stage2_root, name)
+    except KeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/photos/{photo_id}/info_keys")
+def get_photo_info_keys(photo_id: str) -> dict[str, Any]:
+    """🚪 API → `info.json` фото (156 листовых ключей) по категориям C/D/G/H.
+
+    Категории C (параметры кадра), G (провенанс), H (маски/UV/файлы):
+    раньше из 156 ключей Stage 1 интерфейс использовал около восьми.
+    """
+    from .pair_metrics import load_stage1_info
+    stage1_root = _stage1_root()
+    if stage1_root is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "параметры кадра доступны только для вывода Stage 1. "
+                "Задайте DEEPUTIN_STAGE1_ROOT и выполните извлечение."
+            ),
+        )
+    try:
+        return load_stage1_info(stage1_root, photo_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# =============================================================================
+# Публичный отчёт Stage 3
+# =============================================================================
+# 🚨 Stage 3 был единственным этапом пайплайна без единого эндпоинта: отчёт
+# формировался как самостоятельный HTML+JSON и в рабочую станцию не попадал.
+
+
+def _stage3_root() -> Path | None:
+    raw = os.environ.get("DEEPUTIN_STAGE3_ROOT")
+    if not raw:
+        return None
+    path = Path(raw)
+    return path if (path / "report_data.json").is_file() else None
+
+
+def _require_stage3() -> Path:
+    """Каталог Stage 3 или HTTP 409 с указанием, чего не хватает."""
+    stage3_root = _stage3_root()
+    if stage3_root is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "публичный отчёт доступен только после прогона Stage 3. "
+                "Задайте DEEPUTIN_STAGE3_ROOT на каталог с report_data.json "
+                "(python app6/run_stage3.py --analysis <stage2> --output <dir>)."
+            ),
+        )
+    return stage3_root
+
+
+@app.get("/api/v1/report/summary")
+def get_report_summary() -> dict[str, Any]:
+    """🚪 API → Обзор публичного отчёта Stage 3 без тяжёлых секций.
+
+    Отдаёт счётчики, нарратив, методологию, статус валидации и перечень
+    секций с размерами. Крупные массивы забираются постранично через
+    `/api/v1/report/sections/{name}`.
+    """
+    from .report import load_report_summary
+    stage3_root = _require_stage3()
+    try:
+        return load_report_summary(stage3_root)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/report/sections/{name}")
+def get_report_section(name: str, offset: int = 0, limit: int = 100) -> dict[str, Any]:
+    """🚪 API → Одна секция отчёта Stage 3, при необходимости страницей."""
+    from .report import load_report_section
+    stage3_root = _require_stage3()
+    if limit < 1 or limit > 500:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must not be negative")
+    try:
+        return load_report_section(stage3_root, name, offset=offset, limit=limit)
+    except KeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/calibration/health")

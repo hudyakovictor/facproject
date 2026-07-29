@@ -166,3 +166,46 @@ def archive_summary(records: list[Record]) -> dict[str, Any]:
         "cells": {f"{p}|{b}": len(v) for (p, b), v in sorted(grouped.items())},
         "has_alpha": bool(records and np.isfinite(records[0].alpha_id).any()),
     }
+
+
+def safe_extract_archive(tarball: Path, destination: Path) -> Path:
+    """🔒 SECURITY → Распаковать tar-архив, отвергая выход за пределы каталога.
+
+    Найдено линтером ruff (S202), добавленным по DEV_FIX_TZ P3.21: голый
+    `tar.extractall()` позволяет архиву с именами вида `../../etc/...` или с
+    симлинками писать за пределы целевого каталога (CVE-2007-4559). В Python
+    3.11 безопасный фильтр ещё не является поведением по умолчанию, поэтому он
+    задаётся явно, а на более старых средах применяется ручная проверка.
+
+    Args:
+        tarball: путь к .tar.gz со сценарным архивом.
+        destination: каталог назначения (создаётся при необходимости).
+
+    Returns:
+        Каталог, в который распакован архив.
+
+    Raises:
+        ValueError: если архив содержит запись, ведущую за пределы каталога.
+    """
+    import tarfile
+
+    destination = Path(destination)
+    destination.mkdir(parents=True, exist_ok=True)
+    resolved_root = destination.resolve()
+
+    with tarfile.open(tarball) as tar:
+        for member in tar.getmembers():
+            target = (resolved_root / member.name).resolve()
+            if not target.is_relative_to(resolved_root):
+                raise ValueError(
+                    f"архив пытается записать за пределы каталога назначения: {member.name!r}"
+                )
+            if member.issym() or member.islnk():
+                link_target = (target.parent / member.linkname).resolve()
+                if not link_target.is_relative_to(resolved_root):
+                    raise ValueError(f"ссылка ведёт за пределы каталога: {member.name!r}")
+        try:
+            tar.extractall(destination, filter="data")  # noqa: S202 - проверено выше + filter
+        except TypeError:  # pragma: no cover - Python < 3.11.4
+            tar.extractall(destination)  # noqa: S202 - members проверены выше
+    return destination

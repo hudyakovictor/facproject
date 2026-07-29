@@ -30,10 +30,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import tarfile
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from app6.test_module.archive_adapter import safe_extract_archive
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -70,8 +71,7 @@ def _load_source(archive: Path) -> tuple[dict[tuple[str, str], list], list[str]]
             "либо передайте другой путь через --archive."
         )
     extract_dir = Path(tempfile.mkdtemp(prefix="deeputin_runner_"))
-    with tarfile.open(archive) as tar:
-        tar.extractall(extract_dir)
+    safe_extract_archive(archive, extract_dir)
     records = load_archive_records(extract_dir)
     grouped = group_by_person_pose(records)
     people = sorted({p for p, _ in grouped})

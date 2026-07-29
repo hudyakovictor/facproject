@@ -22,6 +22,7 @@ alpha-векторов, использующих ТОЧНО ТУ ЖЕ модел
 """
 from __future__ import annotations
 
+import hashlib
 import tarfile
 import threading
 from dataclasses import dataclass
@@ -36,6 +37,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TARBALL_PATH = PROJECT_ROOT / "3ddfa_v3" / "assets" / "face_model.tar.gz"
 CACHE_DIR = PROJECT_ROOT / "runs" / "bfm_cache"
 CACHE_NPY_PATH = CACHE_DIR / "face_model.npy"
+#: Безопасный производный кэш: те же массивы, но в .npz без pickle (см. P1.7).
+CACHE_NPZ_PATH = CACHE_DIR / "face_model_safe.npz"
+#: Ключи, которые допускается извлечь из pickled .npy. Всё остальное игнорируется.
+_ALLOWED_KEYS: tuple[str, ...] = (
+    "u", "id", "exp", "tri", "ldm106", "ldm134",
+    "primary_triangle_zone", "primary_zone_ids", "primary_zone_names", "face_support",
+)
 
 _lock = threading.Lock()
 _cached_model: "BFMModel | None" = None
@@ -98,6 +106,62 @@ def _extract_face_model_npy() -> Path:
     return CACHE_NPY_PATH
 
 
+def _convert_npy_to_safe_npz(npy_path: Path) -> Path:
+    """🔒 SECURITY → Один раз распаковать pickled .npy в безопасный .npz.
+
+    P1.7 (DEV_FIX_TZ 2.7 / Audit FAIL 10): `np.load(..., allow_pickle=True)`
+    исполняет произвольный код при десериализации, поэтому применяется РОВНО
+    один раз к файлу, извлечённому из закоммиченного в репозиторий
+    `face_model.tar.gz`, и только после проверки его SHA-256 против записи в
+    `bfm_face_model.sha256` (если она есть). Результат сохраняется как `.npz`
+    с `allow_pickle=False`, и все последующие загрузки (в т.ч. в проде и CI)
+    идут уже через безопасный путь без pickle.
+    """
+    digest = hashlib.sha256(npy_path.read_bytes()).hexdigest()
+    expected_path = PROJECT_ROOT / "app6" / "api" / "bfm_face_model.sha256"
+    if expected_path.is_file():
+        expected = expected_path.read_text(encoding="utf-8").split()[0].strip().lower()
+        if expected and expected != digest:
+            raise ValueError(
+                f"face_model.npy не прошёл проверку целостности: ожидался SHA-256 {expected}, "
+                f"получен {digest}. Файл не десериализуется."
+            )
+    else:
+        # Первая конвертация в этом дереве: зафиксировать эталон, чтобы
+        # последующие запуски могли проверить, что источник не подменён.
+        expected_path.write_text(f"{digest}  face_model.npy\n", encoding="utf-8")
+
+    raw: dict[str, Any] = np.load(npy_path, allow_pickle=True).item()  # noqa: S301 - см. docstring
+    if not isinstance(raw, dict):
+        raise ValueError("face_model.npy: ожидался словарь массивов")
+
+    payload: dict[str, np.ndarray] = {}
+    for key in _ALLOWED_KEYS:
+        if key not in raw:
+            raise KeyError(f"face_model.npy: отсутствует обязательный ключ {key!r}")
+        value = raw[key]
+        if key in ("primary_zone_ids", "primary_zone_names"):
+            payload[key] = np.asarray([str(x) for x in value], dtype="U32")
+        else:
+            payload[key] = np.asarray(value)
+
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    # np.savez сам добавляет ".npz", если имя им не заканчивается, поэтому
+    # временный файл называется "<name>.partial.npz" — атомарная замена ниже.
+    temp_path = CACHE_DIR / "face_model_safe.partial.npz"
+    np.savez(temp_path, **payload)
+    temp_path.replace(CACHE_NPZ_PATH)
+    return CACHE_NPZ_PATH
+
+
+def _load_raw_arrays() -> dict[str, np.ndarray]:
+    """📤 Загрузить массивы BFM, предпочитая безопасный .npz без pickle."""
+    if not CACHE_NPZ_PATH.is_file():
+        _convert_npy_to_safe_npz(_extract_face_model_npy())
+    with np.load(CACHE_NPZ_PATH, allow_pickle=False) as archive:
+        return {key: archive[key] for key in archive.files}
+
+
 def load_bfm_model() -> BFMModel:
     """🚪 ENTRY POINT (программный) → Загрузить (с кэшированием в памяти) BFM-геометрию.
 
@@ -108,8 +172,7 @@ def load_bfm_model() -> BFMModel:
     with _lock:
         if _cached_model is not None:
             return _cached_model
-        npy_path = _extract_face_model_npy()
-        raw: dict[str, Any] = np.load(npy_path, allow_pickle=True).item()
+        raw = _load_raw_arrays()
 
         n_vertices = 35709
         mean_shape = np.asarray(raw["u"], np.float32).reshape(n_vertices, 3)

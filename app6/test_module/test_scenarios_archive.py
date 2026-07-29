@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-import tarfile
+import os
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +18,7 @@ import pytest
 from app6.stage2.core import build_coordinate_zone_map, compare_landmarks
 from app6.stage2.irreversible_return import detect_irreversible_return
 from app6.test_module.archive_adapter import (
+    safe_extract_archive,
     POSE_BINS,
     archive_summary,
     group_by_person_pose,
@@ -25,16 +26,41 @@ from app6.test_module.archive_adapter import (
     with_synthetic_dates,
 )
 
-ARCHIVE_TARBALL = Path(__file__).resolve().parents[2] / "selected_photos_7x9x3_data.tar.gz"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+#: Архив ландмарок 7×9×3. Не хранится в git (`.gitignore: *.tar.gz`) — это
+#: внешний вход исследования, а не артефакт репозитория. Путь переопределяется
+#: переменной окружения DEEPUTIN_SCENARIO_ARCHIVE.
+ARCHIVE_TARBALL = Path(
+    os.environ.get("DEEPUTIN_SCENARIO_ARCHIVE")
+    or PROJECT_ROOT / "selected_photos_7x9x3_data.tar.gz"
+)
+
+#: DEV_FIX_TZ B1 / P1.10: причина пропуска должна быть выполнимой инструкцией,
+#: а не констатацией «недоступен». Синтезировать архив из
+#: `calibration_dataset/person_*/frame_*/` НЕЛЬЗЯ: `app6/AGENTS.md` прямо
+#: помечает этот набор как устаревший pre-extracted с невыровненными
+#: landmarks, и подмена им реальных данных превратила бы 27 сценарных тестов
+#: в самообман (зелёный результат на данных, которые сам проект признал
+#: непригодными).
+_SKIP_REASON = (
+    f"сценарный архив ландмарок не найден: {ARCHIVE_TARBALL}\n"
+    "Это внешний вход исследования, он намеренно не хранится в git "
+    "(.gitignore: *.tar.gz). Чтобы включить эти 27 тестов:\n"
+    "  1) положите selected_photos_7x9x3_data.tar.gz в корень репозитория, ИЛИ\n"
+    "  2) укажите путь: DEEPUTIN_SCENARIO_ARCHIVE=/path/to/archive.tar.gz pytest ...\n"
+    "Ожидаемое содержимое: 188 записей (7 персон × 9 ракурсов × ~3 кадра) в "
+    "раскладке person_XX__frame_YYYYYY/ с metadata.json (см. archive_adapter). "
+    "Заменять его calibration_dataset/person_*/frame_*/ нельзя: AGENTS.md "
+    "помечает тот набор как устаревший с невыровненными landmarks."
+)
 
 
 @pytest.fixture(scope="module")
 def archive_records(tmp_path_factory):
     if not ARCHIVE_TARBALL.is_file():
-        pytest.skip("архив selected_photos_7x9x3_data.tar.gz недоступен")
+        pytest.skip(_SKIP_REASON)
     extract_dir = tmp_path_factory.mktemp("archive")
-    with tarfile.open(ARCHIVE_TARBALL) as tar:
-        tar.extractall(extract_dir)
+    safe_extract_archive(ARCHIVE_TARBALL, extract_dir)
     return load_archive_records(extract_dir)
 
 

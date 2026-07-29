@@ -46,8 +46,15 @@ def parse_photo_name(path: Path) -> PhotoName:
     if parsed is None:
         raise ValueError(f"invalid filename; could not parse date: {path.name}")
 
+    # DEV_FIX_TZ (найдено тестом P2.13): вариант "-copy"/"_copy" описан в
+    # docstring как поддерживаемый, но не содержит числовых групп n1/n2 —
+    # прежний код падал на нём с TypeError вместо возврата sequence=1.
+    # Отсутствующий номер копии означает первую копию, а не ошибку разбора.
     suffix_match = _COPY_SUFFIX.search(stem[date_end_pos:])
-    seq = int((suffix_match.group("n1") or suffix_match.group("n2")) if suffix_match else 1)
+    seq_text = None
+    if suffix_match:
+        seq_text = suffix_match.group("n1") or suffix_match.group("n2")
+    seq = int(seq_text) if seq_text else 1
     # Весь остаток имени после даты (кроме расширения) идёт в canonical_stem,
     # чтобы папка называлась ТОЧНО как фото (напр. 2025_03_27_y5p10r0).
     # Пробелы и скобки нормализуются в подчёркивания.

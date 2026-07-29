@@ -6,15 +6,24 @@ from PIL import Image
 from types import SimpleNamespace
 import torch.nn.functional as F
 
-TDDFA = "/Users/victorkhudyakov/work/3ddfa_v3"
-FFHQ  = "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles"
-PHOTO_DIR = f"{FFHQ}/е1"
-OUT = f"{FFHQ}/uv_atlas"
+# DEV_FIX_TZ B4/P1.14: абсолютные пути к машине разработчика заменены на
+# расчёт от расположения файла (+ env TDDFA_ROOT). Инициализация моделей
+# 3DDFA выполняется в `pushd`, т.к. апстрим грузит веса по относительным
+# путям "assets/..."; парные os.chdir внутри функций сохранены — они
+# симметричны и теперь оперируют портируемыми абсолютными путями.
+from pathlib import Path  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import FFHQ_ROOT, pushd, tddfa_root  # noqa: E402
+
+TDDFA = str(tddfa_root())
+FFHQ = str(FFHQ_ROOT)
+PHOTO_DIR = sys.argv[1] if len(sys.argv) > 1 else f"{FFHQ}/е1"
+OUT = sys.argv[2] if len(sys.argv) > 2 else f"{FFHQ}/uv_atlas"
 os.makedirs(OUT, exist_ok=True)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ── Init 3DDFA ──
-os.chdir(TDDFA); sys.path.insert(0, TDDFA)
+sys.path.insert(0, TDDFA)
 from face_box import face_box
 from model.recon import face_model
 from util.cpu_renderer import MeshRenderer_UV_cpu
@@ -22,15 +31,16 @@ from util.cpu_renderer import MeshRenderer_UV_cpu
 args = SimpleNamespace(device=device, iscrop=True, detector="retinaface",
     backbone="resnet50", ldm68=False, ldm106=False, ldm106_2d=False, ldm134=False,
     seg=False, seg_visible=False, useTex=False, extractTex=False)
-recon_model = face_model(args)
-facebox_detector = face_box(args).detector
+with pushd(TDDFA):
+    recon_model = face_model(args)
+    facebox_detector = face_box(args).detector
 
 # Will be set after first photo
 tri = None
 uv_coords = None
 
 # ── Init wrinkle UNet ──
-os.chdir(FFHQ); sys.path.insert(0, FFHQ)
+sys.path.insert(0, FFHQ)
 from torchvision import transforms
 from unet import UNet
 ckpt = torch.load(f"{FFHQ}/res/cp/wrinkle_model.pth", map_location=device)
