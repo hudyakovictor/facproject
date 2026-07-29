@@ -1,0 +1,6 @@
+{
+  "name": "Forensic Timeline Suite",
+  "description": "Interactive biometric chronoforensics platform analyzing face bone geometry and skin textures across decades.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

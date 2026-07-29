@@ -39,17 +39,22 @@ ZONE_UV_BOXES = {
     "cheekbone_R":         (0.70, 0.35, 0.92, 0.60),
     "cheek_soft_L":        (0.10, 0.18, 0.32, 0.38),
     "cheek_soft_R":        (0.68, 0.18, 0.90, 0.38),
-    "jaw_L":               (0.08, 0.08, 0.35, 0.22),
-    "jaw_R":               (0.65, 0.08, 0.92, 0.22),
-    "jaw_angle_L":         (0.05, 0.05, 0.20, 0.18),
-    "jaw_angle_R":         (0.80, 0.05, 0.95, 0.18),
+    # jaw_* — тело нижней челюсти; jaw_angle_* — угол (gonion) латеральнее и ниже.
+    # Боксы разведены по u, чтобы угол не поглощался телом челюсти (D2).
+    "jaw_L":               (0.14, 0.08, 0.35, 0.22),
+    "jaw_R":               (0.65, 0.08, 0.86, 0.22),
+    "jaw_angle_L":         (0.03, 0.06, 0.14, 0.24),
+    "jaw_angle_R":         (0.86, 0.06, 0.97, 0.24),
     "chin":                (0.30, 0.02, 0.70, 0.15),
-    "temporal_L":          (0.02, 0.45, 0.18, 0.75),
-    "temporal_R":          (0.82, 0.45, 0.98, 0.75),
-    "ligament_orbital_L":  (0.15, 0.45, 0.28, 0.55),
-    "ligament_orbital_R":  (0.72, 0.45, 0.85, 0.55),
-    "ligament_zygomatic_L":(0.10, 0.32, 0.22, 0.45),
-    "ligament_zygomatic_R":(0.78, 0.32, 0.90, 0.45),
+    "temporal_L":          (0.02, 0.52, 0.16, 0.75),
+    "temporal_R":          (0.84, 0.52, 0.98, 0.75),
+    # Орбитальная связка проходит НИЖЕ глазницы (v < orbit v_min = 0.48),
+    # иначе она целиком поглощается orbit_* и вырождается в 0 вершин (D2).
+    "ligament_orbital_L":  (0.16, 0.40, 0.34, 0.47),
+    "ligament_orbital_R":  (0.66, 0.40, 0.84, 0.47),
+    # Скуловая связка — латеральнее и ниже скулы, не пересекается с cheekbone_*.
+    "ligament_zygomatic_L":(0.04, 0.28, 0.16, 0.40),
+    "ligament_zygomatic_R":(0.84, 0.28, 0.96, 0.40),
 }
 
 # Priority order for vertex assignment when zones overlap.
@@ -62,11 +67,13 @@ ZONE_PRIORITY = [
     "nose_bridge_tip",                               # bridge/tip
     "brow_ridge_L", "brow_ridge_R",                  # brows
     "chin",                                          # chin
-    "cheekbone_L", "cheekbone_R",                    # cheekbones
-    "jaw_L", "jaw_R",                                # jaw
-    "jaw_angle_L", "jaw_angle_R",                    # jaw angles
+    # Связки — узкие специфичные ориентиры; они должны забирать свои вершины
+    # раньше широких зон (скула/челюсть), иначе вырождаются в 0 вершин (D2).
     "ligament_orbital_L", "ligament_orbital_R",      # orbital ligaments
     "ligament_zygomatic_L", "ligament_zygomatic_R",  # zygomatic ligaments
+    "jaw_angle_L", "jaw_angle_R",                    # jaw angles
+    "cheekbone_L", "cheekbone_R",                    # cheekbones
+    "jaw_L", "jaw_R",                                # jaw
     "temporal_L", "temporal_R",                      # temples
     "cheek_soft_L", "cheek_soft_R",                  # soft cheeks
     "forehead",                                      # forehead (broad, last)
