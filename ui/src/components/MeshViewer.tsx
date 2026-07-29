@@ -7,16 +7,28 @@ export interface MeshPoint {
   value?: number;
 }
 
+export interface FullMeshData {
+  vertices: [number, number, number][];
+  triangles: [number, number, number][];
+  /** Опционально: значение на вершину для окраски тепловой картой (например, residual). */
+  vertexValues?: number[];
+}
+
 interface Props {
   points106?: [number, number, number][];
   points134?: [number, number, number][];
   heatmapPoints?: MeshPoint[];
+  /** Реальная BFM-топология (35 709 вершин / 70 789 треугольников из /api/v1/photos/{id}/mesh
+   * или /api/v1/compare/full_mesh). Когда задано, рендерится настоящая
+   * поверхность (THREE.Mesh) вместо приближённого k-NN каркаса по landmarks. */
+  fullMesh?: FullMeshData;
   wireframe?: boolean;
   showPoints?: boolean;
   heatmapStops?: { blueCyan: number; cyanGreen: number; greenRed: number; saturatedRed: number; maxReference: number };
   className?: string;
   backgroundColor?: string;
 }
+
 
 const DEFAULT_STOPS = { blueCyan: 0.25, cyanGreen: 0.5, greenRed: 0.75, saturatedRed: 1.0, maxReference: 0.12 };
 
@@ -44,14 +56,16 @@ function heatColor(t: number, stops: typeof DEFAULT_STOPS): THREE.Color {
   return stopsArr[stopsArr.length - 1][1];
 }
 
-/** Реальный 3D-просмотрщик landmark-облака (106/134 точки из API) на three.js.
- * Поддерживает вращение мышью, зум колесом, каркас соединений и тепловую карту
- * по residual/z-score. Это не декоративный SVG — рендерит фактические
- * координаты, полученные от `/api/v1/photos/{id}` или `/api/v1/compare`. */
+/** Реальный 3D-просмотрщик landmark-облака ИЛИ полного BFM-меша на three.js.
+ * Поддерживает вращение мышью, зум колесом, каркас/поверхность и тепловую
+ * карту по residual/z-score. Это не декоративный SVG — рендерит фактические
+ * координаты, полученные от `/api/v1/photos/{id}`, `/api/v1/photos/{id}/mesh`
+ * или `/api/v1/compare[/full_mesh]`. */
 export default function MeshViewer({
-  points106, points134, heatmapPoints, wireframe = true, showPoints = true,
+  points106, points134, heatmapPoints, fullMesh, wireframe = true, showPoints = true,
   heatmapStops = DEFAULT_STOPS, className, backgroundColor = "#0d0d0f",
 }: Props) {
+
   const containerRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<{
     renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera;
@@ -141,10 +155,54 @@ export default function MeshViewer({
     while (state.group.children.length) {
       const child = state.group.children.pop()!;
       state.group.remove(child);
-      if (child instanceof THREE.Points || child instanceof THREE.LineSegments) {
+      if (child instanceof THREE.Points || child instanceof THREE.LineSegments || child instanceof THREE.Mesh) {
         child.geometry.dispose();
         (child.material as THREE.Material).dispose();
       }
+    }
+
+    if (fullMesh && fullMesh.vertices.length > 0) {
+      // ---- Real BFM surface: THREE.Mesh with the authentic 70,789-triangle
+      // topology from 3ddfa_v3/assets/face_model.tar.gz, not an approximation.
+      const vertexCount = fullMesh.vertices.length;
+      const positions = new Float32Array(vertexCount * 3);
+      const colors = new Float32Array(vertexCount * 3);
+      const maxRef = Math.max(1e-6, heatmapStops.maxReference);
+      fullMesh.vertices.forEach(([x, y, z], i) => {
+        positions[i * 3] = x; positions[i * 3 + 1] = y; positions[i * 3 + 2] = z;
+        const raw = fullMesh.vertexValues?.[i];
+        const normalized = raw !== undefined ? raw / maxRef : 0.1;
+        const color = heatColor(normalized, heatmapStops);
+        colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
+      });
+      const indices = new Uint32Array(fullMesh.triangles.length * 3);
+      fullMesh.triangles.forEach(([a, b, c], i) => {
+        indices[i * 3] = a; indices[i * 3 + 1] = b; indices[i * 3 + 2] = c;
+      });
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshStandardMaterial({
+        vertexColors: true, side: THREE.DoubleSide, roughness: 0.75, metalness: 0.05,
+        flatShading: false,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      state.group.add(mesh);
+
+      if (wireframe) {
+        const wireGeometry = new THREE.WireframeGeometry(geometry);
+        const wireMaterial = new THREE.LineBasicMaterial({ color: 0x5591c7, transparent: true, opacity: 0.15 });
+        state.group.add(new THREE.LineSegments(wireGeometry, wireMaterial));
+      }
+
+      if (showPoints) {
+        const pointsMaterial = new THREE.PointsMaterial({ size: 0.008, vertexColors: true, sizeAttenuation: true });
+        state.group.add(new THREE.Points(geometry.clone(), pointsMaterial));
+      }
+      return;
     }
 
     const sourcePoints: MeshPoint[] = heatmapPoints
@@ -169,10 +227,8 @@ export default function MeshViewer({
     }
 
     if (wireframe && sourcePoints.length > 3) {
-      // Простая k-nearest-neighbour "сетка" для визуального каркаса: рисуем
-      // линию к ближайшим 2 точкам каждой вершины. Это не anatomical mesh
-      // topology (для этого нужен BFM face indexing из 3DDFA_V3), а
-      // ориентировочный каркас, достаточный чтобы видеть форму облака.
+      // Приближённый k-NN каркас по landmarks — используется только когда
+      // полная BFM-топология (fullMesh) недоступна для этого фото/пары.
       const linePositions: number[] = [];
       for (let i = 0; i < sourcePoints.length; i++) {
         const distances: { j: number; d: number }[] = [];
@@ -194,7 +250,8 @@ export default function MeshViewer({
       const lineMaterial = new THREE.LineBasicMaterial({ color: 0x5591c7, transparent: true, opacity: 0.35 });
       state.group.add(new THREE.LineSegments(lineGeometry, lineMaterial));
     }
-  }, [points106, points134, heatmapPoints, wireframe, showPoints, heatmapStops]);
+  }, [points106, points134, heatmapPoints, fullMesh, wireframe, showPoints, heatmapStops]);
+
 
   return <div ref={containerRef} className={className} style={{ width: "100%", height: "100%" }} />;
 }

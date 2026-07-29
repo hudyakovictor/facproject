@@ -5,7 +5,19 @@ import PairCompareView from "../components/PairCompareView";
 import * as api from "../api";
 import type { Photo } from "../data";
 
+// jsdom has no WebGL context, so the real three.js MeshViewer would throw.
+// These tests exercise data flow (which API calls happen, in what order),
+// not 3D rendering — that's covered by manual/production verification and
+// the pure-function heatColor tests. Mocking here keeps the test honest
+// about what it verifies instead of silently disabling WebGL globally.
+vi.mock("../components/MeshViewer", () => ({
+  default: () => null,
+  heatColor: vi.fn(),
+  DEFAULT_HEATMAP_STOPS: { blueCyan: 0.25, cyanGreen: 0.5, greenRed: 0.75, saturatedRed: 1, maxReference: 0.12 },
+}));
+
 afterEach(() => vi.restoreAllMocks());
+
 
 function samplePhoto(id: string, bucket: Photo["bucket"]): Photo {
   return {
@@ -50,5 +62,46 @@ describe("PairCompareView", () => {
     await user.click(screen.getByRole("button", { name: /СРАВНИТЬ/i }));
 
     await waitFor(() => expect(screen.getByText(/Pазные ракурсы|Разные ракурсы/)).toBeInTheDocument());
+  });
+
+  it("fetches the full BFM mesh only when the toggle is enabled", async () => {
+    const photos = [samplePhoto("A1", "frontal"), samplePhoto("A2", "frontal")];
+    vi.spyOn(api, "fetchSettings").mockResolvedValue({
+      schema: "s", heatmap: { stop_blue_cyan: 0.25, stop_cyan_green: 0.5, stop_green_red: 0.75, stop_saturated_red: 1, max_residual_reference: 0.12 },
+      thresholds: { confidence_min: 0, quality_min: 0, geometry_zone_delta_limit: 0.018, texture_zone_delta_limit: 0.04, expression_smile: 0.92, expression_jaw_open: 0.28 },
+      detail_level: "standard", language: "ru",
+    });
+    vi.spyOn(api, "comparePhotos").mockResolvedValue({
+      schema: "s", status: "measured", metrics: { ldm134_rmse: 0.01 }, zones: [], diagnostics: {}, not_a_verdict: true,
+      heatmap_points: [{ index: 0, x: 0, y: 0, z: 0, residual: 0.01 }],
+      heatmap_stats: { min: 0, max: 0.01, median: 0.005, p95: 0.009 },
+      source_mode: "demo",
+      photo_a: { id: "A1", date: "1999-01-01", bucket: "frontal" },
+      photo_b: { id: "A2", date: "1999-01-01", bucket: "frontal" },
+    });
+    const fullMeshSpy = vi.spyOn(api, "comparePhotosFullMesh").mockResolvedValue({
+      schema: "s-full-mesh", vertex_count: 4, triangle_count: 1,
+      vertices_a: [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]],
+      residuals: [0.01, 0.02, 0.03, 0.04],
+      triangles: [[0, 1, 2]],
+      primary_zone_ids: ["A01"], primary_zone_names: ["forehead_left"], primary_triangle_zone: [0],
+      residual_stats: { min: 0.01, max: 0.04, median: 0.025, p95: 0.038 },
+      not_a_verdict: true, note: "test", source_mode: "demo",
+      photo_a: { id: "A1", date: "1999-01-01", bucket: "frontal" },
+      photo_b: { id: "A2", date: "1999-01-01", bucket: "frontal" },
+    });
+
+    const user = userEvent.setup();
+    render(<PairCompareView photos={photos} />);
+
+    // Without the toggle, full mesh must not be requested.
+    await user.click(screen.getByRole("button", { name: /СРАВНИТЬ/i }));
+    await waitFor(() => expect(api.comparePhotos).toHaveBeenCalled());
+    expect(fullMeshSpy).not.toHaveBeenCalled();
+
+    // With the toggle enabled, full mesh must be requested.
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: /СРАВНИТЬ/i }));
+    await waitFor(() => expect(fullMeshSpy).toHaveBeenCalledWith("A1", "A2"));
   });
 });

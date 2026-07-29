@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS } from "../data";
 import Icon from "./Icon";
 import { t } from "../i18n";
-import { fetchPhotoDetail, type PhotoDetail } from "../api";
+import { fetchPhotoDetail, fetchPhotoFullMesh, type PhotoDetail, type FullMesh } from "../api";
 import MeshViewer from "./MeshViewer";
 
 interface Props {
@@ -10,29 +10,42 @@ interface Props {
   onClose: () => void;
 }
 
-// Реальный 3D landmark-просмотрщик (three.js, MeshViewer) поверх подлинных
-// координат из /api/v1/photos/{id} (106/134 точки 3DDFA-V3-совместимого
-// контракта). Если API/фото недоступны (например, фронтендовый demo-набор
-// без соответствующего backend-id), используется прежняя иллюстративная
-// 2D-проекция как явно обозначенный fallback, а не тихая подмена данных.
+// Реальный 3D-просмотрщик (three.js, MeshViewer) поверх подлинных координат.
+// Приоритет источников геометрии:
+//   1. full BFM mesh (/api/v1/photos/{id}/mesh) — настоящая топология
+//      35 709 вершин / 70 789 треугольников из 3ddfa_v3/assets/face_model.tar.gz;
+//   2. landmark detail (/api/v1/photos/{id}) — 106/134 точки без топологии;
+//   3. иллюстративная 2D SVG-проекция как явно обозначенный fallback, если
+//      backend недоступен вовсе.
+// Тихая подмена данных не допускается — каждый уровень явно виден в заголовке.
 export default function FullPhotoOverlay({ photo, onClose }: Props) {
   const [meshOn, setMeshOn] = useState(true);
   const [heatmapOn, setHeatmapOn] = useState(true);
   const [landmarksOn, setLandmarksOn] = useState(true);
   const [detail, setDetail] = useState<PhotoDetail | null>(null);
+  const [fullMesh, setFullMesh] = useState<FullMesh | null>(null);
   const [detailStatus, setDetailStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const color = HYPOTHESIS_COLORS[photo.dominant];
 
   useEffect(() => {
     let cancelled = false;
     setDetailStatus("loading");
+    setFullMesh(null);
     fetchPhotoDetail(photo.id)
-      .then(d => { if (!cancelled) { setDetail(d); setDetailStatus("ready"); } })
+      .then(d => {
+        if (cancelled) return;
+        setDetail(d);
+        setDetailStatus("ready");
+        if (d.full_mesh_available) {
+          fetchPhotoFullMesh(photo.id).then(m => { if (!cancelled) setFullMesh(m); }).catch(() => undefined);
+        }
+      })
       .catch(() => { if (!cancelled) setDetailStatus("unavailable"); });
     return () => { cancelled = true; };
   }, [photo.id]);
 
   // 21 zones with z-scores derived from photo
+
   const zones = [
     { name: "orbit_depth", cx: 22, cy: 32, r: 4, z: photo.zOrbitDepth },
     { name: "orbit_depth_r", cx: 38, cy: 32, r: 4, z: photo.zOrbitDepth * 0.9 },
@@ -79,6 +92,7 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
   ];
 
   const hasRealMesh = detailStatus === "ready" && !!detail;
+  const hasFullMesh = hasRealMesh && !!fullMesh;
 
   return (
     <div data-no-pan className="fixed inset-0 z-[100] bg-black/95 flex items-stretch animate-[fadeIn_0.18s_ease-out]">
@@ -88,7 +102,7 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
             <div className="font-display text-lg font-semibold tracking-forensic" style={{ color }}>{photo.id}</div>
             <div className="font-mono text-[11px] text-text-muted">
               {new Date(photo.t).toLocaleDateString("ru-RU")} · {photo.bucket} · качество {photo.quality.toFixed(2)} · {t.fullMeshTitle}
-              {hasRealMesh ? " · real landmarks" : detailStatus === "loading" ? " · loading…" : " · illustrative fallback"}
+              {hasFullMesh ? " · real BFM mesh (35 709 vertices)" : hasRealMesh ? " · real landmarks" : detailStatus === "loading" ? " · loading…" : " · illustrative fallback"}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -105,10 +119,11 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
           {hasRealMesh ? (
             <div className="absolute inset-0" style={{ border: `2px solid ${color}`, background: "#0d0d0f" }}>
               <MeshViewer
-                points134={detail!.landmarks_134}
+                fullMesh={hasFullMesh ? { vertices: fullMesh!.vertices, triangles: fullMesh!.triangles } : undefined}
+                points134={hasFullMesh ? undefined : detail!.landmarks_134}
                 wireframe={meshOn}
                 showPoints={landmarksOn}
-                heatmapPoints={heatmapOn ? detail!.landmarks_134.map(([x, y, z], i) => ({
+                heatmapPoints={!hasFullMesh && heatmapOn ? detail!.landmarks_134.map(([x, y, z], i) => ({
                   x, y, z, value: detail!.visible_134[i] ? 0.02 : 0.1,
                 })) : undefined}
               />
@@ -117,6 +132,7 @@ export default function FullPhotoOverlay({ photo, onClose }: Props) {
             <div className="absolute inset-0" style={{ border: `2px solid ${color}`, background: `radial-gradient(ellipse at 50% 35%, ${color}33, #0d0d0f 70%)` }}>
               <svg viewBox="0 0 60 80" className="absolute inset-0 w-full h-full">
                 <ellipse cx="30" cy="35" rx={16 + photo.cheek * 4} ry={22 + photo.chin * 4} fill={`${color}22`} stroke={color} strokeWidth="0.3" />
+
                 <ellipse cx="22" cy="32" rx="2.5" ry={1.4 + photo.orbit * 1.5} fill={color} fillOpacity="0.8" />
                 <ellipse cx="38" cy="32" rx="2.5" ry={1.4 + photo.orbit * 1.5} fill={color} fillOpacity="0.8" />
                 <path d={`M 22 ${46 + photo.jaw * 4} Q 30 ${50 + photo.chin * 10} 38 ${46 + photo.jaw * 4}`} stroke={color} strokeWidth="0.5" fill="none" />

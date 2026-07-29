@@ -184,6 +184,12 @@ export default function DataManagementView() {
                 {system.model_assets.ready ? t.weightsReady : t.weightsMissing}
               </div>
             </div>
+            <div>
+              <div className="text-text-muted">{t.bfmGeometry}</div>
+              <div style={{ color: system.bfm_geometry_available ? "#6daa45" : "#e8af34" }} className="text-base">
+                {system.bfm_geometry_available ? t.weightsReady : t.weightsMissing}
+              </div>
+            </div>
           </div>
         </div>
       )}

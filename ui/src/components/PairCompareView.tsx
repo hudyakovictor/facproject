@@ -3,7 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { Photo } from "../data";
 import Icon from "./Icon";
 import { t } from "../i18n";
-import { comparePhotos, fetchPhotoDetail, fetchSettings, type CompareResult, type AppSettings } from "../api";
+import {
+  comparePhotos, comparePhotosFullMesh, fetchPhotoDetail, fetchSettings,
+  type CompareResult, type FullMeshCompareResult, type AppSettings,
+} from "../api";
 import MeshViewer from "./MeshViewer";
 import SettingsModal from "./SettingsModal";
 
@@ -14,12 +17,18 @@ interface Props {
 /** Реальная попарная страница сравнения (ТЗ: "выбрать фото A и фото B").
  * Использует уже извлечённые landmarks через `/api/v1/compare` — не
  * извлекает 3D-модель заново (умное кэширование из ТЗ обеспечивается тем,
- * что backend переиспользует Record без повторного inference). Тепловая
+ * что backend переиспользует Record без повторного inference). При наличии
+ * BFM-геометрии на backend доступен также режим "полный меш" —
+ * `/api/v1/compare/full_mesh` — настоящая топология 35 709 вершин вместо
+ * landmark-подмножества, ближе к "морфингу двух 3D-моделей" из ТЗ. Тепловая
  * карта настраивается тем же попапом настроек, что и остальной интерфейс. */
 export default function PairCompareView({ photos }: Props) {
   const [photoAId, setPhotoAId] = useState<string>(photos[0]?.id ?? "");
   const [photoBId, setPhotoBId] = useState<string>(photos[1]?.id ?? "");
   const [result, setResult] = useState<CompareResult | null>(null);
+  const [fullMeshResult, setFullMeshResult] = useState<FullMeshCompareResult | null>(null);
+  const [useFullMesh, setUseFullMesh] = useState(false);
+  const [fullMeshUnavailable, setFullMeshUnavailable] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -27,14 +36,24 @@ export default function PairCompareView({ photos }: Props) {
 
   useEffect(() => { fetchSettings().then(setSettings).catch(() => undefined); }, []);
 
-
   const options = useMemo(() => photos.slice(0, 500).map(p => ({ id: p.id, label: `${p.id} · ${p.date} · ${p.bucket}` })), [photos]);
 
   const runCompare = async () => {
     setStatus("loading");
+    setResult(null);
+    setFullMeshResult(null);
     try {
       const compareResult = await comparePhotos(photoAId, photoBId);
       setResult(compareResult);
+      if (useFullMesh && compareResult.status === "measured") {
+        try {
+          const meshResult = await comparePhotosFullMesh(photoAId, photoBId);
+          setFullMeshResult(meshResult);
+          setFullMeshUnavailable(false);
+        } catch {
+          setFullMeshUnavailable(true);
+        }
+      }
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -78,13 +97,22 @@ export default function PairCompareView({ photos }: Props) {
         </div>
       </div>
 
-      <button onClick={runCompare} disabled={status === "loading" || !photoAId || !photoBId}
-        className="px-4 py-2 font-mono text-[10px] tracking-forensic border border-info/50 bg-info/20 hover:bg-info/40 disabled:opacity-50 mb-5">
-        {status === "loading" ? t.comparing : t.runCompare}
-      </button>
+      <div className="flex items-center gap-4 mb-5">
+        <button onClick={runCompare} disabled={status === "loading" || !photoAId || !photoBId}
+          className="px-4 py-2 font-mono text-[10px] tracking-forensic border border-info/50 bg-info/20 hover:bg-info/40 disabled:opacity-50">
+          {status === "loading" ? t.comparing : t.runCompare}
+        </button>
+        <label className="flex items-center gap-2 font-mono text-[10px] text-text-muted cursor-pointer">
+          <input type="checkbox" checked={useFullMesh} onChange={e => setUseFullMesh(e.target.checked)} />
+          {t.fullMeshToggle}
+        </label>
+      </div>
 
       {status === "error" && (
         <div className="bg-critical/15 border border-critical p-2 font-mono text-[10px] text-critical mb-4">{errorMessage}</div>
+      )}
+      {fullMeshUnavailable && (
+        <div className="bg-warning/15 border border-warning p-2 font-mono text-[10px] text-warning mb-4">{t.fullMeshUnavailable}</div>
       )}
 
       {result && result.status === "pose_mismatch" && (
@@ -103,21 +131,42 @@ export default function PairCompareView({ photos }: Props) {
       {result && result.status === "measured" && (
         <div className="grid grid-cols-[1fr_320px] gap-4">
           <div className="bg-surface border border-border" style={{ height: 480 }}>
-            <MeshViewer
-              heatmapPoints={result.heatmap_points.map(p => ({ x: p.x, y: p.y, z: p.z, value: p.residual }))}
-              heatmapStops={stops}
-              wireframe
-            />
+            {fullMeshResult ? (
+              <MeshViewer
+                fullMesh={{
+                  vertices: fullMeshResult.vertices_a,
+                  triangles: fullMeshResult.triangles,
+                  vertexValues: fullMeshResult.residuals,
+                }}
+                heatmapStops={stops}
+                wireframe
+              />
+            ) : (
+              <MeshViewer
+                heatmapPoints={result.heatmap_points.map(p => ({ x: p.x, y: p.y, z: p.z, value: p.residual }))}
+                heatmapStops={stops}
+                wireframe
+              />
+            )}
           </div>
           <aside className="space-y-3">
             <div className="bg-surface border border-border p-3">
-              <div className="font-mono text-[9px] tracking-forensic text-text-muted mb-1">{t.heatmapView}</div>
-              {result.heatmap_stats && (
+              <div className="font-mono text-[9px] tracking-forensic text-text-muted mb-1">
+                {t.heatmapView} {fullMeshResult && <span className="text-info">· BFM {fullMeshResult.vertex_count}v</span>}
+              </div>
+              {(fullMeshResult?.residual_stats ?? result.heatmap_stats) && (
                 <div className="font-mono text-[10px] space-y-1">
-                  <div className="flex justify-between"><span className="text-text-muted">min</span><span>{result.heatmap_stats.min.toFixed(4)}</span></div>
-                  <div className="flex justify-between"><span className="text-text-muted">median</span><span>{result.heatmap_stats.median.toFixed(4)}</span></div>
-                  <div className="flex justify-between"><span className="text-text-muted">p95</span><span>{result.heatmap_stats.p95.toFixed(4)}</span></div>
-                  <div className="flex justify-between"><span className="text-text-muted">max</span><span>{result.heatmap_stats.max.toFixed(4)}</span></div>
+                  {(() => {
+                    const stats = fullMeshResult?.residual_stats ?? result.heatmap_stats!;
+                    return (
+                      <>
+                        <div className="flex justify-between"><span className="text-text-muted">min</span><span>{stats.min.toFixed(4)}</span></div>
+                        <div className="flex justify-between"><span className="text-text-muted">median</span><span>{stats.median.toFixed(4)}</span></div>
+                        <div className="flex justify-between"><span className="text-text-muted">p95</span><span>{stats.p95.toFixed(4)}</span></div>
+                        <div className="flex justify-between"><span className="text-text-muted">max</span><span>{stats.max.toFixed(4)}</span></div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -134,6 +183,7 @@ export default function PairCompareView({ photos }: Props) {
             </div>
             <div className="bg-surface-2 border border-border p-2 font-mono text-[9px] text-text-faint">
               not_a_verdict: {String(result.not_a_verdict)}
+              {fullMeshResult && <div className="mt-1">{fullMeshResult.note}</div>}
             </div>
           </aside>
         </div>
