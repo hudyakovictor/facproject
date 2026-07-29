@@ -65,6 +65,7 @@ def _gpu_status() -> dict[str, Any]:
 def build_system_health(project_root: Path) -> dict[str, Any]:
     assets_dir = project_root / "assets"
     missing_weights = [name for name in REQUIRED_MODEL_ASSETS if not (assets_dir / name).is_file()]
+    from .bfm_topology import is_bfm_available
 
     return {
         "schema": SYSTEM_HEALTH_SCHEMA,
@@ -79,5 +80,7 @@ def build_system_health(project_root: Path) -> dict[str, Any]:
             "missing": missing_weights,
             "ready": not missing_weights,
         },
+        "bfm_geometry_available": is_bfm_available(),
         "calibration_dataset_present": (project_root / "calibration_dataset" / "all_calibration_index.csv").is_file(),
     }
+

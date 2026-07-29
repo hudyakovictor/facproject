@@ -149,7 +149,12 @@ def test_upload_rejects_invalid_filename(client: TestClient, tmp_path: Path) -> 
 
 
 def test_upload_accepts_valid_filename_and_dedups(client: TestClient) -> None:
-    files = {"file": ("1999_08_09.jpg", b"unique content for dedup test", "image/jpeg")}
+    # Unique content per test run avoids cross-run collisions with content
+    # under runs/api_uploads/ (the endpoint intentionally dedups by content
+    # hash, not by test-run identity — see server.py upload_photo()).
+    import time
+    unique_content = f"unique content for dedup test {time.time_ns()}".encode()
+    files = {"file": ("1999_08_09.jpg", unique_content, "image/jpeg")}
     first = client.post("/api/v1/photos/upload", files=files)
     assert first.status_code == 200
     assert first.json()["stored"] is True
@@ -158,6 +163,7 @@ def test_upload_accepts_valid_filename_and_dedups(client: TestClient) -> None:
     assert second.status_code == 200
     assert second.json()["stored"] is False
     assert second.json()["photo_id"] == first.json()["photo_id"]
+
 
 
 def test_extract_job_reports_blocked_without_weights(client: TestClient, tmp_path: Path) -> None:
@@ -194,3 +200,55 @@ def test_data_clear_never_touches_source_photos(client: TestClient, tmp_path: Pa
 def test_delete_photo_without_stage1_root_rejected(client: TestClient) -> None:
     response = client.delete("/api/v1/photos/DEMO_00000")
     assert response.status_code == 409
+
+
+def test_full_mesh_endpoint_returns_real_bfm_topology(client: TestClient) -> None:
+    photos = client.get("/api/v1/photos").json()["photos"]
+    photo_id = photos[0]["id"]
+    response = client.get(f"/api/v1/photos/{photo_id}/mesh")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["vertices"]) == 35709
+    assert len(body["triangles"]) == 70789
+    assert len(body["primary_zone_ids"]) == 20
+    assert body["primary_zone_ids"][0] == "A01"
+
+
+def test_large_mesh_responses_are_gzip_compressed(client: TestClient) -> None:
+    """3.7 MB JSON per full mesh must be compressed, or 3D views are needlessly heavy."""
+    photos = client.get("/api/v1/photos").json()["photos"]
+    photo_id = photos[0]["id"]
+    response = client.get(f"/api/v1/photos/{photo_id}/mesh", headers={"Accept-Encoding": "gzip"})
+    assert response.status_code == 200
+    assert response.headers.get("content-encoding") == "gzip"
+
+
+def test_full_mesh_endpoint_404_for_unknown_photo(client: TestClient) -> None:
+    response = client.get("/api/v1/photos/NOT_REAL/mesh")
+    assert response.status_code == 404
+
+
+def test_compare_full_mesh_returns_real_topology_and_residuals(client: TestClient) -> None:
+    photos = client.get("/api/v1/photos").json()["photos"]
+    era1 = next(p for p in photos if p["era"] == "DEMO_SEGMENT_1")
+    era3 = next(p for p in photos if p["era"] == "DEMO_SEGMENT_3")
+    response = client.post("/api/v1/compare/full_mesh", json={"photo_a": era1["id"], "photo_b": era3["id"]})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["vertex_count"] == 35709
+    assert body["triangle_count"] == 70789
+    assert len(body["residuals"]) == 35709
+    assert body["residual_stats"]["max"] > 0
+    assert body["not_a_verdict"] is True
+
+
+def test_compare_full_mesh_unknown_photo_404(client: TestClient) -> None:
+    response = client.post("/api/v1/compare/full_mesh", json={"photo_a": "NOPE", "photo_b": "ALSO_NOPE"})
+    assert response.status_code == 404
+
+
+def test_photo_detail_reports_full_mesh_availability(client: TestClient) -> None:
+    photos = client.get("/api/v1/photos").json()["photos"]
+    response = client.get(f"/api/v1/photos/{photos[0]['id']}")
+    assert "full_mesh_available" in response.json()
+

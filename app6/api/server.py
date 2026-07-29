@@ -20,15 +20,17 @@ from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app6.stage1.naming import make_photo_id, parse_photo_name
 from app6.stage1.utils import digest_file
 
+from .bfm_topology import is_bfm_available
 from .calibration import load_calibration_health
-from .compare import compare_records
-from .demo_data import DemoPhoto, build_demo_records, build_demo_zone_maps
+from .compare import compare_records, full_mesh_compare
+from .demo_data import DemoPhoto, build_demo_records, build_demo_zone_maps, full_mesh_for_photo
 from .jobs import JobManager, make_extract_runner, make_recompute_metrics_runner
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
 from .system_health import build_system_health
@@ -45,6 +47,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# 💡 NOTE: полный BFM-меш (~3.7 MB JSON на фото — 35 709 вершин + 70 789
+# треугольников) сжимается более чем в 10 раз gzip'ом. Без этого middleware
+# каждый запрос 3D Inspector/Compare был бы неоправданно тяжёлым по сети.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 _job_manager = JobManager()
 
@@ -157,7 +163,26 @@ def get_photo(photo_id: str) -> dict[str, Any]:
         "landmarks_106": record.ldm106.tolist(),
         "landmarks_134": record.ldm134.tolist(),
         "visible_134": record.visible134.tolist(),
+        "full_mesh_available": is_bfm_available(),
     }
+
+
+@app.get("/api/v1/photos/{photo_id}/mesh")
+def get_photo_full_mesh(photo_id: str) -> dict[str, Any]:
+    """🚪 API → Полный BFM-меш (35 709 вершин, реальная топология) для 3D Inspector.
+
+    Использует ту же геометрическую модель, что и продакшн Stage 1
+    (`3ddfa_v3/assets/face_model.tar.gz`), без запуска нейросети — только
+    линейная реконструкция формы из уже известного `alpha_id`.
+    """
+    by_id = _get_demo_photos() and _demo_cache["by_id"]
+    photo = by_id.get(photo_id)
+    if photo is None:
+        raise HTTPException(status_code=404, detail=f"photo not found: {photo_id}")
+    if not is_bfm_available():
+        raise HTTPException(status_code=503, detail="BFM geometry (face_model.tar.gz) unavailable in this environment")
+    mesh = full_mesh_for_photo(photo)
+    return {"schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True, "id": photo.id, **mesh}
 
 
 class UploadResponse(BaseModel):
@@ -241,6 +266,29 @@ def compare_pair(request: ComparePairRequest) -> dict[str, Any]:
         missing = [pid for pid in (request.photo_a, request.photo_b) if pid not in by_id]
         raise HTTPException(status_code=404, detail=f"unknown photo id(s): {missing}")
     result = compare_records(photo_a.record, photo_b.record)
+    result["source_mode"] = "demo"
+    result["photo_a"] = {"id": photo_a.id, "date": photo_a.date, "bucket": photo_a.pose_bin}
+    result["photo_b"] = {"id": photo_b.id, "date": photo_b.date, "bucket": photo_b.pose_bin}
+    return result
+
+
+@app.post("/api/v1/compare/full_mesh")
+def compare_pair_full_mesh(request: ComparePairRequest) -> dict[str, Any]:
+    """🚪 API → Полное BFM-сравнение (35 709 вершин) для морфинга/3D Inspector.
+
+    В отличие от `/api/v1/compare` (134 landmarks), здесь выравнивается и
+    сравнивается вся identity-форма (без мимики) с подлинной топологией
+    треугольников — то, что нужно для настоящего 3D-морфинга A→B из ТЗ.
+    """
+    by_id = _get_demo_photos() and _demo_cache["by_id"]
+    photo_a = by_id.get(request.photo_a)
+    photo_b = by_id.get(request.photo_b)
+    if photo_a is None or photo_b is None:
+        missing = [pid for pid in (request.photo_a, request.photo_b) if pid not in by_id]
+        raise HTTPException(status_code=404, detail=f"unknown photo id(s): {missing}")
+    result = full_mesh_compare(photo_a, photo_b)
+    if result is None:
+        raise HTTPException(status_code=503, detail="BFM geometry (face_model.tar.gz) unavailable in this environment")
     result["source_mode"] = "demo"
     result["photo_a"] = {"id": photo_a.id, "date": photo_a.date, "bucket": photo_a.pose_bin}
     result["photo_b"] = {"id": photo_b.id, "date": photo_b.date, "bucket": photo_b.pose_bin}

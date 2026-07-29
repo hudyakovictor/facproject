@@ -108,16 +108,63 @@ export async function comparePhotos(photoA: string, photoB: string): Promise<Com
   });
 }
 
+export interface FullMeshCompareResult {
+  schema: string;
+  vertex_count: number;
+  triangle_count: number;
+  vertices_a: [number, number, number][];
+  residuals: number[];
+  triangles: [number, number, number][];
+  primary_zone_ids: string[];
+  primary_zone_names: string[];
+  primary_triangle_zone: number[];
+  residual_stats: { min: number; max: number; median: number; p95: number };
+  not_a_verdict: boolean;
+  note: string;
+  source_mode: string;
+  photo_a: { id: string; date: string; bucket: string };
+  photo_b: { id: string; date: string; bucket: string };
+}
+
+/** Полное BFM-сравнение (35 709 вершин, реальная топология BFM) — для
+ * морфинга/3D Inspector. Бросает исключение с понятным сообщением, если
+ * BFM-геометрия недоступна на backend (HTTP 503) — вызывающий код обязан
+ * явно обработать это состояние, а не тихо падать в пустой экран. */
+export async function comparePhotosFullMesh(photoA: string, photoB: string): Promise<FullMeshCompareResult> {
+  return apiJson<FullMeshCompareResult>("/api/v1/compare/full_mesh", {
+    method: "POST",
+    body: JSON.stringify({ photo_a: photoA, photo_b: photoB }),
+  });
+}
+
 export interface PhotoDetail {
   id: string; date: string; bucket: string; era: string;
   angles: { pitch: number; yaw: number; roll: number };
   landmarks_106: [number, number, number][];
   landmarks_134: [number, number, number][];
   visible_134: boolean[];
+  full_mesh_available: boolean;
 }
 
 export async function fetchPhotoDetail(photoId: string): Promise<PhotoDetail> {
   return apiJson<PhotoDetail>(`/api/v1/photos/${encodeURIComponent(photoId)}`);
+}
+
+export interface FullMesh {
+  id: string;
+  vertices: [number, number, number][];
+  triangles: [number, number, number][];
+  ldm106_indices: number[];
+  ldm134_indices: number[];
+  primary_triangle_zone: number[];
+  primary_zone_ids: string[];
+  primary_zone_names: string[];
+}
+
+/** Полный BFM-меш одного фото (35 709 вершин, реальная топология) для
+ * настоящего 3D-просмотра вместо landmark-приближения. */
+export async function fetchPhotoFullMesh(photoId: string): Promise<FullMesh> {
+  return apiJson<FullMesh>(`/api/v1/photos/${encodeURIComponent(photoId)}/mesh`);
 }
 
 export interface CalibrationBucket {
@@ -143,6 +190,7 @@ export interface SystemHealth {
   resources: { available: boolean; cpu_percent?: number; process_rss_mb?: number; system_memory_percent?: number; system_memory_total_gb?: number };
   gpu: { available: boolean; cuda_available?: boolean; device_count?: number; device_name?: string | null };
   model_assets: { required: string[]; missing: string[]; ready: boolean };
+  bfm_geometry_available: boolean;
   calibration_dataset_present: boolean;
 }
 
