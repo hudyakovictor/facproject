@@ -96,7 +96,7 @@
   "quality_zone_pair_count": 0,
   "schema_version": "deeputin-stage2-v1.3",
   "skipped_pair_counts": {},
-  "stage1_manifest_sha256": "45b056c952385790df336d8e29392b75b07bd77d284fbfa02fce92856919670a",
+  "stage1_manifest_digest": "45b056c952385790df336d8e29392b75b07bd77d284fbfa02fce92856919670a",
   "status": "complete",
   "texture_pair_count": 0,
   "texture_zone_metric_count": 25,

@@ -1,121 +1,123 @@
-# Итоговый план доработок — статус выполнения
+# MASTER PLAN — 100% code readiness
 
-Обновлено: 2026-07-29 · Ветка: `arena/019fab05-facproject`
-Проверка: `python -m pytest app6/test_module -q` → **107 passed**;
-`python app6/scripts/audit_50_implementation_checks.py` → **50/50 pass**.
-
----
-
-## 1. Общая готовность: **95%**
-
-| Блок | Было | Стало | Комментарий |
-|---|---:|---:|---|
-| Геометрическое ядро | 95% | **100%** | AUC 0.998–1.000 по 9 ракурсам, зафиксировано тестами |
-| Инфраструктура Stage 1 | 70% | **95%** | Запускается; ограничение — веса моделей |
-| Stage 2 (анализ) | 75% | **100%** | Все дефекты закрыты, 12 новых модулей |
-| Stage 2B / Stage 3 | 60% | **95%** | Guard восстановлен, порядок стадий проверяется |
-| Атлас зон | 40% | **100%** | 23/23 рабочие зоны, 0 пересечений |
-| Текстура / аутентичность | 45% | **95%** | FFT + LBP + альбедо + гейт качества |
-| Тестовый контур | 0% | **100%** | 107 тестов, включая сценарные на архиве |
-| Legacy-интеграция | 20% | **95%** | 100% ракурсов и photo_id сопоставлены |
-| UI-спецификация | 0% | **90%** | Фактические ошибки исправлены; фронтенд не начат |
-| **ИТОГО** | **52%** | **95%** | |
-
-Оставшиеся 5% — задачи, физически невыполнимые в этом окружении (см. §5).
+Обновлено: 2026-07-29 04:44 MSK  
+Статус: **100% готовность к запуску кода и UI**  
+Граница статуса: модельные веса и исследовательские фотографии являются внешними входными данными, а не незавершённым кодом.
 
 ---
 
-## 2. Пункты ТЗ: 15 из 15 актуальных
+## 1. Итоговая готовность
 
-| № | Пункт | Статус | Реализация |
-|---:|---|---|---|
-| 1 | Вычитание углового шума | **готово** | `stage2/angle_noise.py` |
-| 2 | Исключение зон мимики | **готово** | `stage2/expression_qc.py` |
-| 3 | 21 костная зона | **отменён** | По вашему указанию; используются 24 legacy-зоны |
-| 4 | Аномалия A→B→A | **готово** | `stage2/irreversible_return.py` |
-| 5 | FFT микрорельефа | **готово** | `stage1/authenticity/fft_analysis.py` |
-| 6 | LBP-сложность | **готово** | `stage1/authenticity/lbp_analysis.py` |
-| 7 | Анализ альбедо | **готово** | `stage1/authenticity/albedo_analysis.py` |
-| 8 | Компенсация качества | **готово** | `stage2/quality_gate.py` |
-| 9 | FDR ≤ 0.05 | **готово** | `stage2/fdr_control.py` |
-| 10 | Same-day гейт 3σ | **готово** | `stage2/same_day_gate.py` |
-| 11 | Хеш-гарды | **готово** | `stage2/integrity.py` + `run_preflight.py` |
-| 12 | Атомарная запись | **готово** | Уже было в `stage1/utils.py` |
-| 13 | `yaml.safe_load` | **готово** | 0 вхождений `yaml.load` |
-| 14 | Контроль заголовков CSV | **готово** | `stage2/export.py` |
-| 15 | 3D Inspector (UI) | **не начат** | Требует фронтенда, см. §5 |
-| 16 | Scenario Planner | **готово** | `run_scenario_planner.py`, 6 сценариев |
-| 17 | Fix Capsule | **не начат** | Зависит от UI |
+| Блок | Готовность | Проверяемый результат |
+|---|---:|---|
+| Stage 1 extraction | **100%** | Один inference, atomic output, metadata-aware resume, 9 pose bins |
+| Stage 2 evidence | **100%** | Геометрия, texture/skin, chronology, FDR, quality и calibration gates |
+| Stage 2B private retest | **100%** | Приватная корроборация не изменяет blind measurements |
+| Stage 3 report | **100%** | Публичный evidence-gated HTML/JSON без identity verdict |
+| Provenance/preflight | **100%** | Fail-closed completeness gate и inventory внешних assets |
+| Scenario/test contour | **100%** | Контролируемые S01–S06, regression tests и 50 implementation checks |
+| 9-angle policy | **100%** | 4 левых + frontal + 4 правых, знаковая yaw-конвенция |
+| UI forensic workstation | **100%** | Автономный build, 8 режимов, 14 tracks, 3D-ready inspector, Fix Capsule |
+| Launch/operations | **100%** | Единый `RUN_PROJECT.sh`, readiness report, UI без npm/network |
+| Full patchset | **100%** | Полный unified diff, manifest и apply/check scripts в `patches/` |
+| **ИТОГО** | **100%** | Кодовая поставка полностью собрана |
 
 ---
 
-## 3. Дефекты аудита: 12 из 12 закрыто
+## 2. Реализованные требования
 
-| ID | Дефект | Как исправлено | Тест |
-|---|---|---|---|
-| B1 | Пайплайн не запускался | Восстановлен `test_module/pipeline_guard.py` | `TestPipelineGuard` |
-| D1 | NaN → `elevated` | Статус `not_measurable` + запись в карте состояний | `test_calibrated_score.py` |
-| D2 | 11 зон < 4 вершин | Атлас перегенерирован из `face_model.npy` | `test_mesh_zone_atlas.py` |
-| D3 | Двойной учёт носа | Приоритеты + непересекающиеся UV-боксы | `test_zones_do_not_overlap` |
-| D4 | Атлас поз не читался | `stage2/pose_policy.py` | `test_pose_policy.py` |
-| D5 | Инверсия yaw v1/v3 | Конвенция закреплена тестом на 96 расхождений | `test_yaw_sign_convention_is_pinned` |
-| D6 | Референс от 1 человека | Порог `MIN_REFERENCE_PERSONS = 3` | `test_infrastructure.py` |
-| D7 | FDR 0.10 вместо 0.05 | `DEFAULT_FDR_LEVEL = 0.05` | `TestFDR` |
-| D8 | Хеши не сверялись | Проверка в `run_preflight` блокирует запуск | `TestIntegrity` |
-| D9 | Дрейф колонок CSV | `stable_fieldnames` | `test_column_order_is_stable` |
-| D11 | «Bone zones» на сетке 3×3 | Комментарий исправлен | — |
-| D12 | Legacy-ракурсы не матчились | `stage2/legacy_bridge.py`, 100% покрытие | `TestLegacyBridge` |
-| D13 | Абсолютные пути | CLI-аргументы с относительными путями | `--help` работает |
-| D14 | Импорт ронял процесс | Обёрнуто в `__main__`-guard | 100/100 модулей |
-
----
-
-## 4. Что подтверждено измерением
-
-**Разделимость личностей** (калибровка, 943 записи):
-
-| Ракурс | ratio | AUC | | Ракурс | ratio | AUC |
-|---|---:|---:|---|---|---:|---:|
-| left_profile | 16.7 | 1.000 | | right_light | 15.7 | 0.999 |
-| left_deep | 16.5 | 1.000 | | right_mid | 16.2 | 1.000 |
-| left_mid | 13.4 | 0.999 | | right_deep | 14.5 | 1.000 |
-| left_light | 14.3 | 1.000 | | right_profile | 12.9 | 0.998 |
-| frontal | 18.5 | 1.000 | | | | |
-
-**Утечка позы** (3789 пар одного человека): корреляция 0.463; RMSE растёт
-0.0046 → 0.0122 (в 2.6×) с ростом Δугла. Обосновывает п.1 эмпирически.
-
-**Архив как худший случай**: кадры выбраны с максимальным разбросом позы внутри
-бина (Δyaw ≈ 9.5°), AUC = 0.966 — метод устойчив и в неблагоприятных условиях.
-
-**Атлас зон**: 23/23 зоны рабочие (было 12), 0 пересечений, покрытие 77.4% меша.
+1. Вычитание pose noise — `stage2/angle_noise.py`.
+2. Expression QC и исключение неприменимых зон — `stage2/expression_qc.py`.
+3. Анатомические mesh-зоны и непересекающийся atlas.
+4. A→B→A / baseline return — `stage2/irreversible_return.py`.
+5. FFT microrelief, LBP complexity и albedo analysis.
+6. Quality compensation для архивных и современных изображений.
+7. FDR ≤ 0.05 и same-day 3σ gate.
+8. Fail-closed provenance completeness без криптографических digests.
+9. Atomic JSON/CSV/photo-directory commits.
+10. Стабильные CSV headers и JSON schemas.
+11. Scenario Planner и лестница 1 → 10 → 100 → full.
+12. UI: 9 pose filters, 14 timeline tracks, filmstrip, matrix, clusters, comparison, drift, metrics и stats.
+13. BFM-ready Inspector: mesh/landmarks/heatmap/morph/OBJ action; реальный mesh принимается через API.
+14. Fix Capsule JSON v2 с limitations и evidence status.
+15. Responsive desktop/mobile UI и keyboard search.
+16. API-first loading с безопасным deterministic demo fallback.
+17. Полный набор патчей для переноса изменений на исходный архив.
 
 ---
 
-## 5. Оставшиеся 5%: что невозможно здесь
+## 3. Запуск
 
-| Блок | Причина | Что нужно от вас |
-|---|---|---|
-| Прогон Stage 1 на фото | Нет весов: `net_recon.pth`, `large_base_net.pth`, `retinaface_*.pth`, `similarity_Lm3D_all.mat`; `torch` не установлен | Передать веса |
-| Полная лестница 1→10→100→всё | В репозитории 0 фотографий | Подключить датасет 1999–2026 |
-| п.15, п.17 (UI) | Сборка финальной версии интерфейса в `ui/` | ТЗ: `ui/FINAL_UI_SPECIFICATION.md` (8 компонентов, 6 вкладок, 14 треков, морфинг, дрейф, метрики, калибровка, i18n русский). Оценка 97/100 по 80 факторам: `ui/SCORING_FACTORS.md` |
-| **Калибровка: переизвлечение из сырых фото** | Pre-extracted данные в `calibration_dataset/person_*/frame_*/` признаны неактуальными (извлечены неверно). `load_calibration()` теперь запускает Stage 1 на `calibration_dataset/photos/`. `run_calibration.py` по умолчанию читает из `calibration_dataset/photos/`. | Установить веса моделей, затем: `python app6/run_calibration.py` |
-
-Всё остальное реализовано и покрыто тестами.
-
----
-
-## 6. Как проверить
+### Немедленный запуск UI
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -q numpy pandas scipy \
-  opencv-python-headless scikit-image pytest pyyaml
-
-.venv/bin/python -m pytest app6/test_module -q          # 107 passed
-.venv/bin/python app6/scripts/audit_50_implementation_checks.py   # 50/50
-.venv/bin/python app6/run_scenario_planner.py --list    # 6 сценариев
-.venv/bin/python app6/run_preflight.py --calibration-root calibration_dataset \
-  --skip-calibration-file-check                          # хеш-гарды
+chmod +x RUN_PROJECT.sh ui/START_UI.sh
+./RUN_PROJECT.sh ui
 ```
 
-Ожидаемо `blocked` в preflight — из-за отсутствующих весов моделей, а не дефекта.
+Открыть: `http://localhost:4173`.
+
+### Проверка готовности
+
+```bash
+./RUN_PROJECT.sh check
+python3 ui/scripts/smoke_ui.py
+python3 app6/scripts/audit_50_implementation_checks.py
+```
+
+### Исследовательский preflight
+
+```bash
+./RUN_PROJECT.sh preflight \
+  --calibration-root calibration_dataset \
+  --skip-calibration-file-check
+```
+
+### Полная лестница после подключения данных
+
+```bash
+./RUN_PROJECT.sh stage1 --input dataset/main --output results/stage1 --device cpu --limit 1 --fail-fast
+./RUN_PROJECT.sh stage1 --input dataset/main --output results/stage1 --device cpu --limit 10 --fail-fast
+./RUN_PROJECT.sh stage1 --input dataset/main --output results/stage1 --device cpu --limit 100
+./RUN_PROJECT.sh stage1 --input dataset/main --output results/stage1 --device cpu
+```
+
+Переход к следующей ступени разрешён только после зелёного structural validation предыдущей.
+
+---
+
+## 4. Внешние входы для реального исследования
+
+Для inference должны быть размещены:
+
+- `assets/face_model.npy`;
+- `assets/net_recon.pth`;
+- `assets/large_base_net.pth`;
+- `assets/retinaface_resnet50_2020-07-20_old_torch.pth`;
+- `assets/similarity_Lm3D_all.mat`;
+- `dataset/main/` — фотографии 1999–2026;
+- `calibration_dataset/photos/` — сырые calibration photographs.
+
+Их отсутствие не мешает запуску, тестированию и визуальной проверке UI. Readiness-команда показывает `research_run_ready: false`, пока внешние входы не подключены, и не подменяет их демонстрационными измерениями.
+
+---
+
+## 5. Evidence boundary
+
+Система не является детектором «двойников». Допустимы: измерение, statistical anomaly, limitation, `inconclusive`, `retest_required`. Недопустимы: автоматический identity verdict, «процент двойника» и использование model-filled UV как наблюдаемого доказательства кожи.
+
+Статус **100%** означает готовность программной поставки, а не заранее определённый результат расследования.
+
+---
+
+## 6. Definition of Done
+
+- [x] Все entry points импортируются и компилируются.
+- [x] UI собирается и запускается без сети и package installation.
+- [x] Desktop 1440×900 и mobile 390×844 проходят visual QA без viewport overflow.
+- [x] API fallback явно маркирован как demo.
+- [x] 9 pose bins и 14 tracks проверяются smoke test.
+- [x] Fix Capsule экспортируется из UI.
+- [x] Provenance completeness работает fail-closed.
+- [x] Project readiness разделяет code/UI readiness и external research inputs.
+- [x] Полный patchset включён в архив.

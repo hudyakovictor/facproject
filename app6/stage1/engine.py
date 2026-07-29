@@ -6,7 +6,7 @@ chronology alignment, запись reconstruction.npz / ldm*-{raw,aligned,chrono
 info.json, skin authenticity/texture.json по face_mask.png и валидацию.
 Контракты: schema deeputin-stage1-v2.4-chronology-alignment; в info["chronology"]
 пишутся alignment_quality, residual_*_deg, pose_confidence, expression_magnitude,
-detection_confidence. run() дополнительно: SHA256-дедупликация входа (#22),
+detection_confidence. run() дополнительно: content digest-дедупликация входа (#22),
 пропуск уже валидных фото (resume), атомарный main_timeline.csv.
 💡 NOTE: ldm*_aligned.csv — DEPRECATED (yaw-only); используйте ldm*_chronology.csv.
 """
@@ -31,7 +31,7 @@ from .masks import build_mask_bundle
 from .naming import make_photo_id, parse_photo_name
 from .reconstruction import ReconstructionBundle, ReconstructionEngine
 from .storage import atomic_photo_directory, clean_incomplete, write_failure
-from .utils import atomic_json, runtime_versions, sha256_file, sha256_json, sha256_paths, write_csv
+from .utils import atomic_json, runtime_versions, digest_file, digest_json, digest_paths, write_csv
 from .validator import is_resumable, validate_photo
 from .input_provenance import decode_oriented
 from .authenticity import build_texture_package
@@ -80,7 +80,7 @@ class Stage1Engine:
         self.root = config.project_root.resolve()
         if not self.cfg.input_dir.is_dir():
             raise FileNotFoundError(f"input directory not found: {self.cfg.input_dir}")
-        self.config_hash = sha256_json(config.extraction_payload())
+        self.config_hash = digest_json(config.extraction_payload())
         package_dir = Path(__file__).resolve().parent
         workspace_dir = package_dir.parents[1]
         code_files = (
@@ -88,13 +88,13 @@ class Stage1Engine:
             + [self.root / "model" / "recon.py"]
             + list((workspace_dir / "uv_module").rglob("*.py"))
         )
-        self.code_hash = sha256_paths(code_files, self.root)
+        self.code_hash = digest_paths(code_files, self.root)
         weight = "net_recon.pth" if config.backbone == "resnet50" else "net_recon_mbnet.pth"
         model_files = [self.root / "assets" / "face_model.npy", self.root / "assets" / weight, self.root / "assets" / "large_base_net.pth", self.root / "app6" / "atlas" / "texture_zones_bfm35709_v3.npz"]
         missing = [p for p in model_files if not p.is_file()]
         if missing:
             raise FileNotFoundError("missing required model assets: " + ", ".join(map(str, missing)))
-        self.model_hash = sha256_paths(model_files, self.root)
+        self.model_hash = digest_paths(model_files, self.root)
         self.recon = ReconstructionEngine(self.root, config.device, config.detector, config.backbone)
 
     def run(self) -> dict[str, Any]:
@@ -115,13 +115,13 @@ class Stage1Engine:
         self.cfg.output_dir.mkdir(parents=True, exist_ok=True)
         clean_incomplete(self.cfg.output_dir)
 
-        # 🎯 CRITICAL: Detect duplicate photos by SHA256 hash
+        # 🎯 CRITICAL: Detect duplicate photos by content digest hash
         # Different filenames but same content = duplicates
         seen_hashes: dict[str, str] = {}  # hash -> first filename
         duplicate_count = 0
         unique_photos = []
         for path in photos:
-            file_hash = sha256_file(path)
+            file_hash = digest_file(path)
             if file_hash in seen_hashes:
                 print(f"  ⚠️ DUPLICATE: {path.name} == {seen_hashes[file_hash]} (skipping)", flush=True)
                 duplicate_count += 1
@@ -146,7 +146,7 @@ class Stage1Engine:
                 }
                 errors.append(payload)
                 try:
-                    parsed = parse_photo_name(path); source_hash = sha256_file(path)
+                    parsed = parse_photo_name(path); source_hash = digest_file(path)
                     write_failure(self.cfg.output_dir, make_photo_id(parsed, source_hash), payload)
                 except Exception as failure_exc:
                     status_warning("write_failure", f"could not persist failure record: {failure_exc}")
@@ -217,7 +217,7 @@ class Stage1Engine:
         """
         log_status("_one", "complete")
         parsed = parse_photo_name(path)
-        source_hash = sha256_file(path)
+        source_hash = digest_file(path)
         photo_id = make_photo_id(parsed, source_hash)
         final = self.cfg.output_dir / photo_id
         if not self.cfg.overwrite:
@@ -455,7 +455,7 @@ class Stage1Engine:
 
             info = {
                 "schema_version": PHOTO_SCHEMA_VERSION, "photo_id": photo_id,
-                "source_filename": path.name, "source_relative_path": self._relative(path), "source_sha256": source_hash,
+                "source_filename": path.name, "source_relative_path": self._relative(path), "source_digest": source_hash,
                 "date": parsed.date_iso, "date_year": parsed.year, "date_month": parsed.month,
                 "date_day": parsed.day, "same_date_sequence": parsed.sequence,
                 "extraction_timestamp": _utc(), "code_hash": self.code_hash,

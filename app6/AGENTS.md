@@ -38,7 +38,7 @@ Entry point: `app6/run_stage1.py`.
 
 Для каждой фотографии Stage 1 выполняет ровно один дорогостоящий inference 3DDFA_V3 и атомарно сохраняет все артефакты, необходимые последующим стадиям:
 
-- `photo_id`, вычисленный из содержимого, provenance, SHA-256 и дату;
+- `photo_id`, вычисленный из содержимого, provenance, content digest и дату;
 - детекцию/кроп, позу, confidence и качество alignment;
 - raw, normalized, canonical, camera и image-224 представления;
 - landmarks и mesh-представления;

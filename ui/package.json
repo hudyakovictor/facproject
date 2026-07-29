@@ -1,0 +1,1 @@
+{"name":"deeputin-forensic-suite","private":true,"version":"1.0.0","scripts":{"build":"python3 scripts/build_static.py","test":"python3 scripts/smoke_ui.py","dev":"bash START_UI.sh","preview":"python3 -m http.server 4173 -d dist"}}

@@ -99,7 +99,7 @@ def run_audit() -> int:
     add(37,"Validator topology errors not suppressed",not has("stage1/validator.py",r"def _resolve_topology[\s\S]{0,500}except Exception:\s*pass"),"")
     add(38,"CSV writes are atomic",has("stage1/utils.py",r"def write_csv[\s\S]{0,900}os\.replace"),"")
     add(39,"Atomic JSON uses unique temp",has("stage1/utils.py",r"def atomic_json[\s\S]{0,500}(uuid|NamedTemporaryFile)"),"")
-    add(40,"sha256_paths rejects empty input",has("stage1/utils.py",r"def sha256_paths[\s\S]{0,900}(no files|count\s*==\s*0|if not.*file)"),"")
+    add(40,"digest_paths rejects empty input",has("stage1/utils.py",r"def digest_paths[\s\S]{0,900}(no files|count\s*==\s*0|if not.*file)"),"")
     add(41,"Stage2 calibration sensitivity runtime",has("stage2/engine.py",r"calibration_sensitivity") and "Cross-validation not implemented" not in text("stage2/engine.py"),"")
     add(42,"Stage2 config path separation",has("stage2/engine.py",r"output_dir must not equal or be inside"),"")
     add(43,"Stage3 checks Stage2 validation",has("stage3/engine.py",r"analysis_validation"),"")

@@ -13,7 +13,7 @@ from typing import Any
 
 from app6.stage2.leads import load_leads
 from app6.stage2.evidence import EVIDENCE_SCHEMA, STATUS_TO_EVIDENCE_STATE
-from app6.stage1.utils import atomic_json, sha256_file, sha256_json, write_csv
+from app6.stage1.utils import atomic_json, digest_file, digest_json, write_csv
 
 SCHEMA = "deeputin-stage2b-private-corroboration-v1.0"
 SIGNIFICANT_STATES = {
@@ -147,8 +147,8 @@ class Stage2BEngine:
         atomic_json(out / "private_summary.json", {
             "schema_version": SCHEMA,
             "created_at_utc": utc(),
-            "stage2_manifest_sha256": sha256_file(stage2_manifest_path),
-            "stage2_evidence_sha256": sha256_file(evidence_path),
+            "stage2_manifest_digest": digest_file(stage2_manifest_path),
+            "stage2_evidence_digest": digest_file(evidence_path),
             "stage2_schema": stage2_manifest.get("schema_version"),
             "prior_status": leads.get("status"),
             "prior_date_count": leads.get("date_count", len(date_registry)),
@@ -161,8 +161,8 @@ class Stage2BEngine:
             "schema_version": SCHEMA,
             "status": "complete",
             "created_at_utc": utc(),
-            "config_hash": sha256_json(self.cfg.payload()),
-            "stage2_manifest_sha256": sha256_file(stage2_manifest_path),
+            "config_hash": digest_json(self.cfg.payload()),
+            "stage2_manifest_digest": digest_file(stage2_manifest_path),
             "prior_status": leads.get("status"),
             "corroboration_row_count": len(rows),
             "outputs": ["corroboration_results.csv", "private_summary.json"],
