@@ -14,7 +14,7 @@ UV/texture/authenticity/skin исключены по указанию владе
 7. **PASS** — No duplicate function definitions
 8. **PASS** — No eval/exec
 9. **PASS** — No subprocess shell=True
-10. **PASS** — No untrusted allow_pickle=True: test_module/synthetic_runner.py
+10. **PASS** — No untrusted allow_pickle=True
 11. **PASS** — No FIXME markers
 12. **PASS** — No TODO markers
 13. **PASS** — No unreviewably large functions
@@ -53,15 +53,8 @@ UV/texture/authenticity/skin исключены по указанию владе
 46. **PASS** — FDR ignores nonfinite z
 47. **PASS** — Baseline vectors validate shape
 48. **PASS** — Stage2 evidence maps applicability statuses
-49. **PASS** — Regression suite passes: e: complete
-22:47:19 [INFO] ✅ full_pose_correction_matrix: complete
-22:47:19 [INFO] ✅ reprojection_stats: complete
-22:47:19 [INFO] ✅ apply_chronology_rate_flags: complete
-22:47:19 [INFO] ✅ apply_chronology_rate_flags: complete
-22:47:19 [INFO] ✅ compare_landmarks: complete
-22:47:19 [WARNING] ⚠️ compare_landmarks: Pose bin mismatch: frontal vs right_light
-22:47:19 [INFO] ✅ compare_landmarks: complete
-22:47:19 [INFO] ✅ aligned_point_motion: complete
-22:47:19 [INFO] ✅ aligned_point_motion: complete
+49. **PASS** — Regression suite passes: ........................................................................ [ 67%]
+...................................                                      [100%]
+107 passed in 3.90s
 
-50. **PASS** — Regression suite breadth: tests=87
+50. **PASS** — Regression suite breadth: tests=107
