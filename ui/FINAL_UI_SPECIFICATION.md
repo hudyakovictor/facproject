@@ -20,7 +20,7 @@
   assets/         # Fontsource (Space Grotesk, JetBrains Mono, Inter)
 ```
 
-**Маршруты**: `/` — дашборд · `/timeline?photo=X&era=E&hypothesis=H` — таймлайн · `/matrix` — матрица эпох · `/classifier` — кластеры · `/compare?a=X&b=Y` — сравнение · `/compare/range?from=X&to=Y&anchor=Z` — сравнение диапазонов · `/inspector/3d?photo=X` — 3D · `/inspector/3d/morph?from=X&to=Y` — морфинг · `/landmarks/drift` — дрейф · `/landmarks/metrics` — метрики · `/report` — PDF-отчёт · `/stats` — статистика · `/settings` — настройки
+**Маршруты**: `/` — дашборд · `/timeline?photo=X&era=E&hypothesis=H` — таймлайн · `/matrix` — матрица эпох · `/classifier` — кластеры · `/compare?a=X&b=Y` — сравнение · `/compare/range?from=X&to=Y&anchor=Z` — сравнение диапазонов · `/inspector/3d?photo=X` — 3D · `/inspector/3d/morph?from=X&to=Y` — морфинг · `/landmarks/drift` — дрейф · `/landmarks/metrics` — метрики · `/stats` — статистика · `/settings` — настройки
 
 ---
 
@@ -29,8 +29,7 @@
 ### 2.1 HeaderBar
 - Логотип «DEEPUTIN Forensic Suite», поиск Photo ID + даты + флаги (автодополнение, Cmd+K)
 - Фильтры: эпоха (Era 1–5), гипотеза (H0/H1/H2), ракурс (9 pose_bin), качество, «только аномалии»
-- Кнопки: Экспорт PDF, Настройки (Sheet), переключатель тёмной/светлой темы
-- Горячие клавиши: `Ctrl+Z` undo, `Ctrl+Shift+Z` redo, `Ctrl+F` поиск, `1-6` переключение вкладок
+- Кнопки: Настройки (Sheet)
 
 ### 2.2 LeftPanel (6 вкладок)
 - **GEOMETRY**: 21 анатомическая зона, radar chart, цветовая индикация (зелёный/жёлтый/красный), векторный силуэт лица (SVG) с поворотом по yaw
@@ -125,13 +124,13 @@ POST /api/v1/report/generate, /jobs (batch processing)
 
 ## 5. Этапы сборки
 
-1. **Фундамент**: Vite + React + TypeScript + Tailwind + shadcn/ui + Zustand + i18next + роутинг + горячие клавиши
+1. **Фундамент**: Vite + React + TypeScript + Tailwind + shadcn/ui + Zustand + i18next + роутинг
 2. **Таймлайн**: Canvas 14 треков + Event Pins + Filmstrip (TanStack Virtual) + drag-to-select + авто-scroll
 3. **Панели**: LeftPanel 6 вкладок + HeaderBar + фильтры + FullPhotoOverlay
 4. **3D + Ландмарки**: Inspector3D (морфинг) + LandmarkDriftChart + LandmarkMetrics
 5. **Сравнение + Калибровка**: ComparisonMode + сравнение диапазонов + калиброванный режим
 6. **Доп. режимы**: AltViews (матрица, классификатор) + PublicationsPanel + StatsDashboard
-7. **Финал**: API интеграция, PDF экспорт, заметки/теги, undo/redo, тестирование, сборка
+7. **Финал**: API интеграция, заметки/теги, undo/redo, тестирование, сборка
 
 ---
 
