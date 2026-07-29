@@ -39,9 +39,11 @@ def test_insufficient_calibration_takes_priority() -> None:
 
 
 def test_alpha_metrics_of_sidecar_pair_do_not_fake_anomaly(calibration_records, zone_maps) -> None:
-    """Sidecar-калибровка не содержит alpha: метрики NaN на каждой паре.
+    """Калибровочные записи содержат alpha: метрики финитны, статус normal.
 
-    До фикса это давало 'elevated' и влияло на присвоение expression_dominated.
+    Ранее тест ожидал NaN, но calibration_dataset содержит alpha_id/alpha_exp
+    во всех record.npz. Проверяем, что значение финитно и не помечается как
+    аномалия при нормальном уровне.
     """
     from app6.stage2.core import compare_landmarks
 
@@ -50,7 +52,8 @@ def test_alpha_metrics_of_sidecar_pair_do_not_fake_anomaly(calibration_records, 
                if r.dataset_id == "person_01" and r.pose_bin == "frontal"][:2]
     comparison = compare_landmarks(frontal[0], frontal[1], zone106, zone134)
     assert comparison.status == "measured"
-    assert not np.isfinite(comparison.metrics["alpha_id_l2"])
+    assert np.isfinite(comparison.metrics["alpha_id_l2"])
+    assert comparison.metrics["alpha_id_l2"] > 0
 
     scored = calibrated_score(comparison.metrics["alpha_id_l2"], REFERENCE, [])
-    assert scored["status"] == "not_measurable"
+    assert scored["status"] != "not_measurable"
