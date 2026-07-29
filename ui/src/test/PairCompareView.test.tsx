@@ -82,6 +82,7 @@ describe("PairCompareView", () => {
     const fullMeshSpy = vi.spyOn(api, "comparePhotosFullMesh").mockResolvedValue({
       schema: "s-full-mesh", vertex_count: 4, triangle_count: 1,
       vertices_a: [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]],
+      vertices_b_aligned: [[0.1, 0, 0], [1.1, 0, 0], [0.1, 1, 0], [0.1, 0, 1]],
       residuals: [0.01, 0.02, 0.03, 0.04],
       triangles: [[0, 1, 2]],
       primary_zone_ids: ["A01"], primary_zone_names: ["forehead_left"], primary_triangle_zone: [0],
@@ -103,5 +104,8 @@ describe("PairCompareView", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: /СРАВНИТЬ/i }));
     await waitFor(() => expect(fullMeshSpy).toHaveBeenCalledWith("A1", "A2"));
+
+    // The morph slider must appear once the full mesh result is available.
+    await waitFor(() => expect(screen.getByRole("slider")).toBeInTheDocument());
   });
 });

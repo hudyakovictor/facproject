@@ -74,3 +74,25 @@ def test_landmark_vertices_lie_within_mean_shape_bounds() -> None:
     face_min, face_max = model.mean_shape.min(axis=0), model.mean_shape.max(axis=0)
     assert np.all(landmark_points >= face_min - 1e-4)
     assert np.all(landmark_points <= face_max + 1e-4)
+
+
+def test_full_mesh_compare_provides_morph_endpoints() -> None:
+    """`vertices_a`/`vertices_b_aligned` from full_mesh_compare must be
+    lerp-compatible (same length, same coordinate frame) for a morph slider."""
+    from app6.api.compare import full_mesh_compare
+    from app6.api.demo_data import build_demo_records
+
+    photos = build_demo_records()
+    a = next(p for p in photos if p.era == "DEMO_SEGMENT_1")
+    b = next(p for p in photos if p.era == "DEMO_SEGMENT_3")
+    result = full_mesh_compare(a, b)
+    assert result is not None
+    vertices_a = np.asarray(result["vertices_a"])
+    vertices_b = np.asarray(result["vertices_b_aligned"])
+    assert vertices_a.shape == vertices_b.shape == (35709, 3)
+
+    # A morph at t=0 must equal A, at t=1 must equal aligned B.
+    morph_0 = vertices_a * (1 - 0.0) + vertices_b * 0.0
+    morph_1 = vertices_a * (1 - 1.0) + vertices_b * 1.0
+    np.testing.assert_allclose(morph_0, vertices_a)
+    np.testing.assert_allclose(morph_1, vertices_b)
