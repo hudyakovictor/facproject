@@ -1,0 +1,36 @@
+Итоговый рекомендуемый стек для production-сборки
+Базовый стек (фундамент)
+Слой	Технология	Почему
+Runtime	React 19 + TypeScript 5.9	строгая типизация для forensic-данных, server actions если будет SSR
+Build	Vite 7	мгновенный HMR, нативный ESM, идеален для desktop-приложений
+Routing	TanStack Router v1	type-safe URL state, идеально для глубоких ссылок типа /timeline?photo=P00432&playhead=2015-03-06
+State	Zustand 5 + TanStack Query v5	Zustand для UI-состояния (playhead, filters, panels), TanStack Query для async загрузки JSON по фото
+Styling	Tailwind CSS v4 + shadcn/ui	shadcn даёт готовые primitives (Dialog, Popover, Tooltip, Command, Sheet) — стилизуются под forensic-тему через CSS variables
+Иконки	Lucide React	идеально соответствует «inline SVG в стиле Lucide» из §19 ТЗ
+Шрифты	Fontsource (@fontsource-variable/space-grotesk, jetbrains-mono, inter)	локальная загрузка без CDN — критично для desktop forensic-системы без интернета
+Визуализация (главное)
+Задача	Библиотека	Альтернатива
+Дорожки-графики (Canvas/SVG)	@visx/visx от Airbnb	низкоуровневые d3-обёртки. Идеально для кастомных треков как у нас (line + dots + filled area + custom axes). Лучше чем Recharts/Tremor которые слишком «дашбордные»
+Большие датасеты на Canvas	PixiJS 8 или regl	при >5000 фото SVG/Canvas2D начинают тормозить — переходим на GPU
+3D mesh оверлей (двойной клик)	react-three-fiber + drei + @react-three/postprocessing	реальная загрузка 3DDFA-V3 mesh с 106 ландмарками, WebGL2, glow/bloom для critical зон
+Виртуализация filmstrip	@tanstack/react-virtual v3	1809+ фото без проседаний, ключ для performance §17
+Web Workers для парсинга >50MB JSON	Comlink	прозрачные async-вызовы из main thread
+Готовые шаблоны для старта (1-3 лучших, актуальные 2025-2026)
+🥇 shadcn-admin (satnaing/shadcn-admin) — главная рекомендация
+Stars: 11.1k · Last update: май 2026 · License: MIT (бесплатно)
+Stack: Vite + React 19 + TanStack Router + shadcn/ui + Tailwind v4 + TypeScript
+Что готово из коробки: collapsible sidebar (для Left Panel), command palette Cmd+K (для поиска по фото_id и датам), tabs (5 вкладок Left Panel), Dialog/Sheet (для overlay-панелей), DataTable (для GEOMETRY 21-зон таблицы), Dark/Light theme через CSS variables, RTL support
+Почему подходит: точно совпадает по философии (shadcn = headless + token-driven) и стэку. 70% существующих UI-компонентов (header, modals, tabs, table, theme toggle) уже там.
+Что доделывать: UnifiedTimeline (никакой шаблон его не даёт — это уникальный компонент)
+🔗 https://github.com/satnaing/shadcn-admin
+🥈 Tremor (tremorlabs/tremor) — для дашборд-фичей вокруг таймлайна
+Stars: 3.2k · Last update: 2026 · License: Apache 2.0
+Stack: React + Tailwind + Radix
+Что готово: 20+ chart components на Recharts (LineChart, AreaChart, ScatterChart, ProgressBar) с консистентной forensic-палитрой, KPI cards, Callout (для критических флагов)
+Почему подходит: подойдёт для SkinTab (radar), GeometryTab (bar charts по зонам), Comparison Mode (diff bars), Cluster View (scatter с осями). Tremor charts проще чем visx когда нужен «обычный» график.
+Когда брать: если визуализация в Left Panel и Compare должна выглядеть «по-биз-аналитически» — Tremor закроет 80% задач за 0 строк кода.
+🔗 https://tremor.so
+🥉 TailAdmin React (TailAdmin/free-react-tailwind-admin-dashboard)
+Stars: 1.1k · Last update: 2025 · License: MIT
+Stack: Vite + React + Tailwind + ApexCharts + Flowbite primitives
+Почему подходит: единственный из топовых бесплатных шаблонов на чистом Tailwind без зависимости от Radix/shadcn — может пригодиться если корпоративные политики запрещают подключать Radix компоненты.

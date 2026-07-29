@@ -300,6 +300,18 @@ def calibrated_score(
     Возвращает z-score и статус.
     """
     log_status("calibrated_score", "complete")
+    # 🚧 GATE (D1): нефинитное значение не является измерением. Без этой проверки
+    # NaN проваливался во все сравнения (NaN<=x и NaN<3.5 равны False) и получал
+    # статус "elevated", то есть отсутствие данных выглядело как аномалия.
+    # Для sidecar-калибровки alpha_id_l2/alpha_exp_l2 всегда NaN — баг срабатывал
+    # на каждой паре. Отсутствующие данные не подменяются нулём (см. AGENTS.md).
+    value_f = float(value)
+    if not np.isfinite(value_f):
+        return {"calibration_median": float(reference.get("median", 0.0)),
+                "calibration_p95": float(reference.get("p95", 0.0)),
+                "calibration_p95_unadjusted": float(reference.get("p95", 0.0)),
+                "coordinate_noise_sigma": float(coordinate_noise_sigma),
+                "robust_z": float("nan"), "status": "not_measurable"}
     matched_arr = np.asarray([v for v in matched if np.isfinite(v)], np.float64)
     threshold = float(reference.get("p95", 0.0))
     if matched_arr.size:
@@ -323,10 +335,17 @@ def calibrated_score(
             "robust_z": z, "status": status}
 
 
-# 🎯 CRITICAL: Zone weights for weighted scoring
-# Bone zones (high priority) get higher weight, soft tissue zones get lower weight
+# 📊 Веса координатной сетки 3x3 для zone_weighted_score.
+#
+# 🚨 WARNING (D11): это НЕ анатомические и НЕ костные зоны. Ключи вида
+# `x_low_low` — ячейки координатной сетки из build_coordinate_zone_map, которая
+# явно документирует: "Coordinate zones are not anatomical labels". Прежний
+# комментарий называл их "bone zones", что противоречило самому коду.
+# Анатомические зоны живут в mesh_zone_indices.json и применяются в mesh_dense.
+# Центральная ячейка имеет больший вес как наиболее стабильная и наблюдаемая
+# во всех ракурсах, а не потому, что она "костная".
 ZONE_WEIGHTS = {
-    # Bone zones (most stable, highest weight)
+    # Верхний ряд сетки — наиболее стабильная область (лоб/глазницы).
     "x_low_low": 1.0, "x_center_low": 1.0, "x_high_low": 1.0,
     "x_low_center": 0.9, "x_center_center": 1.2, "x_high_center": 0.9,
     "x_low_high": 0.7, "x_center_high": 0.8, "x_high_high": 0.7,
