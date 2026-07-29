@@ -55,6 +55,6 @@ UV/texture/authenticity/skin исключены по указанию владе
 48. **PASS** — Stage2 evidence maps applicability statuses
 49. **PASS** — Regression suite passes: ........................................................................ [ 67%]
 ...................................                                      [100%]
-107 passed in 3.90s
+107 passed in 3.09s
 
 50. **PASS** — Regression suite breadth: tests=107
