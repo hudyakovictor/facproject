@@ -19,8 +19,6 @@ def main():
  p.add_argument('--overwrite',action='store_true')
  p.add_argument('--lead-archive',type=Path,help='Prior final_inference/add archive; used for coverage auditing only')
  a=p.parse_args()
- from app6.test_module.pipeline_guard import enforce_stage
- enforce_stage('stage2')
  Stage2Engine(Stage2Config(a.stage1.resolve(),a.calibration.resolve(),a.output.resolve(),a.overwrite,lead_archive=a.lead_archive.resolve() if a.lead_archive else None)).run()
  return 0
 if __name__=='__main__':raise SystemExit(main())

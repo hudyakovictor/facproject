@@ -11,7 +11,6 @@ import numpy as np
 from app6.stage1.status_logger import log_status
 
 MIN_ALIGNMENT_QUALITY = 0.5
-LEGACY_MAX_EXPRESSION_MAGNITUDE = 1.5
 
 def _days(a: str | None, b: str | None) -> int | None:
     if not a or not b: return None
@@ -27,22 +26,20 @@ def _robust(vals: list[float]) -> tuple[float,float,float]:
 
 def _quality_exclusion_reason(row: dict) -> str | None:
     """Return a fail-closed reason when pair-level chronology is not applicable."""
+    if bool(row.get('date_provenance_limited')):return 'date_provenance_conflict'
+    if bool(row.get('near_duplicate_pair')):return 'perceptual_duplicate_dependence'
     if bool(row.get('quality_limited')):
         return 'quality_limited'
     alignment = [row.get('alignment_quality_a'), row.get('alignment_quality_b')]
     finite_alignment = [float(v) for v in alignment if v is not None and np.isfinite(v)]
     if finite_alignment and min(finite_alignment) < MIN_ALIGNMENT_QUALITY:
         return 'alignment_quality_low'
-    expression_status = row.get('expression_qc_status')
-    if expression_status == 'calibrated_exceeded':
+    # Геометрическая детекция выражений (corner_lift_ioc + jaw_open_ratio)
+    if row.get('smile_detected_a') or row.get('smile_detected_b') or \
+       row.get('jaw_open_detected_a') or row.get('jaw_open_detected_b'):
         return 'expression_too_strong'
-    # Compatibility for old artifacts/tests only. New Stage 2 rows always
-    # carry expression_qc_status and never apply an uncalibrated raw cutoff.
-    if expression_status is None:
-        expression = [row.get('expression_magnitude_a'), row.get('expression_magnitude_b')]
-        finite_expression = [float(v) for v in expression if v is not None and np.isfinite(v)]
-        if finite_expression and max(finite_expression) > LEGACY_MAX_EXPRESSION_MAGNITUDE:
-            return 'expression_too_strong'
+    if row.get('qc_skip_reason') == 'expression_too_strong':
+        return 'expression_too_strong'
     if row.get('status') == 'expression_dominated':
         return 'expression_dominated'
     return None

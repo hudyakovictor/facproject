@@ -105,8 +105,12 @@ describe("PairCompareView", () => {
     await user.click(screen.getByRole("button", { name: /СРАВНИТЬ/i }));
     await waitFor(() => expect(fullMeshSpy).toHaveBeenCalledWith("A1", "A2"));
 
-    // The morph slider must appear once the full mesh result is available.
-    await waitFor(() => expect(screen.getByRole("slider")).toBeInTheDocument());
+    // The mesh morph slider must appear once the full mesh result is
+    // available. Targeted by its own label: the landmark panel adds further
+    // sliders (its own morph + threshold controls), so a bare getByRole
+    // would now be ambiguous.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Морфинг A → B")).toBeInTheDocument());
   });
 
   it("shows calibration match candidates after a successful comparison", async () => {
@@ -128,6 +132,7 @@ describe("PairCompareView", () => {
       schema: "s", not_a_verdict: true, query: { yaw: 0, pitch: 0, roll: 0, pose_bin: "frontal" },
       candidate_count: 1,
       candidates: [{ dataset_id: "person_01", record_id: `frame_for_${photoId}`, pose_bin: "frontal", yaw: 0, pitch: 0, roll: 0, angle_distance: 0.5, source_filename: "x.jpg" }],
+      status: "matched" as const,
       note: "test",
     }));
 

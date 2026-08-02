@@ -5,7 +5,13 @@ import cv2
 from glob import glob
 from itertools import combinations
 
-masks_dir = sys.argv[1] if len(sys.argv) > 1 else "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles/e1_result"
+# DEV_FIX_TZ B4/P1.14: fallback-путь к машине разработчика удалён.
+from pathlib import Path  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import require_arg  # noqa: E402
+
+masks_dir = require_arg(sys.argv, 1, "каталог с масками (*_mask.png)",
+                        "python compare_wrinkles.py <masks_dir>")
 
 mask_paths = sorted(glob(os.path.join(masks_dir, "*_mask.png")))
 if not mask_paths:

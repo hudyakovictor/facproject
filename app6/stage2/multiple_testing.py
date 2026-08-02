@@ -8,7 +8,8 @@ from app6.stage1.status_logger import log_status
 from math import erfc, exp, isfinite, lgamma, log, log1p, sqrt
 from typing import Any
 
-MT_SCHEMA = "deeputin-stage2-multiple-testing-v1.0"
+MT_SCHEMA = "deeputin-stage2-multiple-testing-v1.1"
+DEFAULT_FDR_LEVEL = 0.05
 
 
 def _p_from_z(z: float) -> float:
@@ -60,7 +61,7 @@ def _bh_qvalues(items: list[tuple[int, float]]) -> dict[int, float]:
     return {ordered[i][0]: max(0.0, min(1.0, q[i])) for i in range(m)}
 
 
-def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_threshold: float = 0.10) -> dict[str, Any]:
+def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_threshold: float = DEFAULT_FDR_LEVEL) -> dict[str, Any]:
     log_status("apply_pair_fdr", "complete")
     tests: list[tuple[int, float]] = []
     for i, r in enumerate(rows):
@@ -99,7 +100,7 @@ def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_
     }
 
 
-def apply_zone_fdr(zones: list[dict[str, Any]], *, z_key: str = "robust_z", q_threshold: float = 0.10) -> dict[str, Any]:
+def apply_zone_fdr(zones: list[dict[str, Any]], *, z_key: str = "robust_z", q_threshold: float = DEFAULT_FDR_LEVEL) -> dict[str, Any]:
     log_status("apply_zone_fdr", "complete")
     tests: list[tuple[int, float]] = []
     for i, zrow in enumerate(zones):

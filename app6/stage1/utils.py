@@ -30,7 +30,7 @@ def digest_file(path: Path) -> str:
     not present in prior test runs). `digest_size=32` yields the required
     64-char digest; this only changes the digest length, not its role.
     """
-    h = hashlib.blake2b(digest_size=32)
+    h=hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
@@ -38,14 +38,13 @@ def digest_file(path: Path) -> str:
 
 
 def digest_json(value: Any) -> str:
-    # status: closed — отлажена
-    raw = json.dumps(json_ready(value), ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.md5(raw).hexdigest()
+    raw=json.dumps(json_ready(value),ensure_ascii=False,sort_keys=True,separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
 
 
 def digest_paths(paths: Iterable[Path], root: Path | None = None) -> str:
     # status: closed — отлажена
-    h = hashlib.blake2b(digest_size=16)
+    h=hashlib.sha256()
     count = 0
     for path in sorted((Path(p) for p in paths), key=lambda x: str(x)):
         if not path.is_file():

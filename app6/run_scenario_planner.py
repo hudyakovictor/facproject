@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-import tarfile
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -26,17 +26,17 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# 🔗 DEPENDS ON: app6.test_module.scenarios — единственный источник истины для
+# 🔗 DEPENDS ON: app6.scenarios — единственный источник истины для
 # сценариев S01..S06. Раньше этот словарь дублировался здесь и в
 # `app6/test_module/runner.py` с расходящимися формулировками `expect`;
 # теперь оба используют один реестр, а лестница минимальных прогонов
-# (`AGENTS.md`) не может проверять план и исполнение по разным критериям.
-from app6.test_module.scenarios import SCENARIOS  # noqa: E402
+# (`AGENTS.md`) не может проверять план и исполнение по разным критериями.
+from app6.scenarios import SCENARIOS  # noqa: E402
 
 
 def build_plan(scenario: str, pose: str, archive_root: Path | None = None) -> dict[str, Any]:
     """🏭 FACTORY → Построить план сценария из доступных данных архива."""
-    from app6.test_module.archive_adapter import (
+    from app6.archive_adapter import (
         POSE_BINS, group_by_person_pose, load_archive_records, with_synthetic_dates,
     )
 
@@ -71,11 +71,25 @@ def build_plan(scenario: str, pose: str, archive_root: Path | None = None) -> di
                            "person": record.dataset_id, "record_id": record.record_id,
                            "date": record.date})
 
-    return {"scenario": scenario, "question": spec["question"],
+    data_available = bool(records)
+    plan = {"scenario": scenario, "question": spec["question"],
             "expectation": spec["expect"], "pose": pose,
             "frame_count": len(frames), "frames": frames,
-            "data_available": bool(records),
+            "data_available": data_available,
             "note": "даты синтетические: задают порядок хронологии, не датировку съёмки"}
+    if not data_available:
+        # DEV_FIX_TZ B1 / P1.11: `data_available: false` само по себе не
+        # объясняло, ЧТО делать. Планировщик теперь возвращает выполнимую
+        # инструкцию вместо голого флага. Подставлять сюда
+        # calibration_dataset/person_*/frame_*/ нельзя — AGENTS.md помечает
+        # его как устаревший набор с невыровненными landmarks.
+        plan["blocked_reason"] = (
+            "архив ландмарок не найден — план построен без кадров. "
+            "Укажите архив: --archive /path/to/selected_photos_7x9x3_data.tar.gz "
+            "(188 записей, 7 персон × 9 ракурсов). Архив не хранится в git "
+            "(.gitignore: *.tar.gz) — это внешний вход исследования."
+        )
+    return plan
 
 
 def main() -> int:
@@ -83,7 +97,9 @@ def main() -> int:
     parser.add_argument("--scenario", default="S01", choices=sorted(SCENARIOS))
     parser.add_argument("--pose", default="frontal", help="имя ракурса или 'all'")
     parser.add_argument("--archive", type=Path,
-                        default=ROOT / "selected_photos_7x9x3_data.tar.gz")
+                        default=Path(os.environ.get("DEEPUTIN_SCENARIO_ARCHIVE")
+                                     or ROOT / "selected_photos_7x9x3_data.tar.gz"),
+                        help="архив ландмарок 7×9×3 (env DEEPUTIN_SCENARIO_ARCHIVE)")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--dry-run", action="store_true", help="только план, без запуска стадий")
     parser.add_argument("--list", action="store_true", help="показать сценарии и выйти")
@@ -95,10 +111,11 @@ def main() -> int:
         return 0
 
     extracted: Path | None = None
+    if args.archive and not args.archive.is_file():
+        print(f"ВНИМАНИЕ: архив не найден: {args.archive}", file=sys.stderr)
     if args.archive and args.archive.is_file():
-        extracted = Path(tempfile.mkdtemp(prefix="scenario_"))
-        with tarfile.open(args.archive) as tar:
-            tar.extractall(extracted)
+        from app6.archive_adapter import safe_extract_archive
+        extracted = safe_extract_archive(args.archive, Path(tempfile.mkdtemp(prefix="scenario_")))
 
     plan = build_plan(args.scenario, args.pose, extracted)
     text = json.dumps(plan, ensure_ascii=False, indent=2)
@@ -108,7 +125,8 @@ def main() -> int:
     if not args.dry_run:
         print("\nПлан построен. Запуск стадий выполняется отдельно "
               "по лестнице AGENTS.md: 1 кадр → 10 → 100 → полный набор.")
-    return 0
+    # Пустой план — не успех: вызывающий скрипт/CI обязан это заметить.
+    return 0 if plan["data_available"] else 3
 
 
 if __name__ == "__main__":

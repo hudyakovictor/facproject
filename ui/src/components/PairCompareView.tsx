@@ -1,14 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import PhotoPicker from "./PhotoPicker";
 
 import type { Photo } from "../data";
 import Icon from "./Icon";
 import { t } from "../i18n";
 import {
-  comparePhotos, comparePhotosFullMesh, fetchCalibrationMatchForPhoto, fetchPhotoDetail, fetchSettings,
+  comparePhotos, comparePhotosFullMesh, fetchCalibrationMatchForPhoto, fetchPhotoDetail, fetchSettings, saveSettings,
   type CalibrationMatch, type CompareResult, type FullMeshCompareResult, type AppSettings,
 } from "../api";
-import MeshViewer from "./MeshViewer";
+import MeshViewer from "./LazyMeshViewer";
+import { DEFAULT_HEATMAP_STOPS } from "../heatscale";
 import SettingsModal from "./SettingsModal";
+import { AlignmentDiagnostics, HeatmapLegend, MetricsTable, PhotoPair, ZoneBreakdown } from "./ComparePanels";
+import LandmarkPanel from "./LandmarkPanel";
+import NoiseCalibrationPanel from "./NoiseCalibrationPanel";
+import HeatmapWorkbench from "./HeatmapWorkbench";
+import PairKeysPanel from "./PairKeysPanel";
+import ErrorBoundary from "./ErrorBoundary";
+import { DEFAULT_SHIFT_THRESHOLDS, type ShiftThresholds } from "../landmarks";
 
 
 interface Props {
@@ -40,38 +49,89 @@ export default function PairCompareView({ photos }: Props) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => { fetchSettings().then(setSettings).catch(() => undefined); }, []);
+  const [settingsFailed, setSettingsFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSettings()
+      .then(value => { if (!cancelled) { setSettings(value); setSettingsFailed(false); } })
+      .catch(() => { if (!cancelled) setSettingsFailed(true); });
+    return () => { cancelled = true; };
+  }, []);
 
-  const options = useMemo(() => photos.slice(0, 500).map(p => ({ id: p.id, label: `${p.id} · ${p.date} · ${p.bucket}` })), [photos]);
+  /** P2.3 (DEV_FIX_TZ 3.3): счётчик запусков сравнения. Каждый запуск получает
+   * свой номер; результат применяется только если он всё ещё актуален. Раньше
+   * calibration-запросы были fire-and-forget, и ответ старого сравнения мог
+   * перезаписать данные нового. */
+  const runIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Селекторы работают со ВСЕМ архивом через PhotoPicker (поиск + честное
+  // усечение). Прежний `.slice(0, 500)` молча скрывал остальные кадры.
+  const hasPhotos = photos.length > 0;
 
   const runCompare = async () => {
+    // Отменяем всё, что осталось от предыдущего запуска, и помечаем новый.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const runId = ++runIdRef.current;
+    const isStale = () => runId !== runIdRef.current || controller.signal.aborted;
+
     setStatus("loading");
     setResult(null);
     setFullMeshResult(null);
+    setFullMeshUnavailable(false);
     setMorphT(0);
     setCalibrationA(null);
     setCalibrationB(null);
     try {
-
       const compareResult = await comparePhotos(photoAId, photoBId);
+      if (isStale()) return;
       setResult(compareResult);
+
       if (useFullMesh && compareResult.status === "measured") {
         try {
           const meshResult = await comparePhotosFullMesh(photoAId, photoBId);
+          if (isStale()) return;
           setFullMeshResult(meshResult);
           setFullMeshUnavailable(false);
         } catch {
+          if (isStale()) return;
           setFullMeshUnavailable(true);
         }
       }
-      fetchCalibrationMatchForPhoto(photoAId).then(setCalibrationA).catch(() => undefined);
-      fetchCalibrationMatchForPhoto(photoBId).then(setCalibrationB).catch(() => undefined);
+
+      // Калибровочные подборы дожидаются здесь же: статус "idle" не должен
+      // выставляться раньше, чем панель действительно готова.
+      const [calA, calB] = await Promise.all([
+        fetchCalibrationMatchForPhoto(photoAId).catch(() => null),
+        fetchCalibrationMatchForPhoto(photoBId).catch(() => null),
+      ]);
+      if (isStale()) return;
+      setCalibrationA(calA);
+      setCalibrationB(calB);
       setStatus("idle");
     } catch (err) {
+      if (isStale()) return;
       setStatus("error");
       setErrorMessage(err instanceof Error ? err.message : String(err));
     }
+  };
 
+  /** Пороги классификации точек сохраняются в настройки backend, чтобы
+   * калибровка порогов не терялась между сеансами. Ошибка сохранения не
+   * должна ломать анализ — она лишь не переживёт перезагрузку. */
+  const [thresholdSaveFailed, setThresholdSaveFailed] = useState(false);
+  const handleThresholdsChange = (next: ShiftThresholds) => {
+    setSettings(prev => (prev ? { ...prev, landmark_shift: next } : prev));
+    if (!settings) return;
+    // 🔧 Раньше ошибка глушилась `.catch(() => undefined)`: анализ
+    // действительно продолжал работать, но пользователь был уверен, что
+    // откалиброванные пороги сохранены, — а они терялись при перезагрузке.
+    saveSettings({ ...settings, landmark_shift: next })
+      .then(() => setThresholdSaveFailed(false))
+      .catch(() => setThresholdSaveFailed(true));
   };
 
   const stops = settings ? {
@@ -96,17 +156,15 @@ export default function PairCompareView({ photos }: Props) {
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-1">{t.choosePhotoA}</div>
-          <select value={photoAId} onChange={e => setPhotoAId(e.target.value)}
-            className="w-full bg-surface-2 border border-border p-2 font-mono text-[10px]">
-            {options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
+          {hasPhotos
+            ? <PhotoPicker photos={photos} value={photoAId} onChange={setPhotoAId} label={t.choosePhotoA} />
+            : <div className="font-mono text-[10px] text-text-muted">{t.noPhotosToCompare}</div>}
         </div>
         <div>
           <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-1">{t.choosePhotoB}</div>
-          <select value={photoBId} onChange={e => setPhotoBId(e.target.value)}
-            className="w-full bg-surface-2 border border-border p-2 font-mono text-[10px]">
-            {options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
+          {hasPhotos
+            ? <PhotoPicker photos={photos} value={photoBId} onChange={setPhotoBId} label={t.choosePhotoB} />
+            : <div className="font-mono text-[10px] text-text-muted">{t.noPhotosToCompare}</div>}
         </div>
       </div>
 
@@ -116,13 +174,17 @@ export default function PairCompareView({ photos }: Props) {
           {status === "loading" ? t.comparing : t.runCompare}
         </button>
         <label className="flex items-center gap-2 font-mono text-[10px] text-text-muted cursor-pointer">
-          <input type="checkbox" checked={useFullMesh} onChange={e => setUseFullMesh(e.target.checked)} />
+          <input type="checkbox" checked={useFullMesh} onChange={e => setUseFullMesh(e.target.checked)}
+            aria-label={t.fullMeshToggle} />
           {t.fullMeshToggle}
         </label>
       </div>
 
+      {settingsFailed && (
+        <div role="status" className="bg-warning/15 border border-warning p-2 font-mono text-[10px] text-warning mb-4">{t.settingsLoadFailed}</div>
+      )}
       {status === "error" && (
-        <div className="bg-critical/15 border border-critical p-2 font-mono text-[10px] text-critical mb-4">{errorMessage}</div>
+        <div role="alert" className="bg-critical/15 border border-critical p-2 font-mono text-[10px] text-critical mb-4">{errorMessage}</div>
       )}
       {fullMeshUnavailable && (
         <div className="bg-warning/15 border border-warning p-2 font-mono text-[10px] text-warning mb-4">{t.fullMeshUnavailable}</div>
@@ -144,6 +206,8 @@ export default function PairCompareView({ photos }: Props) {
       {result && result.status === "measured" && (
         <div className="grid grid-cols-[1fr_320px] gap-4">
           <div className="flex flex-col gap-2">
+            {/* ТЗ: «визуализацией обоих изображений рядом» */}
+            <PhotoPair a={result.photo_a} b={result.photo_b} />
             <div className="bg-surface border border-border" style={{ height: 480 }}>
               {fullMeshResult ? (
                 <MeshViewer
@@ -159,7 +223,9 @@ export default function PairCompareView({ photos }: Props) {
                 />
               ) : (
                 <MeshViewer
-                  heatmapPoints={result.heatmap_points.map(p => ({ x: p.x, y: p.y, z: p.z, value: p.residual }))}
+                  heatmapPoints={result.heatmap_points
+                    .filter(p => p.visible !== false && p.x !== null && p.residual !== null)
+                    .map(p => ({ x: p.x as number, y: p.y as number, z: p.z as number, value: p.residual as number }))}
                   heatmapStops={stops}
                   wireframe
                 />
@@ -196,17 +262,22 @@ export default function PairCompareView({ photos }: Props) {
                   })()}
                 </div>
               )}
+              <div className="mt-2 pt-2 border-t border-border">
+                <HeatmapLegend stops={stops ?? DEFAULT_HEATMAP_STOPS} />
+              </div>
             </div>
             <div className="bg-surface border border-border p-3">
               <div className="font-mono text-[9px] tracking-forensic text-text-muted mb-2">{t.perMetricDifference}</div>
-              <div className="space-y-1 font-mono text-[10px]">
-                {Object.entries(result.metrics).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="text-text-muted">{key}</span>
-                    <span>{typeof value === "number" ? value.toFixed(5) : String(value)}</span>
-                  </div>
-                ))}
-              </div>
+              <MetricsTable metrics={result.metrics} />
+            </div>
+            <div className="bg-surface border border-border p-3">
+              <ZoneBreakdown zones={result.zones} />
+            </div>
+            <div className="bg-surface border border-border p-3">
+              <AlignmentDiagnostics diagnostics={result.diagnostics} />
+            </div>
+            <div className="bg-surface border border-border p-3">
+              <NoiseCalibrationPanel photoA={photoAId} photoB={photoBId} />
             </div>
             <div className="bg-surface-2 border border-border p-2 font-mono text-[9px] text-text-faint">
               not_a_verdict: {String(result.not_a_verdict)}
@@ -231,6 +302,41 @@ export default function PairCompareView({ photos }: Props) {
               </div>
             )}
           </aside>
+        </div>
+      )}
+
+      {/* Полные метрики Stage 2 по категориям A–G. Размещены сразу под
+          сравнением и ВЫШЕ тепловой карты: поправка на множественные
+          сравнения и корроборация по ракурсам должны прочитываться раньше,
+          чем величина расхождения, иначе вывод делается по сырому числу. */}
+      {photoAId && photoBId && (
+        <div className="mt-4 bg-surface border border-border p-4">
+          <PairKeysPanel photoA={photoAId} photoB={photoBId} />
+        </div>
+      )}
+
+      {result && result.status === "measured" && result.heatmap_points.length > 0 && (
+        <div className="mt-4 bg-surface border border-border p-4">
+          <ErrorBoundary label="HeatmapWorkbench">
+            <HeatmapWorkbench result={result} fullMeshResult={fullMeshResult} />
+          </ErrorBoundary>
+        </div>
+      )}
+
+      {result && result.status === "measured" && result.heatmap_points.length > 0 && (
+        <div className="mt-4 bg-surface border border-border p-4">
+          {thresholdSaveFailed && (
+            <div role="status" className="mb-2 bg-warning/10 border border-warning/40 px-2 py-1 font-mono text-[9px] text-warning">
+              {t.thresholdSaveFailed}
+            </div>
+          )}
+          <ErrorBoundary label="LandmarkPanel">
+          <LandmarkPanel
+            result={result}
+            thresholds={settings?.landmark_shift ?? DEFAULT_SHIFT_THRESHOLDS}
+            onThresholdsChange={handleThresholdsChange}
+          />
+          </ErrorBoundary>
         </div>
       )}
 

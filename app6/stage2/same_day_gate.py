@@ -75,7 +75,11 @@ def check_same_day_conflict(
         return []
 
     values = np.asarray([p["_value"] for p in same_day], dtype=np.float64)
-    median, sigma = _robust_scale(values)
+    # Fit the null on the lower 80%: simulation showed that 10% contamination
+    # can halve TPR when candidate conflicts are allowed to inflate the threshold.
+    keep_n=max(MIN_BASELINE_PAIRS,int(np.ceil(0.80*len(values))))
+    clean=np.sort(values,kind="stable")[:keep_n]
+    median, sigma = _robust_scale(clean)
 
     conflicts: list[dict[str, Any]] = []
     for pair in same_day:
@@ -94,6 +98,9 @@ def check_same_day_conflict(
             "value": float(pair["_value"]),
             "within_day_median": median,
             "within_day_sigma": sigma,
+            "baseline_input_count": int(len(values)),
+            "baseline_retained_count": int(len(clean)),
+            "baseline_policy": "lower80_contamination_hardened_v1",
             "robust_z": float(z),
             "threshold_sigma": float(within_day_threshold),
             "not_a_verdict": True,

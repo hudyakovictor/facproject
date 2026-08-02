@@ -30,7 +30,7 @@ _EVIDENCE_TO_FUZZY = {
     "elevated_uncertain": "WEAK_EVIDENCE",
     "quality_limited": "WEAK_EVIDENCE",
     "calibration_limited": "WEAK_EVIDENCE",
-    "pose_leakage_limited": "WEAK_EVIDENCE",
+    "pose_leakage_limited":"WEAK_EVIDENCE","date_provenance_limited":"INSUFFICIENT_DATA","near_duplicate_limited":"INSUFFICIENT_DATA",
     "expression_dominated": "WEAK_EVIDENCE",
     "coherent_jump_candidate": "SUSPICIOUS_TEXTURE",
     "reversible_change_candidate": "SUSPICIOUS_TEXTURE",
@@ -89,7 +89,7 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
                 "yaw": None, "siliconeProb": None, "specular": None, "lbpEntropy": None, "frangi": None,
                 "wrinkle": None, "subsurface": None, "visualAge": None, "calendarAge": None,
                 "p0": None, "p1": None, "p2": None, "dominant": None, "fuzzy": "INSUFFICIENT_DATA",
-                "confidence": None, "flags": [], "exifAnomaly": False,
+                "confidence":None,"flags":[],"exifAnomaly":False,"dateProvenanceStatus":"unknown","exifDate":None,"dateDeltaDays":None,"sourceClaimedDate":None,"sourceClaimedDeltaDays":None,"dateConflictSources":[],"dateProvenanceLimited":False,
                 "zOrbitDepth": 0.0, "zChinProj": 0.0, "zJawWidth": 0.0, "zCheek": 0.0,
                 "sourceMode": "research", "bayesianProjectionAvailable": False,
             }
@@ -100,8 +100,19 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
         photo_a_id, photo_b_id = row.get("photo_a"), row.get("photo_b")
         if not photo_a_id or not photo_b_id:
             continue
-        _ensure_photo(photo_a_id, row.get("date_a"), pose_bin)
-        target = _ensure_photo(photo_b_id, row.get("date_b"), pose_bin)
+        source=_ensure_photo(photo_a_id,row.get("date_a"),pose_bin);target=_ensure_photo(photo_b_id,row.get("date_b"),pose_bin)
+        for photo,suffix in ((source,"a"),(target,"b")):
+            photo["dateProvenanceStatus"]=row.get(f"date_provenance_status_{suffix}") or "unknown";photo["exifDate"]=row.get(f"exif_date_{suffix}") or None
+            delta=row.get(f"date_delta_days_{suffix}");photo["dateDeltaDays"]=int(float(delta)) if delta not in (None,"") else None
+            claimed=row.get(f"source_claimed_date_{suffix}");photo["sourceClaimedDate"]=claimed or None
+            claimed_delta=row.get(f"source_claimed_delta_days_{suffix}");photo["sourceClaimedDeltaDays"]=int(float(claimed_delta)) if claimed_delta not in (None,"") else None
+            raw_sources=row.get(f"date_conflict_sources_{suffix}")
+            if isinstance(raw_sources,list):photo["dateConflictSources"]=raw_sources
+            else:
+                try:decoded=json.loads(str(raw_sources or "[]"));photo["dateConflictSources"]=decoded if isinstance(decoded,list) else []
+                except json.JSONDecodeError:photo["dateConflictSources"]=[x.strip() for x in str(raw_sources or "").strip("[]").replace("'","").split(",") if x.strip()]
+            photo["exifAnomaly"]=photo["dateProvenanceStatus"]=="conflict"
+            if photo["exifAnomaly"]:photo["flags"].append("DATE_PROVENANCE_CONFLICT")
 
         evidence_state = str(row.get("evidence_state") or "")
         fuzzy = _EVIDENCE_TO_FUZZY.get(evidence_state, "INSUFFICIENT_DATA")
@@ -115,15 +126,65 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
         if evidence_state == "same_day_conflict_candidate":
             target["flags"].append("TEMPORAL_IMPOSSIBILITY")
         target["evidenceState"] = evidence_state
-        target["measurementStatus"] = row.get("status")
+        target["measurementStatus"]=row.get("status");target["dateProvenanceLimited"]=str(row.get("date_provenance_limited","")).lower() in {"true","1","yes"}
 
     rows = list(photos_by_id.values())
     rows.sort(key=lambda r: (r["date"] or "", r["id"]))
+
+    # === Хронологические аномалии из манифеста Stage 2 =======================
+    # Stage 2 уже считает возвраты к базовой линии, необратимые возвраты и
+    # биологически невозможные скорости, но раньше НИЧЕГО из этого не доходило
+    # до интерфейса. Пробрасываем сводки как есть (не пересчитывая) и
+    # проставляем соответствующие флаги на затронутых кадрах.
+    anomaly_summaries: dict[str, Any] = {}
+    for key in ("irreversible_return", "baseline_return", "chronology_rate",
+                "biological_rate", "cumulative_drift"):
+        payload = manifest.get(key)
+        if isinstance(payload, dict) and payload:
+            anomaly_summaries[key] = payload
+
+    # Годы, в которых Stage 2 зафиксировал возврат формы: помечаем кадры.
+    return_years: set[int] = set()
+    for key in ("irreversible_return", "baseline_return"):
+        years = (anomaly_summaries.get(key) or {}).get("years")
+        if isinstance(years, list):
+            return_years.update(int(y) for y in years if isinstance(y, (int, float)))
+    if return_years:
+        for row in rows:
+            date_iso = row.get("date")
+            if not date_iso:
+                continue
+            try:
+                year = int(str(date_iso)[:4])
+            except ValueError:
+                continue
+            if year in return_years and "RETURN_TO_BASELINE" not in row["flags"]:
+                row["flags"].append("RETURN_TO_BASELINE")
+
+    # `era` для research-режима: сегменты строятся из фактических дат по годам,
+    # иначе весь набор оказывается одним сегментом "STAGE2_RESEARCH" и
+    # хронологическая раскладка теряется.
+    era_meta: dict[str, dict[str, str]] = {}
+    dated = [r for r in rows if r.get("date")]
+    if dated:
+        for row in dated:
+            year = str(row["date"])[:4]
+            era_id = f"STAGE2_{year}"
+            row["era"] = era_id
+            bounds = era_meta.setdefault(era_id, {"label": f"Stage 2 · {year}",
+                                                  "start": str(row["date"])[:10],
+                                                  "end": str(row["date"])[:10]})
+            bounds["start"] = min(bounds["start"], str(row["date"])[:10])
+            bounds["end"] = max(bounds["end"], str(row["date"])[:10])
+    else:
+        era_meta["STAGE2_RESEARCH"] = {"label": "Stage 2 research", "start": "", "end": ""}
 
     return {
         "schema": RESEARCH_TIMELINE_SCHEMA,
         "source_mode": "research",
         "not_a_verdict": True,
+        "era_meta": era_meta,
+        "chronology_anomalies": anomaly_summaries,
         "note": (
             "Реальный вывод Stage 2. P(H0..H2) не заполнены отдельным Байесовским "
             "полем в текущей реализации Stage 2 (bayesianProjectionAvailable=false "

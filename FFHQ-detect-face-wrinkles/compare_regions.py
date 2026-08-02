@@ -14,17 +14,23 @@ from unet import UNet
 from face_parsing_extraction import parse_face
 from model import BiSeNet
 
-input_dir = sys.argv[1] if len(sys.argv) > 1 else "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles/е1"
-output_dir = sys.argv[2] if len(sys.argv) > 2 else "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles/e1_result"
+# DEV_FIX_TZ B4/P1.14: fallback-пути к машине разработчика удалены.
+from pathlib import Path  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import FFHQ_ROOT, optional_out_dir, require_arg  # noqa: E402
+
+input_dir = require_arg(sys.argv, 1, "входной каталог с фото",
+                        "python compare_regions.py <input_dir> [output_dir]")
+output_dir = optional_out_dir(sys.argv, 2, FFHQ_ROOT / "output_result")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-checkpoint = torch.load("res/cp/wrinkle_model.pth", map_location=device)
+checkpoint = torch.load(FFHQ_ROOT / "res" / "cp" / "wrinkle_model.pth", map_location=device)
 model = UNet(n_channels=3, n_classes=1, bilinear=False, pretrained=True, freeze_encoder=True).to(device).eval()
 model.load_state_dict(checkpoint["model_state_dict"])
 
 net = BiSeNet(n_classes=19).to(device)
-net.load_state_dict(torch.load("res/cp/face_segmentation.pth", map_location=device))
+net.load_state_dict(torch.load(FFHQ_ROOT / "res" / "cp" / "face_segmentation.pth", map_location=device))
 net.eval()
 
 wrinkle_transform = transforms.Compose([

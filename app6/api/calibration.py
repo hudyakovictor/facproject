@@ -152,8 +152,12 @@ def find_matching_calibration_frames(
             return float("inf")
         return (dy * dy + dp * dp + dr * dr) ** 0.5
 
-    ranked = sorted(candidates, key=_distance)
-    top = ranked[:limit]
+    # P3.16 (DEV_FIX_TZ): расстояние считается ОДИН раз на кандидата и
+    # переносится в кортеж, а не вычисляется повторно при формировании ответа
+    # (раньше `_distance` вызывался и как ключ сортировки, и в списке).
+    scored = [(_distance(row), row) for row in candidates]
+    scored.sort(key=lambda item: item[0])
+    top = scored[:limit]
 
     return {
         "schema": CALIBRATION_MATCH_SCHEMA,
@@ -166,11 +170,16 @@ def find_matching_calibration_frames(
                 "record_id": r.get("record_id"),
                 "pose_bin": r.get("pose_bin"),
                 "yaw": float(r["yaw"]), "pitch": float(r["pitch"]), "roll": float(r["roll"]),
-                "angle_distance": round(_distance(r), 4),
+                "angle_distance": round(distance, 4),
                 "source_filename": r.get("source_filename"),
             }
-            for r in top
+            for distance, r in top
         ],
+        # P3.15 (DEV_FIX_TZ): пустой результат — это состояние, а не ошибка.
+        # Явный статус избавляет вызывающий код от догадок по длине списка:
+        # отсутствие кандидатов в разрешённом pose_bin означает, что угловой
+        # шум для этой пары вычесть НЕЧЕМ, и это должно быть видно в UI.
+        "status": "matched" if top else "no_candidates",
         "note": (
             "Кандидаты ранжированы только по углам позы из метаданных калибровки. "
             "Реальное численное сравнение требует переизвлечения через Stage 1 из "
