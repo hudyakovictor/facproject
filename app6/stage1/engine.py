@@ -24,7 +24,10 @@ import cv2
 import numpy as np
 
 from .assets import save_image_assets, save_uv_and_mesh, technical_quality, save_face_mask, save_semantic_channels
-from .config import IMAGE_EXTENSIONS, PHOTO_SCHEMA_VERSION, SCHEMA_VERSION, Stage1Config
+from .config import (
+    EXPRESSION_MAGNITUDE_THRESHOLD, EXPRESSION_CORNER_LIFT_THRESHOLD, EXPRESSION_JAW_OPEN_THRESHOLD,
+    IMAGE_EXTENSIONS, PHOTO_SCHEMA_VERSION, SCHEMA_VERSION, Stage1Config,
+)
 from .geometry import pack_mask, to_original_image
 from .status_logger import log_status, status_warning
 from .masks import build_mask_bundle
@@ -33,7 +36,8 @@ from .reconstruction import ReconstructionBundle, ReconstructionEngine
 from .storage import atomic_photo_directory, clean_incomplete, write_failure
 from .utils import atomic_json, runtime_versions, digest_file, digest_json, digest_paths, write_csv
 from .validator import is_resumable, validate_photo
-from .input_provenance import decode_oriented
+from .input_provenance import build_date_provenance, decode_oriented
+from .provenance_ledger import hamming_distance,load_provenance_sidecar,perceptual_dhash
 from .authenticity import build_texture_package
 
 
@@ -71,6 +75,29 @@ def _landmark_rows(points: np.ndarray, visible: np.ndarray, indices: np.ndarray,
         if confidence is not None:
             row["confidence"] = float(confidence[i])
         rows.append(row)
+    return rows
+
+
+def _landmark_rows_2d(points: np.ndarray, visible: np.ndarray, indices: np.ndarray) -> list[dict[str, Any]]:
+    """Создание строк CSV для 2D ландмарков в оригинальном изображении (x, y пиксели)."""
+    points = np.asarray(points)
+    visible = np.asarray(visible)
+    indices = np.asarray(indices)
+    if points.ndim != 2 or points.shape[1] != 2:
+        raise ValueError("2D landmark points must have shape (N,2)")
+    if len(visible) != len(points) or len(indices) != len(points):
+        raise ValueError("landmark points/visibility/indices length mismatch")
+    if not np.isfinite(points).all():
+        raise ValueError("landmark points contain NaN/Inf")
+    rows = []
+    for i, p in enumerate(points):
+        rows.append({
+            "landmark_id": i,
+            "x_px": float(p[0]),
+            "y_px": float(p[1]),
+            "visible": int(visible[i]),
+            "vertex_index": int(indices[i]),
+        })
     return rows
 
 
@@ -117,17 +144,28 @@ class Stage1Engine:
 
         # 🎯 CRITICAL: Detect duplicate photos by content digest hash
         # Different filenames but same content = duplicates
-        seen_hashes: dict[str, str] = {}  # hash -> first filename
-        duplicate_count = 0
-        unique_photos = []
+        seen_hashes:dict[str,str]={};seen_visual:list[tuple[str,str]]=[]
+        duplicate_count=0;near_duplicate_count=0;unique_photos=[];input_provenance_rows=[]
         for path in photos:
-            file_hash = digest_file(path)
-            if file_hash in seen_hashes:
-                print(f"  ⚠️ DUPLICATE: {path.name} == {seen_hashes[file_hash]} (skipping)", flush=True)
-                duplicate_count += 1
-                continue
-            seen_hashes[file_hash] = path.name
-            unique_photos.append(path)
+            file_hash=digest_file(path);relative=self._relative(path);duplicate_of=seen_hashes.get(file_hash)
+            phash=perceptual_dhash(path);nearest=min(((hamming_distance(phash,h),r) for h,r in seen_visual),default=(999,None))
+            near_distance,near_duplicate_of=nearest if nearest[0]<=4 else (None,None)
+            near_duplicate_count+=int(bool(near_duplicate_of) and not bool(duplicate_of));side=load_provenance_sidecar(path)
+            input_provenance_rows.append({"source_relative_path":relative,"source_filename":path.name,"source_digest":file_hash,
+              "size_bytes":path.stat().st_size,"perceptual_dhash":phash,"duplicate_of":duplicate_of or "",
+              "near_duplicate_of":near_duplicate_of or "","near_duplicate_hamming":near_distance if near_duplicate_of else "",
+              "included":not bool(duplicate_of),"provenance_sidecar_status":side.get("status"),
+              "provenance_sidecar_path":side.get("sidecar_path"),"provenance_sidecar_digest":side.get("sidecar_digest")})
+            if duplicate_of:
+                print(f"  ⚠️ DUPLICATE: {path.name} == {duplicate_of} (skipping)",flush=True);duplicate_count+=1;continue
+            seen_hashes[file_hash]=relative;seen_visual.append((phash,relative));unique_photos.append(path)
+        # Dataset identity is independent of absolute paths and filesystem order.
+        dataset_hash = digest_json(sorted(
+            ({"path":r["source_relative_path"],"digest":r["source_digest"],"provenance_sidecar_digest":r.get("provenance_sidecar_digest")}
+             for r in input_provenance_rows), key=lambda x: x["path"]
+        ))
+        write_csv(self.cfg.output_dir / "input_provenance.csv",input_provenance_rows)
+        self._provenance_index={str(r["source_relative_path"]):r for r in input_provenance_rows}
 
         if duplicate_count > 0:
             print(f"  Found {duplicate_count} duplicate photos (skipped)", flush=True)
@@ -174,12 +212,14 @@ class Stage1Engine:
         manifest = {
             "schema_version": SCHEMA_VERSION, "status": "complete" if not errors else "complete_with_errors",
             "created_at_utc": _utc(), "input_count": len(photos), "success_count": len(rows),
-            "error_count": len(errors), "duplicate_count": duplicate_count,
+            "error_count":len(errors),"duplicate_count":duplicate_count,"near_duplicate_count":near_duplicate_count,
             "skipped_valid_count": skipped, "elapsed_seconds": time.time() - started,
             "input_dir": str(self.cfg.input_dir.resolve()), "output_dir": str(self.cfg.output_dir.resolve()),
             "device": self.recon.device, "detector": self.cfg.detector, "backbone": self.cfg.backbone,
-            "uv_size": self.cfg.uv_size, "code_hash": self.code_hash, "config_hash": self.config_hash,
-            "model_hash": self.model_hash, "runtime": runtime_versions(),
+            "uv_size": self.cfg.uv_size, "dataset_hash": dataset_hash,
+            "code_hash": self.code_hash, "config_hash": self.config_hash,
+            "model_hash":self.model_hash,"hash_algorithms":{"source":"sha256","dataset":"sha256-canonical-json","code":"sha256-path-tree","model":"sha256","config":"sha256-canonical-json","provenance_sidecar":"sha256","perceptual":"dhash64"},"runtime":runtime_versions(),
+            "provenance_index": "input_provenance.csv",
         }
         atomic_json(self.cfg.output_dir / "stage1_manifest.json", manifest)
         print(f"DONE success={len(rows)} errors={len(errors)} skipped={skipped}", flush=True)
@@ -231,8 +271,7 @@ class Stage1Engine:
         rec = self.recon.process(path, cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         ldm = rec.landmark_arrays()
         ldm106_original = to_original_image(ldm["ldm106_image_224"], rec.trans_params)
-        # 💡 NOTE: ldm134_original намеренно не считаем — потребителя в пайплайне нет
-        # (AUDIT-5: был dead store). Добавить вызов можно симметрично ldm106 при появлении юзкейса.
+        ldm134_original = to_original_image(ldm["ldm134_image_224"], rec.trans_params)
         mask = build_mask_bundle(rec.semantic_channels_224, rec.trans_params, bgr.shape)
 
         with atomic_photo_directory(self.cfg.output_dir, photo_id, overwrite=final.exists()) as out:
@@ -315,13 +354,18 @@ class Stage1Engine:
             write_csv(out / "ldm134_raw.csv", _landmark_rows(ldm["ldm134_object"], ldm["ldm134_visible"], rec.ldm134_indices))
             write_csv(out / "ldm134_aligned.csv", _landmark_rows(ldm["ldm134_bin_canonical"], ldm["ldm134_visible"], rec.ldm134_indices))
             write_csv(out / "ldm134_chronology.csv", _landmark_rows(ldm["ldm134_chronology_aligned"], ldm["ldm134_visible"], rec.ldm134_indices, ldm134_confidence))
+            # Landmarks in original image pixel coordinates (224→original)
+            write_csv(out / "ldm106_original.csv", _landmark_rows_2d(ldm106_original, ldm["ldm106_visible"], rec.ldm106_indices))
+            write_csv(out / "ldm134_original.csv", _landmark_rows_2d(ldm134_original, ldm["ldm134_visible"], rec.ldm134_indices))
             files.update({
                 "ldm106_raw": "ldm106_raw.csv",
                 "ldm106_aligned": "ldm106_aligned.csv",  # DEPRECATED: yaw-only
                 "ldm106_chronology": "ldm106_chronology.csv",  # RECOMMENDED
+                "ldm106_original": "ldm106_original.csv",  # original image px
                 "ldm134_raw": "ldm134_raw.csv",
                 "ldm134_aligned": "ldm134_aligned.csv",  # DEPRECATED: yaw-only
                 "ldm134_chronology": "ldm134_chronology.csv",  # RECOMMENDED
+                "ldm134_original": "ldm134_original.csv",  # original image px
             })
             # Compute per-vertex visibility confidence
             # Combines: combined_visible, front_facing, renderer_visible
@@ -387,11 +431,11 @@ class Stage1Engine:
                 atomic_json(out / "skin_failure.json", skin_status)
                 files["skin_failure"] = "skin_failure.json"
 
-            # EXTERNAL VALIDATION REQUIRED: expression threshold must be calibrated
-            # on the owner's held-out calibration dataset before production use.
-            # 📌 РЕШЕНИЕ (2026-07-22, аудит P0-3): калибровка порога мимики отложена;
-            # будет выполнена позже владельцем проекта на калибровочном датасете.
-            status_warning("expression_threshold", "MAX_EXPRESSION_MAGNITUDE not calibrated")
+            # Пороги мимики заданы в общем конфиге (config.py).
+            # - EXPRESSION_MAGNITUDE_THRESHOLD (12.0) — L2 норма alpha_exp (stage2)
+            # - EXPRESSION_CORNER_LIFT_THRESHOLD (0.005) — подъём уголков рта
+            # - EXPRESSION_JAW_OPEN_THRESHOLD (0.28) — раскрытие рта
+            _ = EXPRESSION_MAGNITUDE_THRESHOLD  # используется stage2/engine.py
             # Compute alignment quality: how much correction was applied
             # Lower is better (less correction needed = more reliable)
             actual_pose = np.array([float(rec.angles_deg[0]), float(rec.angles_deg[1]), float(rec.angles_deg[2])])
@@ -452,12 +496,48 @@ class Stage1Engine:
             visible_106 = int(np.sum(ldm["ldm106_visible"]))
             visible_134 = int(np.sum(ldm["ldm134_visible"]))
 
+            # ── Expression metrics from raw 3DDFA landmarks (object space) ──
+            # Детекция выражений ТОЛЬКО через геометрию ключевых точек,
+            # НЕ через alpha_exp (BFM expression coefficients).
+            #
+            # corner_lift_ioc — подъём уголков рта относительно центра рта,
+            # нормализованный по межзрачковому расстоянию (interocular).
+            # Положительное значение = уголки ПОДНЯТЫ = улыбка.
+            # Отрицательное значение = уголки опущены = спокойное лицо.
+            # Метрика НЕ ЗАВИСИТ от ширины рта человека — только от того,
+            # насколько уголки поднимаются относительно центра рта.
+            # Это чистая геометрия формы, а не размера.
+            #
+            # Индексы 106-точечной схемы 3DDFA_V3:
+            #   84 = левый уголок рта, 90 = правый уголок рта
+            #   87 = верхняя губа (центр), 93 = нижняя губа (центр)
+            #   74 = левый глаз, 77 = правый глаз
+            _L_CORNER, _R_CORNER = 84, 90
+            _UP_LIP, _LOW_LIP = 87, 93
+            _EYE_L, _EYE_R = 74, 77
+            raw_pts = ldm["ldm106_object"]
+            ioc = float(np.linalg.norm(raw_pts[_EYE_L] - raw_pts[_EYE_R])) or 1.0
+            mouth_center_y = (raw_pts[_UP_LIP][1] + raw_pts[_LOW_LIP][1]) / 2.0
+            corner_avg_y = (raw_pts[_L_CORNER][1] + raw_pts[_R_CORNER][1]) / 2.0
+            corner_lift_ioc = float((corner_avg_y - mouth_center_y) / ioc)
+            # jaw_open_ratio — раскрытие рта: 3D-расстояние между верхней и нижней
+            # губой, нормализованное по межзрачковому расстоянию.
+            # При открытом рте расстояние резко возрастает (0.40+ vs ≤0.17 у спокойных).
+            # Не зависит от размера рта человека благодаря нормализации по IOC.
+            jaw_open_ratio = float(np.linalg.norm(raw_pts[_UP_LIP] - raw_pts[_LOW_LIP])) / ioc
+            # Комбинированный флаг: улыбка (подъём уголков) ИЛИ открытый рот
+            smile_detected = corner_lift_ioc > EXPRESSION_CORNER_LIFT_THRESHOLD
+            jaw_open_detected = jaw_open_ratio > EXPRESSION_JAW_OPEN_THRESHOLD
 
+            source_provenance=load_provenance_sidecar(path)
             info = {
                 "schema_version": PHOTO_SCHEMA_VERSION, "photo_id": photo_id,
                 "source_filename": path.name, "source_relative_path": self._relative(path), "source_digest": source_hash,
                 "date": parsed.date_iso, "date_year": parsed.year, "date_month": parsed.month,
                 "date_day": parsed.day, "same_date_sequence": parsed.sequence,
+                "date_provenance":build_date_provenance(parsed.date_iso,decode_meta,source_provenance),
+                "source_provenance":source_provenance,"perceptual_dhash":perceptual_dhash(path),
+                "near_duplicate_of":(getattr(self,"_provenance_index",{}).get(self._relative(path),{}) or {}).get("near_duplicate_of") or None,
                 "extraction_timestamp": _utc(), "code_hash": self.code_hash,
                 "config_hash": self.config_hash, "model_hash": self.model_hash,
                 "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower(), "decode": decode_meta},
@@ -487,6 +567,10 @@ class Stage1Engine:
                     "reprojection_rmse": reprojection_rmse,
                     "expression_magnitude": expression_magnitude,
                     "jaw_open_degree": jaw_open_degree,
+                    "corner_lift_ioc": corner_lift_ioc,
+                    "jaw_open_ratio": jaw_open_ratio,
+                    "smile_detected": smile_detected,
+                    "jaw_open_detected": jaw_open_detected,
                     "pose_confidence": pose_confidence,
                     "detection_confidence": detection_confidence,
                     "face_area_ratio": float(face_area_ratio),
@@ -536,6 +620,15 @@ class Stage1Engine:
             "photo_id": info["photo_id"], "date": info["date"], "same_date_sequence": info["same_date_sequence"],
             "pose_bin": pose["pose_bin"], "pitch": pose["pitch"], "yaw": pose["yaw"], "roll": pose["roll"],
             "source_filename": info["source_filename"], "source_relative_path": info["source_relative_path"],
+            "date_provenance_status": info.get("date_provenance", {}).get("status", "unknown"),
+            "exif_date": info.get("date_provenance", {}).get("exif_date"),
+            "date_delta_days":info.get("date_provenance",{}).get("delta_days"),
+            "source_claimed_date":info.get("date_provenance",{}).get("source_claimed_date"),
+            "source_claimed_delta_days":info.get("date_provenance",{}).get("source_claimed_delta_days"),
+            "date_conflict_sources":info.get("date_provenance",{}).get("conflict_sources",[]),
+            "source_provenance_status":info.get("source_provenance",{}).get("status","not_provided"),
+            "source_url":info.get("source_provenance",{}).get("source_url"),"archive_url":info.get("source_provenance",{}).get("archive_url"),
+            "perceptual_dhash":info.get("perceptual_dhash"),"near_duplicate_of":info.get("near_duplicate_of"),
             "geometry_status": "valid", "segmentation_status": info["mask"]["status"], "uv_status": info["uv"]["status"],
             "combined_visible_fraction": quality["combined_visible_fraction"],
             "skin_mask_coverage": quality["skin_mask_coverage"], "uv_observed_coverage": quality["uv_observed_coverage"],

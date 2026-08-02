@@ -27,6 +27,7 @@ DEFAULT_SIMILARITY: Final[float] = 0.95
 
 #: Во сколько раз промежуточное состояние должно отличаться от возвращающихся.
 DEFAULT_DIVERGENCE_RATIO: Final[float] = 2.0
+DEFAULT_MIN_MID_DIVERGENCE: Final[float] = 0.03
 
 
 def _parse_date(value: Any) -> date | None:
@@ -58,6 +59,7 @@ def detect_irreversible_return(
     *,
     min_years: float = DEFAULT_MIN_YEARS,
     divergence_ratio: float = DEFAULT_DIVERGENCE_RATIO,
+    min_mid_divergence: float = DEFAULT_MIN_MID_DIVERGENCE,
 ) -> list[dict[str, Any]]:
     """📊 METRIC → Найти возвраты формы A→B→A во временной шкале (ТЗ п.4).
 
@@ -83,8 +85,8 @@ def detect_irreversible_return(
     """
     if not 0.0 < similarity_threshold <= 1.0:
         raise ValueError("similarity_threshold должен быть в (0, 1]")
-    if min_years < 0 or divergence_ratio < 1.0:
-        raise ValueError("недопустимые параметры min_years/divergence_ratio")
+    if min_years < 0 or divergence_ratio < 1.0 or not 0.0 < min_mid_divergence < 1.0:
+        raise ValueError("недопустимые параметры возврата")
 
     points: list[dict[str, Any]] = []
     for item in timeline:
@@ -117,7 +119,7 @@ def detect_irreversible_return(
                 divergence_mid = min(1.0 - sim_ij, 1.0 - sim_jk)
                 # Промежуточное состояние обязано быть заметно другим, иначе это
                 # просто стабильная серия, а не возврат.
-                if divergence_mid < divergence_ratio * max(divergence_ik, 1e-6):
+                if divergence_mid < max(float(min_mid_divergence), divergence_ratio * max(divergence_ik, 1e-6)):
                     continue
                 anomalies.append({
                     "schema": IRREVERSIBLE_RETURN_SCHEMA,

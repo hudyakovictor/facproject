@@ -1,36 +1,28 @@
 #!/usr/bin/env python3
 """
-Тест рендера UV-текстуры: только пакет uv_module (HDUVTextureGenerator), без app.*.
+Тест рендера UV-текстуры: только пакет uv_module (HDUVTextureGenerator).
+
+DEV_FIX_TZ B5 / P2.15 / P3.19: из этого файла удалены устаревший путь
+`/Users/victorkhudyakov/dutin` (старое имя проекта) и инструкция, ссылавшаяся
+на несуществующие модули `app.pipeline.reconstruction` /
+`app.pipeline.hduv_texture`. Их в текущем дереве нет — воспроизвести описанный
+рецепт было невозможно. Сам рендер (`render_uv_texture`) рабочий и зависит
+только от `uv_module`.
 
 Запуск (из корня репозитория — нужен пакет uv_module с относительными импортами):
 
-  cd /Users/victorkhudyakov/dutin
   python -m uv_module.test_render_texture --image path/to/photo.jpg --npz path/to/recon.npz
 
-В recon.npz должны быть массивы: vertices, vertices_2d, vertices_3d, triangles, uv_coords
-(как для HDUVTextureGenerator.generate).
+В recon.npz должны быть массивы: vertices, vertices_2d, vertices_3d, triangles,
+uv_coords (как для HDUVTextureGenerator.generate).
 
-Как один раз собрать recon.npz из той же геометрии, что в приложении:
-
-  python -c "
-  from pathlib import Path
-  import numpy as np
-  import sys
-  sys.path.insert(0, '.')
-  from app.pipeline.reconstruction import ReconstructionAdapter
-  from app.pipeline.hduv_texture import build_recon_dict_from_result
-  img = Path('path/to/photo.jpg')
-  res = ReconstructionAdapter(device='cpu').reconstruct(img)
-  d = build_recon_dict_from_result(res)
-  np.savez(
-      'recon.npz',
-      vertices=d['vertices'],
-      vertices_2d=d['vertices_2d'],
-      vertices_3d=d['vertices_3d'],
-      triangles=d['triangles'],
-      uv_coords=d['uv_coords'],
-  )
-  "
+Актуальный источник этих массивов в текущей кодовой базе — Stage 1:
+`app6/run_stage1.py` сохраняет `reconstruction.npz` рядом с остальными
+артефактами фото (см. `app6/stage1/storage.py`), и именно он подаётся в
+`--npz`. Отдельного адаптера `app.pipeline.*` в проекте не существует; если
+нужен ad-hoc .npz, собирайте его из уже сохранённого вывода Stage 1, а не
+повторным инференсом (`app6/AGENTS.md`: Stage 2+ не перезапускают
+реконструкцию).
 """
 from __future__ import annotations
 
@@ -42,7 +34,9 @@ import cv2
 import numpy as np
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_DEFAULT_RENDER_OUT = _REPO_ROOT / "app" / "masktest" / "test_results"
+# Каталог по умолчанию внутри существующего дерева: `app/masktest/` в проекте
+# отсутствует, из-за чего вывод уходил в неожиданное место (B5).
+_DEFAULT_RENDER_OUT = _REPO_ROOT / "uv_module" / "_cache" / "test_results"
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
@@ -50,7 +44,8 @@ from uv_module.hd_uv_generator import HDUVConfig, HDUVTextureGenerator
 
 
 def _load_recon_npz(path: Path) -> dict:
-    z = np.load(path, allow_pickle=True)
+    # Массивы recon — чистая численная геометрия; pickle не нужен и небезопасен.
+    z = np.load(path, allow_pickle=False)
     keys = ("vertices", "vertices_2d", "vertices_3d", "triangles", "uv_coords")
     out = {}
     for k in keys:
@@ -97,7 +92,7 @@ def main() -> int:
         "--out",
         type=Path,
         default=_DEFAULT_RENDER_OUT,
-        help="Каталог для PNG (по умолчанию app/masktest/test_results)",
+        help="Каталог для PNG (по умолчанию uv_module/_cache/test_results)",
     )
     p.add_argument("--uv-size", type=int, default=2048, help="Как в get_hduv по умолчанию")
     p.add_argument("--super-sample", type=int, default=1, help="Как в get_hduv по умолчанию")

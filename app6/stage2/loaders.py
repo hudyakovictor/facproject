@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from .core import Record
+from .analysis_policy import ANALYSIS_COORDINATE_SPACE
 from .quality_integration import load_quality_zone_summary
 from .robustness import validate_landmarks, validate_serialized_record
 
@@ -80,9 +81,10 @@ def load_main(stage1_root: Path) -> list[Record]:
         qzones = load_quality_zone_summary(directory)
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
             idx106 = z["ldm106_vertex_indices"].astype(np.int64); idx134 = z["ldm134_vertex_indices"].astype(np.int64)
-            # CRITICAL: never substitute a different coordinate space.
-            ldm106_data = _required_npz_array(z, "ldm106_chronology_aligned", (106, 3)).astype(np.float32)
-            ldm134_data = _required_npz_array(z, "ldm134_chronology_aligned", (134, 3)).astype(np.float32)
+            # Production policy: raw object-normalized coordinates + pairwise robust Kabsch.
+            # DCRD/SGT showed chronology-aligned coordinates amplify pose residuals.
+            ldm106_data = _required_npz_array(z, "ldm106_object_normalized", (106, 3)).astype(np.float32)
+            ldm134_data = _required_npz_array(z, "ldm134_object_normalized", (134, 3)).astype(np.float32)
             out.append(Record(
                 record_id=row["photo_id"], dataset_id="main", date=row["date"], sequence=int(row["same_date_sequence"]),
                 pose_bin=row["pose_bin"], angles=z["angle_deg_pitch_yaw_roll"].astype(np.float32),
@@ -100,6 +102,10 @@ def load_main(stage1_root: Path) -> list[Record]:
                 source_group=source_group,
                 source_digest=info.get("source_digest"),
                 coordinate_noise_sigma=float(chronology_info.get("coordinate_noise_sigma", 0.0) or 0.0),
+                analysis_space=ANALYSIS_COORDINATE_SPACE,
+                date_provenance_status=str((info.get("date_provenance") or {}).get("status","unknown")),
+                exif_date=(info.get("date_provenance") or {}).get("exif_date"),date_delta_days=(info.get("date_provenance") or {}).get("delta_days"),source_claimed_date=(info.get("date_provenance") or {}).get("source_claimed_date"),source_claimed_delta_days=(info.get("date_provenance") or {}).get("source_claimed_delta_days"),date_conflict_sources=list((info.get("date_provenance") or {}).get("conflict_sources") or []),
+                source_provenance=dict(info.get("source_provenance") or {}),perceptual_dhash=info.get("perceptual_dhash"),near_duplicate_of=info.get("near_duplicate_of"),
             ))
     return sorted(out, key=lambda r: (r.date or "9999", r.sequence, r.record_id))
 
@@ -185,6 +191,7 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
             record_dir=str(directory),
             source_group=str(meta.get("dataset_id") or directory.parent.name),
             source_digest=meta.get("source_digest"),
+            analysis_space=ANALYSIS_COORDINATE_SPACE,date_provenance_status="not_applicable_calibration",
         ))
     if not out:
         raise FileNotFoundError(f"no sidecar calibration frames under {root}")
@@ -242,7 +249,7 @@ def load_calibration(calibration_root: Path) -> list[Record]:
             f"Скопируйте их в {assets_dir} или выполните:\n"
             f"  python app6/scripts/fetch_external_assets.py\n"
             f"После установки весов запустите калибровку:\n"
-            f"  python app6/run_calibration.py --input {photos_dir} --output runs/calibration_stage1"
+            f"  python app6/run_calibration.py --input {photos_dir} --output /Volumes/SDCARD/project_data/calibration_stage1"
         )
 
     # Запуск Stage 1 pipeline

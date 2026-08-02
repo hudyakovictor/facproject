@@ -1,21 +1,27 @@
 // Lucide-style inline SVG icon set. No emoji as data icons (anti-pattern §19).
-import { JSX } from "react";
+import { JSX, memo } from "react";
 
-type IconName =
+export type IconName =
   | "lock" | "search" | "download" | "eye" | "eye-off" | "sun" | "moon"
   | "zoom-in" | "zoom-out" | "maximize" | "x" | "filter" | "alert-triangle"
   | "alert-octagon" | "info" | "check" | "rotate" | "play" | "volume"
   | "flask" | "file-text" | "radio" | "swap" | "circle-dot" | "shield"
   | "triangle" | "scale" | "crosshair" | "image" | "grip" | "chevron-down"
-  | "chevron-right" | "split" | "compare" | "panel-left" | "panel-right"
+  | "chevron-right" | "chevron-left" | "split" | "compare" | "panel-left" | "panel-right"
   | "minus" | "plus" | "external" | "calendar" | "clock" | "layers"
   | "sliders" | "settings" | "upload" | "trash" | "activity" | "database" | "list";
 
 
-export default function Icon({ name, size = 14, className = "", strokeWidth = 1.6, color = "currentColor" }:
-  { name: IconName; size?: number; className?: string; strokeWidth?: number; color?: string }) {
-  const props = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className };
-  const paths: Record<IconName, JSX.Element> = {
+/** 🔧 Таблица контуров вынесена на уровень модуля.
+ *
+ * Раньше объект из 56 JSX-элементов строился заново при КАЖДОМ рендере
+ * каждой иконки, а использовался ровно один элемент. В интерфейсе 88
+ * вхождений `<Icon>`, причём восемь из них — внутри строки таймлайна,
+ * то есть на каждое фото. Это 56 × N бесполезных аллокаций на кадр
+ * перерисовки при скролле ленты.
+ *
+ * Контуры статичны и не зависят от пропсов, поэтому создаются один раз. */
+const PATHS: Record<IconName, JSX.Element> = {
     "lock": <><rect x="3" y="11" width="18" height="11" rx="1" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
     "search": <><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>,
     "download": <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
@@ -48,6 +54,7 @@ export default function Icon({ name, size = 14, className = "", strokeWidth = 1.
     "grip": <><circle cx="9" cy="6" r="1" fill="currentColor" /><circle cx="15" cy="6" r="1" fill="currentColor" /><circle cx="9" cy="12" r="1" fill="currentColor" /><circle cx="15" cy="12" r="1" fill="currentColor" /><circle cx="9" cy="18" r="1" fill="currentColor" /><circle cx="15" cy="18" r="1" fill="currentColor" /></>,
     "chevron-down": <polyline points="6 9 12 15 18 9" />,
     "chevron-right": <polyline points="9 18 15 12 9 6" />,
+    "chevron-left": <polyline points="15 18 9 12 15 6" />,
     "split": <><line x1="12" y1="3" x2="12" y2="21" /><path d="M3 12h6M15 12h6" /></>,
     "compare": <><rect x="2" y="4" width="9" height="16" rx="1" /><rect x="13" y="4" width="9" height="16" rx="1" strokeDasharray="2 2" /></>,
     "panel-left": <><rect x="3" y="3" width="18" height="18" rx="1" /><line x1="9" y1="3" x2="9" y2="21" /></>,
@@ -65,6 +72,25 @@ export default function Icon({ name, size = 14, className = "", strokeWidth = 1.
     "activity": <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
     "database": <><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></>,
     "list": <><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></>,
-  };
-  return <svg {...props}>{paths[name]}</svg>;
+};
+
+function IconBase({ name, size = 14, className = "", strokeWidth = 1.6, color = "currentColor" }:
+  { name: IconName; size?: number; className?: string; strokeWidth?: number; color?: string }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth={strokeWidth}
+      strokeLinecap="round" strokeLinejoin="round" className={className}
+      aria-hidden="true" focusable="false"
+    >
+      {PATHS[name]}
+    </svg>
+  );
 }
+
+/** Все пропсы примитивны, поэтому поверхностного сравнения достаточно.
+ *
+ * `aria-hidden` на самом svg: иконка декоративна, доступное имя даёт
+ * кнопка-контейнер. Без этого screen reader зачитывал бы пустой
+ * графический элемент рядом с каждой подписью. */
+export default memo(IconBase);

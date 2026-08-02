@@ -14,9 +14,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Final, Iterable
 
-from app6.stage1.utils import digest_file, digest_paths
+from app6.stage1.utils import digest_json, digest_paths
 
-INTEGRITY_SCHEMA: Final[str] = "deeputin-integrity-guard-v1.0"
+INTEGRITY_SCHEMA: Final[str] = "deeputin-integrity-guard-v1.1-sha256"
 
 #: Хеши, обязательные для воспроизводимого прогона.
 REQUIRED_HASH_KEYS: Final[tuple[str, ...]] = ("dataset_hash", "code_hash", "model_hash", "config_hash")
@@ -67,7 +67,7 @@ def verify_integrity_hashes(
     status = "ok" if not mismatched and not missing else "blocked"
     report = {"schema": INTEGRITY_SCHEMA, "status": status, "per_key": per_key,
               "mismatched": mismatched, "missing": missing,
-              "checked_key_count": len(per_key)}
+              "checked_key_count":len(per_key),"hash_algorithm":"sha256"}
     if strict and status != "ok":
         raise IntegrityError(
             f"проверка целостности не пройдена: несовпадения={mismatched} отсутствуют={missing}"
@@ -76,15 +76,17 @@ def verify_integrity_hashes(
 
 
 def compute_dataset_hash(index_path: Path) -> str:
-    """🔢 Хеш калибровочного набора по его индексу.
-
-    Индекс перечисляет все записи набора, поэтому его содержимое однозначно
-    определяет состав калибровки.
-    """
-    path = Path(index_path)
-    if not path.is_file():
-        raise FileNotFoundError(f"индекс калибровки не найден: {path}")
-    return digest_file(path)
+    """Canonical row-order/newline-independent dataset index hash."""
+    import csv
+    path=Path(index_path)
+    if not path.is_file():raise FileNotFoundError(f"индекс не найден: {path}")
+    with path.open(newline="",encoding="utf-8") as handle:rows=list(csv.DictReader(handle))
+    if not rows:raise ValueError(f"индекс пуст: {path}")
+    if all(r.get("source_digest") for r in rows):
+        normalized=[{"path":r.get("source_relative_path") or r.get("source_filename") or r.get("record_id"),"digest":r["source_digest"],"provenance_sidecar_digest":r.get("provenance_sidecar_digest") or ""} for r in rows]
+    else:normalized=[{k:(v or "") for k,v in sorted(r.items())} for r in rows]
+    normalized.sort(key=lambda r:tuple(str(v) for _,v in sorted(r.items())))
+    return digest_json(normalized)
 
 
 def compute_code_hash(project_root: Path, patterns: Iterable[str] = ("app6/stage1/*.py", "app6/stage2/*.py")) -> str:

@@ -71,8 +71,6 @@ def main() -> int:
     root = a.project_root.resolve()
     if str(root) not in sys.path: sys.path.insert(0, str(root))
     os.chdir(root)
-    from app6.test_module.pipeline_guard import enforce_stage
-    enforce_stage("stage1")
     from app6.stage1.config import Stage1Config
     from app6.stage1.engine import Stage1Engine
     cfg = Stage1Config(

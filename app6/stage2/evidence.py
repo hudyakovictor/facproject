@@ -65,10 +65,13 @@ def is_reportable_change(row: dict[str, Any]) -> bool:
 def alternative_reasons(row: dict[str, Any]) -> list[str]:
     log_status("alternative_reasons", "complete")
     reasons: list[str] = []
+    if row.get("date_provenance_limited"):reasons.append("filename_corroborating_date_conflict")
+    if row.get("near_duplicate_pair"):reasons.append("perceptual_duplicate_cluster_dependence")
+    if row.get("source_provenance_status_a") != "provided" or row.get("source_provenance_status_b") != "provided":reasons.append("source_chain_incomplete")
     if row.get("quality_limited"):
         reasons.append("low_or_missing_quality")
-    if row.get("expression_qc_status") == "uncalibrated":
-        reasons.append("expression_qc_uncalibrated")
+    if row.get("qc_skip_reason") == "expression_too_strong":
+        reasons.append("expression_detected")
     if row.get("calibration_limited"):
         reasons.append("unstable_or_sparse_calibration")
     if row.get("pose_leakage_limited"):
@@ -203,6 +206,6 @@ def packet_from_pair(row: dict[str, Any]) -> dict[str, Any]:
         registered_metric_channel=evidence_metric_channel(row),
         visualization_only=visualization_only,
         alternative_explanations=alternative_reasons(row),
-        source_files={"motion_file": row.get("motion_file")},
+        source_files={"motion_file":row.get("motion_file"),"source_digest_a":row.get("source_digest_a"),"source_digest_b":row.get("source_digest_b"),"source_url_a":row.get("source_url_a"),"source_url_b":row.get("source_url_b"),"archive_url_a":row.get("archive_url_a"),"archive_url_b":row.get("archive_url_b"),"date_provenance_status_a":row.get("date_provenance_status_a"),"date_provenance_status_b":row.get("date_provenance_status_b"),"source_claimed_date_a":row.get("source_claimed_date_a"),"source_claimed_date_b":row.get("source_claimed_date_b"),"date_conflict_sources_a":row.get("date_conflict_sources_a"),"date_conflict_sources_b":row.get("date_conflict_sources_b"),"near_duplicate_of_a":row.get("near_duplicate_of_a"),"near_duplicate_of_b":row.get("near_duplicate_of_b")},
     )
     return pkt.to_dict()

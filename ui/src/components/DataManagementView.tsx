@@ -3,14 +3,17 @@ import Icon from "./Icon";
 import { t } from "../i18n";
 import {
   uploadPhoto, listJobs, submitJob, cancelJob, clearExtractedData, fetchSystemHealth,
+  deletePhotoExtraction,
   type JobRow, type SystemHealth,
 } from "../api";
 
-const JOB_STATUS_COLOR: Record<string, string> = {
+import type { JobStatus } from "../api";
+
+const JOB_STATUS_COLOR: Record<JobStatus, string> = {
   queued: "#797876", running: "#5591c7", complete: "#6daa45",
   blocked: "#e8af34", failed: "#ff3b30", cancelled: "#797876",
 };
-const JOB_STATUS_KEY: Record<string, keyof typeof t> = {
+const JOB_STATUS_KEY: Record<JobStatus, keyof typeof t> = {
   queued: "jobStatusQueued", running: "jobStatusRunning", complete: "jobStatusComplete",
   blocked: "jobStatusBlocked", failed: "jobStatusFailed", cancelled: "jobStatusCancelled",
 };
@@ -24,13 +27,24 @@ export default function DataManagementView() {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [system, setSystem] = useState<SystemHealth | null>(null);
   const [clearConfirming, setClearConfirming] = useState(false);
+  /** P2.8 (DEV_FIX_TZ 3.8): ошибки `listJobs`/`fetchSystemHealth`/`cancelJob`
+   * больше не проглатываются через `.catch(() => undefined)` — пользователь
+   * обязан видеть, что панель показывает устаревшие данные. */
+  const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const refreshJobs = () => { listJobs().then(setJobs).catch(() => undefined); };
+  const refreshJobs = () => {
+    listJobs()
+      .then(rows => { setJobs(rows); setError(null); })
+      .catch((err: unknown) => setError(`${t.jobsLoadFailed}: ${err instanceof Error ? err.message : String(err)}`));
+  };
 
   useEffect(() => {
     refreshJobs();
-    fetchSystemHealth().then(setSystem).catch(() => undefined);
+    fetchSystemHealth()
+      .then(setSystem)
+      .catch((err: unknown) => setError(`${t.systemHealthFailed}: ${err instanceof Error ? err.message : String(err)}`));
     const interval = setInterval(refreshJobs, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -49,12 +63,52 @@ export default function DataManagementView() {
   };
 
   const handleSubmitJob = async (kind: "extract" | "recompute_metrics") => {
-    await submitJob(kind);
+    try {
+      await submitJob(kind);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
     refreshJobs();
   };
 
+  const handleCancelJob = async (jobId: string) => {
+    try {
+      await cancelJob(jobId);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+    refreshJobs();
+  };
+
+  /** Удаление извлечённых данных одного фото (ТЗ: "возможность удаления
+   * отдельных фотографий ... с подтверждением"). Backend-эндпоинт
+   * `DELETE /api/v1/photos/{id}` существовал, но интерфейс его не вызывал.
+   * Исходный файл при этом не трогается — удаляются только производные
+   * Stage 1, что соответствует требованию неизменяемости исходников
+   * (`app6/AGENTS.md`). */
+  const handleDeleteExtraction = async () => {
+    const photoId = deleteTarget.trim();
+    if (!photoId) return;
+    if (!window.confirm(t.deleteExtractionConfirm)) return;
+    try {
+      await deletePhotoExtraction(photoId);
+      setError(null);
+      setUploadStatus(`${t.deleteExtractionDone}: ${photoId}`);
+      setDeleteTarget("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const handleClear = async () => {
-    await clearExtractedData();
+    try {
+      await clearExtractedData();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
     setClearConfirming(false);
   };
 
@@ -64,6 +118,12 @@ export default function DataManagementView() {
         <h1 className="font-display text-xl tracking-forensic">{t.dataManagementTitle}</h1>
         <p className="font-mono text-[10px] text-text-muted mt-1">{t.dataManagementSub}</p>
       </header>
+
+      {error && (
+        <div role="alert" className="mb-4 bg-critical/15 border border-critical p-2 font-mono text-[10px] text-critical">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-surface border border-border p-4">
@@ -111,6 +171,19 @@ export default function DataManagementView() {
               {t.clearDataButton}
             </button>
           )}
+
+          <div className="mt-4 pt-3 border-t border-border">
+            <div className="font-mono text-[9px] text-text-muted mb-2">{t.deleteExtraction}</div>
+            <div className="flex gap-2">
+              <input value={deleteTarget} onChange={e => setDeleteTarget(e.target.value)}
+                placeholder="photo_id" aria-label={t.deleteExtraction}
+                className="flex-1 bg-surface-2 border border-border px-2 py-1.5 font-mono text-[10px] text-text" />
+              <button onClick={handleDeleteExtraction} disabled={!deleteTarget.trim()}
+                className="px-3 py-1.5 font-mono text-[10px] tracking-forensic border border-critical/50 bg-critical/10 hover:bg-critical/25 disabled:opacity-40">
+                {t.deleteExtraction}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -142,7 +215,7 @@ export default function DataManagementView() {
                   <div className="flex items-center gap-2">
                     <span style={{ color: JOB_STATUS_COLOR[job.status] }}>{t[JOB_STATUS_KEY[job.status]] as string}</span>
                     {(job.status === "queued" || job.status === "running") && (
-                      <button onClick={() => cancelJob(job.id).then(refreshJobs)} className="text-critical hover:underline">
+                      <button onClick={() => handleCancelJob(job.id)} className="text-critical hover:underline">
                         {t.cancelJob}
                       </button>
                     )}

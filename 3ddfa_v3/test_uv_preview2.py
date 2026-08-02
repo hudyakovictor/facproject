@@ -1,20 +1,39 @@
 #!/usr/bin/env python3
-"""UV wrinkle atlas — правильное совмещение через render_face из 3DDFA."""
-import os, sys, torch, numpy as np
-from PIL import Image
+"""UV wrinkle atlas — правильное совмещение через render_face из 3DDFA.
+
+DEV_FIX_TZ B3/P1.13/P2.14: абсолютные пути к машине разработчика заменены на
+расчёт от расположения файла + CLI/переменные окружения, а глобальный
+`os.chdir()` — на локальный контекстный менеджер `pushd` (см. `_paths.py`).
+"""
+import argparse
+import os
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 
-TDDFA_ROOT = "/Users/victorkhudyakov/work/3ddfa_v3"
-FFHQ_ROOT  = "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles"
-PHOTO      = "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles/е1/2000_06_14.jpg"
-OUT_DIR    = "/Users/victorkhudyakov/work/FFHQ-detect-face-wrinkles/uv_wrinkle_test"
+import numpy as np
+import torch
+from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import (  # noqa: E402
+    TDDFA_ROOT, add_common_arguments, ffhq_root, pushd, require, resolve_device, wrinkle_checkpoint,
+)
+
+parser = add_common_arguments(argparse.ArgumentParser(description=__doc__))
+parser.add_argument("--photo", type=Path, default=None,
+                    help="входное фото (по умолчанию: <ffhq-root>/е1/2000_06_14.jpg)")
+args_cli = parser.parse_args()
+
+FFHQ_ROOT = (args_cli.ffhq_root or ffhq_root()).resolve()
+PHOTO = require(args_cli.photo or (FFHQ_ROOT / "е1" / "2000_06_14.jpg"), "входное фото")
+OUT_DIR = (args_cli.out_dir or (FFHQ_ROOT / "uv_wrinkle_test")).resolve()
 os.makedirs(OUT_DIR, exist_ok=True)
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = resolve_device(args_cli.device)
 
 # ── 1. Init 3DDFA ──────────────────────────────────────────────────
-os.chdir(TDDFA_ROOT)
-sys.path.insert(0, TDDFA_ROOT)
+sys.path.insert(0, str(TDDFA_ROOT))
 from face_box import face_box
 from model.recon import face_model
 from util.cpu_renderer import MeshRenderer_UV_cpu
@@ -24,16 +43,18 @@ args = SimpleNamespace(
     ldm68=False, ldm106=False, ldm106_2d=False, ldm134=False,
     seg=False, seg_visible=False, useTex=False, extractTex=False,
 )
-recon_model = face_model(args)
-facebox_detector = face_box(args).detector
+# Апстрим 3DDFA_V3 читает веса по относительным путям "assets/...", поэтому
+# CWD переключается ровно на время конструирования моделей и возвращается.
+with pushd(TDDFA_ROOT):
+    recon_model = face_model(args)
+    facebox_detector = face_box(args).detector
 
 # ── 2. Init Wrinkle model ─────────────────────────────────────────
-os.chdir(FFHQ_ROOT)
-sys.path.insert(0, FFHQ_ROOT)
+sys.path.insert(0, str(FFHQ_ROOT))
 from torchvision import transforms
 from unet import UNet
 
-ckpt = torch.load(f"{FFHQ_ROOT}/res/cp/wrinkle_model.pth", map_location=device)
+ckpt = torch.load(require(wrinkle_checkpoint(FFHQ_ROOT), "веса модели морщин"), map_location=device)
 wrinkle_net = UNet(n_channels=3, n_classes=1, bilinear=False, pretrained=True, freeze_encoder=True).to(device).eval()
 wrinkle_net.load_state_dict(ckpt["model_state_dict"])
 
@@ -55,9 +76,9 @@ uv_renderer = MeshRenderer_UV_cpu(rasterize_size=1000)
 print("1. Running 3DDFA...")
 img_pil = Image.open(PHOTO).convert("RGB")
 trans_params, img_tensor = facebox_detector(img_pil)
-os.chdir(TDDFA_ROOT)
 recon_model.input_img = img_tensor.to(device)
-results = recon_model.forward()
+with pushd(TDDFA_ROOT):
+    results = recon_model.forward()
 
 # Extract data
 v2d     = torch.from_numpy(results["v2d"][0]).float()     # (35709, 2) in 224x224

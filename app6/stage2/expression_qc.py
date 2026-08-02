@@ -4,6 +4,22 @@
 с межличностными различиями. Такие зоны нельзя взвешивать наравне с костными:
 их изменение говорит о выражении лица, а не о геометрии черепа.
 
+ДЕТЕКЦИЯ ВЫРАЖЕНИЙ — ТОЛЬКО ГЕОМЕТРИЯ ЛАНДМАРОК (не alpha_exp).
+────────────────────────────────────────────────────────────
+Используются две метрики по 106-точечной схеме 3DDFA_V3:
+
+  1. corner_lift = (avg_y(уголки_рта) - avg_y(центр_рта)) / interocular
+     Положительное = уголки подняты = улыбка.
+     Не зависит от ширины рта человека — измеряет ФОРМУ, а не размер.
+     Порог: 0.005 (калиброван на smiletest, 100% separation).
+
+  2. jaw_open = ||upper_lip - lower_lip|| / interocular
+     Раскрытие рта. Порог: 0.28.
+
+  alpha_exp (BFM coefficients) НЕ ИСПОЛЬЗУЕТСЯ для детекции выражений,
+  так как L2-норма alpha_exp не разделяет спокойные лица и улыбки
+  (см. audit: calibration_dataset/test_calibration_landmarks.py).
+
 Модуль обнуляет вес мимических зон, когда выражение превышает порог, и никогда
 не трогает костные структуры (глазницы, переносица, скулы, подбородок, виски).
 
@@ -18,12 +34,15 @@ from typing import Any, Final
 
 import numpy as np
 
-EXPRESSION_QC_SCHEMA: Final[str] = "deeputin-expression-qc-v1.0"
+EXPRESSION_QC_SCHEMA: Final[str] = "deeputin-expression-qc-v2.0"
 
-#: Пороги в долях межзрачкового расстояния.
+#: Пороги для геометрической детекции выражений по ландмаркам.
+#: corner_lift = подъём уголков рта относительно центра рта / IOC.
+#: jaw_open = высота рта / IOC.
+#: Пороги синхронизированы с stage1/config.py и stage2/engine.py.
 DEFAULT_THRESHOLDS: Final[dict[str, float]] = {
-    "smile": 0.92,      # ширина рта / межзрачковое расстояние
-    "jaw_open": 0.28,   # раскрытие рта / межзрачковое расстояние
+    "corner_lift": 0.005,   # подъём уголков рта / межзрачковое расстояние
+    "jaw_open": 0.28,       # раскрытие рта / межзрачковое расстояние
 }
 
 #: Мимические зоны mesh-атласа: деформируются выражением.
@@ -66,7 +85,8 @@ def expression_magnitude(landmarks: np.ndarray) -> dict[str, float]:
         landmarks: массив (106, 3) в согласованном пространстве.
 
     Returns:
-        `smile`, `jaw_open` и `magnitude` — максимум относительного превышения.
+        `corner_lift`, `jaw_open` и `magnitude` — макс. превышение порога.
+        corner_lift > 0 = уголки подняты (улыбка).
 
     Raises:
         ValueError: неверная форма массива, нефинитные точки или нулевой масштаб.
@@ -79,10 +99,14 @@ def expression_magnitude(landmarks: np.ndarray) -> dict[str, float]:
         raise ValueError("ключевые точки выражения содержат NaN/Inf")
 
     scale = _interocular(pts)
-    smile = float(np.linalg.norm(pts[_MOUTH_LEFT] - pts[_MOUTH_RIGHT])) / scale
+    # Подъём уголков рта относительно центра рта
+    mouth_center_y = (pts[_MOUTH_UPPER][1] + pts[_MOUTH_LOWER][1]) / 2.0
+    corner_avg_y = (pts[_MOUTH_LEFT][1] + pts[_MOUTH_RIGHT][1]) / 2.0
+    corner_lift = float((corner_avg_y - mouth_center_y) / scale)
+    # Раскрытие рта
     jaw_open = float(np.linalg.norm(pts[_MOUTH_UPPER] - pts[_MOUTH_LOWER])) / scale
-    return {"smile": smile, "jaw_open": jaw_open,
-            "magnitude": max(smile / DEFAULT_THRESHOLDS["smile"],
+    return {"corner_lift": corner_lift, "jaw_open": jaw_open,
+            "magnitude": max(corner_lift / DEFAULT_THRESHOLDS["corner_lift"], 0.0,
                              jaw_open / DEFAULT_THRESHOLDS["jaw_open"])}
 
 
@@ -91,11 +115,12 @@ def detect_expression(landmarks: np.ndarray,
     """🚧 GATE → Определить, превышает ли выражение допустимые пороги."""
     limits = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
     measures = expression_magnitude(landmarks)
-    smiling = measures["smile"] > limits["smile"]
+    corner_lift_active = measures["corner_lift"] > limits["corner_lift"]
     jaw_open = measures["jaw_open"] > limits["jaw_open"]
     return {"schema": EXPRESSION_QC_SCHEMA, **measures,
-            "smile_detected": bool(smiling), "jaw_open_detected": bool(jaw_open),
-            "expression_active": bool(smiling or jaw_open),
+            "smile_detected": bool(corner_lift_active),
+            "jaw_open_detected": bool(jaw_open),
+            "expression_active": bool(corner_lift_active or jaw_open),
             "thresholds": limits}
 
 

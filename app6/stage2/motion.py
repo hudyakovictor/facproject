@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 import warnings
 from .anchor_policy import stable_anchor_mask
+from .analysis_policy import pose_gap
 from .core import Record,robust_rigid_align
 from app6.stage1.status_logger import log_status
 
@@ -56,9 +57,14 @@ def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->
     vectors=np.full((count,3),np.nan,np.float32);magnitude=np.full(count,np.nan,np.float32)
     if a.pose_bin != b.pose_bin:
         return {'status':'pose_mismatch','vectors':vectors,'magnitude':magnitude,'visible':np.zeros(count,bool),'point_count':0,'anchor_count':0,'anchor_policy':'pose_mismatch'}
+    gap=pose_gap(a.angles,b.angles)
     pose_distance=float(np.linalg.norm((a.angles-b.angles)/np.array([15.,20.,15.])))
-    if not np.isfinite(pose_distance) or pose_distance > 2.5:
-        return {'status':'residual_pose_mismatch','vectors':vectors,'magnitude':magnitude,'visible':np.zeros(count,bool),'point_count':0,'anchor_count':0,'anchor_policy':'residual_pose_mismatch','pose_distance':pose_distance}
+    if not gap.accepted:
+        return {'status':'residual_pose_mismatch','vectors':vectors,'magnitude':magnitude,
+                'visible':np.zeros(count,bool),'point_count':0,'anchor_count':0,
+                'anchor_policy':'residual_pose_mismatch','pose_distance':pose_distance,
+                'pose_gap_reason':gap.reason,'pitch_gap_deg':gap.pitch,
+                'yaw_gap_deg':gap.yaw,'roll_gap_deg':gap.roll}
     if count==106:
         pa,pb=a.ldm106,b.ldm106;vis=np.asarray(a.visible106,bool)&np.asarray(b.visible106,bool)
         if identity_only: pa,pb=a.identity_only106,b.identity_only106

@@ -15,7 +15,7 @@ os.chdir(ROOT)
 # 🔥 ВАЖНО: pre-extracted данные в calibration_dataset/person_*/frame_*/
 # признаны неактуальными. Используются ТОЛЬКО сырые фото из photos/.
 DEFAULT_INPUT=Path('calibration_dataset/photos')
-DEFAULT_OUTPUT=Path('runs/calibration_stage1')
+DEFAULT_OUTPUT=Path('/Volumes/SDCARD/project_data/calibration_stage1')
 
 # 🚪 ENTRY POINT → см. модульный docstring
 def main():

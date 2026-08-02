@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
+import { Spinner } from "./Loading";
 import Icon from "./Icon";
 import { t } from "../i18n";
-import { fetchCalibrationHealth, type CalibrationHealth } from "../api";
+import { fetchCalibrationHealth, type AngleTolerance, type CalibrationHealth } from "../api";
+import NoiseCalibrationPanel, { DEFAULT_TOLERANCE, type NoiseMode } from "./NoiseCalibrationPanel";
+import ZoneCatalog from "./ZoneCatalog";
+import { KeyGroup } from "./KeyTable";
+import { flattenKeys } from "../keys";
+import { fetchRunSummary, type RunSummary } from "../api";
 
 const CONFIDENCE_COLOR: Record<string, string> = {
   invalid: "#ff3b30", low: "#e8af34", medium: "#5591c7", high: "#6daa45",
@@ -17,6 +23,8 @@ const CONFIDENCE_LABEL_KEY: Record<string, "calibrationConfidenceInvalid" | "cal
  * или калибровочный контур отсутствует, страница явно об этом сообщает. */
 export default function CalibrationView() {
   const [health, setHealth] = useState<CalibrationHealth | null>(null);
+  const [tolerance, setTolerance] = useState<AngleTolerance>(DEFAULT_TOLERANCE);
+  const [noiseMode, setNoiseMode] = useState<NoiseMode>("both");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -33,13 +41,28 @@ export default function CalibrationView() {
         <p className="font-mono text-[10px] text-text-muted mt-1">{t.calibrationSub}</p>
       </header>
 
-      {status === "loading" && <div className="font-mono text-[10px] text-text-muted">{t.loading}…</div>}
+      {status === "loading" && <Spinner />}
       {status === "error" && (
         <div className="bg-warning/15 border border-warning p-3 font-mono text-[10px] text-warning flex items-start gap-2">
           <Icon name="alert-triangle" size={14} color="#e8af34" className="mt-0.5 flex-shrink-0" />
           <div>{t.calibrationUnavailable}<br /><span className="text-text-faint">{errorMessage}</span></div>
         </div>
       )}
+
+      {/* Настройки вычитания углового шума: ключевой инструмент стабилизации
+          графиков. Механизм существовал в Stage 2, но не был доступен из UI. */}
+      <div className="bg-surface border border-border p-4 mb-5">
+        <NoiseCalibrationPanel
+          tolerance={tolerance}
+          mode={noiseMode}
+          onToleranceChange={setTolerance}
+          onModeChange={setNoiseMode}
+        />
+      </div>
+
+      <div className="bg-surface border border-border p-4 mb-5">
+        <ZoneCatalog />
+      </div>
 
       {health && (
         <>
@@ -111,9 +134,61 @@ export default function CalibrationView() {
             </div>
           )}
 
+          {/* Категория A карты размещения ключей на уровне прогона:
+              утечка позы и устойчивость калибровки к составу опорного
+              набора. Оба показателя вычислялись Stage 2 и не имели
+              потребителя, хотя определяют, держится ли вывод вообще. */}
+          <div className="mt-6">
+            <RunCalibrationDiagnostics />
+          </div>
+
           <div className="mt-6 font-mono text-[9px] text-text-faint">{t.source}: {health.source}</div>
         </>
       )}
     </section>
+  );
+}
+
+/** Диагностика калибровки на уровне прогона — категория A.
+ *
+ * `pose_leakage_status` / `pose_leakage_flagged_metrics` отвечают на вопрос
+ * «не объясняется ли различие ракурсом, а не личностью», а
+ * `calibration_sensitivity_status` — «не держится ли вывод на одной
+ * персоне калибровочного набора». Оба показателя Stage 2 считал всегда.
+ */
+function RunCalibrationDiagnostics() {
+  const [data, setData] = useState<RunSummary | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchRunSummary()
+      .then(payload => { if (!cancelled) setData(payload); })
+      .catch(() => { if (!cancelled) setUnavailable(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (unavailable) {
+    return (
+      <div className="font-mono text-[9px] text-text-faint">
+        {t.runSummaryUnavailable}
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  const groups = data.categories.A ?? {};
+  const ids = Object.keys(groups);
+  if (ids.length === 0) return null;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="font-mono text-[10px] text-text-muted tracking-forensic">
+        {data.category_titles.A?.ru ?? "A"}
+      </div>
+      {ids.map(id => (
+        <KeyGroup key={id} id={id} values={flattenKeys(groups[id])} />
+      ))}
+    </div>
   );
 }

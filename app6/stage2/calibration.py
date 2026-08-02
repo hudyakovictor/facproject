@@ -11,6 +11,7 @@ from typing import Any, Iterable
 import numpy as np
 
 from .core import Comparison, Record, compare_landmarks
+from .analysis_policy import pose_gap
 from .robustness import balanced_reference
 
 
@@ -25,6 +26,8 @@ class CalibrationModel:
 
     @staticmethod
     def _pose_distance(a: Record, b: Record) -> float:
+        gap=pose_gap(a.angles,b.angles)
+        if not gap.accepted: return float("inf")
         return float(np.linalg.norm((a.angles - b.angles) / np.array([15.0, 20.0, 15.0])))
 
     def _build_references(self) -> dict[str, dict[str, dict[str, float | int]]]:

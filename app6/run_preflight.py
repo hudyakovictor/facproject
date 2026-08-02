@@ -41,6 +41,8 @@ def main()->int:
     p.add_argument('--skip-calibration-file-check',action='store_true')
     p.add_argument('--expected-dataset-hash',help='Блокировать запуск, если хеш калибровки отличается (ТЗ п.11)')
     p.add_argument('--expected-code-hash',help='Блокировать запуск, если хеш кода стадий отличается')
+    p.add_argument('--expected-model-hash',help='Блокировать запуск, если хеш модели отличается')
+    p.add_argument('--expected-config-hash',help='Блокировать запуск, если хеш конфигурации отличается')
     a=p.parse_args();root=a.project_root.resolve();cal=a.calibration_root.resolve();idx=(a.calibration_index or cal/'all_calibration_index.csv').resolve()
     report={'schema':'deeputin-release-preflight-v1','project_root':str(root),'calibration_root':str(cal),'errors':[],'warnings':[]}
     if not idx.is_file(): report['errors'].append(f'missing calibration index: {idx}')
@@ -63,8 +65,15 @@ def main()->int:
         sys.path.insert(0, str(root))
         from app6.stage2.integrity import compute_code_hash, compute_dataset_hash, verify_integrity_hashes
         actual={'dataset_hash':compute_dataset_hash(idx),'code_hash':compute_code_hash(root)}
-        expected={k:v for k,v in (('dataset_hash',a.expected_dataset_hash),('code_hash',a.expected_code_hash)) if v}
-        integrity={'schema':'deeputin-integrity-guard-v1.0','actual':actual,'checked':bool(expected)}
+        if a.stage1_root and (a.stage1_root.resolve()/'stage1_manifest.json').is_file():
+            stage1_manifest=json.loads((a.stage1_root.resolve()/'stage1_manifest.json').read_text(encoding='utf-8'))
+            actual['calibration_dataset_hash']=actual['dataset_hash'];actual['dataset_hash']=stage1_manifest.get('dataset_hash')
+            actual.update({k:stage1_manifest.get(k) for k in ('model_hash','config_hash')})
+        expected={k:v for k,v in (
+            ('dataset_hash',a.expected_dataset_hash),('code_hash',a.expected_code_hash),
+            ('model_hash',a.expected_model_hash),('config_hash',a.expected_config_hash),
+        ) if v}
+        integrity={'schema':'deeputin-integrity-guard-v1.1-sha256','hash_algorithm':'sha256','actual':actual,'checked':bool(expected)}
         if expected:
             result=verify_integrity_hashes(expected,actual,required_keys=tuple(expected),strict=False)
             integrity.update(result)

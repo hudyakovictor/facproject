@@ -56,19 +56,43 @@ def compare_records(a: Record, b: Record) -> dict[str, Any]:
     _, rotation, translation, _ = robust_rigid_align(b.ldm134[anchor134], a.ldm134[anchor134])
     aligned_b = b.ldm134 @ rotation + translation
 
+    # Координатные зоны точек: НЕ анатомические метки (см. build_coordinate_zone_map).
+    zone_labels = zone134
+
     points = []
     for i in range(a.ldm134.shape[0]):
         if not common134[i]:
+            # Невидимая в одном из кадров точка не выбрасывается молча:
+            # интерфейс обязан показать её как "нет данных", иначе исчезнувшие
+            # точки читаются как "совпали" (`app6/AGENTS.md`).
+            points.append({
+                "index": i, "visible": False, "residual": None,
+                "x": None, "y": None, "z": None,
+                "bx": None, "by": None, "bz": None,
+                "dx": None, "dy": None, "dz": None,
+                "zone": str(zone_labels[i]) if i < len(zone_labels) else None,
+            })
             continue
-        residual = float(np.linalg.norm(aligned_b[i] - a.ldm134[i]))
+        delta = aligned_b[i] - a.ldm134[i]
+        residual = float(np.linalg.norm(delta))
         points.append({
-            "index": i,
+            "index": i, "visible": True,
             "x": float(a.ldm134[i, 0]), "y": float(a.ldm134[i, 1]), "z": float(a.ldm134[i, 2]),
+            # Позиция точки B ПОСЛЕ Kabsch-выравнивания в систему координат A.
+            # Нужна фронтенду для линейной интерполяции A→B (морфинг точек).
+            "bx": float(aligned_b[i, 0]), "by": float(aligned_b[i, 1]), "bz": float(aligned_b[i, 2]),
+            # Знаковое смещение по осям: показывает НАПРАВЛЕНИЕ ухода точки.
+            "dx": float(delta[0]), "dy": float(delta[1]), "dz": float(delta[2]),
             "residual": residual,
+            "zone": str(zone_labels[i]) if i < len(zone_labels) else None,
         })
     result["heatmap_points"] = points
-    if points:
-        residuals = np.array([p["residual"] for p in points])
+    result["landmark_count"] = int(a.ldm134.shape[0])
+    result["visible_point_count"] = int(common134.sum())
+    result["zone_policy"] = "coordinate-grid-v1: НЕ анатомические метки"
+    measured = [p for p in points if p["visible"]]
+    if measured:
+        residuals = np.array([p["residual"] for p in measured])
         result["heatmap_stats"] = {
             "min": float(residuals.min()), "max": float(residuals.max()),
             "median": float(np.median(residuals)), "p95": float(np.percentile(residuals, 95)),

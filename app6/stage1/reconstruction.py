@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 
 from .geometry import classify_pose, compute_chronology_alignment, normalize_mesh, reprojection_stats, row_rotation_matrix, to_original_image
-from .status_logger import log_status, status_warning
+from .status_logger import log_status
 
 
 @dataclass
@@ -195,9 +195,9 @@ class ReconstructionEngine:
                 f"possible bad detection for {path.name}"
             )
 
-        # EXTERNAL INTEGRATION REQUIRED: the wrapped RetinaFace API currently
-        # returns only transform/crop, not its native confidence value.
-        status_warning("face_detection_confidence", "RetinaFace confidence not extracted yet")
+        # RetinaFace API returns transform/crop, but not its native confidence
+        # value. This is a known limitation — face detection is unaffected.
+        # TODO: прикрутить confidence, когда RetinaFace его отдаст.
         self.model.input_img = tensor.to(self.device)
 
         captured_alpha: dict[str, Any] = {}

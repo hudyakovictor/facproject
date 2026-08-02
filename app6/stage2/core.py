@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from .anchor_policy import stable_anchor_mask
+from .analysis_policy import pose_gap
 from .robustness import noise_adjusted_threshold
 from app6.stage1.status_logger import log_status, status_warning
 
@@ -45,6 +46,16 @@ class Record:
     source_group: str = "unknown"
     source_digest: str | None = None
     coordinate_noise_sigma: float = 0.0
+    analysis_space:str="unknown"
+    date_provenance_status:str="unknown"
+    exif_date:str|None=None
+    date_delta_days:int|None=None
+    source_claimed_date:str|None=None
+    source_claimed_delta_days:int|None=None
+    date_conflict_sources:list[str]=field(default_factory=list)
+    source_provenance:dict[str,Any]=field(default_factory=dict)
+    perceptual_dhash:str|None=None
+    near_duplicate_of:str|None=None
 
 
 @dataclass
@@ -188,14 +199,13 @@ def compare_landmarks(
             },
         )
 
+    gap = pose_gap(a.angles, b.angles)
     pose_distance = float(np.linalg.norm((a.angles - b.angles) / np.array([15.0, 20.0, 15.0])))
-    if not np.isfinite(pose_distance) or pose_distance > float(max_pose_distance):
-        return Comparison(
-            "residual_pose_mismatch",
-            {},
-            [],
-            {"pose_distance": pose_distance, "max_pose_distance": float(max_pose_distance)},
-        )
+    if not gap.accepted:
+        return Comparison("residual_pose_mismatch", {}, [], {
+            "pose_distance": pose_distance, "pose_gap_reason": gap.reason,
+            "pitch_gap_deg": gap.pitch, "yaw_gap_deg": gap.yaw, "roll_gap_deg": gap.roll,
+        })
 
     common106 = np.asarray(a.visible106, bool) & np.asarray(b.visible106, bool)
     common134 = np.asarray(a.visible134, bool) & np.asarray(b.visible134, bool)

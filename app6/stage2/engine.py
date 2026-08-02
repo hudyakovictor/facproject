@@ -1,11 +1,21 @@
 """
 🎯 CRITICAL → Оркестратор Stage 2: формирование пар, фильтры, payload для отчёта.
 
+ДЕТЕКЦИЯ ВЫРАЖЕНИЙ:
+  Используется ТОЛЬКО геометрия ландмарок (106-точечная схема 3DDFA_V3):
+  - corner_lift_ioc > EXPRESSION_CORNER_LIFT_THRESHOLD → улыбка
+  - jaw_open_ratio > EXPRESSION_JAW_OPEN_THRESHOLD → открытый рот
+  - Либо готовый флаг smile_detected / jaw_open_detected из info.json
+  
+  alpha_exp (BFM expression coefficients) НЕ ИСПОЛЬЗУЕТСЯ для QC.
+  EXPRESSION_MAGNITUDE_THRESHOLD=12.0 сохранён только для обратной
+  совместимости старых артефактов, но не применяется в _pair_qc_decision().
+
 run(): load_main/load_calibration (хронология-выравненные данные), затем пары
-(соседние по времени + не-соседние) с гейтами: MIN_ALIGNMENT_QUALITY=0.5 (патч 02),
-MAX_EXPRESSION_MAGNITUDE=1.5 (#11). Далее: core-показатели, calibration,
-chronology rate flags, corroboration, motion/dense-mesh/texture каналы,
-multiple_testing FDR, persistence результатов.
+(соседние по времени + не-соседние) с гейтами: MIN_ALIGNMENT_QUALITY=0.5,
+EXPRESSION_CORNER_LIFT_THRESHOLD=0.005, EXPRESSION_JAW_OPEN_THRESHOLD=0.28.
+Далее: core-показатели, calibration, chronology rate flags, corroboration,
+motion/dense-mesh/texture каналы, multiple_testing FDR, persistence результатов.
 Calibration leave-one-dataset-out sensitivity и residual pose gate входят в runtime.
 """
 from __future__ import annotations
@@ -44,11 +54,10 @@ from .validation import validate_analysis_contract
 
 SCHEMA='deeputin-stage2-v1.4-robustness'
 MIN_ALIGNMENT_QUALITY=0.5
-# A raw ||alpha_exp|| has no universal scale across model builds / pose bins.
-# Until a versioned calibration profile exists, it is telemetry only and MUST
-# NOT exclude a pair.  A concrete float may be supplied to
-# _pair_qc_decision() by a future calibrated policy.
-MAX_EXPRESSION_MAGNITUDE=12.0
+# Геометрическая детекция выражений по ландмаркам (corner_lift_ioc, jaw_open_ratio).
+# Пороги синхронизированы с stage1/config.py.
+EXPRESSION_CORNER_LIFT_THRESHOLD=0.005
+EXPRESSION_JAW_OPEN_THRESHOLD=0.28
 PRIMARY_CALIBRATION_METRICS={'ldm134_rmse','ldm134_p95','identity_only_ldm134_rmse'}
 PRIMARY_POSE_LEAKAGE_METRICS={'ldm134_rmse','p95_point_z','identity_only_motion_rmse'}
 
@@ -56,34 +65,86 @@ PRIMARY_POSE_LEAKAGE_METRICS={'ldm134_rmse','p95_point_z','identity_only_motion_
 def utc():return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
 
 def _record_qc(record)->dict[str,Any]:
- """Load mandatory Stage 1 QC without pass-through defaults."""
+ """Load mandatory Stage 1 QC (geometry-based expression detection)."""
  path=Path(record.record_dir)/'info.json' if record.record_dir else None
- result={'status':'missing_qc','alignment_quality':None,'expression_magnitude':None,'reason':'info_json_missing'}
+ result={'status':'missing_qc','alignment_quality':None,'reason':'info_json_missing'}
+ result.update({'corner_lift_ioc':None,'jaw_open_ratio':None,'smile_detected':False,'jaw_open_detected':False})
  if path is None or not path.is_file():return result
  try:payload=json.loads(path.read_text(encoding='utf-8'))
  except (OSError,json.JSONDecodeError) as exc:
   result['reason']=f'info_json_invalid:{type(exc).__name__}';return result
  chronology=payload.get('chronology')
  if not isinstance(chronology,dict):result['reason']='chronology_missing';return result
- try:alignment=float(chronology['alignment_quality']);expression=float(chronology['expression_magnitude'])
- except (KeyError,TypeError,ValueError):result['reason']='mandatory_qc_field_missing_or_invalid';return result
- if not np.isfinite(alignment) or not np.isfinite(expression):result['reason']='mandatory_qc_field_nonfinite';return result
- if not 0.0<=alignment<=1.0 or expression<0.0:result['reason']='mandatory_qc_field_out_of_range';return result
- return {'status':'available','alignment_quality':alignment,'expression_magnitude':expression,'reason':''}
+ try:alignment=float(chronology['alignment_quality'])
+ except (KeyError,TypeError,ValueError):result['reason']='alignment_quality_missing';return result
+ if not np.isfinite(alignment):result['reason']='alignment_quality_nonfinite';return result
+ if not 0.0<=alignment<=1.0:result['reason']='alignment_quality_out_of_range';return result
+ # Геометрические метрики выражений (опционально — для новых фото)
+ corner=chronology.get('corner_lift_ioc')
+ jaw=chronology.get('jaw_open_ratio')
+ smile_d=chronology.get('smile_detected',False)
+ jaw_d=chronology.get('jaw_open_detected',False)
+ result.update({
+  'alignment_quality':alignment,
+  'corner_lift_ioc':float(corner) if corner is not None else None,
+  'jaw_open_ratio':float(jaw) if jaw is not None else None,
+  'smile_detected':bool(smile_d),
+  'jaw_open_detected':bool(jaw_d),
+  'reason':'',
+ })
+ return result
 
-def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]],expression_threshold:float|None=MAX_EXPRESSION_MAGNITUDE)->dict[str,Any]:
- """Return a deterministic fail-closed applicability decision for one pair."""
- missing={'status':'missing_qc','alignment_quality':None,'expression_magnitude':None,'reason':'qc_not_loaded'}
+def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]],
+                      corner_threshold:float|None=EXPRESSION_CORNER_LIFT_THRESHOLD,
+                      jaw_threshold:float|None=EXPRESSION_JAW_OPEN_THRESHOLD)->dict[str,Any]:
+ """Return a deterministic fail-closed applicability decision for one pair.
+ 
+ ДЕТЕКЦИЯ ВЫРАЖЕНИЙ — только через геометрию ландмарок (не alpha_exp):
+   1. smile_detected / jaw_open_detected — готовые флаги из info.json
+   2. corner_lift_ioc > corner_threshold (0.005) — подъём уголков = улыбка
+   3. jaw_open_ratio > jaw_threshold (0.28) — раскрытие рта
+   
+   Пара исключается (applicable=False), если ХОТЯ БЫ ОДНО фото в паре
+   содержит выражение. Это fail-closed: сомнительные пары не анализируем.
+   
+   Если порог=None, соответствующая проверка отключена.
+ """
+ missing={'status':'missing_qc','alignment_quality':None,'corner_lift_ioc':None,'jaw_open_ratio':None,'reason':'qc_not_loaded'}
  qa=qc_by_id.get(a.record_id,missing);qb=qc_by_id.get(b.record_id,missing)
- base={'alignment_quality_a':qa.get('alignment_quality'),'alignment_quality_b':qb.get('alignment_quality'),'expression_magnitude_a':qa.get('expression_magnitude'),'expression_magnitude_b':qb.get('expression_magnitude')}
- if qa.get('status')!='available' or qb.get('status')!='available':return {**base,'applicable':False,'skip_reason':'missing_mandatory_qc','qc_reason_a':qa.get('reason'),'qc_reason_b':qb.get('reason'),'threshold':None}
- if min(float(qa['alignment_quality']),float(qb['alignment_quality']))<MIN_ALIGNMENT_QUALITY:return {**base,'applicable':False,'skip_reason':'alignment_quality_low','qc_reason_a':'','qc_reason_b':'','threshold':MIN_ALIGNMENT_QUALITY}
- expression_max=max(float(qa['expression_magnitude']),float(qb['expression_magnitude']))
- if expression_threshold is None:
-  return {**base,'applicable':True,'skip_reason':'','qc_reason_a':'','qc_reason_b':'','threshold':None,'expression_qc_status':'uncalibrated','expression_qc_exceeded':None}
- if expression_max>float(expression_threshold):
-  return {**base,'applicable':False,'skip_reason':'expression_too_strong','qc_reason_a':'','qc_reason_b':'','threshold':float(expression_threshold),'expression_qc_status':'calibrated_exceeded','expression_qc_exceeded':True}
- return {**base,'applicable':True,'skip_reason':'','qc_reason_a':'','qc_reason_b':'','threshold':float(expression_threshold),'expression_qc_status':'calibrated_within_threshold','expression_qc_exceeded':False}
+ base={
+  'alignment_quality_a':qa.get('alignment_quality'),'alignment_quality_b':qb.get('alignment_quality'),
+  'corner_lift_ioc_a':qa.get('corner_lift_ioc'),'corner_lift_ioc_b':qb.get('corner_lift_ioc'),
+  'jaw_open_ratio_a':qa.get('jaw_open_ratio'),'jaw_open_ratio_b':qb.get('jaw_open_ratio'),
+  'smile_detected_a':qa.get('smile_detected',False),'smile_detected_b':qb.get('smile_detected',False),
+  'jaw_open_detected_a':qa.get('jaw_open_detected',False),'jaw_open_detected_b':qb.get('jaw_open_detected',False),
+ }
+ if qa.get('status')!='available' or qb.get('status')!='available':
+  return {**base,'applicable':False,'skip_reason':'missing_mandatory_qc','qc_reason_a':qa.get('reason'),'qc_reason_b':qb.get('reason')}
+ if min(float(qa['alignment_quality']),float(qb['alignment_quality']))<MIN_ALIGNMENT_QUALITY:
+  return {**base,'applicable':False,'skip_reason':'alignment_quality_low','qc_reason_a':'','qc_reason_b':''}
+ 
+ # Детекция выражений по геометрии ландмарок
+ def _is_expressive(q):
+  if q.get('smile_detected') or q.get('jaw_open_detected'):
+   return True
+  corner=q.get('corner_lift_ioc')
+  jaw=q.get('jaw_open_ratio')
+  if corner is not None and corner_threshold is not None and float(corner)>corner_threshold:
+   return True
+  if jaw is not None and jaw_threshold is not None and float(jaw)>jaw_threshold:
+   return True
+  return False
+ 
+ expr_a=_is_expressive(qa); expr_b=_is_expressive(qb)
+ 
+ if expr_a or expr_b:
+  return {**base,'applicable':False,'skip_reason':'expression_too_strong',
+          'qc_reason_a':'smile_or_jaw_detected' if expr_a else '',
+          'qc_reason_b':'smile_or_jaw_detected' if expr_b else '',
+          'corner_threshold':corner_threshold,'jaw_threshold':jaw_threshold}
+ return {**base,'applicable':True,'skip_reason':'',
+         'qc_reason_a':'','qc_reason_b':'',
+         'corner_threshold':corner_threshold,'jaw_threshold':jaw_threshold}
 
 @dataclass(frozen=True)
 class Stage2Config:
@@ -162,7 +223,10 @@ class Stage2Engine:
   for r in main:groups[r.pose_bin].append(r)
   qc_by_id={r.record_id:_record_qc(r) for r in main}
   alignment_quality={rid:q.get('alignment_quality') for rid,q in qc_by_id.items()}
-  expression_magnitude={rid:q.get('expression_magnitude') for rid,q in qc_by_id.items()}
+  corner_lift_ioc={rid:q.get('corner_lift_ioc') for rid,q in qc_by_id.items()}
+  jaw_open_ratio={rid:q.get('jaw_open_ratio') for rid,q in qc_by_id.items()}
+  smile_detected={rid:q.get('smile_detected',False) for rid,q in qc_by_id.items()}
+  jaw_open_detected={rid:q.get('jaw_open_detected',False) for rid,q in qc_by_id.items()}
   unstable_calibration=[x for x in calibration_sensitivity.get('summary',[]) if x.get('stability')!='stable']
   if calibration_sensitivity.get('status')!='complete':status_warning('calibration_stability',str(calibration_sensitivity.get('status')))
   elif unstable_calibration:status_warning('calibration_stability',f'{len(unstable_calibration)} unstable_or_sparse pose/metric references')
@@ -214,12 +278,11 @@ class Stage2Engine:
     status='expression_dominated' if expression_influence>=.45 and es in ('elevated','elevated_but_uncertain') else 'coherent_jump_candidate'
    safe_pid=pid.replace('/','_');np.savez_compressed(motion_dir/f'{safe_pid}.npz',ldm106_vectors=motion106['vectors'],ldm106_magnitude=motion106['magnitude'],ldm106_point_z=motion_score106['z'],ldm106_significant=motion_score106['significant'],ldm134_vectors=motion134['vectors'],ldm134_magnitude=motion134['magnitude'],ldm134_point_z=motion_score134['z'],ldm134_significant=motion_score134['significant'],ldm134_identity_only_vectors=identity_motion['vectors'],ldm134_identity_only_magnitude=identity_motion['magnitude'],descriptor_names=np.asarray(DESCRIPTOR_NAMES),descriptor_values=descriptor_score['values'],descriptor_z=descriptor_score['z'],descriptor_significant=descriptor_score['significant'])
    ms=motion_score134['summary'];ds=descriptor_score['summary'];lead=pair_leads(leads,a.date,b.date);mesh_row,mesh_zone_list=dense_mesh_pair(a,b,o,pid);texture_row,texture_zone_list=texture_pair_deltas(a,b,pid);texture_zone_rows.extend(texture_zone_list);mesh_score=mesh_model.score(a.pose_bin,mesh_row);mesh_row.update(mesh_score);mesh_rows.append({'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**mesh_row});mesh_zones.extend(mesh_zone_list)
-   row={'pair_id':pid,'pair_index':n,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'source_group_a':a.source_group,'source_group_b':b.source_group,'source_digest_a':a.source_digest,'source_digest_b':b.source_digest,'alignment_quality_a':alignment_quality.get(a.record_id),'alignment_quality_b':alignment_quality.get(b.record_id),'expression_magnitude_a':expression_magnitude.get(a.record_id),'expression_magnitude_b':expression_magnitude.get(b.record_id),'expression_qc_status':qc_decision.get('expression_qc_status','unknown'),'expression_qc_threshold':qc_decision.get('threshold'),'expression_qc_exceeded':qc_decision.get('expression_qc_exceeded'),'status':status,'motion_file':f'point_motion/{safe_pid}.npz',**mesh_row,**texture_row,'point_motion_status':motion_score134['status'],'ldm134_anchor_count':motion134.get('anchor_count',0),'ldm134_anchor_policy':motion134.get('anchor_policy','unknown'),'ldm134_alignment_policy':motion134.get('alignment_policy','unknown'),'ldm134_alignment_trimmed_count':motion134.get('alignment_trimmed_count',0),'ldm106_anchor_count':motion106.get('anchor_count',0),'ldm106_anchor_policy':motion106.get('anchor_policy','unknown'),'descriptor_status':descriptor_score['status'],'descriptor_significant_fraction':ds.get('significant_cell_fraction',0.),'descriptor_landmark_fraction':ds.get('significant_landmark_fraction',0.),'descriptor_p95_z':ds.get('p95_descriptor_z',0.),'descriptor_top_families':ds.get('top_descriptor_families',''),'descriptor_top_counts':ds.get('top_descriptor_counts',''),'significant_point_count':ms.get('significant_point_count',0),'significant_point_fraction':ms.get('significant_fraction',0.),'coherent_motion_fraction':ms.get('coherent_fraction',0.),'median_point_z':ms.get('median_point_z',0.),'p95_point_z':ms.get('p95_point_z',0.),'identity_only_motion_rmse':identity_rmse,'expression_influence':expression_influence,**lead,**c.diagnostics,**c.metrics,'primary_robust_z':float(primary.get('robust_z',0)),'primary_calibration_p95':float(primary.get('calibration_p95',0)),'matched_calibration_sets':len(matched.get('ldm134_rmse',[]))}
+   row={'pair_id':pid,'pair_index':n,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'source_group_a':a.source_group,'source_group_b':b.source_group,'source_digest_a':a.source_digest,'source_digest_b':b.source_digest,'analysis_space':a.analysis_space,'date_provenance_status_a':a.date_provenance_status,'date_provenance_status_b':b.date_provenance_status,'exif_date_a':a.exif_date,'exif_date_b':b.exif_date,'date_delta_days_a':a.date_delta_days,'date_delta_days_b':b.date_delta_days,'source_claimed_date_a':a.source_claimed_date,'source_claimed_date_b':b.source_claimed_date,'source_claimed_delta_days_a':a.source_claimed_delta_days,'source_claimed_delta_days_b':b.source_claimed_delta_days,'date_conflict_sources_a':a.date_conflict_sources,'date_conflict_sources_b':b.date_conflict_sources,'date_provenance_limited':bool(a.date_provenance_status=='conflict' or b.date_provenance_status=='conflict'),'near_duplicate_of_a':a.near_duplicate_of,'near_duplicate_of_b':b.near_duplicate_of,'near_duplicate_pair':bool(a.near_duplicate_of or b.near_duplicate_of),'source_provenance_status_a':a.source_provenance.get('status','not_provided'),'source_provenance_status_b':b.source_provenance.get('status','not_provided'),'source_url_a':a.source_provenance.get('source_url'),'source_url_b':b.source_provenance.get('source_url'),'archive_url_a':a.source_provenance.get('archive_url'),'archive_url_b':b.source_provenance.get('archive_url'),'alignment_quality_a':alignment_quality.get(a.record_id),'alignment_quality_b':alignment_quality.get(b.record_id),'corner_lift_ioc_a':corner_lift_ioc.get(a.record_id),'corner_lift_ioc_b':corner_lift_ioc.get(b.record_id),'jaw_open_ratio_a':jaw_open_ratio.get(a.record_id),'jaw_open_ratio_b':jaw_open_ratio.get(b.record_id),'smile_detected_a':smile_detected.get(a.record_id),'smile_detected_b':smile_detected.get(b.record_id),'jaw_open_detected_a':jaw_open_detected.get(a.record_id),'jaw_open_detected_b':jaw_open_detected.get(b.record_id),'expression_source':'geometry_landmarks_v1','qc_skip_reason':qc_decision.get('skip_reason',''),'status':status,'motion_file':f'point_motion/{safe_pid}.npz',**mesh_row,**texture_row,'point_motion_status':motion_score134['status'],'ldm134_anchor_count':motion134.get('anchor_count',0),'ldm134_anchor_policy':motion134.get('anchor_policy','unknown'),'ldm134_alignment_policy':motion134.get('alignment_policy','unknown'),'ldm134_alignment_trimmed_count':motion134.get('alignment_trimmed_count',0),'ldm106_anchor_count':motion106.get('anchor_count',0),'ldm106_anchor_policy':motion106.get('anchor_policy','unknown'),'descriptor_status':descriptor_score['status'],'descriptor_significant_fraction':ds.get('significant_cell_fraction',0.),'descriptor_landmark_fraction':ds.get('significant_landmark_fraction',0.),'descriptor_p95_z':ds.get('p95_descriptor_z',0.),'descriptor_top_families':ds.get('top_descriptor_families',''),'descriptor_top_counts':ds.get('top_descriptor_counts',''),'calibrated_point_count':ms.get('calibrated_point_count',0),'significant_point_count':ms.get('significant_point_count',0),'significant_point_fraction':ms.get('significant_fraction',0.),'coherent_motion_fraction':ms.get('coherent_fraction',0.),'median_point_z':ms.get('median_point_z',0.),'p95_point_z':ms.get('p95_point_z',0.),'identity_only_motion_rmse':identity_rmse,'expression_influence':expression_influence,**lead,**c.diagnostics,**c.metrics,'primary_robust_z':float(primary.get('robust_z',0)),'primary_calibration_p95':float(primary.get('calibration_p95',0)),'matched_calibration_sets':len(matched.get('ldm134_rmse',[]))}
    qmin = min(float(getattr(a, 'quality_texture_score', 0.0) or 0.0), float(getattr(b, 'quality_texture_score', 0.0) or 0.0))
    qzone_summary,qzone_pair_rows=pair_quality_zone_overlap(a,b,pid)
    quality_zone_rows.extend(qzone_pair_rows)
-   expression_qc_uncalibrated = str(row.get('expression_qc_status')) == 'uncalibrated'
-   qlimited = bool(expression_qc_uncalibrated or qmin < 0.35 or qzone_summary.get('quality_zone_pair_limited') or str(getattr(a, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown') or str(getattr(b, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown'))
+   qlimited = bool(qmin < 0.35 or qzone_summary.get('quality_zone_pair_limited') or str(getattr(a, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown') or str(getattr(b, 'quality_status', 'unknown')) in ('weak_or_insufficient','unknown'))
    row.update({
     **qzone_summary,
     'quality_status_a': getattr(a, 'quality_status', 'unknown'),
@@ -230,7 +293,7 @@ class Stage2Engine:
     'forehead_wrinkle_supported_a': bool(getattr(a, 'forehead_wrinkle_supported', False)),
     'forehead_wrinkle_supported_b': bool(getattr(b, 'forehead_wrinkle_supported', False)),
    })
-   row['evidence_state'] = evidence_state(str(row.get('status','')), quality_limited=qlimited)
+   row['evidence_state']=('date_provenance_limited' if row.get('date_provenance_limited') else ('near_duplicate_limited' if row.get('near_duplicate_pair') and status not in ('within_reconstruction_noise','within_calibration_noise') else evidence_state(str(row.get('status','')),quality_limited=qlimited)))
    rows.append(row)
    for z in c.zones:
     zr={'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**z}

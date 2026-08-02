@@ -10,21 +10,23 @@ export function EraCompareView({ photos, onSelectPhoto, onDoubleClick, selectedI
   onDoubleClick: (p: Photo) => void;
   selectedId: string | null;
 }) {
+  // Сегменты берутся из фактических данных: жёсткий список ERA_* не совпадает
+  // с идентификаторами backend (`DEMO_SEGMENT_*` / `STAGE2_RESEARCH`).
   const byEra = useMemo(() => {
-    const out: Record<Era, Photo[]> = {
-      ERA_1_BASELINE: [], ERA_2_EARLY: [], ERA_3_UDMURT: [], ERA_4_TRANSITION: [], ERA_5_VASILICH: [],
-    };
-    for (const p of photos) out[p.era].push(p);
+    const out: Record<string, Photo[]> = {};
+    for (const p of photos) (out[p.era] ??= []).push(p);
     return out;
   }, [photos]);
 
-  const eras: Era[] = ["ERA_1_BASELINE", "ERA_2_EARLY", "ERA_3_UDMURT", "ERA_4_TRANSITION", "ERA_5_VASILICH"];
+  const eras: Era[] = useMemo(
+    () => Object.keys(byEra).sort((a, b) => (byEra[a][0]?.t ?? 0) - (byEra[b][0]?.t ?? 0)),
+    [byEra]);
 
   return (
     <div className="w-full h-full flex bg-bg/40 overflow-hidden">
       {eras.map(era => {
-        const meta = ERA_META[era];
-        const list = byEra[era];
+        const meta = ERA_META[era] ?? { label: era, short: era, color: "#797876", start: "", end: "" };
+        const list = byEra[era] ?? [];
         const anomalies = list.filter(p => p.fuzzy === "IDENTITY_ANOMALY" || p.fuzzy === "GEOMETRIC_MISMATCH" || p.fuzzy === "TEMPORAL_IMPOSSIBILITY").length;
         const h0 = list.filter(p => p.dominant === "H0").length;
         const h1 = list.filter(p => p.dominant === "H1").length;
@@ -33,8 +35,8 @@ export function EraCompareView({ photos, onSelectPhoto, onDoubleClick, selectedI
         return (
           <div key={era} className="flex-1 flex flex-col border-r border-border last:border-r-0 min-w-0">
             <div className="p-3 border-b border-border bg-surface-2" style={{ borderTopColor: meta.color, borderTopWidth: 3 }}>
-              <div className="font-display tracking-forensic text-sm" style={{ color: meta.color }}>{t.eraNames[era]}</div>
-              <div className="font-mono text-[10px] text-text-muted mt-0.5">{new Date(meta.start).toLocaleDateString("ru-RU")} → {new Date(meta.end).toLocaleDateString("ru-RU")}</div>
+              <div className="font-display tracking-forensic text-sm" style={{ color: meta.color }}>{t.eraNames[era] ?? meta.label}</div>
+              <div className="font-mono text-[10px] text-text-muted mt-0.5">{meta.start ? new Date(meta.start).toLocaleDateString("ru-RU") : "—"} → {meta.end ? new Date(meta.end).toLocaleDateString("ru-RU") : "—"}</div>
               <div className="font-mono text-[11px] mt-1.5"><span className="text-text">{list.length}</span> <span className="text-text-muted">{t.eraColumn}</span> · <span className="text-critical">{anomalies}</span> <span className="text-text-muted">{t.anomCount}</span></div>
               {/* hypothesis distribution bar */}
               <div className="flex h-1.5 mt-2 bg-bg">
@@ -109,13 +111,17 @@ export function ClusterView({ photos, onSelectPhoto, onDoubleClick, selectedId }
 
   // cluster centroids per era
   const centroids = useMemo(() => {
-    const out: Record<Era, { x: number; y: number; n: number; color: string; label: string }> = {} as any;
-    for (const era of Object.keys(ERA_META) as Era[]) {
+    // Partial<> вместо `{} as any` (DEV_FIX_TZ P2.1): не все эпохи обязаны
+    // присутствовать — отсутствие центроида это валидное «нет точек в эпохе».
+    const out: Partial<Record<Era, { x: number; y: number; n: number; color: string; label: string }>> = {};
+    // Центроиды строятся по сегментам, реально присутствующим в выборке.
+    for (const era of Array.from(new Set(pts.map(d => d.p.era)))) {
       const sub = pts.filter(d => d.p.era === era);
       if (!sub.length) continue;
+      const meta = ERA_META[era] ?? { color: "#797876", short: era };
       const x = sub.reduce((s, d) => s + d.pc1, 0) / sub.length;
       const y = sub.reduce((s, d) => s + d.pc2, 0) / sub.length;
-      out[era] = { x, y, n: sub.length, color: ERA_META[era].color, label: ERA_META[era].short };
+      out[era] = { x, y, n: sub.length, color: meta.color, label: meta.short };
     }
     return out;
   }, [pts]);
@@ -154,7 +160,7 @@ export function ClusterView({ photos, onSelectPhoto, onDoubleClick, selectedId }
             return (
               <g key={era}>
                 <ellipse cx={xFor(c.x)} cy={yFor(c.y)} rx={rx} ry={ry} fill={c.color} fillOpacity="0.07" stroke={c.color} strokeWidth="0.8" strokeDasharray="3 3" />
-                <text x={xFor(c.x)} y={yFor(c.y) - ry - 6} textAnchor="middle" fill={c.color} fontSize="10" fontFamily="Space Grotesk" fontWeight="600">{t.eraShort[era]}</text>
+                <text x={xFor(c.x)} y={yFor(c.y) - ry - 6} textAnchor="middle" fill={c.color} fontSize="10" fontFamily="Space Grotesk" fontWeight="600">{t.eraShort[era] ?? c.label}</text>
                 <circle cx={xFor(c.x)} cy={yFor(c.y)} r="3" fill={c.color} stroke="#000" strokeWidth="1" />
               </g>
             );
@@ -196,7 +202,7 @@ export function ClusterView({ photos, onSelectPhoto, onDoubleClick, selectedId }
           return (
             <div key={era} className="mb-2 p-2 bg-surface-2 border-l-2" style={{ borderLeftColor: c.color }}>
               <div className="font-mono text-[10px] flex justify-between">
-                <span style={{ color: c.color }}>{t.eraShort[era]}</span>
+                <span style={{ color: c.color }}>{t.eraShort[era] ?? c.label}</span>
                 <span className="text-text-muted">{c.n}</span>
               </div>
               <div className="font-mono text-[9px] text-text-muted">PC1 {c.x.toFixed(2)} · PC2 {c.y.toFixed(2)}</div>

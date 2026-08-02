@@ -43,3 +43,41 @@ describe("i18n", () => {
     setLanguage("ru");
   });
 });
+
+/** Страж от накопления мёртвых ключей.
+ *
+ * На момент написания в словаре скопилось 34 ключа, не используемых ни
+ * одним компонентом: остатки удалённых панелей и переименованных режимов.
+ * Мёртвый ключ вреден не размером бандла, а тем, что при переводе на
+ * новый язык его придётся переводить, и тем, что он выглядит как
+ * действующий контракт.
+ *
+ * Тест читает исходники, а не собранный бандл: `t` — Proxy, и обращение
+ * `t.foo` невозможно отследить в рантайме.
+ */
+describe("словарь не накапливает мёртвые ключи", () => {
+  it("каждый ключ ru-словаря используется в коде", async () => {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const { join } = await import("node:path");
+
+    const source = readFileSync(join(process.cwd(), "src/i18n.ts"), "utf8");
+    const ruBlock = /const ru = \{(.*?)\n\};/s.exec(source);
+    expect(ruBlock).not.toBeNull();
+    const keys = [...ruBlock![1].matchAll(/^ {2}([a-zA-Z][a-zA-Z0-9_]*):/gm)].map(m => m[1]);
+    expect(keys.length).toBeGreaterThan(300);
+
+    // Все файлы, где ключ может быть использован, включая тесты и
+    // динамический доступ через строковый литерал (`labelKey: "anomX"`).
+    const dirs = ["src", "src/components", "src/test"];
+    let code = "";
+    for (const dir of dirs) {
+      for (const name of readdirSync(join(process.cwd(), dir))) {
+        if (!/\.tsx?$/.test(name) || name === "i18n.ts") continue;
+        code += readFileSync(join(process.cwd(), dir, name), "utf8");
+      }
+    }
+
+    const dead = keys.filter(key => !code.includes(`t.${key}`) && !code.includes(`"${key}"`));
+    expect(dead, `неиспользуемые ключи: ${dead.join(", ")}`).toEqual([]);
+  });
+});
