@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arena.ai/contracts/3ddfa-v3-texture-zones-v3.schema.json",
+  "title": "3DDFA-V3 additive texture-zone contract v3",
+  "type": "object",
+  "required": ["schema", "compatibility", "layers", "subzones", "focus", "laterality", "geodesic", "core_counts"],
+  "properties": {
+    "schema": {"const": "3ddfa-v3-texture-zones/v3"},
+    "compatibility": {"const": "A20 labels byte-identical to v2"},
+    "layers": {"type": "object", "required": ["A", "S", "W", "Q"]},
+    "subzones": {"type": "array", "minItems": 40, "maxItems": 40},
+    "focus": {"type": "array", "minItems": 14, "maxItems": 14},
+    "laterality": {"type": "string"},
+    "geodesic": {"type": "string"},
+    "core_counts": {"type": "object", "required": ["core0", "core3", "core5"]}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,260 @@
+{
+  "camera": {
+    "camera_distance": 10.0,
+    "focal": 1015.0,
+    "principal_point": [
+      112.0,
+      112.0
+    ],
+    "projection": "perspective",
+    "render_size": [
+      224,
+      224
+    ]
+  },
+  "chronology": {
+    "actual_pose": [
+      -9.357349395751953,
+      -59.94412612915039,
+      7.8349080085754395
+    ],
+    "alignment_csv_106": "ldm106_chronology.csv",
+    "alignment_csv_134": "ldm134_chronology.csv",
+    "alignment_method": "full_pose_correction_v1",
+    "alignment_quality": 0.5062179035610623,
+    "applied_center": [
+      -0.011806964874267578,
+      0.029571088030934334,
+      0.015513104386627674
+    ],
+    "applied_rotation": [
+      [
+        0.9855522513389587,
+        0.004910086281597614,
+        0.16930024325847626
+      ],
+      [
+        -0.018610091879963875,
+        0.996666669845581,
+        0.07942992448806763
+      ],
+      [
+        -0.1683458536863327,
+        -0.08143303543329239,
+        0.9823585748672485
+      ]
+    ],
+    "applied_scale": 0.5907929539680481,
+    "canonical_yaw": -70.0,
+    "corner_lift_ioc": -0.018521240909424183,
+    "correction_magnitude_deg": 15.813486981796737,
+    "correction_pitch_deg": 9.357349395751953,
+    "correction_roll_deg": 7.8349080085754395,
+    "correction_yaw_deg": 10.05587387084961,
+    "description": "Full pose correction (pitch+yaw+roll) to canonical pose. Use chronology CSVs for within-bin comparison.",
+    "detection_confidence": 0.9995301783264746,
+    "expression_magnitude": 6.836587429046631,
+    "face_area_ratio": 0.4997650891632373,
+    "jaw_open_degree": 56.56304359436035,
+    "jaw_open_detected": false,
+    "jaw_open_ratio": 0.18768257731694968,
+    "pose_bin": "left_profile",
+    "pose_confidence": 0.5,
+    "reprojection_p95": 0.0,
+    "reprojection_rmse": 0.0,
+    "residual_pitch_deg": -9.357349395751953,
+    "residual_roll_deg": 7.8349080085754395,
+    "residual_yaw_deg": 10.05587387084961,
+    "smile_detected": false,
+    "target_pose": [
+      0.0,
+      -70.0,
+      0.0
+    ],
+    "visible_landmarks_106": 57,
+    "visible_landmarks_134": 57
+  },
+  "code_hash": "448bae54bbf425a21d791a5f4f4dea69",
+  "config_hash": "42eff1fccf827dfc5e693a6699cbad5a",
+  "crop": {
+    "bbox_original": [
+      0,
+      319,
+      766,
+      761
+    ],
+    "crop_source": "ldm106_projection",
+    "letterbox": {
+      "content_height": 421,
+      "content_width": 424,
+      "offset_x": 0,
+      "offset_y": 39,
+      "scale": 0.5535248041775457
+    }
+  },
+  "date": "2018-03-22",
+  "date_day": 22,
+  "date_month": 3,
+  "date_year": 2018,
+  "extraction_timestamp": "2026-07-30T04:54:46Z",
+  "files": {
+    "face_crop": "face_crop.jpg",
+    "face_mask": "face_mask.png",
+    "face_mask_data": "face_mask.npz",
+    "ldm106_aligned": "ldm106_aligned.csv",
+    "ldm106_chronology": "ldm106_chronology.csv",
+    "ldm106_original": "ldm106_original.csv",
+    "ldm106_raw": "ldm106_raw.csv",
+    "ldm134_aligned": "ldm134_aligned.csv",
+    "ldm134_chronology": "ldm134_chronology.csv",
+    "ldm134_original": "ldm134_original.csv",
+    "ldm134_raw": "ldm134_raw.csv",
+    "mesh": "mesh.obj",
+    "mesh_material": "mesh.mtl",
+    "original": "original.jpg",
+    "reconstruction": "reconstruction.npz",
+    "semantic_channels": "semantic_channels.npz",
+    "texture": "texture.json",
+    "thumbnail": "thumb.jpg",
+    "uv_data": "uv.npz",
+    "uv_texture": "uv_texture.png"
+  },
+  "image": {
+    "decode": {
+      "decoder": "Pillow.ImageOps.exif_transpose",
+      "encoded_mode": "RGB",
+      "encoded_size": [
+        1080,
+        1080
+      ],
+      "exif_camera_processing": {},
+      "exif_orientation": 1,
+      "icc_profile_present": false,
+      "orientation_applied": false,
+      "oriented_size": [
+        1080,
+        1080
+      ],
+      "output": "uint8_sRGB_assumed_if profile not converted",
+      "source_hypotheses": {
+        "recompressed": "unknown",
+        "scanned": "unknown",
+        "upscaled": "unknown"
+      }
+    },
+    "extension": ".jpg",
+    "height": 1080,
+    "width": 1080
+  },
+  "landmark_contract": {
+    "aligned": "full-mesh RMS normalized then pose-bin canonical yaw (yaw only)",
+    "chronology": "full pose correction (pitch+yaw+roll) to canonical pose, identity-only vertices",
+    "raw": "object identity+expression"
+  },
+  "mask": {
+    "channel_area_fraction_224": {
+      "left_eye": 0.0042251275510204085,
+      "left_eyebrow": 0.01327327806122449,
+      "lower_lip": 0.0036073022959183672,
+      "nose": 0.024613360969387755,
+      "right_eye": 0.00033880739795918367,
+      "right_eyebrow": 0.0015943877551020409,
+      "skin": 0.43883529974489793,
+      "upper_lip": 0.002291932397959184
+    },
+    "channel_names": [
+      "right_eye",
+      "left_eye",
+      "right_eyebrow",
+      "left_eyebrow",
+      "nose",
+      "upper_lip",
+      "lower_lip",
+      "skin"
+    ],
+    "error": null,
+    "fallback_used": false,
+    "hard_area_fraction_224": 0.4634486607142857,
+    "hard_area_fraction_original": 0.24551183127572015,
+    "original_exclusion_policy": "eye+brow+upper_lip+lower_lip nearest projection, threshold 32/255, dilate 1px",
+    "policy": "3ddfa-semantic-skin-plus-nose-v1",
+    "soft_area_fraction_224": 0.4634486607142857,
+    "soft_area_fraction_original": 0.24881601508916323,
+    "status": "valid"
+  },
+  "model_hash": "2b88680ef19ed2609b72d15e7af5deb3",
+  "normalization": {
+    "center": [
+      -0.011806964874267578,
+      0.029571088030934334,
+      0.015513104386627674
+    ],
+    "method": "full_mesh_rms_v1",
+    "scale": 0.5907929539680481
+  },
+  "photo_id": "2018_03_22_person_06_frame_0011__e92143744482",
+  "pose": {
+    "canonical_yaw": -70.0,
+    "pitch": -9.357349395751953,
+    "pose_bin": "left_profile",
+    "roll": 7.8349080085754395,
+    "yaw": -59.94412612915039
+  },
+  "quality_inputs": {
+    "combined_visible_fraction": 0.5049147273796522,
+    "face_bbox_area_ratio": 0.4997650891632373,
+    "face_bbox_height": 761,
+    "face_bbox_width": 766,
+    "gradient_anisotropy": 1.492349194345456,
+    "laplacian_variance": 64.62118205930821,
+    "noise_residual_mean": 0.6402339339256287,
+    "skin_mask_coverage": 0.24551183127572015,
+    "tenengrad_mean": 1144.9791603050817,
+    "uv_observed_coverage": 0.798035
+  },
+  "quality_summary": {
+    "status": "skin_authenticity_v1"
+  },
+  "reprojection": {
+    "ldm106_224": {
+      "max": 0.0,
+      "p95": 0.0,
+      "rmse": 0.0
+    },
+    "ldm134_224": {
+      "max": 0.0,
+      "p95": 0.0,
+      "rmse": 0.0
+    }
+  },
+  "same_date_sequence": 11,
+  "schema_version": "deeputin-photo-v2.4-chronology-alignment",
+  "skin": {
+    "contract": "skin-authenticity-v1",
+    "hard_stop": false,
+    "hard_stop_reason": null,
+    "panel": "top20_z_median",
+    "source": "face_mask.png",
+    "state": "success",
+    "texture_file": "texture.json"
+  },
+  "skin_authenticity_score": -0.2272415591305158,
+  "skin_authenticity_status": "high_authenticity",
+  "skin_quality_score": 0.3969247766929947,
+  "skin_quality_status": "low",
+  "source_digest": "e92143744482286585d3eccc122f657ac6107fad05b3802909d0cdd47da1a688",
+  "source_filename": "2018_03_22__person_06_frame_0011.jpg",
+  "source_relative_path": "2018_03_22__person_06_frame_0011.jpg",
+  "uv": {
+    "confidence_semantics": "uv_confidence.png is a binary visual valid mask; uv.npz stores UV texture pixels, continuous 0..1 confidence, component masks, UV coords and triangle visibility; valid_mask = observed AND original AND confidence >= threshold",
+    "mean_confidence_observed": 0.1435052752494812,
+    "native_skin_contract": "skin authenticity metrics use face_mask.png via app6.stage1.authenticity; UV texture is visualization-only",
+    "observed_coverage": 0.798035,
+    "original_coverage": 0.798035,
+    "render_fill_policy": "contralateral mirror plus tiny-hole inpaint inside the single visualization render; never evidence",
+    "status": "valid",
+    "uv_product_count": 1,
+    "valid_coverage": 0.00096,
+    "valid_threshold": 0.5
+  }
+}

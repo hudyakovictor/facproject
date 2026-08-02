@@ -1,0 +1,230 @@
+{
+  "camera": {
+    "camera_distance": 10.0,
+    "focal": 1015.0,
+    "principal_point": [
+      112.0,
+      112.0
+    ],
+    "projection": "perspective",
+    "render_size": [
+      224,
+      224
+    ]
+  },
+  "code_hash": "b36d2a7381fe987a2cc082db262c90333cb5e8dce1ea450d2fc254e81c69ac26",
+  "config_hash": "f2a5bba572d076847ed6d3037c82bccfeb91367ff7b6c2d28148b519f979c10c",
+  "crop": {
+    "bbox_original": [
+      0,
+      163,
+      800,
+      637
+    ],
+    "crop_source": "ldm106_projection",
+    "letterbox": {
+      "content_height": 338,
+      "content_width": 424,
+      "offset_x": 0,
+      "offset_y": 81,
+      "scale": 0.53
+    }
+  },
+  "date": "2000-06-14",
+  "date_day": 14,
+  "date_month": 6,
+  "date_year": 2000,
+  "extraction_timestamp": "2026-07-20T13:20:54Z",
+  "files": {
+    "face_crop": "face_crop.jpg",
+    "face_mask": "face_mask.png",
+    "face_mask_data": "face_mask.npz",
+    "ldm106_aligned": "ldm106_aligned.csv",
+    "ldm106_raw": "ldm106_raw.csv",
+    "ldm134_aligned": "ldm134_aligned.csv",
+    "ldm134_raw": "ldm134_raw.csv",
+    "mesh": "mesh.obj",
+    "mesh_material": "mesh.mtl",
+    "original": "original.jpg",
+    "quality": "quality.json",
+    "quality_zones": "quality_zones.npz",
+    "reconstruction": "reconstruction.npz",
+    "semantic_channels": "semantic_channels.npz",
+    "skin_zone_projection": "skin_zone_projection.npz",
+    "skin_zone_quality": "skin_zone_quality.json",
+    "texture_forensics": "texture_forensics.json",
+    "thumbnail": "thumb.jpg",
+    "uv_data": "uv.npz",
+    "uv_texture": "uv_texture.png",
+    "wrinkle_zones": "wrinkle_zones.json",
+    "wrinkle_zones_data": "wrinkle_zones.npz",
+    "zones_overlay": "_zones_overlay.png"
+  },
+  "image": {
+    "extension": ".jpg",
+    "height": 800,
+    "width": 800
+  },
+  "landmark_contract": {
+    "aligned": "full-mesh RMS normalized then pose-bin canonical yaw",
+    "raw": "object identity+expression"
+  },
+  "mask": {
+    "channel_area_fraction_224": {
+      "left_eye": 0.005699936224489796,
+      "left_eyebrow": 0.007792570153061225,
+      "lower_lip": 0.006556919642857143,
+      "nose": 0.020467952806122448,
+      "right_eye": 0.005739795918367347,
+      "right_eyebrow": 0.006556919642857143,
+      "skin": 0.3529775191326531,
+      "upper_lip": 0.002650669642857143
+    },
+    "channel_names": [
+      "right_eye",
+      "left_eye",
+      "right_eyebrow",
+      "left_eyebrow",
+      "nose",
+      "upper_lip",
+      "lower_lip",
+      "skin"
+    ],
+    "error": null,
+    "fallback_used": false,
+    "hard_area_fraction_224": 0.37344547193877553,
+    "hard_area_fraction_original": 0.4641484375,
+    "policy": "3ddfa-semantic-skin-plus-nose-v1",
+    "soft_area_fraction_224": 0.37344547193877553,
+    "soft_area_fraction_original": 0.4766796875,
+    "status": "valid"
+  },
+  "model_hash": "04f2aced02c011c7ca5a14866e968a9d2fcc8c00569e90f2550a5c8f2e0b3322",
+  "normalization": {
+    "center": [
+      0.004502932541072369,
+      0.015029850415885448,
+      0.012525415048003197
+    ],
+    "method": "full_mesh_rms_v1",
+    "scale": 0.5952413082122803
+  },
+  "photo_id": "2000_06_14",
+  "pose": {
+    "canonical_yaw": 0.0,
+    "pitch": 14.509090423583984,
+    "pose_bin": "frontal",
+    "roll": -1.63224196434021,
+    "yaw": 0.8037130236625671
+  },
+  "quality_inputs": {
+    "combined_visible_fraction": 0.6587414937410737,
+    "face_bbox_area_ratio": 0.79625,
+    "face_bbox_height": 637,
+    "face_bbox_width": 800,
+    "gradient_anisotropy": 1.0915499565537747,
+    "laplacian_variance": 250.3984836346388,
+    "noise_residual_mean": 1.9198352098464966,
+    "skin_mask_coverage": 0.4641484375,
+    "tenengrad_mean": 2337.1493485086344,
+    "uv_observed_coverage": 0.798035
+  },
+  "quality_summary": {
+    "created_at_utc": "2026-07-20T13:20:53Z",
+    "files": {
+      "quality_zones": "quality_zones.npz"
+    },
+    "global_texture_quality": {
+      "status": "usable",
+      "texture_score_0_1": 0.9206306338310242
+    },
+    "mask_quality": {
+      "skin_coverage_original": 0.4641484375,
+      "skin_pixels_original": 297055,
+      "status": "ok"
+    },
+    "per_zone_quality": {
+      "forehead_L": {
+        "highlight_fraction": 0.0,
+        "laplacian_var": 304.8815612792969,
+        "quality_class": "good",
+        "roi_source": "landmark_skin_fallback_pending_mesh_projection",
+        "shadow_fraction": 0.0,
+        "skin_fraction": 1.0,
+        "tenengrad_mean": 1693.2857666015625,
+        "texture_pixels": 34075,
+        "texture_score_0_1": 0.9206306338310242,
+        "texture_usable": true,
+        "visible_fraction": 0.8999999761581421
+      },
+      "forehead_R": {
+        "highlight_fraction": 0.0,
+        "laplacian_var": 224.97923278808594,
+        "quality_class": "good",
+        "roi_source": "landmark_skin_fallback_pending_mesh_projection",
+        "shadow_fraction": 0.0,
+        "skin_fraction": 1.0,
+        "tenengrad_mean": 1431.1617431640625,
+        "texture_pixels": 35978,
+        "texture_score_0_1": 0.8719296455383301,
+        "texture_usable": true,
+        "visible_fraction": 0.8999999761581421
+      },
+      "forehead_center": {
+        "highlight_fraction": 0.0,
+        "laplacian_var": 540.9827880859375,
+        "quality_class": "good",
+        "roi_source": "landmark_skin_fallback_pending_mesh_projection",
+        "shadow_fraction": 0.0,
+        "skin_fraction": 1.0,
+        "tenengrad_mean": 2366.316162109375,
+        "texture_pixels": 34429,
+        "texture_score_0_1": 1.0,
+        "texture_usable": true,
+        "visible_fraction": 1.0
+      }
+    },
+    "photo_id": "2000_06_14",
+    "pose": {
+      "canonical_yaw": 0.0,
+      "pitch": 14.509090423583984,
+      "pose_bin": "frontal",
+      "roll": -1.63224196434021,
+      "yaw": 0.8037130236625671
+    },
+    "schema_version": "deeputin-quality-v1.0",
+    "status": "complete",
+    "supported_forehead_wrinkle_pose_v1": true,
+    "warnings": []
+  },
+  "reprojection": {
+    "ldm106_224": {
+      "max": 0.0,
+      "p95": 0.0,
+      "rmse": 0.0
+    },
+    "ldm134_224": {
+      "max": 0.0,
+      "p95": 0.0,
+      "rmse": 0.0
+    }
+  },
+  "same_date_sequence": 1,
+  "schema_version": "deeputin-photo-v2.1",
+  "source_filename": "2000_06_14.jpg",
+  "source_relative_path": "2000_06_14.jpg",
+  "source_sha256": "212639178b9b41502da037e00d8d90c15917cc4e2b6c33df10bff4cc674b6ca6",
+  "uv": {
+    "confidence_semantics": "uv_confidence.png is a binary visual valid mask; uv.npz stores UV texture pixels, continuous 0..1 confidence, component masks, UV coords and triangle visibility; valid_mask = observed AND original AND confidence >= threshold",
+    "forensics_schema": "forensics-disabled",
+    "mean_confidence_observed": 0.07867249846458435,
+    "observed_coverage": 0.798035,
+    "original_coverage": 0.798035,
+    "status": "valid",
+    "synthetic_policy": "contralateral mirror plus tiny-hole inpaint; excluded from analytics",
+    "valid_coverage": 0.0,
+    "valid_threshold": 0.5,
+    "wrinkle_schema": "wrinkle_v3",
+    "wrinkle_usable_zone_count": 0
+  }
+}

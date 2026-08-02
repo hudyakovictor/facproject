@@ -1,0 +1,104 @@
+{
+  "schema": "texture-v1",
+  "photo_id": "2010_02_01_person_02_frame_000124__5b41d16cdf69",
+  "source": {
+    "face_mask_png": "face_mask.png",
+    "size": [
+      233,
+      217
+    ],
+    "mask_pixels": 19353
+  },
+  "model": {
+    "version": "skin-authenticity-v1",
+    "panel_size": 20,
+    "aggregation": "median_z_top20",
+    "libraries": [
+      "numpy",
+      "opencv-python-headless",
+      "Pillow"
+    ],
+    "source": "user_stress_quality_run_2026-07-23"
+  },
+  "quality": {
+    "score": 0.3813497316773766,
+    "status": "insufficient",
+    "hard_stop": true,
+    "rule": {
+      "required_count": 3,
+      "thresholds": {
+        "q_noise_mad": 0.46002500000000873,
+        "q_grad_med": 0.10522263936677943,
+        "q_lap_med": 0.017564602107188035
+      }
+    },
+    "metrics": {
+      "q_noise_mad": 0.4240000000000066,
+      "q_grad_med": 0.07581352536654046,
+      "q_lap_med": 0.011345039112299338,
+      "q_contrast": 75.89580000000004,
+      "q_exposure_clip": 0.0001550147263990079,
+      "q_mask_coverage": 0.382765372520322
+    }
+  },
+  "authenticity": {
+    "score": null,
+    "status": "quality_insufficient",
+    "raw_panel_score": 1.3594636227531727,
+    "thresholds": {
+      "q95": 1.1655904552782026,
+      "q99": 1.4030683177049115
+    },
+    "decision_rule": {
+      "high_authenticity": "score <= q95",
+      "borderline": "q95 < score <= q99",
+      "low_authenticity": "score > q99",
+      "quality_insufficient": "quality.hard_stop == true"
+    },
+    "aggregation": "median_z_top20",
+    "metrics": {
+      "drv_diff__spec_cheek_over_fore__lab_b_ent": 0.5136276769921662,
+      "drv_absdiff__spec_cheek_over_fore__cheek_rn_ent": 0.6898678905877753,
+      "drv_absdiff__spec_cheek_over_fore__redness_ent": 0.4778002216864341,
+      "drv_absdiff__gradsign_ent__radial_shade_curve": 0.9919888874883631,
+      "drv_diff__spec_cheek_over_fore__bn_ent": 0.5566373620696939,
+      "drv_diff__lab_b_ent__radial_shade_slope": 0.8971228552798731,
+      "drv_prod__radial_shade_curve__fore_grad_p99_med": -0.0035687228423923376,
+      "drv_ratio__radial_shade_curve__lab_b_ent": -0.00029143266634714353,
+      "drv_ratio__gradsign_ent__spec_cheek_over_fore": 0.7083789834492294,
+      "drv_diff__gradsign_ent__spec_cheek_over_fore": -0.40826941921235016,
+      "drv_prod__radial_shade_curve__grad_p99_med": -0.0041862716527926724,
+      "ery_stack_mean": 2.233182993638353,
+      "drv_prod__radial_shade_curve__lap_kurt": -0.01789158729676898,
+      "drv_ratio__lab_b_ent__fore_grad_p99_med": 0.06415902744621026,
+      "drv_diff__gradsign_ent__radial_shade_slope": 1.0024811130596891,
+      "drv_ratio__grad_p99_med__radial_shade_slope": 1507.4486857479524,
+      "drv_prod__lab_b_ent__radial_shade_slope": -0.009528984023043726,
+      "drv_ratio__radial_shade_slope__fore_grad_p99_med": -0.0007781655642625849,
+      "drv_diff__spec_cheek_over_fore__pore_patch_min_max": 1.350362634153821,
+      "drv_diff__lab_b_ent__pore_patch_cv": -0.10570664943476782
+    },
+    "z_scores": {
+      "drv_diff__spec_cheek_over_fore__lab_b_ent": 1.7977828186460654,
+      "drv_absdiff__spec_cheek_over_fore__cheek_rn_ent": 1.692650419127314,
+      "drv_absdiff__spec_cheek_over_fore__redness_ent": 1.4034567947803966,
+      "drv_absdiff__gradsign_ent__radial_shade_curve": 0.5030463647229003,
+      "drv_diff__spec_cheek_over_fore__bn_ent": 0.9090020591130197,
+      "drv_diff__lab_b_ent__radial_shade_slope": -1.614437536743239,
+      "drv_prod__radial_shade_curve__fore_grad_p99_med": -0.24321167191541235,
+      "drv_ratio__radial_shade_curve__lab_b_ent": -0.1534935475510285,
+      "drv_ratio__gradsign_ent__spec_cheek_over_fore": 3.7408660913512666,
+      "drv_diff__gradsign_ent__spec_cheek_over_fore": 5.121106412544797,
+      "drv_prod__radial_shade_curve__grad_p99_med": -0.2573206017593063,
+      "ery_stack_mean": 0.10718931353198574,
+      "drv_prod__radial_shade_curve__lap_kurt": -0.8621296648090097,
+      "drv_ratio__lab_b_ent__fore_grad_p99_med": 2.789665252359494,
+      "drv_diff__gradsign_ent__radial_shade_slope": 1.3154704507259487,
+      "drv_ratio__grad_p99_med__radial_shade_slope": 10.384288100476272,
+      "drv_prod__lab_b_ent__radial_shade_slope": 0.8450280086719408,
+      "drv_ratio__radial_shade_slope__fore_grad_p99_med": 1.4275546018013323,
+      "drv_diff__spec_cheek_over_fore__pore_patch_min_max": 4.023866400263462,
+      "drv_diff__lab_b_ent__pore_patch_cv": 4.973561700748293
+    }
+  }
+}
