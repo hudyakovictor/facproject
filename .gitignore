@@ -1,8 +1,10 @@
 # Created by pytest automatically.
 __pycache__/
+*.py[cod]
 *.pyc
 .DS_Store
 ._*
+__MACOSX/
 .env
 .venv/
 venv/
@@ -54,12 +56,18 @@ testphoto_output/
 
 # Local run outputs and large binary assets (kept local, not in git)
 runs/
+results/
 assets/
+patch/
 
 # UI build/deps (rebuilt via `cd ui && npm ci && npm run build`)
 ui/node_modules/
 ui/dist/
 node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
 
 # Regenerable audit reports (`python app6/scripts/audit_50_implementation_checks.py`)
 app6/AUDIT_50_REPORT.json

@@ -2,8 +2,8 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { loadTimeline } from "../api";
 import { buildEraMeta } from "../data";
 
-/** Реальная форма ответа `/api/v1/timeline` в demo-режиме: идентификаторы
- * сегментов `DEMO_SEGMENT_*`, а НЕ `ERA_*` встроенного набора. */
+/** Backend может использовать собственные идентификаторы сегментов,
+ * которые не обязаны совпадать с локальными именами ERA_*. */
 function apiRow(id: string, era: string, t: number, bucket = "frontal") {
   return {
     id, era, t, bucket, date: new Date(t).toISOString().slice(0, 10),
@@ -22,7 +22,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("era contract", () => {
   it("accepts backend segment ids that differ from the built-in ERA_* set", async () => {
     mockTimeline({
-      source_mode: "demo",
+      source_mode: "research",
       era_meta: {
         DEMO_SEGMENT_1: { label: "Демо-сегмент 1", start: "1999-08-09", end: "2011-12-31" },
         DEMO_SEGMENT_2: { label: "Демо-сегмент 2", start: "2012-01-01", end: "2014-12-31" },
@@ -43,7 +43,7 @@ describe("era contract", () => {
 
   it("rejects unknown era with a visible reason instead of dropping it silently", async () => {
     mockTimeline({
-      source_mode: "demo",
+      source_mode: "research",
       era_meta: { DEMO_SEGMENT_1: { label: "s1", start: "1999-01-01", end: "2011-12-31" } },
       photos: [
         apiRow("good", "DEMO_SEGMENT_1", Date.parse("2000-01-01")),
@@ -55,12 +55,12 @@ describe("era contract", () => {
     expect(result.rejected).toHaveLength(1);
     expect(result.rejected[0].id).toBe("bad");
     expect(result.rejected[0].reason).toContain("era_meta");
-    expect(result.message).toContain("отвергнуто");
+    expect(result.message).toContain("rejected: 1");
   });
 
   it("rejects an unknown pose bin", async () => {
     mockTimeline({
-      source_mode: "demo",
+      source_mode: "research",
       era_meta: { S1: { label: "s", start: "1999-01-01", end: "2026-01-01" } },
       photos: [
         apiRow("ok", "S1", Date.parse("2000-01-01"), "frontal"),

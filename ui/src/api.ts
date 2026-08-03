@@ -1,6 +1,6 @@
-import { POSE_BUCKETS, buildEraMeta, ERA_META, loadDemoPhotos, type EraMeta, type Photo } from "./data";
+import { POSE_BUCKETS, buildEraMeta, type EraMeta, type Photo } from "./data";
 
-export type DataMode = "research" | "demo" | "loading" | "error";
+export type DataMode = "research" | "loading" | "error";
 export interface TimelinePayload {
   schema?: string; source_mode?: string; photos?: unknown[]; items?: unknown[]; note?: string;
   era_meta?: Record<string, { label?: string; start?: string; end?: string }>;
@@ -15,11 +15,11 @@ export interface TimelineResult {
   /** Строки, отвергнутые валидатором, с причиной — показываются пользователю,
    * а не теряются молча. */
   rejected: { id: string; reason: string }[];
-  /** Сводки хронологических аномалий Stage 2; пусто в demo-режиме. */
+  /** Сводки хронологических аномалий Stage 2; пусто в неисследовательском режиме. */
   chronologyAnomalies: Record<string, Record<string, unknown>>;
 }
 
-const required = ["id", "date", "t", "era", "bucket", "quality", "boneScore", "p0", "p1", "p2"] as const;
+const required = ["id", "date", "t", "era", "bucket"] as const;
 
 const POSE_SET: ReadonlySet<string> = new Set(POSE_BUCKETS);
 
@@ -38,7 +38,7 @@ const NULLABLE_NUMERIC_FIELDS = [
 ] as const;
 
 /** Поля, обязательные для осмысленной строки: без них кадр непригоден. */
-const CRITICAL_NUMERIC_FIELDS = ["quality", "boneScore", "p0", "p1", "p2"] as const;
+const CRITICAL_NUMERIC_FIELDS = ["quality", "boneScore"] as const;
 
 /** 🚧 Привести числовое поле к `NaN`, если backend прислал `null`/мусор.
  *
@@ -84,6 +84,7 @@ function validatePhoto(value: unknown, knownEras: ReadonlySet<string>): { ok: tr
   // Нормализация числовых полей: research-режим отдаёт часть каналов как
   // `null`, и без приведения к NaN любое `.toFixed()` роняет компонент.
   const normalized: Record<string, unknown> = { ...row };
+  normalized.dominant = row.dominant === "H0" || row.dominant === "H1" || row.dominant === "H2" ? row.dominant : "UNAVAILABLE";
   for (const field of NULLABLE_NUMERIC_FIELDS) {
     if (field in normalized) normalized[field] = normalizeNumeric(normalized[field]);
   }
@@ -105,50 +106,39 @@ export function apiBase(): string {
 
 export async function loadTimeline(signal?: AbortSignal): Promise<TimelineResult> {
   const endpoint = (import.meta.env.VITE_TIMELINE_API_URL as string | undefined) || `${apiBase()}/api/v1/timeline`;
-  try {
-    const response = await fetch(endpoint, { signal, headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json() as TimelinePayload | unknown[];
-    const rows = Array.isArray(payload) ? payload : (payload.photos ?? payload.items ?? []);
-    const eraMetaRaw = Array.isArray(payload) ? undefined : payload.era_meta;
-    const knownEras = new Set(Object.keys(eraMetaRaw ?? {}));
-
-    const photos: Photo[] = [];
-    const rejected: { id: string; reason: string }[] = [];
-    for (const row of rows) {
-      const verdict = validatePhoto(row, knownEras);
-      if (verdict.ok) photos.push(verdict.photo);
-      else rejected.push({ id: verdict.id, reason: verdict.reason });
-    }
-    if (!photos.length) {
-      const detail = rejected.length ? ` (отвергнуто ${rejected.length}: ${rejected[0].reason})` : "";
-      throw new Error(`API returned no valid photo rows${detail}`);
-    }
-
-    const sourceMode = Array.isArray(payload) ? "research" : (payload.source_mode === "research" ? "research" : "demo");
-    const note = Array.isArray(payload) ? undefined : payload.note;
-    const label = sourceMode === "research" ? "реальный вывод Stage 2" : "демо-датасет (иллюстрация метода)";
-    const sorted = photos.sort((a, b) => a.t - b.t);
-    const rejectedNote = rejected.length ? ` · отвергнуто строк: ${rejected.length}` : "";
-    return {
-      photos: sorted,
-      mode: sourceMode,
-      message: `${sorted.length} записей · ${label}${note ? " · " + note : ""}${rejectedNote}`,
-      eraMeta: buildEraMeta(eraMetaRaw, sorted),
-      rejected,
-      chronologyAnomalies: (Array.isArray(payload) ? undefined : payload.chronology_anomalies) ?? {},
-    };
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") throw error;
-    const message = error instanceof Error ? error.message : "unknown API error";
-    // Демо-набор подгружается отдельным чанком только здесь — в ветке,
-    // куда попадаем лишь при недоступном backend (аудит №27).
-    return {
-      photos: await loadDemoPhotos(), mode: "demo",
-      message: `API недоступен, встроенный фронтенд-демо-набор: ${message}`,
-      eraMeta: ERA_META, rejected: [], chronologyAnomalies: {},
-    };
+  const response = await fetch(endpoint, { signal, headers: { Accept: "application/json" } });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Timeline unavailable: HTTP ${response.status}${body ? ` · ${body.slice(0, 300)}` : ""}`);
   }
+  const payload = await response.json() as TimelinePayload | unknown[];
+  if (!Array.isArray(payload) && payload.source_mode !== "research") {
+    throw new Error(`Non-research timeline rejected (source_mode=${String(payload.source_mode ?? "missing")})`);
+  }
+  const rows = Array.isArray(payload) ? payload : (payload.photos ?? payload.items ?? []);
+  const eraMetaRaw = Array.isArray(payload) ? undefined : payload.era_meta;
+  const knownEras = new Set(Object.keys(eraMetaRaw ?? {}));
+  const photos: Photo[] = [];
+  const rejected: { id: string; reason: string }[] = [];
+  for (const row of rows) {
+    const verdict = validatePhoto(row, knownEras);
+    if (verdict.ok) photos.push(verdict.photo);
+    else rejected.push({ id: verdict.id, reason: verdict.reason });
+  }
+  if (!photos.length) {
+    const detail = rejected.length ? `; rejected ${rejected.length}: ${rejected[0].reason}` : "";
+    throw new Error(`Research API returned no valid photo rows${detail}`);
+  }
+  const sorted = photos.sort((a, b) => a.t - b.t);
+  const note = Array.isArray(payload) ? undefined : payload.note;
+  return {
+    photos: sorted,
+    mode: "research",
+    message: `${sorted.length} records · verified research source${note ? " · " + note : ""}${rejected.length ? ` · rejected: ${rejected.length}` : ""}`,
+    eraMeta: buildEraMeta(eraMetaRaw, sorted),
+    rejected,
+    chronologyAnomalies: (Array.isArray(payload) ? undefined : payload.chronology_anomalies) ?? {},
+  };
 }
 
 export function exportFixCapsule(photo: Photo | null, sourceMode: DataMode): void {
@@ -159,7 +149,7 @@ export function exportFixCapsule(photo: Photo | null, sourceMode: DataMode): voi
     photo_id: photo?.id ?? null,
     source:photo?{date:photo.date,pose_bin:photo.bucket,quality:photo.quality,date_authority:"filename",date_provenance_status:photo.dateProvenanceStatus??"unknown",exif_date:photo.exifDate??null,date_delta_days:photo.dateDeltaDays??null,source_claimed_date:photo.sourceClaimedDate??null,source_claimed_delta_days:photo.sourceClaimedDeltaDays??null,date_conflict_sources:photo.dateConflictSources??[],date_provenance_limited:photo.dateProvenanceLimited??false}:null,
     evidence: photo ? {
-      hypothesis: { H0: photo.p0, H1: photo.p1, H2: photo.p2 },
+      hypothesis: { H0: Number.isFinite(photo.p0) ? photo.p0 : null, H1: Number.isFinite(photo.p1) ? photo.p1 : null, H2: Number.isFinite(photo.p2) ? photo.p2 : null },
       fuzzy_label: photo.fuzzy,
       confidence: photo.confidence,
       flags: photo.flags,
@@ -275,10 +265,9 @@ export interface CompareResult {
 }
 
 export async function comparePhotos(photoA: string, photoB: string): Promise<CompareResult> {
-  return apiJson<CompareResult>("/api/v1/compare", {
-    method: "POST",
-    body: JSON.stringify({ photo_a: photoA, photo_b: photoB }),
-  });
+  const result = await apiJson<CompareResult>("/api/v1/compare", { method: "POST", body: JSON.stringify({ photo_a: photoA, photo_b: photoB }) });
+  if (result.source_mode !== "research") throw new Error(`Non-research comparison rejected (${result.source_mode})`);
+  return result;
 }
 
 export interface FullMeshCompareResult {
@@ -305,13 +294,13 @@ export interface FullMeshCompareResult {
  * BFM-геометрия недоступна на backend (HTTP 503) — вызывающий код обязан
  * явно обработать это состояние, а не тихо падать в пустой экран. */
 export async function comparePhotosFullMesh(photoA: string, photoB: string): Promise<FullMeshCompareResult> {
-  return apiJson<FullMeshCompareResult>("/api/v1/compare/full_mesh", {
-    method: "POST",
-    body: JSON.stringify({ photo_a: photoA, photo_b: photoB }),
-  });
+  const result = await apiJson<FullMeshCompareResult>("/api/v1/compare/full_mesh", { method: "POST", body: JSON.stringify({ photo_a: photoA, photo_b: photoB }) });
+  if (result.source_mode !== "research") throw new Error(`Non-research full-mesh comparison rejected (${result.source_mode})`);
+  return result;
 }
 
 export interface PhotoDetail {
+  source_mode: string;
   id: string; date: string; bucket: string; era: string;
   angles: { pitch: number; yaw: number; roll: number };
   landmarks_106: [number, number, number][];
@@ -321,10 +310,13 @@ export interface PhotoDetail {
 }
 
 export async function fetchPhotoDetail(photoId: string): Promise<PhotoDetail> {
-  return apiJson<PhotoDetail>(`/api/v1/photos/${encodeURIComponent(photoId)}`);
+  const result = await apiJson<PhotoDetail>(`/api/v1/photos/${encodeURIComponent(photoId)}`);
+  if (result.source_mode !== "research") throw new Error(`Non-research photo detail rejected (${result.source_mode ?? "missing"})`);
+  return result;
 }
 
 export interface FullMesh {
+  source_mode: string;
   id: string;
   vertices: [number, number, number][];
   triangles: [number, number, number][];
@@ -338,7 +330,9 @@ export interface FullMesh {
 /** Полный BFM-меш одного фото (35 709 вершин, реальная топология) для
  * настоящего 3D-просмотра вместо landmark-приближения. */
 export async function fetchPhotoFullMesh(photoId: string): Promise<FullMesh> {
-  return apiJson<FullMesh>(`/api/v1/photos/${encodeURIComponent(photoId)}/mesh`);
+  const result = await apiJson<FullMesh>(`/api/v1/photos/${encodeURIComponent(photoId)}/mesh`);
+  if (result.source_mode !== "research") throw new Error(`Non-research mesh rejected (${result.source_mode ?? "missing"})`);
+  return result;
 }
 
 export interface CalibrationBucket {
@@ -527,7 +521,9 @@ export interface SkinZoneReport {
  * текстурных артефактов не существует) — вызывающий код обязан это показать,
  * а не подставить синтетику. */
 export async function fetchSkinZones(photoId: string): Promise<SkinZoneReport> {
-  return apiJson<SkinZoneReport>(`/api/v1/photos/${encodeURIComponent(photoId)}/skin_zones`);
+  const result = await apiJson<SkinZoneReport>(`/api/v1/photos/${encodeURIComponent(photoId)}/skin_zones`);
+  if (result.source_mode !== "research") throw new Error(`Non-research skin-zone report rejected (${result.source_mode})`);
+  return result;
 }
 
 export interface ZoneCatalogEntry {
@@ -554,7 +550,7 @@ export async function deletePhotoExtraction(photoId: string): Promise<{ deleted:
 /** URL сохранённого Stage 1 изображения фотографии.
  *
  * Возвращает строку для `<img src>`, а не Blob: браузер сам кэширует и
- * показывает прогресс загрузки. В demo-режиме backend ответит 409 — компонент
+ * показывает прогресс загрузки. В неисследовательском режиме backend ответит 409 — компонент
  * обязан показать заглушку с причиной, а не пустой прямоугольник.
  */
 export type PhotoImageKind = "original" | "thumbnail" | "face_crop" | "uv_texture" | "zones_overlay";

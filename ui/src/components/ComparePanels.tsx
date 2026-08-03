@@ -10,7 +10,7 @@ type Stops = typeof DEFAULT_HEATMAP_STOPS;
  *
  * Раньше режим сравнения показывал только меш, и сопоставить лица глазами
  * было невозможно. Изображение берётся из артефактов Stage 1; если его нет
- * (demo-режим), показывается причина, а не пустой прямоугольник. */
+ * (неисследовательский режим), показывается причина, а не пустой прямоугольник. */
 export function PhotoPair({ a, b }: {
   a: { id: string; date: string; bucket: string };
   b: { id: string; date: string; bucket: string };

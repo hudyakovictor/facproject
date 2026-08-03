@@ -1,10 +1,9 @@
-// Synthetic but deterministic dataset for DeepUtin Forensic Timeline Suite
-// All numbers derived from a seeded PRNG so render is stable.
+// Production research data contracts. No generated evidence is permitted.
 
 /** Идентификатор сегмента хронологии.
  *
  * ⚠️ НЕ жёсткий union: backend возвращает собственные идентификаторы
- * (`DEMO_SEGMENT_1..5` в demo-режиме, `STAGE2_RESEARCH` в research), и они
+ * (`DEMO_SEGMENT_1..5` в неисследовательском режиме, `STAGE2_RESEARCH` в research), и они
  * НЕ совпадают со встроенным демо-набором. Прежний закрытый union приводил к
  * тому, что фильтр эпох отбрасывал 100% строк из API, и таймлайн молча
  * оставался пустым. Единственный источник истины о сегментах — поле
@@ -24,7 +23,7 @@ export type FuzzyLabel =
   | "GEOMETRIC_MISMATCH"
   | "IDENTITY_ANOMALY"
   | "TEMPORAL_IMPOSSIBILITY";
-export type Hypothesis = "H0" | "H1" | "H2";
+export type Hypothesis = "H0" | "H1" | "H2" | "UNAVAILABLE";
 
 export interface Photo {
   id: string;
@@ -67,43 +66,18 @@ export interface Photo {
   zCheek: number;
 }
 
-// Simple seeded PRNG (mulberry32)
 /** Нормативная схема девяти ракурсов. Не демо-данные: этой раскладкой
  * оперирует весь пайплайн, поэтому она живёт в общем модуле. */
 export const POSE_BUCKETS: PoseBucket[] = ["left_profile", "left_deep", "left_mid", "left_light", "frontal", "right_light", "right_mid", "right_deep", "right_profile"];
 export const POSE_YAW: Record<PoseBucket, number> = { left_profile: -90, left_deep: -67.5, left_mid: -45, left_light: -22.5, frontal: 0, right_light: 22.5, right_mid: 45, right_deep: 67.5, right_profile: 90 };
 export const POSE_LABELS: Record<PoseBucket, string> = { left_profile: "левый профиль", left_deep: "левый глубокий", left_mid: "левый средний", left_light: "левый лёгкий", frontal: "фронтальный", right_light: "правый лёгкий", right_mid: "правый средний", right_deep: "правый глубокий", right_profile: "правый профиль" };
 
-/** Ленивая загрузка встроенного демо-набора (аудит №27).
- *
- * Генератор (170 строк + массив из 1809 объектов) вынесен в `demoData.ts`
- * и подтягивается отдельным чанком только тогда, когда backend
- * действительно недоступен. При рабочем сервере этот код не скачивается
- * и не исполняется вовсе.
- *
- * 🚨 Возвращает СИНТЕТИЧЕСКИЕ данные. Вызывающий код обязан пометить
- * результат как `source_mode: "demo"`.
- */
-export async function loadDemoPhotos(): Promise<Photo[]> {
-  const module = await import("./demoData");
-  return module.buildDemoPhotos();
-}
 
 export const TIME_MIN = Date.parse("1999-01-01");
 export const TIME_MAX = Date.parse("2026-06-30");
 export const TIME_SPAN = TIME_MAX - TIME_MIN;
 
-/** Fallback-сегменты встроенного демо-набора (`PHOTOS`).
- *
- * Используются, только когда backend недоступен. Для данных из API сегменты
- * строятся из `era_meta` ответа — см. `buildEraMeta()`. */
-export const ERA_META: Record<string, EraMeta> = {
-  ERA_1_BASELINE: { label: "ERA 1 · BASELINE", short: "BASELINE", color: "#4f98a3", start: "1999-08-09", end: "2011-12-31" },
-  ERA_2_EARLY: { label: "ERA 2 · EARLY", short: "EARLY", color: "#e8af34", start: "2012-01-01", end: "2014-12-31" },
-  ERA_3_UDMURT: { label: "ERA 3 · UDMURT", short: "UDMURT", color: "#dd6974", start: "2015-01-01", end: "2021-09-08" },
-  ERA_4_TRANSITION: { label: "ERA 4 · TRANSITION", short: "TRANSITION", color: "#fdab43", start: "2021-09-09", end: "2023-09-30" },
-  ERA_5_VASILICH: { label: "ERA 5 · VASILICH", short: "VASILICH", color: "#a86fdf", start: "2023-10-01", end: "2026-06-04" },
-};
+export const ERA_META: Record<string, EraMeta> = {};
 
 /** Детерминированная палитра сегментов: один и тот же идентификатор всегда
  * получает один и тот же цвет, независимо от порядка загрузки. */
@@ -121,7 +95,7 @@ export function buildEraMeta(
   const ids = raw && Object.keys(raw).length
     ? Object.keys(raw)
     : Array.from(new Set(photos.map(p => p.era))).sort();
-  if (!ids.length) return ERA_META;
+  if (!ids.length) return {};
 
   const out: Record<string, EraMeta> = {};
   ids.forEach((id, index) => {
@@ -158,6 +132,7 @@ export const HYPOTHESIS_COLORS: Record<Hypothesis, string> = {
   H0: "#6daa45",
   H1: "#fdab43",
   H2: "#a13544",
+  UNAVAILABLE: "#797876",
 };
 
 export interface EventPin {
@@ -173,32 +148,7 @@ export interface EventPin {
   folkTag?: string;
 }
 
-export const EVENT_PINS: EventPin[] = [
-  { id: "ev1", date: "2015-03-06", t: Date.parse("2015-03-06"), type: "DISAPPEARANCE", iconName: "alert-triangle", color: "#e8af34",
-    title: "Исчезновение 2015 года", tooltip: "10-дневное исчезновение из публичного пространства; первые публикации о двойниках (BBC, 2015).",
-    source: "BBC News · 11 марта 2015", folkTag: "Удмурт (народная классификация)" },
-  { id: "ev2", date: "2015-01-01", t: Date.parse("2015-01-01"), type: "ERA_START", iconName: "play", color: "#dd6974",
-    title: "Начало ЭПОХИ 3 · УДМУРТ", tooltip: "Старт периода ERA_3_UDMURT. 480 фотографий. Пик гипотезы об альтерации.", source: "Пайплайн DeepUtin" },
-  { id: "ev3", date: "2021-09-09", t: Date.parse("2021-09-09"), type: "ERA_START", iconName: "play", color: "#fdab43",
-    title: "Начало ЭПОХИ 4 · ПЕРЕХОД", tooltip: "Старт переходной зоны. Изменение паттернов геометрии.", source: "Пайплайн DeepUtin" },
-  { id: "ev4", date: "2022-05-23", t: Date.parse("2022-05-23"), type: "POLITICAL", iconName: "volume", color: "#5591c7",
-    title: "Заявление Буданова", tooltip: "Глава ГУР Украины публично заявил о возможной замене. Пресс-служба Кремля отвергла версию.",
-    source: "Ukrainska Pravda · май 2022", folkTag: "Говорун (народная классификация)" },
-  { id: "ev5", date: "2023-04-12", t: Date.parse("2023-04-12"), type: "AI_RESEARCH", iconName: "flask", color: "#4f98a3",
-    title: "Японское AI-исследование", tooltip: "Японские исследователи опубликовали анализ внешних изменений с применением нейросетей.",
-    source: "Asahi Shimbun · апрель 2023" },
-  { id: "ev6", date: "2023-10-01", t: Date.parse("2023-10-01"), type: "ERA_START", iconName: "play", color: "#a86fdf",
-    title: "Начало ЭПОХИ 5 · ВАСИЛИЧ", tooltip: "Старт периода ERA_5_VASILICH. Текущий доминирующий кластер биометрических признаков.", source: "Пайплайн DeepUtin" },
-  { id: "ev7", date: "2024-02-18", t: Date.parse("2024-02-18"), type: "REPORT", iconName: "file-text", color: "#797876",
-    title: "Доклад Минченко", tooltip: "Доклад политологического агентства об управлении публичным образом и информационным полем.",
-    source: "Холдинг «Минченко-консалтинг» · февраль 2024", folkTag: "Кучма (народная классификация)" },
-  { id: "ev8", date: "2017-06-14", t: Date.parse("2017-06-14"), type: "RTR", iconName: "rotate", color: "#e2e2e8",
-    title: "Возврат к норме (RTR)", tooltip: "Флаг RETURN_TO_BASELINE: метрики статистически откатились к эталону ЭПОХИ 1.",
-    source: "Пайплайн DeepUtin · RTR_RATIO=0.81" },
-  { id: "ev9", date: "2020-11-04", t: Date.parse("2020-11-04"), type: "RTR", iconName: "rotate", color: "#e2e2e8",
-    title: "Возврат к норме (RTR)", tooltip: "Флаг RETURN_TO_BASELINE: метрики статистически откатились к эталону ЭПОХИ 1.",
-    source: "Пайплайн DeepUtin · RTR_RATIO=0.77" },
-];
+export const EVENT_PINS: EventPin[] = [];
 
 // Aggregate medians per N buckets for fast track rendering
 export interface TrackPoint {
@@ -209,34 +159,5 @@ export interface TrackPoint {
   flag?: "warn" | "critical" | "impossible";
 }
 
-/** Референсные медианы и разбросы встроенного демо-набора (сегмент
- * ERA_1_BASELINE).
- *
- * 🚨 WARNING: это НЕ нормативные значения исследования. Таблица —
- * fallback для встроенного демо-набора; на реальных данных baseline
- * считается из самой выборки (`ui/src/baseline.ts`, `computeBaselineRefs`)
- * и передаётся через `BaselineContext`.
- *
- * 🔧 Раньше значения вычислялись на старте функцией `refMedians()`, которая
- * прогоняла весь демо-массив из 1809 объектов. Это заставляло генератор
- * исполняться при каждой загрузке страницы — даже при работающем backend,
- * когда демо-данные не нужны ни разу (аудит №27). Значения детерминированы
- * (seeded PRNG), поэтому зафиксированы как константы; тест
- * `demoData.test.ts` проверяет, что генератор по-прежнему даёт именно их.
- */
-export const REF: Record<string, { median: number; std: number }> = {
-  boneScore: { median: 0.849226, std: 0.026633 },
-  orbit: { median: 0.341254, std: 0.017429 },
-  chin: { median: 0.459968, std: 0.023528 },
-  jaw: { median: 0.519525, std: 0.015128 },
-  cheek: { median: 0.480637, std: 0.016702 },
-  symmetry: { median: 0.920149, std: 0.01272 },
-  yaw: { median: 0.350053, std: 58.7487 },
-  siliconeProb: { median: 0.145995, std: 0.032837 },
-  specular: { median: 0.55072, std: 0.029295 },
-  lbpEntropy: { median: 0.620603, std: 0.025908 },
-  frangi: { median: 0.478001, std: 0.026101 },
-  wrinkle: { median: 0.208155, std: 0.069903 },
-  subsurface: { median: 0.418947, std: 0.020172 },
-  visualAge: { median: 74.169065, std: 5.348968 },
-};
+/** Pipeline reference values are not embedded in the UI. */
+export const REF: Record<string, { median: number; std: number }> = {};

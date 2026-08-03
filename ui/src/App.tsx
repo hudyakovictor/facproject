@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
-  Photo, ERA_META, Era, type EraMeta,
-  HYPOTHESIS_COLORS, EVENT_PINS, EventPin, FUZZY_COLORS, Hypothesis, PoseBucket, POSE_BUCKETS, POSE_LABELS,
+  Photo, Era, type EraMeta,
+  HYPOTHESIS_COLORS, EventPin, FUZZY_COLORS, Hypothesis, PoseBucket, POSE_BUCKETS, POSE_LABELS,
 } from "./data";
 import LeftPanel from "./components/LeftPanel";
 import Icon from "./components/Icon";
@@ -120,24 +120,23 @@ function AppInner() {
   // Пустой массив, а не встроенный демо-набор: показывать синтетические
   // кадры до ответа backend означало бы выдавать их за данные. Реальное
   // содержимое приходит из `refreshTimeline`, а при недоступном сервере
-  // демо-набор грузится там же — уже с честной пометкой `mode: "demo"`.
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [dataMode, setDataMode] = useState<DataMode>("loading");
   const [dataMessage, setDataMessage] = useState("Загрузка /api/v1/timeline");
   /** Сегменты хронологии приходят от backend (`era_meta`); встроенный
    * ERA_META — только fallback, пока API не ответил. */
-  const [eraMeta, setEraMeta] = useState<Record<string, EraMeta>>(ERA_META);
+  const [eraMeta, setEraMeta] = useState<Record<string, EraMeta>>({});
   /** Доступность backend: `null` — ещё не проверяли (аудит №11).
    *
    * Отличается от `dataMode`: тот описывает ПРОИСХОЖДЕНИЕ показанных
-   * данных (demo/research), а это — живо ли соединение прямо сейчас.
+   * данных (source/research), а это — живо ли соединение прямо сейчас.
    * Демо-режим при работающем сервере и потеря связи с ним — разные
    * ситуации, которые раньше выглядели одинаково. */
   const [backendUp, setBackendUp] = useState<boolean | null>(null);
   const [timelineRefreshing, setTimelineRefreshing] = useState(false);
   const [timelineError, setTimelineError] = useState("");
   const [rejectedRows, setRejectedRows] = useState<{ id: string; reason: string }[]>([]);
-  /** Сводки хронологических детекторов Stage 2 (пусто в demo-режиме). */
+  /** Сводки хронологических детекторов Stage 2 (пусто в неисследовательском режиме). */
   const [chronoAnomalies, setChronoAnomalies] = useState<Record<string, Record<string, unknown>>>({});
   const [hypLegendOpen, setHypLegendOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -157,7 +156,7 @@ function AppInner() {
     hideLowQuality: false,
     // Инициализация из встроенного набора; после ответа API заменяется
     // фактическими сегментами (см. loadTimeline ниже).
-    eras: new Set(Object.keys(ERA_META)),
+    eras: new Set<string>(),
     hypotheses: new Set(["H0", "H1", "H2"] as Hypothesis[]),
     flags: new Set(),
     buckets: new Set(POSE_BUCKETS),
@@ -185,7 +184,7 @@ function AppInner() {
       setRejectedRows(result.rejected);
       setChronoAnomalies(result.chronologyAnomalies);
       // Фильтр эпох переинициализируется ФАКТИЧЕСКИМИ сегментами ответа.
-      // Прежний жёсткий список ERA_* не совпадал с `DEMO_SEGMENT_*` из API,
+      // Прежний жёсткий список ERA_* не совпадал с `backend segment` из API,
       // и условие `filters.eras.has(p.era)` отбрасывало все строки.
       setFilters(prev => ({ ...prev, eras: new Set(Object.keys(result.eraMeta)) }));
       setTimelineError("");
@@ -194,7 +193,8 @@ function AppInner() {
       // 🔧 Раньше здесь стоял `.catch(() => undefined)`: при недоступном
       // backend интерфейс молча оставался с прежними (или пустыми) данными,
       // и отличить «нет новых кадров» от «сервер не ответил» было нельзя.
-      setTimelineError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setTimelineError(message); setDataMode("error"); setDataMessage(message); setPhotos([]); setEraMeta({}); setRejectedRows([]); setChronoAnomalies({});
     }).finally(() => {
       if (!signal?.aborted) setTimelineRefreshing(false);
     });
@@ -226,7 +226,7 @@ function AppInner() {
     return photos.filter(p => {
       if (filters.bucketFilter !== "all" && p.bucket !== filters.bucketFilter) return false;
       if (!filters.eras.has(p.era)) return false;
-      if (!filters.hypotheses.has(p.dominant)) return false;
+      if (p.dominant !== "UNAVAILABLE" && !filters.hypotheses.has(p.dominant)) return false;
       if (!filters.buckets.has(p.bucket)) return false;
       // Пороги из настроек, а не из констант: `quality_min` задаёт границу
       // «низкого качества», `confidence_min` — минимально допустимую
@@ -267,7 +267,7 @@ function AppInner() {
   }, [filteredPhotos, photos.length]);
 
   /** P3.9 (DEV_FIX_TZ): дата последнего прогона больше не зашита литералом.
-   * Research-режим: самый поздний кадр реального вывода Stage 2. Demo/loading:
+   * Research-режим: самый поздний кадр реального вывода Stage 2. Loading/error:
    * честное «—», а не выдуманная дата. */
   const lastRunLabel = useMemo(() => {
     if (dataMode !== "research" || photos.length === 0) return "—";
@@ -355,7 +355,7 @@ function AppInner() {
             filters: { ...filters, eras: [...filters.eras], hypotheses: [...filters.hypotheses],
               flags: [...filters.flags], buckets: [...filters.buckets] },
             playheadT, currentEra,
-            events: EVENT_PINS.map(e => ({ t: e.t, title: e.title, tooltip: e.tooltip, source: e.source })),
+            events: [],
           });
           if (!ok) window.alert(t.printBlocked);
         }}
@@ -667,7 +667,7 @@ function HeaderBar({ thumbSize, setThumbSize, filters, setFilters, onSources, on
         <Icon name="rotate" size={10} />
         {refreshing ? t.refreshing : t.refreshTimeline}
       </button>
-      <div title={dataMessage} className={`px-2 py-1 border font-mono text-[9px] tracking-forensic ${dataMode === "research" ? "border-nominal/50 text-nominal" : dataMode === "loading" ? "border-info/50 text-info" : "border-warning/50 text-warning"}`}>{dataMode === "research" ? t.dataModeResearch : dataMode === "loading" ? t.dataModeLoading : t.dataModeDemo} · {t.notAVerdict}</div>
+      <div title={dataMessage} className={`px-2 py-1 border font-mono text-[9px] tracking-forensic ${dataMode === "research" ? "border-nominal/50 text-nominal" : dataMode === "loading" ? "border-info/50 text-info" : "border-warning/50 text-warning"}`}>{dataMode === "research" ? t.dataModeResearch : dataMode === "loading" ? t.dataModeLoading : "ERROR"} · {t.notAVerdict}</div>
 
       <button onClick={onFixCapsule} className="px-2 py-1 font-mono text-[9px] tracking-forensic border border-info/50 bg-info/10 hover:bg-info/25">FIX CAPSULE</button>
 
@@ -730,7 +730,7 @@ function CurrentStateBar({ era, eraMeta, playheadT, photos, hiddenCount, thumbSi
       <div title={t.baselineTooltip} className="flex items-center gap-1">
         <span className="text-text-muted">{t.baselineLabel}</span>
         <span style={{ color: baseline.sufficient ? "#6daa45" : "#e8af34" }}>
-          {baseline.source === "api" ? t.baselineFromApi : t.baselineBuiltin}
+          {baseline.source === "pipeline" ? t.baselineFromApi : "baseline unavailable"}
           {baseline.baselineEra ? ` · ${baseline.baselineEra}` : ""}
           {` · n=${baseline.sampleSize}`}
         </span>
@@ -969,7 +969,7 @@ function SourcesPanel({ onClose, onJump }: { onClose: () => void; onJump: (t: nu
   const typeLabel: Record<string, string> = {
     Media: t.filterMedia, "AI Research": t.filterAI, Political: t.filterPolitical, Forensic: t.filterForensic,
   };
-  const list = EVENT_PINS.filter(p => filter === "all" || typeMap[p.type] === filter).sort((a, b) => a.t - b.t);
+  const list: EventPin[] = ([] as EventPin[]).filter(p => filter === "all" || typeMap[p.type] === filter).sort((a, b) => a.t - b.t);
   const T_MIN = Date.parse("1999-01-01");
   const T_SPAN = Date.parse("2026-06-30") - T_MIN;
 
@@ -997,7 +997,7 @@ function SourcesPanel({ onClose, onJump }: { onClose: () => void; onJump: (t: nu
       <div className="px-3 py-2 border-b border-border">
         <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-1">{t.sourcesTimeline}</div>
         <div className="relative h-6 bg-surface-2 border border-border">
-          {EVENT_PINS.map(p => {
+          {([] as EventPin[]).map(p => {
             const x = ((p.t - T_MIN) / T_SPAN) * 100;
             return <div key={p.id} className="absolute top-0 bottom-0 w-0.5 cursor-pointer hover:w-1 transition-all" style={{ left: `${x}%`, background: p.color }} title={p.title} onClick={() => onJump(p.t)} />;
           })}

@@ -57,7 +57,7 @@ def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->
     vectors=np.full((count,3),np.nan,np.float32);magnitude=np.full(count,np.nan,np.float32)
     if a.pose_bin != b.pose_bin:
         return {'status':'pose_mismatch','vectors':vectors,'magnitude':magnitude,'visible':np.zeros(count,bool),'point_count':0,'anchor_count':0,'anchor_policy':'pose_mismatch'}
-    gap=pose_gap(a.angles,b.angles)
+    gap=pose_gap(a.angles,b.angles,pose_bin=a.pose_bin)
     pose_distance=float(np.linalg.norm((a.angles-b.angles)/np.array([15.,20.,15.])))
     if not gap.accepted:
         return {'status':'residual_pose_mismatch','vectors':vectors,'magnitude':magnitude,

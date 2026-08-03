@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from .core import Record
+from .date_provenance import resolve_date
 from .analysis_policy import ANALYSIS_COORDINATE_SPACE
 from .quality_integration import load_quality_zone_summary
 from .robustness import validate_landmarks, validate_serialized_record
@@ -79,6 +80,14 @@ def load_main(stage1_root: Path) -> list[Record]:
         chronology_info = info.get("chronology") or {}
         gtq = qsum.get("global_texture_quality") or {}
         qzones = load_quality_zone_summary(directory)
+        # 🚧 Патч 13: разрешение даты и её точности через resolve_date.
+        resolved = resolve_date(
+            filename=relative_source,
+            exif_date=(info.get("date_provenance") or {}).get("exif_date"),
+            claimed_date=(info.get("date_provenance") or {}).get("source_claimed_date"),
+            dataset_role="evidence",
+        )
+        capture_event = str(Path(relative_source).with_suffix("")) if relative_source else None
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
             idx106 = z["ldm106_vertex_indices"].astype(np.int64); idx134 = z["ldm134_vertex_indices"].astype(np.int64)
             # Production policy: raw object-normalized coordinates + pairwise robust Kabsch.
@@ -92,6 +101,9 @@ def load_main(stage1_root: Path) -> list[Record]:
                 ldm134=ldm134_data,
                 visible106=z["ldm106_visible"].astype(bool), visible134=z["ldm134_visible"].astype(bool),
                 alpha_id=z["alpha_id"].astype(np.float32), alpha_exp=z["alpha_exp"].astype(np.float32),
+                dataset_role="evidence",
+                date_precision=resolved["date_precision"],
+                capture_event=capture_event,
                 identity_only106=(z["ldm106_identity_only"] if "ldm106_identity_only" in z else z["vertices_identity_only"][idx106]).astype(np.float32),
                 identity_only134=(z["ldm134_identity_only"] if "ldm134_identity_only" in z else z["vertices_identity_only"][idx134]).astype(np.float32),
                 quality_status=str(gtq.get("status", qsum.get("status", "unknown"))),
@@ -103,7 +115,7 @@ def load_main(stage1_root: Path) -> list[Record]:
                 source_digest=info.get("source_digest"),
                 coordinate_noise_sigma=float(chronology_info.get("coordinate_noise_sigma", 0.0) or 0.0),
                 analysis_space=ANALYSIS_COORDINATE_SPACE,
-                date_provenance_status=str((info.get("date_provenance") or {}).get("status","unknown")),
+                date_provenance_status=str(resolved.get("date_provenance_status") or "unknown"),
                 exif_date=(info.get("date_provenance") or {}).get("exif_date"),date_delta_days=(info.get("date_provenance") or {}).get("delta_days"),source_claimed_date=(info.get("date_provenance") or {}).get("source_claimed_date"),source_claimed_delta_days=(info.get("date_provenance") or {}).get("source_claimed_delta_days"),date_conflict_sources=list((info.get("date_provenance") or {}).get("conflict_sources") or []),
                 source_provenance=dict(info.get("source_provenance") or {}),perceptual_dhash=info.get("perceptual_dhash"),near_duplicate_of=info.get("near_duplicate_of"),
             ))
@@ -191,7 +203,10 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
             record_dir=str(directory),
             source_group=str(meta.get("dataset_id") or directory.parent.name),
             source_digest=meta.get("source_digest"),
-            analysis_space=ANALYSIS_COORDINATE_SPACE,date_provenance_status="not_applicable_calibration",
+            analysis_space=ANALYSIS_COORDINATE_SPACE,
+            dataset_role="calibration",
+            date_precision="none",
+            date_provenance_status="not_applicable",
         ))
     if not out:
         raise FileNotFoundError(f"no sidecar calibration frames under {root}")
@@ -222,7 +237,10 @@ def load_calibration(calibration_root: Path) -> list[Record]:
         records = load_main(root)
         for record in records:
             record.dataset_id = "same_day_calibration"
+            record.dataset_role = "calibration"
             record.date = None
+            record.date_precision = "none"
+            record.date_provenance_status = "not_applicable"
         if not records:
             raise FileNotFoundError(f"no valid Stage-1 calibration records under {root}")
         return records
@@ -289,5 +307,8 @@ def load_calibration(calibration_root: Path) -> list[Record]:
     records = load_main(output_dir)
     for record in records:
         record.dataset_id = "same_day_calibration"
+        record.dataset_role = "calibration"
         record.date = None
+        record.date_precision = "none"
+        record.date_provenance_status = "not_applicable"
     return records

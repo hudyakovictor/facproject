@@ -20,6 +20,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .ui_fields import UI_FIELDS_SCHEMA, bone_score as _ui_bone_score, validate_ui_row
+
 RESEARCH_TIMELINE_SCHEMA = "deeputin-api-research-timeline-v1.0"
 
 _EVIDENCE_TO_FUZZY = {
@@ -119,7 +121,12 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
         target["fuzzy"] = fuzzy
         target["quality"] = 1.0 if not row.get("quality_limited") else 0.3
         target["confidence"] = 1.0 - min(1.0, _num(row.get("primary_robust_z")) / 10.0)
-        target["boneScore"] = 1.0 - min(1.0, _num(row.get("p95_point_z")) / 10.0)
+        raw_z = row.get("p95_point_z")
+        try:
+            z_val = float(raw_z) if raw_z not in (None, "") else None
+        except (TypeError, ValueError):
+            z_val = None
+        target["boneScore"] = _ui_bone_score({"p95_point_z": z_val}) if z_val is not None else None
         target["yaw"] = _num(row.get("angles_b_1"), _num(row.get("yaw_b")))
         if evidence_state in ("persistent_geometric_change", "persistent_rate_change_candidate"):
             target["flags"].append("IDENTITY_ANOMALY")
@@ -130,6 +137,12 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
 
     rows = list(photos_by_id.values())
     rows.sort(key=lambda r: (r["date"] or "", r["id"]))
+    ui_violations_by_field: dict[str, int] = {}
+    for row in rows:
+        row["uiContractViolations"] = validate_ui_row(row)
+        row["uiFieldsSchema"] = UI_FIELDS_SCHEMA
+        for fld in row["uiContractViolations"]:
+            ui_violations_by_field[fld] = ui_violations_by_field.get(fld, 0) + 1
 
     # === Хронологические аномалии из манифеста Stage 2 =======================
     # Stage 2 уже считает возвраты к базовой линии, необратимые возвраты и
@@ -192,5 +205,8 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
             "как основной evidence-сигнал."
         ),
         "analysis_manifest": manifest,
+        "ui_fields_schema": UI_FIELDS_SCHEMA,
+        "ui_fields_complete_photo_count": sum(1 for r in rows if not r.get("uiContractViolations")),
+        "ui_fields_violations_by_field": ui_violations_by_field,
         "photos": rows,
     }

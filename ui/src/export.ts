@@ -36,7 +36,7 @@ function countBy<T extends string>(rows: Photo[], pick: (p: Photo) => T): Record
  * новое окно — его нельзя ни распарсить, ни приложить к отчёту как данные.
  *
  * Инварианты, которые обязан сохранять экспорт:
- *   * `source_mode` и `not_a_verdict` едут вместе с данными, чтобы demo-срез
+ *   * `source_mode` и `not_a_verdict` едут вместе с данными, чтобы неисследовательский срез
  *     невозможно было принять за результат исследования;
  *   * агрегаты считаются как медианы и явно подписаны как таковые;
  *   * фильтры сохраняются целиком — иначе цифры невоспроизводимы.
@@ -49,7 +49,7 @@ export function buildAnalysisExport(input: AnalysisExportInput): Record<string, 
   return {
     schema: ANALYSIS_EXPORT_SCHEMA,
     created_at: new Date().toISOString(),
-    // Режим данных — часть контракта: demo-срез не должен маскироваться
+    // Режим данных — часть контракта: неисследовательский срез не должен маскироваться
     // под результат исследования.
     source_mode: dataMode,
     source_note: dataMessage,
@@ -162,9 +162,7 @@ export function buildPrintReport(input: PrintReportInput): string {
 
   // 🚨 Демо-срез обязан быть отличим от исследования в напечатанном виде:
   // бумажную копию нельзя переспросить о происхождении.
-  const demoBanner = dataMode === "research" ? "" : `
-    <p class="banner">Демонстрационные данные. Не результат исследования.
-    ${escapeHtml(dataMessage)}</p>`;
+  const sourceWarning = "";
 
   return `<!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
@@ -207,7 +205,7 @@ export function buildPrintReport(input: PrintReportInput): string {
 <h1>DEEPUTIN · отчёт форензики</h1>
 <p class="sub">Сформирован ${escapeHtml(stamp)} · режим данных: ${escapeHtml(dataMode)}
  · схема ${escapeHtml(ANALYSIS_EXPORT_SCHEMA)}</p>
-${demoBanner}
+${sourceWarning}
 <p class="notice">Документ фиксирует наблюдаемые измерения и их статусы.
 Ни один статус сам по себе не доказывает подмену личности, маску или
 операцию. Отчёт не является заключением.</p>

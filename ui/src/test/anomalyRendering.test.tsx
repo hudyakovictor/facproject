@@ -1,7 +1,10 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import UnifiedTimeline from "../components/UnifiedTimeline";
-import { BaselineContext, computeBaselineRefs, BUILTIN_BASELINE } from "../baseline";
+import {
+  BASELINE_METRIC_KEYS, BaselineContext, EMPTY_BASELINE,
+  type BaselineRefs,
+} from "../baseline";
 import { type Photo } from "../data";
 import { buildDemoPhotos } from "../demoData";
 
@@ -26,9 +29,23 @@ class ResizeObserverStub {
 vi.stubGlobal("ResizeObserver", ResizeObserverStub);
 
 function renderTimeline(photos: Photo[], sufficient: boolean, chrono = {}) {
-  const baseline = sufficient
-    ? computeBaselineRefs(photos)
-    : { ...BUILTIN_BASELINE, sufficient: false, sampleSize: 2, source: "api" as const };
+  const refs = Object.fromEntries(
+    BASELINE_METRIC_KEYS.map(key => [
+      key,
+      { median: 0, std: 1 },
+    ]),
+  );
+  const pipelineBaseline: BaselineRefs = {
+    refs,
+    baselineEra: "SEG",
+    sampleSize: 20,
+    sufficient: true,
+    source: "pipeline",
+  };
+  const baseline: BaselineRefs = sufficient
+    ? pipelineBaseline
+    : { ...EMPTY_BASELINE, sampleSize: 2 };
+
   return render(
     <BaselineContext.Provider value={baseline}>
       <UnifiedTimeline

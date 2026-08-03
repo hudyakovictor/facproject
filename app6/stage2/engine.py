@@ -12,8 +12,12 @@
   совместимости старых артефактов, но не применяется в _pair_qc_decision().
 
 run(): load_main/load_calibration (хронология-выравненные данные), затем пары
-(соседние по времени + не-соседние) с гейтами: MIN_ALIGNMENT_QUALITY=0.5,
-EXPRESSION_CORNER_LIFT_THRESHOLD=0.005, EXPRESSION_JAW_OPEN_THRESHOLD=0.28.
+(соседние по времени + не-соседние) с гейтами: expression (corner_lift/jaw)
+и expression_pair_gate (jaw_state_mismatch → excluded внутри эпохи, страта
+jaw_state_mismatch_cross_era между эпохами; порог по градусам приостановлен,
+F5). alignment_quality с 2026-08-03 НЕ гейтит (D-003: некоррелирован).
+Профильные бины — по 10° подбинам; pose_gap вызывается с pose_bin во всех
+продакшн-путях (F1).
 Далее: core-показатели, calibration, chronology rate flags, corroboration,
 motion/dense-mesh/texture каналы, multiple_testing FDR, persistence результатов.
 Calibration leave-one-dataset-out sensitivity и residual pose gate входят в runtime.
@@ -30,6 +34,12 @@ from app6.stage1.utils import atomic_json,json_ready,digest_file,digest_json,wri
 from app6.stage1.status_logger import log_status, status_warning
 from .calibration import CalibrationModel
 from .calibration_sensitivity import leave_one_dataset_sensitivity
+from .analysis_policy import ANALYSIS_COORDINATE_SPACE
+from .expression_pair_gate import expression_gate
+from .quality_stratification import quality_gate
+from .visibility_gate import pair_visibility
+from .space_selection import assert_analysis_space, space_manifest
+from .run_manifest import build_manifest
 from .core import build_coordinate_zone_map,calibrated_score,compare_landmarks
 from .loaders import load_calibration,load_main
 from .mesh_calibration import MeshNoiseModel
@@ -46,6 +56,7 @@ from .leads import load_leads,pair_leads
 from .alpha_chronology import apply_alpha_chronology
 from .baseline_return import apply_baseline_return
 from .chronology import apply_chronology_rate_flags, apply_cumulative_drift_flags
+from .temporal_axis import TEMPORAL_AXIS_SCHEMA, require_temporal_axis
 from .corroboration import apply_cross_bin_corroboration, aggregate_events
 from .pose_leakage import pose_leakage_diagnostic
 from .metric_registry import build_metric_catalog
@@ -53,6 +64,8 @@ from .evidence import EVIDENCE_SCHEMA, evidence_state, packet_from_pair, is_repo
 from .validation import validate_analysis_contract
 
 SCHEMA='deeputin-stage2-v1.4-robustness'
+# D-003 (2026-08-03): alignment_quality некоррелирован с остатком (Spearman
+# +0.096 на 212 кадрах vs −0.176 в атласе). Порог справочный, пары НЕ гейтит.
 MIN_ALIGNMENT_QUALITY=0.5
 # Геометрическая детекция выражений по ландмаркам (corner_lift_ioc, jaw_open_ratio).
 # Пороги синхронизированы с stage1/config.py.
@@ -68,7 +81,7 @@ def _record_qc(record)->dict[str,Any]:
  """Load mandatory Stage 1 QC (geometry-based expression detection)."""
  path=Path(record.record_dir)/'info.json' if record.record_dir else None
  result={'status':'missing_qc','alignment_quality':None,'reason':'info_json_missing'}
- result.update({'corner_lift_ioc':None,'jaw_open_ratio':None,'smile_detected':False,'jaw_open_detected':False})
+ result.update({'corner_lift_ioc':None,'jaw_open_ratio':None,'smile_detected':False,'jaw_open_detected':False,'jaw_open_degree':None,'detection_confidence':None,'face_area_ratio':None,'skin_quality_score':None})
  if path is None or not path.is_file():return result
  try:payload=json.loads(path.read_text(encoding='utf-8'))
  except (OSError,json.JSONDecodeError) as exc:
@@ -85,11 +98,16 @@ def _record_qc(record)->dict[str,Any]:
  smile_d=chronology.get('smile_detected',False)
  jaw_d=chronology.get('jaw_open_detected',False)
  result.update({
+  'status':'available',
   'alignment_quality':alignment,
   'corner_lift_ioc':float(corner) if corner is not None else None,
   'jaw_open_ratio':float(jaw) if jaw is not None else None,
   'smile_detected':bool(smile_d),
   'jaw_open_detected':bool(jaw_d),
+  'jaw_open_degree':float(chronology['jaw_open_degree']) if chronology.get('jaw_open_degree') is not None else None,
+  'detection_confidence':float(chronology['detection_confidence']) if chronology.get('detection_confidence') is not None else None,
+  'face_area_ratio':float(chronology['face_area_ratio']) if chronology.get('face_area_ratio') is not None else None,
+  'skin_quality_score':float(payload['skin_quality_score']) if payload.get('skin_quality_score') is not None else None,
   'reason':'',
  })
  return result
@@ -120,8 +138,12 @@ def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]],
  }
  if qa.get('status')!='available' or qb.get('status')!='available':
   return {**base,'applicable':False,'skip_reason':'missing_mandatory_qc','qc_reason_a':qa.get('reason'),'qc_reason_b':qb.get('reason')}
- if min(float(qa['alignment_quality']),float(qb['alignment_quality']))<MIN_ALIGNMENT_QUALITY:
-  return {**base,'applicable':False,'skip_reason':'alignment_quality_low','qc_reason_a':'','qc_reason_b':''}
+ # D-003 (2026-08-03): alignment_quality не гейтит пары (некоррелирован).
+ # Жёсткое исключение по челюсти (вместо инфляции 1.46): рассогласование
+ # jaw_open_detected — отдельный кластер остатков (10.8× при контроле эпохи),
+ # пара уходит в excluded.
+ if bool(qa.get('jaw_open_detected',False)) != bool(qb.get('jaw_open_detected',False)):
+  return {**base,'applicable':False,'skip_reason':'jaw_state_mismatch','qc_reason_a':'jaw_open_detected','qc_reason_b':'jaw_open_detected'}
  
  # Детекция выражений по геометрии ландмарок
  def _is_expressive(q):
@@ -194,6 +216,7 @@ class Stage2Engine:
     - При большом количестве пар — медленно (FDR)
   """
   log_status("run", "complete")
+  assert_analysis_space(ANALYSIS_COORDINATE_SPACE)
   t=time.time();o=self.cfg.output_dir
   if o.exists() and any(o.iterdir()) and not self.cfg.overwrite:raise FileExistsError(f'output exists: {o}')
   # Load and construct every read-only dependency before destructive overwrite.
@@ -227,6 +250,10 @@ class Stage2Engine:
   jaw_open_ratio={rid:q.get('jaw_open_ratio') for rid,q in qc_by_id.items()}
   smile_detected={rid:q.get('smile_detected',False) for rid,q in qc_by_id.items()}
   jaw_open_detected={rid:q.get('jaw_open_detected',False) for rid,q in qc_by_id.items()}
+  jaw_open_degree={rid:q.get('jaw_open_degree') for rid,q in qc_by_id.items()}
+  detection_confidence={rid:q.get('detection_confidence') for rid,q in qc_by_id.items()}
+  face_area_ratio={rid:q.get('face_area_ratio') for rid,q in qc_by_id.items()}
+  skin_quality_score={rid:q.get('skin_quality_score') for rid,q in qc_by_id.items()}
   unstable_calibration=[x for x in calibration_sensitivity.get('summary',[]) if x.get('stability')!='stable']
   if calibration_sensitivity.get('status')!='complete':status_warning('calibration_stability',str(calibration_sensitivity.get('status')))
   elif unstable_calibration:status_warning('calibration_stability',f'{len(unstable_calibration)} unstable_or_sparse pose/metric references')
@@ -252,11 +279,29 @@ class Stage2Engine:
      skipped_pair_rows.append({'pair_type':ptype,'pose_bin':pose,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,**decision})
      continue
     specs.append((ptype,a,b,decision))
-  rows=[];zones=[];details=[];quality_zone_rows=[];texture_zone_rows=[];mesh_rows=[];mesh_zones=[]
+  rows=[];zones=[];details=[];quality_zone_rows=[];texture_zone_rows=[];mesh_rows=[];mesh_zones=[];anchor_policy_by_bin={};expr_gate_summary={'pairs':0,'within_era_excluded':0,'cross_era_stratum':0,'degree_gap_kept':0,'clean':0}
   for n,(ptype,a,b,qc_decision) in enumerate(specs,1):
-   pid=f'{ptype}__{a.record_id}__{b.record_id}';c=compare_landmarks(a,b,z106,z134,self.cfg.min_points106,self.cfg.min_points134);matched=model.matched_null(a,b) if c.status=='measured' else {};scores={}
+   pid=f'{ptype}__{a.record_id}__{b.record_id}'
+   meta_a={'detection_confidence':detection_confidence.get(a.record_id),'skin_quality_score':skin_quality_score.get(a.record_id),'face_area_ratio':face_area_ratio.get(a.record_id)}
+   meta_b={'detection_confidence':detection_confidence.get(b.record_id),'skin_quality_score':skin_quality_score.get(b.record_id),'face_area_ratio':face_area_ratio.get(b.record_id)}
+   expr_gate=expression_gate({**meta_a,'jaw_open_detected':jaw_open_detected.get(a.record_id,False),'jaw_open_degree':jaw_open_degree.get(a.record_id),'smile_detected':smile_detected.get(a.record_id,False)},{**meta_b,'jaw_open_detected':jaw_open_detected.get(b.record_id,False),'jaw_open_degree':jaw_open_degree.get(b.record_id),'smile_detected':smile_detected.get(b.record_id,False)},era_a=(str(a.date)[:4] if a.date else None),era_b=(str(b.date)[:4] if b.date else None))
+   expr_gate_summary['pairs']+=1
+   if not expr_gate.get('accepted'):expr_gate_summary['within_era_excluded']+=1
+   elif expr_gate.get('stratum'):expr_gate_summary['cross_era_stratum']+=1
+   elif expr_gate.get('jaw_degree_gap_exceeded'):expr_gate_summary['degree_gap_kept']+=1
+   else:expr_gate_summary['clean']+=1
+   if not expr_gate.get('accepted'):
+    skipped_counts[expr_gate.get('reason','expression_gate_rejected')]+=1
+    skipped_pair_rows.append({'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'applicable':False,'skip_reason':expr_gate.get('reason','expression_gate_rejected'),'expression_gate_jaw_mismatch':expr_gate.get('jaw_mismatch'),'expression_gate_jaw_degree_gap':expr_gate.get('jaw_degree_gap'),'qc_reason_a':'','qc_reason_b':''})
+    continue
+   q_gate=quality_gate(meta_a,meta_b)
+   c=compare_landmarks(a,b,z106,z134,self.cfg.min_points106,self.cfg.min_points134);matched=model.matched_null(a,b) if c.status=='measured' else {};scores={}
+   if c.diagnostics.get('anchor134_policy'):
+    _ap_entry=anchor_policy_by_bin.setdefault(a.pose_bin,{'pairs':0,'policies':{},'sources':{}});_ap_entry['pairs']+=1;_ap_p=c.diagnostics.get('anchor134_policy') or 'unknown';_ap_s=c.diagnostics.get('anchor134_source') or 'unknown';_ap_entry['policies'][_ap_p]=_ap_entry['policies'].get(_ap_p,0)+1;_ap_entry['sources'][_ap_s]=_ap_entry['sources'].get(_ap_s,0)+1
    pair_sigma=max(float(getattr(a,'coordinate_noise_sigma',0.0) or 0.0),float(getattr(b,'coordinate_noise_sigma',0.0) or 0.0))
-   for k,v in c.metrics.items():scores[k]=calibrated_score(v,model.reference(a.pose_bin,k),matched.get(k,[]),coordinate_noise_sigma=pair_sigma)
+   vis134=pair_visibility(a.visible134,b.visible134,contract='ldm134');vis106=pair_visibility(a.visible106,b.visible106,contract='ldm106')
+   stratum_arg=q_gate.get('stratum') if model.has_stratified_references() else None
+   for k,v in c.metrics.items():scores[k]=calibrated_score(v,model.reference(a.pose_bin,k,stratum=stratum_arg),matched.get(k,[]),coordinate_noise_sigma=pair_sigma)
    primary=scores.get('ldm134_rmse',{'status':c.status,'robust_z':0,'calibration_p95':0});status=str(primary['status']) if c.status=='measured' else c.status
    motion106=aligned_point_motion(a,b,106);motion134=aligned_point_motion(a,b,134);motion_score106=point_model.score(a.pose_bin,106,motion106);motion_score134=point_model.score(a.pose_bin,134,motion134);descriptor_score=descriptor_model.score(a.pose_bin,a,b)
    identity_motion=aligned_point_motion(a,b,134,identity_only=True)
@@ -293,24 +338,38 @@ class Stage2Engine:
     'forehead_wrinkle_supported_a': bool(getattr(a, 'forehead_wrinkle_supported', False)),
     'forehead_wrinkle_supported_b': bool(getattr(b, 'forehead_wrinkle_supported', False)),
    })
+   row.update({'expression_gate_multiplier':expr_gate.get('threshold_multiplier'),'expression_gate_jaw_mismatch':expr_gate.get('jaw_mismatch'),'expression_gate_smile_mismatch':expr_gate.get('smile_mismatch'),'expression_gate_jaw_degree_gap':expr_gate.get('jaw_degree_gap'),'expression_gate_confidence':expr_gate.get('confidence'),'expression_gate_stratum':expr_gate.get('stratum'),'expression_gate_jaw_degree_gap_exceeded':expr_gate.get('jaw_degree_gap_exceeded'),'quality_stratum_a':q_gate.get('stratum_a'),'quality_stratum_b':q_gate.get('stratum_b'),'quality_stratum':q_gate.get('stratum'),'quality_calibration_key_suffix':q_gate.get('calibration_key_suffix'),'quality_threshold_multiplier':q_gate.get('threshold_multiplier'),'quality_gate_accepted':q_gate.get('accepted'),'visibility_gate_common134':vis134.get('common'),'visibility_gate_required134':vis134.get('required'),'visibility_gate_accepted134':vis134.get('accepted'),'visibility_gate_common106':vis106.get('common'),'visibility_gate_required106':vis106.get('required'),'visibility_gate_accepted106':vis106.get('accepted')})
    row['evidence_state']=('date_provenance_limited' if row.get('date_provenance_limited') else ('near_duplicate_limited' if row.get('near_duplicate_pair') and status not in ('within_reconstruction_noise','within_calibration_noise') else evidence_state(str(row.get('status','')),quality_limited=qlimited)))
    rows.append(row)
    for z in c.zones:
     zr={'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**z}
     if z.get('status')=='measured':
-     k=f"zone::{z['zone']}::rmse";s=calibrated_score(float(z['rmse']),model.reference(a.pose_bin,k),matched.get(k,[]));zr.update({'calibration_status':s['status'],'robust_z':s['robust_z'],'calibration_p95':s['calibration_p95']})
+     k=f"zone::{z['zone']}::rmse";s=calibrated_score(float(z['rmse']),model.reference(a.pose_bin,k,stratum=stratum_arg),matched.get(k,[]));zr.update({'calibration_status':s['status'],'robust_z':s['robust_z'],'calibration_p95':s['calibration_p95']})
     zones.append(zr)
    details.append({'pair':row,'calibrated_metrics':scores,'zones':c.zones})
   self._persistence(rows)
-  alpha_chronology_report=apply_alpha_chronology(rows,model)
-  baseline_return_report=apply_baseline_return(rows,o)
-  chronology_refs=apply_chronology_rate_flags(rows)
-  cumulative_drift_report=apply_cumulative_drift_flags(rows)
+  # 🚧 Патч 14: без временной оси (калибровка, единичная дата) временные
+  # детекторы не запускаются вовсе, а в отчёт идёт явный skip-статус.
+  temporal_axis = require_temporal_axis(main)
+  if temporal_axis is None:
+      alpha_chronology_report=apply_alpha_chronology(rows,model)
+      baseline_return_report=apply_baseline_return(rows,o)
+      chronology_refs=apply_chronology_rate_flags(rows)
+      cumulative_drift_report=apply_cumulative_drift_flags(rows)
+  else:
+      _temporal_skip = {"schema": TEMPORAL_AXIS_SCHEMA,
+                        "status": "skipped_no_temporal_axis",
+                        "reason": temporal_axis.get("reason"),
+                        "temporal_axis": temporal_axis}
+      alpha_chronology_report = _temporal_skip
+      baseline_return_report = _temporal_skip
+      chronology_refs = _temporal_skip
+      cumulative_drift_report = _temporal_skip
   cross_bin_report=apply_cross_bin_corroboration(rows)
   event_rows=aggregate_events(rows)
   # Глобальный диагноз утечки позы — для информации
   pose_leakage_report=pose_leakage_diagnostic(rows)
-  multiple_testing_report={'pair_fdr':apply_pair_fdr(rows),'zone_fdr':apply_zone_fdr(zones)}
+  multiple_testing_report={'pair_fdr':apply_pair_fdr(rows,photo_count=len(main)),'zone_fdr':apply_zone_fdr(zones)}
   unstable_poses={str(x.get('pose_bin')) for x in unstable_calibration if x.get('pose_bin') and str(x.get('metric')) in PRIMARY_CALIBRATION_METRICS}
   sensitivity_incomplete=calibration_sensitivity.get('status')!='complete'
   primary_pose_leakage_metrics=sorted(set(pose_leakage_report.get('flagged_metrics',[])) & PRIMARY_POSE_LEAKAGE_METRICS)
@@ -348,7 +407,10 @@ class Stage2Engine:
   postprocess_summary=write_postprocess_reports(o,rows=rows,zones=zones,mesh_zones=mesh_zones,texture_zone_rows=texture_zone_rows,changes=changes,evidence_packets=evidence_packets)
   artifact_names=['pair_metrics.csv','zone_metrics.csv','quality_zone_pair_coverage.csv','texture_pair_metrics.csv','texture_zone_metrics.csv','mesh_pair_metrics.csv','mesh_zone_metrics.csv','evidence_packets.json','evidence_packets.jsonl','multiple_testing.json','alpha_chronology.json','baseline_return.json','cumulative_drift.json','cross_bin_corroboration.json','event_aggregation.csv','pose_leakage_diagnostic.json','metric_catalog.json','change_points.json','manual_review_queue.csv','public_safety_report.json','degraded_modules.json','mesh_shape_summary.csv','texture_summary.json','status_summary.csv','gate_report.json','stage3_input_summary.json','artifact_index.json','evidence_chain_manifest.json']
   artifact_hashes={name:digest_file(o/name) for name in artifact_names if (o/name).is_file()}
-  manifest={'schema_version':SCHEMA,'status':'complete','created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.']}
+  _work_root=Path(__file__).resolve().parents[2]
+  _reuse_report=model.reuse_report();_space_manifest=space_manifest()
+  _run_manifest=build_manifest(_work_root,code_hash=digest_file(Path(__file__)),config_hash=digest_json(self.cfg.payload()),model_hash=digest_file(_work_root/'3ddfa_v3'/'assets'/'face_model.npy') or 'missing',reuse_report=_reuse_report,space_manifest=_space_manifest,anchor_policy=anchor_policy_by_bin)
+  manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.']}
   atomic_json(o/'technical_summary.json',build_technical_summary(rows,changes,manifest))
   atomic_json(o/'analysis_manifest.json',manifest)
   req=['analysis_manifest.json','technical_summary.json','calibration_noise_model.json','calibration_sensitivity.json','mesh_noise_model.json','point_noise_model.npz','descriptor_noise_model.npz','lead_registry.json','lead_coverage.csv','chronology_rate_model.json','alpha_chronology.json','alpha_chronology_events.csv','baseline_return.json','cumulative_drift.json','cross_bin_corroboration.json','event_aggregation.csv','pose_leakage_diagnostic.json','metric_catalog.json','zone_map.json','pair_metrics.csv','zone_metrics.csv','quality_zone_pair_coverage.csv','texture_pair_metrics.csv','texture_zone_metrics.csv','mesh_pair_metrics.csv','mesh_zone_metrics.csv','pair_details.json','evidence_packets.json','evidence_packets.jsonl','multiple_testing.json','change_points.json','manual_review_queue.csv','public_safety_report.json','degraded_modules.json','mesh_shape_summary.csv','texture_summary.json','status_summary.csv','gate_report.json','stage3_input_summary.json','artifact_index.json','evidence_chain_manifest.json']

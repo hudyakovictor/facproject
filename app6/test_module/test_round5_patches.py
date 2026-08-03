@@ -13,9 +13,12 @@ from app6.stage2.same_day_gate import check_same_day_conflict
 
 class Round5PatchTests(unittest.TestCase):
     def test_pose_gate_is_axis_specific(self):
-        self.assertTrue(pose_gap([0, 0, 0], [1.9, 5.9, 4.9]).accepted)
-        self.assertEqual(pose_gap([0, 0, 0], [2.1, 0, 0]).reason, "pitch_gap")
+        # Без pose_bin действует fallback yaw_limit=6.0°, отсюда pitch_limit≈3.39°
+        # и roll_limit≈4.38° (чувствительность 1.77/1.37). Каждая ось отдельна.
+        self.assertTrue(pose_gap([0, 0, 0], [1.9, 5.9, 3.0]).accepted)
+        self.assertEqual(pose_gap([0, 0, 0], [4.0, 0, 0]).reason, "pitch_gap")
         self.assertEqual(pose_gap([0, 0, 0], [0, 6.1, 0]).reason, "yaw_gap")
+        self.assertEqual(pose_gap([0, 0, 0], [0, 0, 5.0]).reason, "roll_gap")
 
     def test_utility_nan_is_safe_and_subset_size_exact(self):
         x=np.tile(np.linspace(0.1, 2.0, 134), (9, 1))
@@ -53,7 +56,30 @@ class Round5PatchTests(unittest.TestCase):
                          "photo_a":f"a{i}","photo_b":f"b{i}","pose_bin":"frontal","ldm134_rmse":v})
         hits=check_same_day_conflict(rows)
         self.assertGreaterEqual(len(hits), 2)
-        self.assertTrue(all(h["baseline_policy"] == "lower80_contamination_hardened_v1" for h in hits))
+        # Без capture_event — одно событие на дату, квантильная политика
+        # недоступна (MIN_BASELINE_EVENTS=3), включается sigma-fallback v1.
+        self.assertTrue(all(h["baseline_policy"] == "lower80_sigma_fallback_v1" for h in hits))
+        self.assertEqual({h["baseline_event_count"] for h in hits}, {1})
+        self.assertTrue(all(h["confidence"] == "reduced" for h in hits))
+
+    def test_same_day_event_quantile_policy(self):
+        # Несколько событий одного дня → базовый уровень по представителю события.
+        rows=[]
+        i=0
+        for ev, vals in {"ev1":[1,1.1,.9,1.05,.95], "ev2":[.98,1.02,1.0,.99,1.01],
+                         "ev3":[1.0,1.05,.96,1.03,.97]}.items():
+            for v in vals:
+                rows.append({"pair_id":str(i),"date_a":"2020-01-01","date_b":"2020-01-01",
+                             "capture_event":ev,"photo_a":f"a{i}","photo_b":f"b{i}",
+                             "pose_bin":"frontal","ldm134_rmse":v})
+                i+=1
+        rows.append({"pair_id":str(i),"date_a":"2020-01-01","date_b":"2020-01-01",
+                     "capture_event":"ev1","photo_a":"aX","photo_b":"bX",
+                     "pose_bin":"frontal","ldm134_rmse":6.0})
+        hits=check_same_day_conflict(rows)
+        self.assertTrue(all(h["baseline_policy"] == "event_quantile_v2" for h in hits))
+        self.assertEqual({h["baseline_event_count"] for h in hits}, {3})
+        self.assertTrue(all(h["confidence"] == "full" for h in hits))
 
     def test_fdr_default_and_order_statistic_input(self):
         rows=[{"p95_point_z":4.0,"calibrated_point_count":120}]

@@ -12,14 +12,41 @@ zone_weighted_score (#16) — взвешивание по зоновой зна�
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Final
 
+import os
 import numpy as np
 
-from .anchor_policy import stable_anchor_mask
+from .anchor_policy import per_bin_anchor_mask, stable_anchor_mask
 from .analysis_policy import pose_gap
+from .pose_policy import BIN_NAME_TO_YAW
 from .robustness import noise_adjusted_threshold
 from app6.stage1.status_logger import log_status, status_warning
+
+# 🚧 Патч 6/A11: per-pose-bin anchor policy (subset_for_bin) из артефактов
+# landmark_utility.npy + visibility_prior.npy. Управляется переменной
+# DEEPUTIN_PER_BIN_ANCHOR (по умолчанию включено; 0 — отключить). Любая
+# недостаточность подмножества откатывается на stable_anchor_mask.
+_PER_BIN_ANCHOR_ENABLED = os.environ.get("DEEPUTIN_PER_BIN_ANCHOR", "1") != "0"
+_BIN_NAMES: tuple[str, ...] = tuple(BIN_NAME_TO_YAW)
+_PER_BIN_ARTIFACTS = None
+
+
+def _load_per_bin_artifacts():
+    """Lazy load of calibration-ranked landmark utility artifacts (A11)."""
+    global _PER_BIN_ARTIFACTS
+    if _PER_BIN_ARTIFACTS is not None:
+        return _PER_BIN_ARTIFACTS
+    if not _PER_BIN_ANCHOR_ENABLED:
+        return None
+    try:
+        atlas = os.path.join(os.path.dirname(__file__), "..", "atlas")
+        utility = np.load(os.path.join(atlas, "landmark_utility.npy"), allow_pickle=False)
+        prior = np.load(os.path.join(atlas, "visibility_prior.npy"), allow_pickle=False)
+        _PER_BIN_ARTIFACTS = (utility, prior, _BIN_NAMES)
+    except Exception:
+        _PER_BIN_ARTIFACTS = None
+    return _PER_BIN_ARTIFACTS
 
 
 @dataclass
@@ -36,6 +63,9 @@ class Record:
     visible134: np.ndarray
     alpha_id: np.ndarray
     alpha_exp: np.ndarray
+    dataset_role: str = "evidence"
+    date_precision: str = "day"
+    capture_event: str | None = None
     identity_only106: np.ndarray | None = None
     identity_only134: np.ndarray | None = None
     quality_status: str = "unknown"
@@ -56,6 +86,17 @@ class Record:
     source_provenance:dict[str,Any]=field(default_factory=dict)
     perceptual_dhash:str|None=None
     near_duplicate_of:str|None=None
+
+    def has_temporal_axis(self) -> bool:
+        """Есть ли у записи действующая дата для хронологического анализа."""
+        return self.date is not None and self.date_precision not in ("none", "unknown")
+
+    def __post_init__(self) -> None:
+        # Калибровочные кадры не участвуют в хронологии — снимаем ложные оси.
+        if self.dataset_role == "calibration":
+            self.date = None
+            self.date_precision = "none"
+            self.date_provenance_status = "not_applicable"
 
 
 @dataclass
@@ -150,6 +191,33 @@ def _stats(distance: np.ndarray) -> dict[str, float]:
     }
 
 
+#: Источник измеренного качества выравнивания (патч 15).
+ALIGNMENT_QUALITY_SOURCE: Final[str] = "measured_residual_v1"
+
+
+def measured_alignment_quality(distance: np.ndarray) -> dict[str, Any]:
+    """Качество выравнивания по распределению остатков.
+
+    Не зависящий от модели признак: высокая медиана при низком trim-дрейфе
+    означает локальные расхождения (мимика/костные изменения), которые trim
+    сбросил в глобальный остаток, — именно они — предмет измерения.
+    """
+    d = np.asarray(distance, np.float64)
+    finite = np.isfinite(d)
+    d = d[finite]
+    if d.size == 0:
+        return {"source": ALIGNMENT_QUALITY_SOURCE, "status": "no_finite_points",
+                "n_points": 0}
+    p50 = float(np.median(d))
+    p95 = float(np.percentile(d, 95))
+    maxv = float(np.max(d))
+    consistency = float(np.mean(d <= 2.5 * p50)) if p50 > 0 else 1.0
+    return {"source": ALIGNMENT_QUALITY_SOURCE,
+            "median_residual": p50, "p95_residual": p95, "max_residual": maxv,
+            "consistency_fraction": round(consistency, 4),
+            "n_points": int(d.size)}
+
+
 def compare_landmarks(
     a: Record,
     b: Record,
@@ -199,7 +267,7 @@ def compare_landmarks(
             },
         )
 
-    gap = pose_gap(a.angles, b.angles)
+    gap = pose_gap(a.angles, b.angles, pose_bin=a.pose_bin)
     pose_distance = float(np.linalg.norm((a.angles - b.angles) / np.array([15.0, 20.0, 15.0])))
     if not gap.accepted:
         return Comparison("residual_pose_mismatch", {}, [], {
@@ -218,7 +286,12 @@ def compare_landmarks(
         return Comparison("insufficient_visibility", {}, [], diagnostics)
 
     anchor106, anchor_meta106 = stable_anchor_mask(a.ldm106, common106, min_count=min_points106)
-    anchor134, anchor_meta134 = stable_anchor_mask(a.ldm134, common134, min_count=min_points134)
+    _per_bin = _load_per_bin_artifacts()
+    if _per_bin is not None:
+        _utility, _prior, _bin_names = _per_bin
+        anchor134, anchor_meta134 = per_bin_anchor_mask(a.ldm134, common134, pose_bin=a.pose_bin, utility=_utility, visibility_prior=_prior, min_count=min_points134, bin_names=_bin_names)
+    else:
+        anchor134, anchor_meta134 = stable_anchor_mask(a.ldm134, common134, min_count=min_points134)
     _, r106, t106, align106 = robust_rigid_align(b.ldm106[anchor106], a.ldm106[anchor106])
     _, r134, t134, align134 = robust_rigid_align(b.ldm134[anchor134], a.ldm134[anchor134])
     aligned106_all = b.ldm106 @ r106 + t106
@@ -265,12 +338,15 @@ def compare_landmarks(
             "signed_z": float(np.median(rv[:, 2])),
         })
     diagnostics.update({"rotation106": r106, "translation106": t106, "rotation134": r134, "translation134": t134,
-                        "anchor106_count": anchor_meta106.get("anchor_count", 0), "anchor106_policy": anchor_meta106.get("anchor_policy", "unknown"),
+                        "anchor106_count": anchor_meta106.get("anchor_count", 0), "anchor106_policy": anchor_meta106.get("anchor_policy", "unknown"), "anchor106_source": anchor_meta106.get("anchor_source", "unknown"),
                         "anchor134_count": anchor_meta134.get("anchor_count", 0), "anchor134_policy": anchor_meta134.get("anchor_policy", "unknown"),
+                        "anchor134_source": anchor_meta134.get("anchor_source", "unknown"),
+                        "anchor134_artifacts": bool(_per_bin is not None),
                         "alignment106_policy": align106.get("alignment_policy"), "alignment106_trimmed_count": align106.get("trimmed_point_count", 0),
                         "alignment134_policy": align134.get("alignment_policy"), "alignment134_trimmed_count": align134.get("trimmed_point_count", 0),
                         "alignment134_residual_before_median": align134.get("residual_before_median"),
-                        "alignment134_residual_after_median": align134.get("residual_after_median")})
+                        "alignment134_residual_after_median": align134.get("residual_after_median"),
+                        "alignment_quality_measured": measured_alignment_quality(distance134)})
     return Comparison("measured", metrics, zones, diagnostics)
 
 

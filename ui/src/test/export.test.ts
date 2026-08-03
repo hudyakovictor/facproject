@@ -16,9 +16,9 @@ const base = {
 
 describe("analysis JSON export", () => {
   it("always carries source_mode and not_a_verdict", () => {
-    const out = buildAnalysisExport({ ...base, dataMode: "demo" });
+    const out = buildAnalysisExport({ ...base, dataMode: "research" });
     expect(out.schema).toBe(ANALYSIS_EXPORT_SCHEMA);
-    expect(out.source_mode).toBe("demo");
+    expect(out.source_mode).toBe("research");
     expect(out.not_a_verdict).toBe(true);
     expect(String(out.disclaimer)).toContain("не установление личности");
   });
@@ -33,19 +33,19 @@ describe("analysis JSON export", () => {
 
   it("preserves filters so numbers stay reproducible", () => {
     const filters = { dataset: "calibration", bucketFilter: "frontal" };
-    const out = buildAnalysisExport({ ...base, dataMode: "demo", filters }) as any;
+    const out = buildAnalysisExport({ ...base, dataMode: "research", filters }) as any;
     expect(out.selection.filters).toEqual(filters);
     expect(out.selection.photos_in_selection).toBe(12);
     expect(out.selection.photos_total).toBe(DEMO_PHOTOS.length);
   });
 
   it("lists anomaly photo ids consistently with the count", () => {
-    const out = buildAnalysisExport({ ...base, dataMode: "demo" }) as any;
+    const out = buildAnalysisExport({ ...base, dataMode: "research" }) as any;
     expect(out.anomalies.photo_ids).toHaveLength(out.anomalies.count);
   });
 
   it("returns null medians for an empty selection instead of 0", () => {
-    const out = buildAnalysisExport({ ...base, photos: [], dataMode: "demo" }) as any;
+    const out = buildAnalysisExport({ ...base, photos: [], dataMode: "research" }) as any;
     expect(out.aggregates_median.boneScore).toBeNull();
   });
 });
@@ -57,8 +57,8 @@ import { buildPrintReport } from "../export";
 const printInput = {
   photos: [] as never[],
   totalPhotos: 0,
-  dataMode: "demo" as const,
-  dataMessage: "демо-набор",
+  dataMode: "research" as const,
+  dataMessage: "исследовательский набор",
   filters: { dataset: "main" },
   playheadT: Date.parse("2004-05-01"),
   currentEra: "ERA_2",
@@ -88,13 +88,8 @@ describe("печатный отчёт", () => {
     expect(html).toContain("@page");
   });
 
-  it("демо-срез помечается в напечатанном виде", () => {
-    const html = buildPrintReport(printInput);
-    expect(html).toContain("Демонстрационные данные");
-  });
-
   it("research-срез не получает демо-баннера", () => {
-    const html = buildPrintReport({ ...printInput, dataMode: "research" });
+    const html = buildPrintReport(printInput);
     expect(html).not.toContain("Демонстрационные данные");
   });
 
