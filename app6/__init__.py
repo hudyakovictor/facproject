@@ -1,9 +1,23 @@
 """DEEPUTIN app6 package.
 
-Stage 1 lives in app6.stage1; Stage 2/2B/3 live in their own packages.
-Root package re-exports Stage1Config/Stage1Engine for convenience only.
-📦 CONVENTIONS v2 → статусы модулей/функций: app6/FUNCTION_STATUS_LOG.md
+The root package deliberately has no eager Stage 1 import.  Geometry-only
+analysis, report generation and API schema checks must remain importable on a
+machine that does not have the optional 3DDFA/OpenCV inference stack installed.
+Use ``app6.Stage1Config`` / ``app6.Stage1Engine`` as before; they are loaded
+only when explicitly requested.
 """
-from .stage1 import Stage1Config, Stage1Engine
+from __future__ import annotations
+
+from typing import Any
 
 __all__ = ["Stage1Config", "Stage1Engine"]
+
+
+def __getattr__(name: str) -> Any:
+    if name == "Stage1Config":
+        from .stage1.config import Stage1Config
+        return Stage1Config
+    if name == "Stage1Engine":
+        from .stage1.engine import Stage1Engine
+        return Stage1Engine
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

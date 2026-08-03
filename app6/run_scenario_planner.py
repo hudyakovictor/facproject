@@ -111,11 +111,15 @@ def main() -> int:
         return 0
 
     extracted: Path | None = None
-    if args.archive and not args.archive.is_file():
-        print(f"ВНИМАНИЕ: архив не найден: {args.archive}", file=sys.stderr)
-    if args.archive and args.archive.is_file():
+    if args.archive and args.archive.is_dir():
+        # A checked-out pre-extracted tree is equally valid for planning; no
+        # archive extraction and no mutation of its evidence files is needed.
+        extracted = args.archive
+    elif args.archive and args.archive.is_file():
         from app6.archive_adapter import safe_extract_archive
         extracted = safe_extract_archive(args.archive, Path(tempfile.mkdtemp(prefix="scenario_")))
+    else:
+        print(f"ВНИМАНИЕ: архив/каталог не найден: {args.archive}", file=sys.stderr)
 
     plan = build_plan(args.scenario, args.pose, extracted)
     text = json.dumps(plan, ensure_ascii=False, indent=2)
