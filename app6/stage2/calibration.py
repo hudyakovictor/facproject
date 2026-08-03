@@ -5,19 +5,27 @@
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Any, Iterable
 
 import numpy as np
 
 from .core import Comparison, Record, compare_landmarks
 from .analysis_policy import pose_gap
-from .robustness import balanced_reference
+from .robustness import balanced_reference, cluster_bootstrap_ci
 
 
 class CalibrationModel:
-    def __init__(self, records: list[Record], zone106: np.ndarray, zone134: np.ndarray):
+    #: Максимум использований одного калибровочного кадра в matched-null.
+    MAX_REUSE: int = 3
+    #: Штраф (в единицах pose-distance) за каждое повторное использование.
+    REUSE_PENALTY: float = 0.75
+
+    def __init__(self, records: list[Record], zone106: np.ndarray,
+                 zone134: np.ndarray, *, max_reuse: int | None = None):
         self.records = records; self.zone106 = zone106; self.zone134 = zone134
+        self.max_reuse = int(max_reuse) if max_reuse is not None else self.MAX_REUSE
+        self._use_count: Counter[str] = Counter()
         self.by_dataset_bin: dict[tuple[str, str], list[Record]] = defaultdict(list)
         for record in records:
             self.by_dataset_bin[(record.dataset_id, record.pose_bin)].append(record)
@@ -26,7 +34,7 @@ class CalibrationModel:
 
     @staticmethod
     def _pose_distance(a: Record, b: Record) -> float:
-        gap=pose_gap(a.angles,b.angles)
+        gap = pose_gap(a.angles, b.angles, pose_bin=a.pose_bin)
         if not gap.accepted: return float("inf")
         return float(np.linalg.norm((a.angles - b.angles) / np.array([15.0, 20.0, 15.0])))
 
@@ -47,10 +55,34 @@ class CalibrationModel:
                     for zone in comp.zones:
                         if zone.get("status") == "measured":
                             values[pose_bin][f"zone::{zone['zone']}::rmse"][dataset].append(float(zone["rmse"]))
-        return {
-            pose: {metric: balanced_reference(by_dataset) for metric, by_dataset in metrics.items()}
-            for pose, metrics in values.items()
-        }
+        references: dict[str, dict[str, dict[str, float | int]]] = {}
+        for pose, metrics in values.items():
+            pose_refs: dict[str, dict[str, float | int]] = {}
+            for metric, by_dataset in metrics.items():
+                ref = dict(balanced_reference(by_dataset))
+                # 🚧 Патч 10/21: cluster-bootstrap CI на уровне датасетов.
+                # Пары из одного субъекта зависимы; наивный bootstrap занижает
+                # ширину CI (width_underestimate_factor). Кластеры = датасеты.
+                obs: list[float] = []
+                ids: list[str] = []
+                for dataset, vals in by_dataset.items():
+                    obs.extend(float(v) for v in vals)
+                    ids.extend([dataset] * len(vals))
+                if len(set(ids)) >= 2:
+                    ci = cluster_bootstrap_ci(obs, ids)
+                    ref["ci_lo"] = ci["ci_lo"]
+                    ref["ci_hi"] = ci["ci_hi"]
+                    ref["ci_width"] = ci["width"]
+                    ref["ci_naive_width"] = ci["naive_width"]
+                    ref["ci_width_underestimate_factor"] = ci["width_underestimate_factor"]
+                    ref["ci_n_observations"] = ci["n_observations"]
+                    ref["ci_n_clusters"] = ci["n_clusters"]
+                    ref["ci_method"] = ci["method"]
+                else:
+                    ref["ci_status"] = "insufficient_clusters"
+                pose_refs[metric] = ref
+            references[pose] = pose_refs
+        return references
 
     def _nearest(self, target: Record, dataset: str, exclude: str | None = None) -> Record | None:
         candidates = [r for r in self.by_dataset_bin.get((dataset, target.pose_bin), []) if r.record_id != exclude]
@@ -59,8 +91,19 @@ class CalibrationModel:
         def score(record: Record) -> float:
             pose = self._pose_distance(target, record)
             vis = abs(float(target.visible134.mean()) - float(record.visible134.mean()))
-            return pose + 1.5 * vis
-        return min(candidates, key=score)
+            # 🚨 D7 (патч 9): повторное использование одного кадра раздувает
+            # null-распределение и прячет хабы. Каждый повтор штрафуется, а при
+            # исчерпании лимита кадр исключается из кандидатов вовсе.
+            reuse = self.REUSE_PENALTY * self._use_count[record.record_id]
+            return pose + 1.5 * vis + reuse
+        if self.max_reuse > 0:
+            fresh = [r for r in candidates if self._use_count[r.record_id] < self.max_reuse]
+            if fresh:
+                candidates = fresh
+        best = min(candidates, key=score)
+        if self.max_reuse > 0:
+            self._use_count[best.record_id] += 1
+        return best
 
     # 📊 Matched-null распределение для пары (same-subject null)
     def matched_null(self, a: Record, b: Record) -> dict[str, list[float]]:
@@ -78,8 +121,37 @@ class CalibrationModel:
         return dict(values)
 
     # 📊 Референс-калибровка из sidecar
-    def reference(self, pose_bin: str, metric: str) -> dict[str, float | int]:
-        return self.references.get(pose_bin, {}).get(metric, {"count": 0, "median": 0.0, "mad": 0.0, "p95": 0.0, "p99": 0.0})
+    def reference(self, pose_bin: str, metric: str, *, stratum: str | None = None) -> dict[str, float | int]:
+        # 🚧 Стратификация (патч 18): ключ калибровки расширяется суффиксом
+        # качества. Если стратифицированного референса ещё нет — честный
+        # fallback на общий (count=0 сигнализирует об отсутствии слоя).
+        key = pose_bin if not stratum else f"{pose_bin}::q_{stratum}"
+        return self.references.get(key, {}).get(metric, {"count": 0, "median": 0.0, "mad": 0.0, "p95": 0.0, "p99": 0.0})
+
+    def has_stratified_references(self) -> bool:
+        """True если построены стратифицированные (``pose_bin::q_*``) референсы.
+
+        Стратифицированные референсы появляются только после пересборки
+        калибровки с учётом quality stratum. Пока их нет, движок обязан
+        передавать ``stratum=None`` (общий пул), иначе ``calibrated_score``
+        деградирует в ``insufficient_calibration`` из-за count=0.
+        """
+        return any("::q_" in k for k in self.references)
+
+    def reuse_report(self) -> dict[str, Any]:
+        """📤 Сводка использования калибровочных кадров (патч 9: hubs)."""
+        counts = dict(self._use_count)
+        cap = max(self.max_reuse, 1)
+        return {
+            "schema": "deeputin-calibration-reuse-v1.0",
+            "policy": "max_reuse_cap_v1",
+            "max_reuse": self.max_reuse,
+            "reuse_penalty": self.REUSE_PENALTY,
+            "distinct_used": len(counts),
+            "max_use_count": max(counts.values()) if counts else 0,
+            "hubs": sorted(rid for rid, c in counts.items() if c >= cap) if counts else [],
+            "notes": "кадры, исчерпавшие лимит, исключаются из matched-null",
+        }
 
     def consistency_check(self) -> dict[str, Any]:
         """📊 METRIC → Consistency check for calibration dataset.

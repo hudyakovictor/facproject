@@ -7,11 +7,11 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { useReducedMotion } from "../useReducedMotion";
 import { fmt } from "../format";
-import { Photo, HYPOTHESIS_COLORS, EVENT_PINS, EventPin, FUZZY_COLORS, ERA_META, REF, POSE_BUCKETS, POSE_LABELS, type EraMeta } from "../data";
+import { Photo, HYPOTHESIS_COLORS, EventPin, FUZZY_COLORS, POSE_BUCKETS, POSE_LABELS, type EraMeta } from "../data";
 import Icon from "./Icon";
 import { t, useLanguage } from "../i18n";
 import { useBaseline, type MetricRef } from "../baseline";
-import { fitTrend } from "../trend";
+
 import {
   SEVERITY_COLOR, anomalyKind, collectAnomalies, isQualityFlag, nextAnomalyIndex, photoAnomalies,
   type AnomalyBucket,
@@ -37,7 +37,7 @@ export interface TrackDef {
 /** Дорожки объявляют КЛЮЧ метрики; конкретный референс подставляется из
  * baseline текущего набора, а не из модульной константы REF. */
 function buildGeomTracks(refs: Record<string, MetricRef>): TrackDef[] {
-  const r = (k: string) => refs[k] ?? REF[k] ?? { median: 0, std: 1 };
+  const r = (k: string) => refs[k] ?? { median: Number.NaN, std: Number.NaN };
   return [
     { id: "BONE", label: t.trackBone, color: "#4f98a3", metric: p => p.boneScore, ref: r("boneScore"), filled: true },
     { id: "ORBIT", label: t.trackOrbits, color: "#6daa45", metric: p => p.orbit, ref: r("orbit") },
@@ -49,7 +49,7 @@ function buildGeomTracks(refs: Record<string, MetricRef>): TrackDef[] {
   ];
 }
 function buildTexTracks(refs: Record<string, MetricRef>): TrackDef[] {
-  const r = (k: string) => refs[k] ?? REF[k] ?? { median: 0, std: 1 };
+  const r = (k: string) => refs[k] ?? { median: Number.NaN, std: Number.NaN };
   return [
     { id: "SIL", label: t.trackSilicone, color: "#a13544", metric: p => p.siliconeProb, ref: r("siliconeProb") },
     { id: "SPEC", label: t.trackSpecular, color: "#4f98a3", metric: p => p.specular, ref: r("specular") },
@@ -60,7 +60,7 @@ function buildTexTracks(refs: Record<string, MetricRef>): TrackDef[] {
   ];
 }
 function buildAgeTrack(refs: Record<string, MetricRef>): TrackDef {
-  return { id: "AGE", label: t.trackVisualAge, color: "#fdab43", metric: p => p.visualAge, ref: refs.visualAge ?? REF.visualAge, filled: true };
+  return { id: "AGE", label: t.trackVisualAge, color: "#fdab43", metric: p => p.visualAge, ref: refs.visualAge ?? { median: Number.NaN, std: Number.NaN }, filled: true };
 }
 
 
@@ -101,7 +101,7 @@ export default function UnifiedTimeline({
   photos, filmstripOffset, setFilmstripOffset, thumbSize,
   playheadT, onSelectPhoto, selectedId, onScrubTo, onPinClick,
   onDoubleClickPhoto, onRangeSelected, rangeSelection, highlightIds,
-  eraMeta = ERA_META, chronoAnomalies = {},
+  eraMeta = {}, chronoAnomalies = {},
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1200);
@@ -112,8 +112,6 @@ export default function UnifiedTimeline({
   /** Активный ракурс дорожек. "all" — показывать все, но линия всё равно
    * разрывается на каждой смене bin (сравнение поперёк ракурсов запрещено). */
   const [poseFilter, setPoseFilter] = useState<string>("all");
-  /** Слой эмпирического тренда (Тейл–Сен) с полосой ±2σ. */
-  const [showTrend, setShowTrend] = useState(true);
   const [language] = useLanguage();
   const baseline = useBaseline();
   // WCAG 2.3.3: пульсация маркеров отключается по запросу пользователя.
@@ -317,42 +315,8 @@ export default function UnifiedTimeline({
           + ` L ${seg[seg.length - 1].x.toFixed(1)} ${(yTop + h).toFixed(1)} Z`)
         .join(" ");
     }
-
-    // === Эмпирический тренд (Тейл–Сен) ======================================
-    // Считается ТОЛЬКО внутри одного pose bin: тренд по смешанным ракурсам
-    // описывал бы смену угла съёмки, а не изменение лица. Когда выбран режим
-    // "all", берётся самый представленный bin в текущем окне — он и
-    // подписывается на дорожке.
-    let trendD = "";
-    let bandD = "";
-    let trendBin: string | null = null;
-    if (showTrend) {
-      const counts = new Map<string, number>();
-      for (const pt of pts) counts.set(pt.bucket, (counts.get(pt.bucket) ?? 0) + 1);
-      trendBin = poseFilter !== "all"
-        ? poseFilter
-        : ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null);
-
-      if (trendBin) {
-        const binPhotos = photos.filter(ph => ph.bucket === trendBin);
-        const model = fitTrend(binPhotos.map(ph => ({ t: ph.t, v: tr.metric(ph) })));
-        if (model.usable) {
-          const visible = pts.filter(pt => pt.bucket === trendBin);
-          if (visible.length >= 2) {
-            const xs = visible.map(pt => ({ x: pt.x, t: photos[pt.gi].t }));
-            const line = xs.map(({ x, t: tt }) => ({ x, y: yVal(model.predict(tt)) }));
-            const upper = xs.map(({ x, t: tt }) => ({ x, y: yVal(model.predict(tt) + 2 * model.residualSpread) }));
-            const lower = xs.map(({ x, t: tt }) => ({ x, y: yVal(model.predict(tt) - 2 * model.residualSpread) }));
-            trendD = "M " + line.map(pt => `${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(" L ");
-            bandD = "M " + upper.map(pt => `${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(" L ")
-              + " L " + [...lower].reverse().map(pt => `${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(" L ") + " Z";
-          }
-        }
-      }
-    }
-
-    return { pathD, fillD, pts, yRef, lo, hi, trendD, bandD, trendBin };
-  }, [photos, offset, visibleCount, xForIdx, baseline, poseFilter, showTrend]);
+    return { pathD, fillD, pts, yRef, lo, hi };
+  }, [photos, offset, visibleCount, xForIdx, baseline, poseFilter]);
 
   /** Диапазон значений дорожки (та же формула, что в renderTrackPath).
    * Нужен для подписи оси Y: без неё непонятно, в каких пределах график. */
@@ -552,10 +516,6 @@ export default function UnifiedTimeline({
         <div className="px-2 flex items-center justify-between bg-surface-2 border-b border-border font-mono text-[9px] text-text-muted tracking-forensic"
           style={{ height: GROUP_HEADER_H }}>
           <span>{t.geometry7Lanes}</span>
-          <button onClick={() => setShowTrend(v => !v)} aria-pressed={showTrend} title={t.trendTitle}
-            className={`px-1.5 py-0.5 text-[8px] tracking-forensic border mr-1 ${showTrend ? "bg-info/30 border-info text-text" : "border-border text-text-muted hover:text-text"}`}>
-            {t.trendToggle}
-          </button>
           <select value={poseFilter} onChange={e => setPoseFilter(e.target.value)}
             aria-label={t.poseTrackFilter} title={t.poseTrackTitle}
             className="bg-surface border border-border text-[8px] font-mono text-text px-1 py-0.5 max-w-[104px]">
@@ -661,14 +621,12 @@ export default function UnifiedTimeline({
         {/* === GEOMETRY tracks === */}
         {GEOM_TRACKS.map((tr, i) => {
           const yTop = yForGeomTrack(i);
-          const { pathD, fillD, pts, yRef, trendD, bandD } = renderTrackPath(tr, yTop + 3, TRACK_H_GEOM - 6, !!tr.filled);
+          const { pathD, fillD, pts, yRef } = renderTrackPath(tr, yTop + 3, TRACK_H_GEOM - 6, !!tr.filled);
           return (
             <g key={tr.id}>
               {/* baseline reference line (ref median) */}
               <line x1={LABEL_W} y1={yRef} x2={LABEL_W + trackAreaW} y2={yRef} stroke={tr.color} strokeOpacity="0.18" strokeDasharray="2 4" />
               {/* Полоса ±2σ вокруг эмпирического тренда одного pose bin. */}
-              {bandD && <path d={bandD} fill="#e2e2e8" fillOpacity="0.05" stroke="none" />}
-              {trendD && <path d={trendD} fill="none" stroke="#e2e2e8" strokeOpacity="0.45" strokeWidth="1" strokeDasharray="5 3" />}
               {tr.filled && fillD && (
                 <path d={fillD} fill={tr.color} fillOpacity="0.18" />
               )}
@@ -722,12 +680,10 @@ export default function UnifiedTimeline({
         {/* === TEXTURE tracks === */}
         {TEX_TRACKS.map((tr, i) => {
           const yTop = yForTexTrack(i);
-          const { pathD, fillD, pts, yRef, trendD, bandD } = renderTrackPath(tr, yTop + 3, TRACK_H_TEX - 6, !!tr.filled);
+          const { pathD, fillD, pts, yRef } = renderTrackPath(tr, yTop + 3, TRACK_H_TEX - 6, !!tr.filled);
           return (
             <g key={tr.id}>
               <line x1={LABEL_W} y1={yRef} x2={LABEL_W + trackAreaW} y2={yRef} stroke={tr.color} strokeOpacity="0.18" strokeDasharray="2 4" />
-              {bandD && <path d={bandD} fill="#e2e2e8" fillOpacity="0.05" stroke="none" />}
-              {trendD && <path d={trendD} fill="none" stroke="#e2e2e8" strokeOpacity="0.45" strokeWidth="1" strokeDasharray="5 3" />}
               {fillD && <path d={fillD} fill={tr.color} fillOpacity="0.18" />}
               <path d={pathD} fill="none" stroke={tr.color} strokeWidth={1.4} strokeLinejoin="round" strokeLinecap="round" />
               {pts.map(p => {
@@ -852,7 +808,7 @@ export default function UnifiedTimeline({
       <div className="absolute" style={{ left: LABEL_W, top: 0, width: trackAreaW, height: totalContentH, pointerEvents: "none" }}>
         {/* Event pins */}
         <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: yPins, height: PINS_H }}>
-          {EVENT_PINS.map(pin => {
+          {([] as EventPin[]).map(pin => {
             const idx = pinIdx(pin.t);
             if (idx < offset - 1 || idx > offset + visibleCount + 1) return null;
             const xLocal = xForIdxLocal(idx) + thumbSize / 2;

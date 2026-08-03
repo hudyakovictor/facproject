@@ -97,7 +97,7 @@ def _stage2_root() -> Path | None:
 def _uploads_root() -> Path:
     import os
     raw = os.environ.get("DEEPUTIN_UPLOADS_ROOT")
-    path = Path(raw) if raw else Path("/Volumes/SDCARD/project_data") / "api_uploads"
+    path = Path(raw) if raw else Path("/Volumes/SDCARD/storage") / "api_uploads"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -779,7 +779,7 @@ class JobRequest(BaseModel):
 def submit_job(request: JobRequest) -> dict[str, Any]:
     if request.kind == "extract":
         input_dir = Path(request.input_dir) if request.input_dir else _uploads_root() / "main"
-        output_dir = Path(request.output_dir) if request.output_dir else PROJECT_ROOT / "runs" / "api_stage1"
+        output_dir = Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage1"
         if not input_dir.is_dir():
             raise HTTPException(status_code=400, detail=f"input_dir does not exist: {input_dir}")
         runner = make_extract_runner(input_dir, output_dir, PROJECT_ROOT, device=request.device, limit=request.limit)
@@ -788,7 +788,7 @@ def submit_job(request: JobRequest) -> dict[str, Any]:
         if stage1_root is None:
             raise HTTPException(status_code=400, detail="stage1_root not provided and DEEPUTIN_STAGE1_ROOT not set")
         calibration_root = Path(request.calibration_root) if request.calibration_root else _calibration_root()
-        output_dir = Path(request.output_dir) if request.output_dir else PROJECT_ROOT / "runs" / "api_stage2"
+        output_dir = Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage2"
         runner = make_recompute_metrics_runner(stage1_root, calibration_root, output_dir)
     else:
         raise HTTPException(status_code=400, detail=f"unknown job kind: {request.kind}")

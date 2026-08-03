@@ -148,3 +148,59 @@ def noise_adjusted_threshold(base_threshold, coordinate_sigma, dimensions=3, saf
     if not np.isfinite(sigma) or sigma<0: raise ValueError('coordinate_sigma must be non-negative')
     if int(dimensions)<=0 or float(safety_factor)<1: raise ValueError('invalid adjustment parameters')
     return float(np.sqrt(base*base + float(safety_factor)**2 * int(dimensions) * sigma*sigma))
+
+
+def cluster_bootstrap_ci(values, cluster_ids, statistic=np.mean, *, n_boot=2000, alpha=0.05, seed=0):
+    """Cluster bootstrap confidence interval for a dependent sample (patch 10).
+
+    Pairs from the same photo/capture event are dependent observations; a naive
+    per-observation bootstrap underestimates the CI width.  Here whole clusters
+    are resampled with replacement, and the naive width is reported alongside so
+    the underestimation factor is explicit, not hidden.
+
+    Args:
+        values: observations (1-D).
+        cluster_ids: cluster label per observation (same length).
+        statistic: function mapping a sample to a scalar (default np.mean).
+        n_boot: number of bootstrap replicates.
+        alpha: two-sided significance level (0.05 -> 95% CI).
+        seed: RNG seed for reproducibility.
+
+    Returns:
+        dict with point estimate, cluster CI bounds, naive (per-observation)
+        CI width, the width-underestimation factor, and sample sizes.
+
+    Raises:
+        ValueError: shape mismatch, empty input, or fewer than two clusters.
+    """
+    x = np.asarray(values, float)
+    ids = np.asarray(cluster_ids)
+    if x.ndim != 1 or ids.ndim != 1 or x.shape != ids.shape or len(x) == 0:
+        raise ValueError("values and cluster_ids must be equal non-empty vectors")
+    finite = np.isfinite(x)
+    x = x[finite]; ids = ids[finite]
+    clusters = np.unique(ids)
+    if clusters.size < 2:
+        raise ValueError("at least two clusters are required")
+    n_boot = max(int(n_boot), 50)
+    rng = np.random.default_rng(int(seed))
+    point = float(statistic(x))
+    naive = np.asarray([float(statistic(rng.choice(x, size=x.size, replace=True)))
+                        for _ in range(n_boot)], dtype=np.float64)
+    boot = []
+    for _ in range(n_boot):
+        picked = rng.choice(clusters, size=clusters.size, replace=True)
+        sample = np.concatenate([x[ids == c] for c in picked])
+        boot.append(float(statistic(sample)))
+    boot = np.asarray(boot, dtype=np.float64)
+    lo, hi = np.quantile(boot, [alpha / 2.0, 1.0 - alpha / 2.0])
+    n_lo, n_hi = np.quantile(naive, [alpha / 2.0, 1.0 - alpha / 2.0])
+    width = float(hi - lo)
+    naive_width = float(n_hi - n_lo)
+    return {"point": point,
+            "ci_lo": float(lo), "ci_hi": float(hi),
+            "width": width, "naive_width": naive_width,
+            "width_underestimate_factor": float(naive_width / width) if width > 0 else float("nan"),
+            "n_observations": int(len(x)), "n_clusters": int(clusters.size),
+            "n_boot": n_boot, "alpha": float(alpha),
+            "seed": int(seed), "method": "cluster_bootstrap_v1"}

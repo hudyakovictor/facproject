@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { fmt } from "../format";
 
-import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS, REF, EVENT_PINS } from "../data";
+import { Photo, HYPOTHESIS_COLORS, FUZZY_COLORS } from "../data";
 import Icon from "./Icon";
 import { t, useLanguage } from "../i18n";
 import SkinZonesPanel from "./SkinZonesPanel";
@@ -265,12 +265,12 @@ function SkinTab({ photo }: { photo: Photo }) {
   // измерения. Такая «метрика» не несёт информации сверх исходной и вводит
   // читателя отчёта в заблуждение, поэтому удалена.
   const metrics = [
-    { k: "specular_gloss", v: photo.specular, ref: REF.specular.median },
-    { k: "lbp_entropy", v: photo.lbpEntropy, ref: REF.lbpEntropy.median },
-    { k: "frangi_vesselness", v: photo.frangi, ref: REF.frangi.median },
-    { k: "wrinkle", v: photo.wrinkle, ref: REF.wrinkle.median },
-    { k: "silicone_prob", v: photo.siliconeProb, ref: REF.siliconeProb.median },
-    { k: "subsurface_scatter", v: photo.subsurface, ref: REF.subsurface.median },
+    { k: "specular_gloss", v: photo.specular },
+    { k: "lbp_entropy", v: photo.lbpEntropy },
+    { k: "frangi_vesselness", v: photo.frangi },
+    { k: "wrinkle", v: photo.wrinkle },
+    { k: "silicone_prob", v: photo.siliconeProb },
+    { k: "subsurface_scatter", v: photo.subsurface },
   ];
 
   // radar
@@ -278,11 +278,6 @@ function SkinTab({ photo }: { photo: Photo }) {
   const points = metrics.map((m, i) => {
     const a = (i / metrics.length) * Math.PI * 2 - Math.PI / 2;
     const r = Math.max(0.1, Math.min(1, m.v)) * R;
-    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
-  });
-  const refPoints = metrics.map((m, i) => {
-    const a = (i / metrics.length) * Math.PI * 2 - Math.PI / 2;
-    const r = Math.max(0.1, Math.min(1, m.ref)) * R;
     return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
   });
 
@@ -296,7 +291,6 @@ function SkinTab({ photo }: { photo: Photo }) {
           const a = (i / metrics.length) * Math.PI * 2 - Math.PI / 2;
           return <line key={i} x1={cx} y1={cy} x2={cx + Math.cos(a) * R} y2={cy + Math.sin(a) * R} stroke="rgba(255,255,255,0.06)" />;
         })}
-        <polygon points={refPoints.map(p => p.join(",")).join(" ")} fill="#4f98a3" fillOpacity="0.15" stroke="#4f98a3" strokeWidth="0.8" strokeDasharray="2 2" />
         <polygon points={points.map(p => p.join(",")).join(" ")} fill="#fdab43" fillOpacity="0.25" stroke="#fdab43" strokeWidth="1.2" />
         {metrics.map((mm, i) => {
           const a = (i / metrics.length) * Math.PI * 2 - Math.PI / 2;
@@ -306,18 +300,12 @@ function SkinTab({ photo }: { photo: Photo }) {
 
       <div className="font-mono text-[9px] text-text-muted tracking-forensic">{t.skinHeader}</div>
       <div className="space-y-1">
-        {metrics.map(m => {
-          const dev = m.v - m.ref;
-          const dColor = Math.abs(dev) > 0.15 ? "#a13544" : Math.abs(dev) > 0.08 ? "#e8af34" : "#6daa45";
-          return (
-            <div key={m.k} className="font-mono text-[9px]">
-              <div className="flex justify-between"><span className="text-text-muted">{m.k}</span><span>{m.v.toFixed(3)} <span style={{ color: dColor }}>({dev >= 0 ? "+" : ""}{dev.toFixed(3)})</span></span></div>
-              <div className="h-1 bg-surface-2 mt-0.5">
-                <div className="h-full" style={{ width: `${Math.min(100, m.v * 100)}%`, background: dColor }} />
-              </div>
-            </div>
-          );
-        })}
+        {metrics.map(m => (
+          <div key={m.k} className="font-mono text-[9px]">
+            <div className="flex justify-between"><span className="text-text-muted">{m.k}</span><span>{Number.isFinite(m.v) ? m.v.toFixed(3) : "—"}</span></div>
+            <div className="h-1 bg-surface-2 mt-0.5"><div className="h-full bg-info" style={{ width: `${Number.isFinite(m.v) ? Math.max(0, Math.min(100, m.v * 100)) : 0}%` }} /></div>
+          </div>
+        ))}
       </div>
 
       {/* Per-zone данные из артефактов Stage 1 (ничего не пересчитывается). */}
@@ -421,10 +409,6 @@ function ContextTab({ photo, photos }: { photo: Photo; photos: Photo[] }) {
   const idx = photos.findIndex(p => p.id === photo.id);
   const neighbors = idx < 0 ? [] : photos.slice(Math.max(0, idx - 4), Math.min(photos.length, idx + 5));
 
-  // nearest event pin
-  const nearest = EVENT_PINS.reduce((a, b) =>
-    Math.abs(b.t - photo.t) < Math.abs(a.t - photo.t) ? b : a, EVENT_PINS[0]);
-  const daysToEvent = Math.abs((nearest.t - photo.t) / 86400000);
 
   return (
     <div className="space-y-3">
@@ -467,15 +451,6 @@ function ContextTab({ photo, photos }: { photo: Photo; photos: Photo[] }) {
           ))}
         </div>
       </div>
-
-      {daysToEvent < 720 && (
-        <div className="bg-surface-2 p-2 border-l-2" style={{ borderColor: nearest.color }}>
-          <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-1">{t.nearbyPub} · {t.daysAway(Math.round(daysToEvent))}</div>
-          <div className="font-display text-xs font-semibold" style={{ color: nearest.color }}>{nearest.title}</div>
-          <div className="font-mono text-[10px] text-text mt-1">«{nearest.tooltip}»</div>
-          <div className="font-mono text-[9px] text-text-muted mt-1">— {nearest.source}</div>
-        </div>
-      )}
 
       <div className="bg-surface-2 p-2 border border-border">
         <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-1.5">{t.longModel}</div>

@@ -46,7 +46,8 @@ def _p_from_p95_z(z: float, m: int) -> float:
     return max(0.0, min(1.0, total))
 
 
-def _bh_qvalues(items: list[tuple[int, float]]) -> dict[int, float]:
+def _bh_qvalues(items: list[tuple[int, float]],
+                *, m_override: int | None = None) -> dict[int, float]:
     if not items:
         return {}
     ordered = sorted(items, key=lambda x: x[1])
@@ -58,11 +59,23 @@ def _bh_qvalues(items: list[tuple[int, float]]) -> dict[int, float]:
         val = min(prev, p * m / rank)
         q[rank - 1] = val
         prev = val
-    return {ordered[i][0]: max(0.0, min(1.0, q[i])) for i in range(m)}
+    # Правка (патч 8): число пар завышено из-за зависимости внутри фото.
+    # Ранжирование ведётся по всем m тестам, но BH-фактор делится на
+    # эффективное число независимых наблюдений n_eff, а не на m.
+    scale = 1.0
+    if m_override is not None:
+        scale = max(1.0, m / float(max(1, int(m_override))))
+    return {ordered[i][0]: max(0.0, min(1.0, q[i] * scale)) for i in range(m)}
 
 
-def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_threshold: float = DEFAULT_FDR_LEVEL) -> dict[str, Any]:
+def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z",
+                   q_threshold: float = DEFAULT_FDR_LEVEL,
+                   photo_count: int | None = None) -> dict[str, Any]:
     log_status("apply_pair_fdr", "complete")
+    # Пары одного фото — зависимые наблюдения. Эффективное число независимых
+    # тестов ограничено числом фото: n_eff = photo_count // 2 (пары считаются
+    # попарно, но не более чем по одной «хорошей» паре на два фото).
+    n_eff = None if photo_count is None else max(1, int(photo_count) // 2)
     tests: list[tuple[int, float]] = []
     for i, r in enumerate(rows):
         z = r.get(z_key)
@@ -75,11 +88,19 @@ def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_
         if not isfinite(z_value):
             continue
         m_points = int(r.get("calibrated_point_count") or 0)
-        # 🔧 FIX (аудит N1): p95 из m точек — порядковая статистика, не одиночный z.
-        p = _p_from_p95_z(z_value, m_points) if m_points >= 20 else _p_from_z(z_value)
+        if m_points >= 20:
+            # 🔧 FIX (аудит N1): p95 из m точек — порядковая статистика.
+            p = _p_from_p95_z(z_value, m_points)
+            r["mt_point_support"] = "full"
+            r["mt_role_detail"] = "p95_order_statistic_v1"
+        else:
+            # Мало точек → порядковая статистика ненадёжна, одиночный z fallback.
+            p = _p_from_z(z_value)
+            r["mt_point_support"] = "limited"
+            r["mt_role_detail"] = "p95_order_statistic_unreliable_below_20_points; single-z fallback"
         r["mt_p_approx"] = p
         tests.append((i, p))
-    qmap = _bh_qvalues(tests)
+    qmap = _bh_qvalues(tests, m_override=n_eff)
     significant = 0
     for i, q in qmap.items():
         rows[i]["mt_q_value"] = q
@@ -88,15 +109,23 @@ def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z", q_
         rows[i]["mt_fdr10_diagnostic_flag"] = flag  # explicit: not a verdict
         rows[i]["mt_role"] = "diagnostic_only"
         significant += int(flag)
+    dependence_inflation = 1.0
+    if n_eff is not None and tests:
+        dependence_inflation = max(1.0, len(tests) / float(n_eff))
     return {
         "schema": MT_SCHEMA,
         "scope": "pair_metrics",
         "test_count": len(tests),
+        "effective_test_count": n_eff,
+        "dependence_inflation": round(dependence_inflation, 4),
+        "independence_policy": "photo_cluster_v1",
+        "independence_note": ("пары из одного фото кластеризованы; "
+                              "n_eff = photo_count // 2; ранжирование по всем m"),
         "q_threshold": q_threshold,
         "significant_count": significant,
         "diagnostic_only": True,
         "not_a_verdict": True,
-        "method": "Benjamini-Hochberg on order-statistic p for p95 of m calibrated point z-scores (independence approximation; DIAGNOSTIC ONLY; do not use as identity/material verdict)",
+        "method": "Benjamini-Hochberg on order-statistic p for p95 of m calibrated point z-scores; q scaled by dependence inflation (DIAGNOSTIC ONLY; do not use as identity/material verdict)",
     }
 
 

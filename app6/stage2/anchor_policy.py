@@ -6,6 +6,8 @@
 from __future__ import annotations
 from app6.stage1.status_logger import log_status
 
+from .landmark_policy import subset_for_bin
+
 import numpy as np
 
 ANCHOR_SCHEMA = "deeputin-stage2-stable-anchor-policy-v1.0"
@@ -61,3 +63,49 @@ def stable_anchor_indices(points: np.ndarray, common_indices: np.ndarray, *, max
         meta["anchor_subsample_step"] = step
         meta["anchor_count_after_subsample"] = int(ids.size)
     return ids.astype(np.int64), meta
+
+
+def per_bin_anchor_mask(points: np.ndarray, common_visible: np.ndarray, *, pose_bin: str,
+                        utility: np.ndarray, visibility_prior: np.ndarray,
+                        min_count: int = 24, bin_names=None) -> tuple[np.ndarray, dict[str, float | int | str]]:
+    """Per-pose-bin anchor selection from calibration-ranked landmark utility (patch 6/A11).
+
+    Uses ``subset_for_bin`` ranked by per-bin utility with a visibility floor.
+    Falls back to ``stable_anchor_mask`` whenever the per-bin subset cannot
+    reach ``min_count`` usable anchors, the pose bin is unknown, or the
+    artifacts are malformed.
+    """
+    stable, meta = stable_anchor_mask(points, common_visible, min_count=min_count)
+    try:
+        if bin_names is None or pose_bin not in bin_names:
+            return stable, {**meta, "anchor_source": "stable_fallback_unknown_bin"}
+        bi = int(bin_names.index(pose_bin))
+        u = np.asarray(utility, dtype=float)
+        prior = np.asarray(visibility_prior, dtype=float)
+        if u.ndim != 2 or u.shape[0] <= bi or prior.ndim != 2 or prior.shape[0] <= bi:
+            return stable, {**meta, "anchor_source": "stable_fallback_bad_artifact_shape"}
+        count = max(int(min_count), int(round(len(points) * 0.4)))
+        sel = subset_for_bin(u, bi, count=count, visibility=prior[bi],
+                             min_visible_fraction=0.60, min_count=int(min_count))
+        if sel.get("status") == "fallback_cross_bin":
+            # All-NaN utility row: the sanitized cross-bin median is NOT per-bin
+            # coverage.  Fall back explicitly and surface it in the manifest.
+            return stable, {**meta, "anchor_source": "fallback_cross_bin",
+                            "fallback_reason": sel.get("reason")}
+        if not sel.get("sufficient") or not sel.get("usable"):
+            return stable, {**meta, "anchor_source": "stable_fallback_insufficient_subset"}
+        idx = np.asarray(sel["indices"], dtype=np.int64)
+        mask = np.zeros(len(points), dtype=bool)
+        valid = (idx >= 0) & (idx < len(points))
+        mask[idx[valid]] = True
+        mask &= common_visible
+        if int(mask.sum()) < int(min_count):
+            return stable, {**meta, "anchor_source": "stable_fallback_common_too_small"}
+        return mask, {"anchor_policy": "per_bin_subset_v1",
+                      "anchor_count": int(mask.sum()),
+                      "anchor_fraction": float(mask.sum() / max(int(common_visible.sum()), 1)),
+                      "anchor_source": "per_bin_subset_v1",
+                      "requested": sel.get("requested"), "effective": sel.get("effective"),
+                      "usable": sel.get("usable")}
+    except Exception:
+        return stable, {**meta, "anchor_source": "stable_fallback_error"}

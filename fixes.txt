@@ -1,0 +1,1688 @@
+Ниже полный набор unified diff-патчей для выявленных проблем. Патчи не возвращают демо-данные в production-контракт UI: они синхронизируют устаревшие тесты с действующей fail-closed политикой.
+
+---
+
+# Патч 1 — исправить самостоятельный запуск Round 6
+
+```diff
+diff --git a/tools/acceptance_round6.py b/tools/acceptance_round6.py
+--- a/tools/acceptance_round6.py
++++ b/tools/acceptance_round6.py
+@@ -7,7 +7,7 @@ import argparse, ast, itertools, json, pathlib, sys, collections
+ import numpy as np
+ 
+ ROOTDIR = pathlib.Path(__file__).resolve().parents[1]
+-sys.path.insert(0, str(ROOTDIR.parent))
++sys.path.insert(0, str(ROOTDIR))
+ 
+ from app6.stage2.analysis_policy import pose_gap
+ from app6.stage2.expression_pair_gate import expression_gate, JAW_DEGREE_GAP_ENFORCED
+```
+
+После этого документированная команда работает без ручного `PYTHONPATH`:
+
+```bash
+python3 tools/acceptance_round6.py \
+  --frames /path/to/deeputin-calibration-frames/calibration_frames
+```
+
+Ожидание:
+
+```
+ACCEPTANCE: PASS  (22/22)
+```
+
+---
+
+# Патч 2 — научить A11-генератор читать полный набор `person_*/frame_*`
+
+```diff
+diff --git a/tools/rebuild_landmark_utility.py b/tools/rebuild_landmark_utility.py
+--- a/tools/rebuild_landmark_utility.py
++++ b/tools/rebuild_landmark_utility.py
+@@ -9,8 +9,10 @@
+ from __future__ import annotations
+ 
+ import argparse
++import csv
+ import hashlib
++import json
+ from pathlib import Path
+ 
+ import numpy as np
+@@ -20,6 +22,74 @@ from app6.stage2.visibility_gate import PRIOR_MIN_FRACTION, bin_visibility_prior
+ 
+ BINS = list(BIN_NAME_TO_YAW)
+ 
++
++def _read_landmark_csv(path: Path, count: int = 134) -> tuple[np.ndarray, np.ndarray]:
++    """Прочитать CSV точек и вернуть координаты и исходную видимость.
++
++    Поддерживается поставочный формат:
++      landmark_id,x,y,z,visible,vertex_index
++
++    Строки обязательно должны содержать каждый landmark_id ровно один раз.
++    Отсутствие колонки visible трактуется как видимость всех точек — только
++    для обратной совместимости со старыми экспортами.
++    """
++    points = np.full((count, 3), np.nan, dtype=np.float64)
++    visible = np.zeros(count, dtype=bool)
++    seen: set[int] = set()
++
++    with path.open(newline="", encoding="utf-8-sig") as handle:
++        reader = csv.DictReader(handle)
++        required = {"landmark_id", "x", "y", "z"}
++        missing = required - set(reader.fieldnames or ())
++        if missing:
++            raise ValueError(f"{path}: отсутствуют колонки {sorted(missing)}")
++
++        for row in reader:
++            landmark_id = int(float(row["landmark_id"]))
++            if not 0 <= landmark_id < count:
++                raise ValueError(
++                    f"{path}: landmark_id={landmark_id} вне диапазона 0..{count - 1}"
++                )
++            if landmark_id in seen:
++                raise ValueError(f"{path}: повтор landmark_id={landmark_id}")
++            seen.add(landmark_id)
++
++            xyz = np.asarray(
++                [float(row["x"]), float(row["y"]), float(row["z"])],
++                dtype=np.float64,
++            )
++            if not np.isfinite(xyz).all():
++                raise ValueError(f"{path}: NaN/Inf в landmark_id={landmark_id}")
++            points[landmark_id] = xyz
++
++            raw_visible = str(row.get("visible", "1")).strip().lower()
++            visible[landmark_id] = raw_visible in {
++                "1", "true", "yes", "y", "__yes__"
++            }
++
++    missing_ids = sorted(set(range(count)) - seen)
++    if missing_ids:
++        raise ValueError(f"{path}: отсутствуют landmark_id {missing_ids[:10]}")
++
++    return points, visible
++
++
++def load_nested_calibration(root: Path) -> list[dict]:
++    """Загрузить поставочный набор person_*/frame_*/info.json.
++
++    Даты намеренно не читаются: калибровочный набор не имеет временной оси.
++    """
++    rows: list[dict] = []
++    for info_path in sorted(root.rglob("info.json")):
++        if "__MACOSX" in info_path.parts or any(
++            part.startswith("._") for part in info_path.parts
++        ):
++            continue
++
++        directory = info_path.parent
++        landmark_path = directory / "ldm134_raw.csv"
++        if not landmark_path.is_file():
++            continue
++
++        info = json.loads(info_path.read_text(encoding="utf-8"))
++        pose_bin = str((info.get("pose") or {}).get("pose_bin") or "")
++        if pose_bin not in BINS:
++            raise ValueError(f"{info_path}: неизвестный pose_bin={pose_bin!r}")
++
++        points, visible = _read_landmark_csv(landmark_path)
++        rows.append({
++            "bin": pose_bin,
++            "points": points,
++            "visible": visible,
++            "directory": directory,
++            "subject": directory.parent.name,
++        })
++
++    if not rows:
++        raise FileNotFoundError(
++            f"не найдены frame_*/info.json + ldm134_raw.csv под {root}"
++        )
++    return rows
++
+ 
+ def build(index_rows, loader) -> tuple[np.ndarray, dict]:
+     utility = np.full((len(BINS), 134), np.nan, dtype=np.float64)
+@@ -61,15 +131,28 @@ def main() -> None:
+     ap.add_argument("--calibration-root", default="results/calibration_stage1")
+     args = ap.parse_args()
+ 
+-    from app6.stage2.loaders import load_main
+-    records = load_main(Path(args.calibration_root))
+-    index_rows = [{"bin": r.pose_bin, "record": r} for r in records]
++    calibration_root = Path(args.calibration_root)
++    timeline = calibration_root / "main_timeline.csv"
++
++    if timeline.is_file():
++        # Штатный свежий вывод Stage 1.
++        from app6.stage2.loaders import load_main
+ 
+-    def loader(r):
+-        return (np.asarray(r["record"].ldm134, dtype=np.float64),
+-                np.asarray(r["record"].visible134, dtype=bool))
++        records = load_main(calibration_root)
++        index_rows = [{"bin": r.pose_bin, "record": r} for r in records]
++
++        def loader(row):
++            return (
++                np.asarray(row["record"].ldm134, dtype=np.float64),
++                np.asarray(row["record"].visible134, dtype=bool),
++            )
++    else:
++        # Поставочный лёгкий архив person_*/frame_* без reconstruction.npz.
++        index_rows = load_nested_calibration(calibration_root)
++
++        def loader(row):
++            return (
++                np.asarray(row["points"], dtype=np.float64),
++                np.asarray(row["visible"], dtype=bool),
++            )
+ 
+     utility, report = build(index_rows, loader)
+     out = Path(args.out)
+@@ -85,7 +168,7 @@ def main() -> None:
+     prior_out.parent.mkdir(parents=True, exist_ok=True)
+     np.save(prior_out, prior)
+ 
+-    print(f"records loaded: {len(records)}, index_rows: {len(index_rows)}")
++    print(f"records loaded: {len(index_rows)}, index_rows: {len(index_rows)}")
+     print("nan_per_bin:", report["nan_per_bin"])
+     print("utility sha256:", report["sha256"])
+     print("wrote", out, "and", prior_out)
+```
+
+Пересборка из полного архива:
+
+```bash
+python3 tools/rebuild_landmark_utility.py \
+  --calibration-root /path/to/calibration_dataset \
+  --out app6/atlas/landmark_utility.npy \
+  --prior-out app6/atlas/visibility_prior.npy
+```
+
+Проверка результата:
+
+```bash
+python3 - <<'PY'
+import numpy as np
+
+utility = np.load("app6/atlas/landmark_utility.npy")
+prior = np.load("app6/atlas/visibility_prior.npy")
+
+assert utility.shape == (9, 134), utility.shape
+assert prior.shape == (9, 134), prior.shape
+assert np.isfinite(prior).all()
+assert not (~np.isfinite(utility).any(axis=1)).any(), \
+    f"all-NaN rows: {np.flatnonzero(~np.isfinite(utility).any(axis=1)).tolist()}"
+
+print("A11_ARTIFACTS: PASS")
+print("NaN per bin:", np.isnan(utility).sum(axis=1).tolist())
+PY
+```
+
+---
+
+# Патч 3 — исправить baseline-фикстуру таймлайна
+
+```diff
+diff --git a/ui/src/test/anomalyRendering.test.tsx b/ui/src/test/anomalyRendering.test.tsx
+--- a/ui/src/test/anomalyRendering.test.tsx
++++ b/ui/src/test/anomalyRendering.test.tsx
+@@ -1,7 +1,9 @@
+ import { describe, expect, it, vi, afterEach } from "vitest";
+ import { render } from "@testing-library/react";
+ import UnifiedTimeline from "../components/UnifiedTimeline";
+-import { BaselineContext, computeBaselineRefs, BUILTIN_BASELINE } from "../baseline";
++import {
++  BASELINE_METRIC_KEYS, BaselineContext, EMPTY_BASELINE,
++  type BaselineRefs,
++} from "../baseline";
+ import { type Photo } from "../data";
+ import { buildDemoPhotos } from "../demoData";
+ 
+@@ -25,10 +27,22 @@ vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+ 
+ function renderTimeline(photos: Photo[], sufficient: boolean, chrono = {}) {
+-  const baseline = sufficient
+-    ? computeBaselineRefs(photos)
+-    : { ...BUILTIN_BASELINE, sufficient: false, sampleSize: 2, source: "api" as const };
++  const refs = Object.fromEntries(
++    BASELINE_METRIC_KEYS.map(key => [
++      key,
++      { median: 0, std: 1 },
++    ]),
++  );
++  const pipelineBaseline: BaselineRefs = {
++    refs,
++    baselineEra: "SEG",
++    sampleSize: 20,
++    sufficient: true,
++    source: "pipeline",
++  };
++  const baseline: BaselineRefs = sufficient
++    ? pipelineBaseline
++    : { ...EMPTY_BASELINE, sampleSize: 2 };
++
+   return render(
+     <BaselineContext.Provider value={baseline}>
+```
+
+---
+
+# Патч 4 — привести baseline-тесты к fail-closed политике
+
+```diff
+diff --git a/ui/src/test/baseline.test.ts b/ui/src/test/baseline.test.ts
+--- a/ui/src/test/baseline.test.ts
++++ b/ui/src/test/baseline.test.ts
+@@ -1,58 +1,33 @@
+ import { describe, expect, it } from "vitest";
+-import { computeBaselineRefs, MIN_BASELINE_SAMPLE } from "../baseline";
+-import { REF, type Photo } from "../data";
++import {
++  computeBaselineRefs,
++  EMPTY_BASELINE,
++  MIN_BASELINE_SAMPLE,
++} from "../baseline";
++import type { Photo } from "../data";
+ import { buildDemoPhotos } from "../demoData";
+ 
+-/** Демо-набор как тестовая фикстура: генератор вынесен из основного
+- * бандла (аудит №27), поэтому строим его явно. */
+ const DEMO_PHOTOS = buildDemoPhotos();
+ 
+ function photo(era: string, t: number, boneScore: number): Photo {
+   return { ...DEMO_PHOTOS[0], id: `${era}-${t}`, era, t, boneScore };
+ }
+ 
+ describe("baseline refs", () => {
+-  it("derives refs from loaded photos, not from the built-in demo constant", () => {
++  it("не вычисляет forensic baseline в браузере", () => {
+     const photos = Array.from({ length: 12 }, (_, i) =>
+       photo("SEG_A", Date.parse("2000-01-01") + i * 86400000, 0.9 + i * 0.001));
+     const baseline = computeBaselineRefs(photos);
+-    expect(baseline.source).toBe("api");
+-    expect(baseline.refs.boneScore.median).toBeCloseTo(0.9055, 3);
+-    // Ключевая регрессия: раньше здесь всегда оказывалась медиана демо-набора.
+-    expect(baseline.refs.boneScore.median).not.toBeCloseTo(REF.boneScore.median, 6);
++    expect(baseline.source).toBe("unavailable");
++    expect(baseline.sufficient).toBe(false);
++    expect(baseline.refs).toEqual({});
++    expect(baseline.baselineEra).toBeNull();
+   });
+ 
+-  it("uses the earliest segment as the baseline", () => {
+-    const photos = [
+-      ...Array.from({ length: 10 }, (_, i) => photo("LATE", Date.parse("2020-01-01") + i * 1000, 0.2)),
+-      ...Array.from({ length: 10 }, (_, i) => photo("EARLY", Date.parse("1999-01-01") + i * 1000, 0.8)),
+-    ];
+-    const baseline = computeBaselineRefs(photos);
+-    expect(baseline.baselineEra).toBe("EARLY");
+-    expect(baseline.refs.boneScore.median).toBeCloseTo(0.8, 6);
+-  });
+-
+-  it("flags an insufficient sample instead of inventing a spread", () => {
++  it("не изобретает baseline даже при достаточном числе строк", () => {
+     const photos = Array.from({ length: MIN_BASELINE_SAMPLE - 1 }, (_, i) =>
+       photo("TINY", Date.parse("2000-01-01") + i * 1000, 0.5));
+     const baseline = computeBaselineRefs(photos);
+-    expect(baseline.sampleSize).toBe(MIN_BASELINE_SAMPLE - 1);
++    expect(baseline.sampleSize).toBe(0);
+     expect(baseline.sufficient).toBe(false);
+   });
+ 
+-  it("uses a robust spread that one outlier cannot inflate", () => {
+-    const clean = Array.from({ length: 20 }, (_, i) =>
+-      photo("S", Date.parse("2000-01-01") + i * 1000, 0.5 + (i % 2) * 0.01));
+-    const withOutlier = [...clean, photo("S", Date.parse("2000-02-01"), 99)];
+-    const a = computeBaselineRefs(clean).refs.boneScore.std;
+-    const b = computeBaselineRefs(withOutlier).refs.boneScore.std;
+-    // Обычное σ выросло бы на порядки; MAD остаётся сопоставимым.
+-    expect(b).toBeLessThan(a * 3);
+-  });
+-
+-  it("falls back to the built-in reference for an empty dataset", () => {
++  it("пустой набор совпадает с EMPTY_BASELINE", () => {
+     const baseline = computeBaselineRefs([]);
+-    expect(baseline.source).toBe("builtin-demo");
+-    expect(baseline.sufficient).toBe(false);
++    expect(baseline).toEqual(EMPTY_BASELINE);
+   });
+ });
+```
+
+---
+
+# Патч 5 — убрать устаревшие `REF` и `loadDemoPhotos` из теста
+
+```diff
+diff --git a/ui/src/test/demoData.test.ts b/ui/src/test/demoData.test.ts
+--- a/ui/src/test/demoData.test.ts
++++ b/ui/src/test/demoData.test.ts
+@@ -1,6 +1,5 @@
+ import { describe, expect, it } from "vitest";
+ import { buildDemoPhotos } from "../demoData";
+-import { REF, loadDemoPhotos } from "../data";
+ 
+ /** Демо-генератор вынесен из основного бандла (аудит №27).
+  *
+@@ -30,42 +29,10 @@ describe("демо-набор", () => {
+     }
+   });
+ 
+-  it("загружается динамическим импортом", async () => {
+-    const photos = await loadDemoPhotos();
++  it("модуль допускает динамический импорт как тестовая фикстура", async () => {
++    const { buildDemoPhotos: loadFixture } = await import("../demoData");
++    const photos = loadFixture();
+     expect(photos.length).toBeGreaterThan(1000);
+   });
+ });
+-
+-/** Страж констант REF.
+- *
+- * `REF` был вычисляемым (`refMedians()` прогоняла весь демо-массив на
+- * старте) и стал статической таблицей. Значения детерминированы, но если
+- * генератор изменится, таблица молча разойдётся с ним — и baseline
+- * демо-режима начнёт считаться от неверных медиан.
+- */
+-describe("REF соответствует генератору", () => {
+-  it("медианы и разбросы совпадают с фактическим демо-набором", () => {
+-    const era1 = buildDemoPhotos().filter(p => p.era === "ERA_1_BASELINE");
+-    expect(era1.length).toBeGreaterThan(0);
+-
+-    const median = (values: number[]) => {
+-      const sorted = [...values].sort((a, b) => a - b);
+-      return sorted[Math.floor(sorted.length / 2)];
+-    };
+-    const stdev = (values: number[], m: number) =>
+-      Math.sqrt(values.reduce((s, v) => s + (v - m) ** 2, 0) / values.length);
+-
+-    for (const key of Object.keys(REF)) {
+-      const values = era1.map(p => p[key as keyof typeof p] as number);
+-      const m = median(values);
+-      expect(REF[key].median, `REF.${key}.median`).toBeCloseTo(m, 5);
+-      expect(REF[key].std, `REF.${key}.std`).toBeCloseTo(Math.max(0.001, stdev(values, m)), 5);
+-    }
+-  });
+-
+-  it("покрывает все метрики, используемые интерфейсом", () => {
+-    for (const key of ["boneScore", "orbit", "chin", "jaw", "cheek", "symmetry",
+-      "siliconeProb", "specular", "lbpEntropy", "frangi", "wrinkle", "subsurface", "visualAge"]) {
+-      expect(REF[key], `REF.${key}`).toBeDefined();
+-    }
+-  });
+-});
+```
+
+---
+
+# Патч 6 — синхронизировать экспорт с действующим `DataMode`
+
+```diff
+diff --git a/ui/src/test/export.test.ts b/ui/src/test/export.test.ts
+--- a/ui/src/test/export.test.ts
++++ b/ui/src/test/export.test.ts
+@@ -16,9 +16,9 @@ const base = {
+ 
+ describe("analysis JSON export", () => {
+   it("always carries source_mode and not_a_verdict", () => {
+-    const out = buildAnalysisExport({ ...base, dataMode: "demo" });
++    const out = buildAnalysisExport({ ...base, dataMode: "research" });
+     expect(out.schema).toBe(ANALYSIS_EXPORT_SCHEMA);
+-    expect(out.source_mode).toBe("demo");
++    expect(out.source_mode).toBe("research");
+     expect(out.not_a_verdict).toBe(true);
+     expect(String(out.disclaimer)).toContain("не установление личности");
+   });
+@@ -33,19 +33,19 @@ describe("analysis JSON export", () => {
+ 
+   it("preserves filters so numbers stay reproducible", () => {
+     const filters = { dataset: "calibration", bucketFilter: "frontal" };
+-    const out = buildAnalysisExport({ ...base, dataMode: "demo", filters }) as any;
++    const out = buildAnalysisExport({ ...base, dataMode: "research", filters }) as any;
+     expect(out.selection.filters).toEqual(filters);
+     expect(out.selection.photos_in_selection).toBe(12);
+     expect(out.selection.photos_total).toBe(DEMO_PHOTOS.length);
+   });
+ 
+   it("lists anomaly photo ids consistently with the count", () => {
+-    const out = buildAnalysisExport({ ...base, dataMode: "demo" }) as any;
++    const out = buildAnalysisExport({ ...base, dataMode: "research" }) as any;
+     expect(out.anomalies.photo_ids).toHaveLength(out.anomalies.count);
+   });
+ 
+   it("returns null medians for an empty selection instead of 0", () => {
+-    const out = buildAnalysisExport({ ...base, photos: [], dataMode: "demo" }) as any;
++    const out = buildAnalysisExport({ ...base, photos: [], dataMode: "research" }) as any;
+     expect(out.aggregates_median.boneScore).toBeNull();
+   });
+ });
+@@ -57,7 +57,7 @@ const printInput = {
+   photos: [] as never[],
+   totalPhotos: 0,
+-  dataMode: "demo" as const,
+-  dataMessage: "демо-набор",
++  dataMode: "research" as const,
++  dataMessage: "исследовательский набор",
+   filters: { dataset: "main" },
+   playheadT: Date.parse("2004-05-01"),
+   currentEra: "ERA_2",
+@@ -88,14 +88,9 @@ describe("печатный отчёт", () => {
+     expect(html).toContain("@page");
+   });
+ 
+-  it("демо-срез помечается в напечатанном виде", () => {
++  it("research-срез не получает демо-баннера", () => {
+     const html = buildPrintReport(printInput);
+-    expect(html).toContain("Демонстрационные данные");
+-  });
+-
+-  it("research-срез не получает демо-баннера", () => {
+-    const html = buildPrintReport({ ...printInput, dataMode: "research" });
+     expect(html).not.toContain("Демонстрационные данные");
+   });
+```
+
+---
+
+# Патч 7 — синхронизировать API-тесты с fail-closed research-only режимом
+
+```diff
+diff --git a/ui/src/test/api.test.ts b/ui/src/test/api.test.ts
+--- a/ui/src/test/api.test.ts
++++ b/ui/src/test/api.test.ts
+@@ -9,7 +9,8 @@ function mockFetchOnce(body: unknown, ok = true, status = 200) {
+   global.fetch = vi.fn().mockResolvedValue({
+     ok, status,
+     json: () => Promise.resolve(body),
++    text: () => Promise.resolve(JSON.stringify(body)),
+   }) as unknown as typeof fetch;
+ }
+ 
+@@ -24,36 +25,27 @@ describe("loadTimeline", () => {
+     expect(result.photos).toHaveLength(1);
+   });
+ 
+-  it("labels an object payload with source_mode=demo correctly", async () => {
++  it("rejects a non-research object payload", async () => {
+     const body = {
+       source_mode: "demo",
+       note: "synthetic",
+       photos: [{ id: "P1", date: "1999-01-01", t: 0, era: "E", bucket: "frontal", quality: 1, boneScore: 1, p0: 1, p1: 0, p2: 0 }],
+     };
+     mockFetchOnce(body);
+-    const result = await loadTimeline();
+-    expect(result.mode).toBe("demo");
+-    expect(result.message).toContain("synthetic");
++    await expect(loadTimeline()).rejects.toThrow("Non-research timeline rejected");
+   });
+ 
+-  it("falls back to the bundled demo dataset on network failure", async () => {
++  it("propagates a network failure instead of fabricating evidence", async () => {
+     global.fetch = vi.fn().mockRejectedValue(new Error("network down")) as unknown as typeof fetch;
+-    const result = await loadTimeline();
+-    expect(result.mode).toBe("demo");
+-    expect(result.photos.length).toBeGreaterThan(0);
+-    expect(result.message).toContain("network down");
++    await expect(loadTimeline()).rejects.toThrow("network down");
+   });
+ 
+-  it("falls back to demo when the API returns no valid rows", async () => {
+-    mockFetchOnce({ photos: [{ garbage: true }] });
+-    const result = await loadTimeline();
+-    expect(result.mode).toBe("demo");
++  it("rejects a research payload with no valid rows", async () => {
++    mockFetchOnce({ source_mode: "research", photos: [{ garbage: true }] });
++    await expect(loadTimeline()).rejects.toThrow("no valid photo rows");
+   });
+ 
+-  it("falls back to demo on non-2xx HTTP status", async () => {
+-    mockFetchOnce({}, false, 500);
+-    const result = await loadTimeline();
+-    expect(result.mode).toBe("demo");
+-    expect(result.message).toContain("500");
++  it("rejects a non-2xx response", async () => {
++    mockFetchOnce({ detail: "failure" }, false, 500);
++    await expect(loadTimeline()).rejects.toThrow("HTTP 500");
+   });
+ });
+```
+
+---
+
+# Патч 8 — era-тесты должны использовать research payload
+
+```diff
+diff --git a/ui/src/test/eraContract.test.ts b/ui/src/test/eraContract.test.ts
+--- a/ui/src/test/eraContract.test.ts
++++ b/ui/src/test/eraContract.test.ts
+@@ -2,8 +2,8 @@ import { describe, expect, it, vi, afterEach } from "vitest";
+ import { loadTimeline } from "../api";
+ import { buildEraMeta } from "../data";
+ 
+-/** Реальная форма ответа `/api/v1/timeline` в demo-режиме: идентификаторы
+- * сегментов `DEMO_SEGMENT_*`, а НЕ `ERA_*` встроенного набора. */
++/** Backend может использовать собственные идентификаторы сегментов,
++ * которые не обязаны совпадать с локальными именами ERA_*. */
+ function apiRow(id: string, era: string, t: number, bucket = "frontal") {
+@@ -23,7 +23,7 @@ describe("era contract", () => {
+   it("accepts backend segment ids that differ from the built-in ERA_* set", async () => {
+     mockTimeline({
+-      source_mode: "demo",
++      source_mode: "research",
+       era_meta: {
+         DEMO_SEGMENT_1: { label: "Демо-сегмент 1", start: "1999-08-09", end: "2011-12-31" },
+@@ -43,7 +43,7 @@ describe("era contract", () => {
+ 
+   it("rejects unknown era with a visible reason instead of dropping it silently", async () => {
+     mockTimeline({
+-      source_mode: "demo",
++      source_mode: "research",
+       era_meta: { DEMO_SEGMENT_1: { label: "s1", start: "1999-01-01", end: "2011-12-31" } },
+@@ -57,12 +57,12 @@ describe("era contract", () => {
+     expect(result.rejected).toHaveLength(1);
+     expect(result.rejected[0].id).toBe("bad");
+     expect(result.rejected[0].reason).toContain("era_meta");
+-    expect(result.message).toContain("отвергнуто");
++    expect(result.message).toContain("rejected: 1");
+   });
+ 
+   it("rejects an unknown pose bin", async () => {
+     mockTimeline({
+-      source_mode: "demo",
++      source_mode: "research",
+       era_meta: { S1: { label: "s", start: "1999-01-01", end: "2026-01-01" } },
+```
+
+---
+
+# Патч 9 — не включать платформенные сборочные артефакты UI
+
+Если `ui/.gitignore` отсутствует:
+
+```diff
+diff --git a/ui/.gitignore b/ui/.gitignore
+new file mode 100644
+--- /dev/null
++++ b/ui/.gitignore
+@@ -0,0 +1,8 @@
++node_modules/
++dist/
++coverage/
++.vite/
++*.tsbuildinfo
++.DS_Store
++._*
++npm-debug.log*
+```
+
+Если `node_modules` или `dist` уже отслеживаются Git:
+
+```bash
+git rm -r --cached ui/node_modules ui/dist
+```
+
+`package-lock.json` оставить в репозитории.
+
+---
+
+# Порядок применения и проверки
+
+```bash
+git apply fixes-round6-final.patch
+```
+
+## 1. Backend
+
+```bash
+python3 -m py_compile \
+  tools/acceptance_round6.py \
+  tools/rebuild_landmark_utility.py
+
+python3 -m unittest \
+  app6.test_module.test_guard_edges \
+  app6.test_module.test_guard_edges2 \
+  app6.test_module.test_guard_edges3 \
+  app6.test_module.test_p18_hardening \
+  app6.test_module.test_provenance_integration \
+  app6.test_module.test_round5_patches
+```
+
+Ожидание:
+
+```
+Ran 75 tests
+OK
+```
+
+## 2. Round 6
+
+```bash
+python3 tools/acceptance_round6.py \
+  --frames /path/to/deeputin-calibration-frames/calibration_frames
+```
+
+Ожидание:
+
+```
+ACCEPTANCE: PASS  (22/22)
+```
+
+## 3. A11 на 943 кадрах
+
+```bash
+python3 tools/rebuild_landmark_utility.py \
+  --calibration-root /path/to/calibration_dataset
+```
+
+Ожидание:
+
+```
+records loaded: 943, index_rows: 943
+```
+
+После этого не должно остаться полностью NaN-строк:
+
+```bash
+python3 - <<'PY'
+import numpy as np
+
+u = np.load("app6/atlas/landmark_utility.npy")
+p = np.load("app6/atlas/visibility_prior.npy")
+
+assert u.shape == (9, 134)
+assert p.shape == (9, 134)
+assert np.isfinite(p).all()
+assert np.isfinite(u).any(axis=1).all()
+print("A11: PASS")
+PY
+```
+
+## 4. UI
+
+Не использовать присланный macOS `node_modules`:
+
+```bash
+cd ui
+rm -rf node_modules dist
+npm ci
+npm run check
+```
+
+Итоговый критерий:
+
+```
+typecheck: PASS
+vitest: PASS
+vite build: PASS
+```
+
+Бинарные `landmark_utility.npy` и `visibility_prior.npy` в текстовый diff включать не следует: их необходимо детерминированно пересобрать после применения патча 2 и закоммитить отдельно вместе с напечатанным `sha256` нового utility-артефакта.
+
+Ниже **оставшиеся патчи**, которые нужно применить после предыдущих 1–9. Они закрывают детерминизм A11, provenance-манифест, автоматическую приёмку полного набора, подключение манифеста к каждому запуску и очистку архивов.
+
+> Патч 10 накладывается **поверх предыдущего патча 2** для `rebuild_landmark_utility.py`.
+> 
+
+---
+
+# Патч 10 — детерминированная сборка A11 и provenance-манифест
+
+```diff
+diff --git a/tools/rebuild_landmark_utility.py b/tools/rebuild_landmark_utility.py
+--- a/tools/rebuild_landmark_utility.py
++++ b/tools/rebuild_landmark_utility.py
+@@ -12,6 +12,7 @@ import argparse
+ import csv
+ import hashlib
+ import json
++import os
+ from pathlib import Path
+ 
+ import numpy as np
+@@ -87,6 +88,60 @@ def load_nested_calibration(root: Path) -> list[dict]:
+     return rows
+ 
+ 
++def build_visibility_prior(index_rows, loader) -> np.ndarray:
++    """Детерминированно собрать per-bin доли видимости."""
++    prior = np.zeros((len(BINS), 134), dtype=np.float64)
++    for bi, bin_name in enumerate(BINS):
++        rows = [row for row in index_rows if row["bin"] == bin_name]
++        if not rows:
++            continue
++        visible = np.stack([
++            np.asarray(loader(row)[1], dtype=bool)
++            for row in rows
++        ])
++        prior[bi] = bin_visibility_prior(visible)
++    return prior
++
++
++def file_sha256(path: Path) -> str:
++    """Полный SHA-256 содержимого файла."""
++    digest = hashlib.sha256()
++    with path.open("rb") as handle:
++        for chunk in iter(lambda: handle.read(1 << 20), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def source_sha256(index_rows) -> str:
++    """Хеш входных sidecar-данных в стабильном порядке.
++
++    В хеш входят относительный идентификатор кадра, info.json и
++    ldm134_raw.csv. Поэтому нельзя подменить один кадр и сохранить прежний
++    provenance-манифест.
++    """
++    digest = hashlib.sha256()
++    ordered = sorted(
++        index_rows,
++        key=lambda row: (
++            str(row.get("subject") or ""),
++            str(row.get("directory") or ""),
++            str(row.get("bin") or ""),
++        ),
++    )
++    for row in ordered:
++        directory = row.get("directory")
++        if directory is not None:
++            directory = Path(directory)
++            digest.update(str(row.get("subject") or "").encode("utf-8"))
++            digest.update(str(directory.name).encode("utf-8"))
++            digest.update(str(row["bin"]).encode("utf-8"))
++            for filename in ("info.json", "ldm134_raw.csv"):
++                path = directory / filename
++                if not path.is_file():
++                    raise FileNotFoundError(path)
++                digest.update(filename.encode("utf-8"))
++                digest.update(path.read_bytes())
++        else:
++            # Формат main_timeline.csv: используем сохранённый source_digest.
++            digest.update(str(row.get("subject") or "").encode("utf-8"))
++            digest.update(str(row.get("source_digest") or "").encode("utf-8"))
++            digest.update(str(row["bin"]).encode("utf-8"))
++    return digest.hexdigest()
++
++
+ def build(index_rows, loader) -> tuple[np.ndarray, dict]:
+     utility = np.full((len(BINS), 134), np.nan, dtype=np.float64)
+-    prior = np.zeros((len(BINS), 134), dtype=np.float64)
+     for bi, bin_name in enumerate(BINS):
+         rows = [r for r in index_rows if r["bin"] == bin_name]
+         if len(rows) < 5:
+@@ -97,7 +152,6 @@ def build(index_rows, loader) -> tuple[np.ndarray, dict]:
+             p, v = loader(r)
+             pts.append(p); vis.append(v)
+         pts = np.stack(pts); vis = np.stack(vis).astype(bool)
+-        prior[bi] = bin_visibility_prior(vis)
+         for j in range(134):
+             sel = vis[:, j]
+             if sel.sum() < max(5, int(PRIOR_MIN_FRACTION * len(rows))):
+@@ -112,10 +166,18 @@ def build(index_rows, loader) -> tuple[np.ndarray, dict]:
+         if finite.any():
+             utility[bi, finite] = row[finite] / np.nanmax(row[finite])
+ 
+-    report = {"nan_per_bin": {BINS[i]: int(np.isnan(utility[i]).sum())
+-                              for i in range(len(BINS))},
+-              "sha256": hashlib.sha256(np.ascontiguousarray(
+-                  np.nan_to_num(utility, nan=-1.0)).tobytes()).hexdigest()[:16]}
++    report = {
++        "nan_per_bin": {
++            BINS[i]: int(np.isnan(utility[i]).sum())
++            for i in range(len(BINS))
++        },
++        "bin_counts": {
++            bin_name: sum(row["bin"] == bin_name for row in index_rows)
++            for bin_name in BINS
++        },
++        "sha256": hashlib.sha256(
++            np.ascontiguousarray(
++                np.nan_to_num(utility, nan=-1.0)
++            ).tobytes()
++        ).hexdigest(),
++    }
+     return utility, report
+ 
+ 
+@@ -124,6 +186,10 @@ def main() -> None:
+     ap.add_argument("--out", default="app6/atlas/landmark_utility.npy")
+     ap.add_argument("--prior-out", default="app6/atlas/visibility_prior.npy")
++    ap.add_argument(
++        "--manifest-out",
++        default="app6/atlas/landmark_utility_manifest.json",
++    )
+     ap.add_argument("--calibration-root", default="results/calibration_stage1")
+     args = ap.parse_args()
+ 
+@@ -135,7 +201,12 @@ def main() -> None:
+         from app6.stage2.loaders import load_main
+ 
+         records = load_main(calibration_root)
+-        index_rows = [{"bin": r.pose_bin, "record": r} for r in records]
++        index_rows = [{
++            "bin": record.pose_bin,
++            "record": record,
++            "subject": record.dataset_id,
++            "source_digest": record.source_digest,
++        } for record in records]
++        source_layout = "main_timeline_v1"
+ 
+         def loader(row):
+             return (
+@@ -145,6 +216,7 @@ def main() -> None:
+     else:
+         # Поставочный лёгкий архив person_*/frame_* без reconstruction.npz.
+         index_rows = load_nested_calibration(calibration_root)
++        source_layout = "person_frame_sidecar_v1"
+ 
+         def loader(row):
+             return (
+@@ -158,23 +230,50 @@ def main() -> None:
+     out.parent.mkdir(parents=True, exist_ok=True)
+     np.save(out, utility)
+ 
+-    prior = np.zeros((len(BINS), 134), dtype=np.float64)
+-    for bi, bin_name in enumerate(BINS):
+-        rows = [r for r in index_rows if r["bin"] == bin_name]
+-        if not rows:
+-            continue
+-        vis = np.stack([loader(r)[1] for r in rows]).astype(bool)
+-        prior[bi] = bin_visibility_prior(vis)
++    prior = build_visibility_prior(index_rows, loader)
+     prior_out = Path(args.prior_out)
+     prior_out.parent.mkdir(parents=True, exist_ok=True)
+     np.save(prior_out, prior)
+ 
++    manifest = {
++        "schema": "deeputin-landmark-utility-manifest-v1.0",
++        "source_layout": source_layout,
++        "record_count": len(index_rows),
++        "subject_count": len({
++            str(row.get("subject") or "")
++            for row in index_rows
++        }),
++        "bin_counts": report["bin_counts"],
++        "nan_per_bin": report["nan_per_bin"],
++        "utility_shape": list(utility.shape),
++        "visibility_prior_shape": list(prior.shape),
++        "utility_sha256": file_sha256(out),
++        "visibility_prior_sha256": file_sha256(prior_out),
++        "source_sha256": source_sha256(index_rows),
++        "parameters": {
++            "prior_min_fraction": PRIOR_MIN_FRACTION,
++            "minimum_bin_frames": 5,
++            "minimum_visible_frames": 5,
++            "landmark_count": 134,
++            "bin_order": BINS,
++        },
++    }
++
++    manifest_out = Path(args.manifest_out)
++    manifest_out.parent.mkdir(parents=True, exist_ok=True)
++    manifest_out.write_text(
++        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
++        encoding="utf-8",
++    )
++
+     print(f"records loaded: {len(index_rows)}, index_rows: {len(index_rows)}")
+     print("nan_per_bin:", report["nan_per_bin"])
+-    print("utility sha256:", report["sha256"])
+-    print("wrote", out, "and", prior_out)
++    print("utility sha256:", manifest["utility_sha256"])
++    print("visibility prior sha256:", manifest["visibility_prior_sha256"])
++    print("source sha256:", manifest["source_sha256"])
++    print("wrote", out, prior_out, "and", manifest_out)
+ 
+ 
+ if __name__ == "__main__":
+```
+
+Удалить неиспользуемый `os`, если линтер проверяет unused imports:
+
+```diff
+diff --git a/tools/rebuild_landmark_utility.py b/tools/rebuild_landmark_utility.py
+--- a/tools/rebuild_landmark_utility.py
++++ b/tools/rebuild_landmark_utility.py
+@@ -12,7 +12,6 @@ import argparse
+ import csv
+ import hashlib
+ import json
+-import os
+ from pathlib import Path
+```
+
+---
+
+# Патч 11 — подключить A11 provenance к манифесту каждого прогона
+
+```diff
+diff --git a/app6/stage2/run_manifest.py b/app6/stage2/run_manifest.py
+--- a/app6/stage2/run_manifest.py
++++ b/app6/stage2/run_manifest.py
+@@ -17,6 +17,7 @@ TRACKED_ARTIFACTS: Final[tuple[str, ...]] = (
+     "app6/atlas/pose_gate_v2.csv",
+     "app6/atlas/landmark_utility.npy",
+     "app6/atlas/visibility_prior.npy",
++    "app6/atlas/landmark_utility_manifest.json",
+     "app6/atlas/texture_zones_bfm35709_v3.npz",
+ )
+```
+
+Теперь `run_manifest.ready` не сможет стать `true`, если бинарные A11-артефакты есть, но неизвестно, из какого набора они собраны.
+
+---
+
+# Патч 12 — автоматическая приёмка A11 на 943 кадрах
+
+```diff
+diff --git a/tools/acceptance_a11.py b/tools/acceptance_a11.py
+new file mode 100755
+--- /dev/null
++++ b/tools/acceptance_a11.py
+@@ -0,0 +1,191 @@
++"""Приёмка A11 на полном наборе из 943 калибровочных кадров.
++
++Запуск:
++    python3 tools/acceptance_a11.py \
++      --calibration-root /path/to/calibration_dataset
++
++Код возврата 0 выдаётся только при полном PASS.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import pathlib
++import sys
++
++import numpy as np
++
++ROOT = pathlib.Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT))
++
++from tools.rebuild_landmark_utility import (  # noqa: E402
++    BINS,
++    build,
++    build_visibility_prior,
++    load_nested_calibration,
++)
++
++
++EXPECTED_BIN_COUNTS = {
++    "left_profile": 187,
++    "left_deep": 49,
++    "left_mid": 63,
++    "left_light": 69,
++    "frontal": 186,
++    "right_light": 77,
++    "right_mid": 68,
++    "right_deep": 56,
++    "right_profile": 188,
++}
++
++RESULTS: list[tuple[str, bool, str]] = []
++
++
++def check(name: str, condition: bool, detail: str = "") -> None:
++    RESULTS.append((name, bool(condition), detail))
++
++
++def sha256(path: pathlib.Path) -> str:
++    digest = hashlib.sha256()
++    with path.open("rb") as handle:
++        for chunk in iter(lambda: handle.read(1 << 20), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def arrays_equal(a: np.ndarray, b: np.ndarray) -> bool:
++    return bool(np.array_equal(
++        np.nan_to_num(a, nan=-1.0, posinf=-2.0, neginf=-3.0),
++        np.nan_to_num(b, nan=-1.0, posinf=-2.0, neginf=-3.0),
++    ))
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--calibration-root", required=True)
++    parser.add_argument(
++        "--utility",
++        default=str(ROOT / "app6/atlas/landmark_utility.npy"),
++    )
++    parser.add_argument(
++        "--prior",
++        default=str(ROOT / "app6/atlas/visibility_prior.npy"),
++    )
++    parser.add_argument(
++        "--manifest",
++        default=str(ROOT / "app6/atlas/landmark_utility_manifest.json"),
++    )
++    args = parser.parse_args()
++
++    calibration_root = pathlib.Path(args.calibration_root)
++    utility_path = pathlib.Path(args.utility)
++    prior_path = pathlib.Path(args.prior)
++    manifest_path = pathlib.Path(args.manifest)
++
++    rows = load_nested_calibration(calibration_root)
++    check("A11 загружено 943 кадра", len(rows) == 943, str(len(rows)))
++
++    subjects = sorted({
++        str(row.get("subject") or "")
++        for row in rows
++    })
++    check("A11 семь субъектов", len(subjects) == 7, repr(subjects))
++
++    bin_counts = {
++        bin_name: sum(row["bin"] == bin_name for row in rows)
++        for bin_name in BINS
++    }
++    check(
++        "A11 распределение по девяти бинам",
++        bin_counts == EXPECTED_BIN_COUNTS,
++        json.dumps(bin_counts, ensure_ascii=False, sort_keys=True),
++    )
++
++    def loader(row):
++        return (
++            np.asarray(row["points"], dtype=np.float64),
++            np.asarray(row["visible"], dtype=bool),
++        )
++
++    utility_1, report_1 = build(rows, loader)
++    prior_1 = build_visibility_prior(rows, loader)
++
++    # Полностью независимая повторная сборка из тех же sidecar.
++    rows_2 = load_nested_calibration(calibration_root)
++
++    def loader_2(row):
++        return (
++            np.asarray(row["points"], dtype=np.float64),
++            np.asarray(row["visible"], dtype=bool),
++        )
++
++    utility_2, report_2 = build(rows_2, loader_2)
++    prior_2 = build_visibility_prior(rows_2, loader_2)
++
++    check(
++        "A11 utility детерминирован",
++        arrays_equal(utility_1, utility_2),
++        f"{report_1['sha256']} / {report_2['sha256']}",
++    )
++    check(
++        "A11 visibility prior детерминирован",
++        arrays_equal(prior_1, prior_2),
++    )
++    check(
++        "A11 utility имеет форму 9x134",
++        utility_1.shape == (9, 134),
++        str(utility_1.shape),
++    )
++    check(
++        "A11 visibility prior имеет форму 9x134",
++        prior_1.shape == (9, 134),
++        str(prior_1.shape),
++    )
++
++    all_nan_rows = np.flatnonzero(
++        ~np.isfinite(utility_1).any(axis=1)
++    ).tolist()
++    check(
++        "A11 нет полностью NaN-бинов",
++        not all_nan_rows,
++        repr(all_nan_rows),
++    )
++    check(
++        "A11 visibility prior конечен",
++        bool(np.isfinite(prior_1).all()),
++    )
++
++    check("A11 utility-файл существует", utility_path.is_file(), str(utility_path))
++    check("A11 prior-файл существует", prior_path.is_file(), str(prior_path))
++    check("A11 manifest существует", manifest_path.is_file(), str(manifest_path))
++
++    if utility_path.is_file():
++        supplied_utility = np.load(utility_path, allow_pickle=False)
++        check(
++            "A11 поставочный utility совпадает с пересборкой",
++            arrays_equal(supplied_utility, utility_1),
++        )
++
++    if prior_path.is_file():
++        supplied_prior = np.load(prior_path, allow_pickle=False)
++        check(
++            "A11 поставочный prior совпадает с пересборкой",
++            arrays_equal(supplied_prior, prior_1),
++        )
++
++    if manifest_path.is_file():
++        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
++        check(
++            "A11 manifest schema",
++            manifest.get("schema")
++            == "deeputin-landmark-utility-manifest-v1.0",
++            str(manifest.get("schema")),
++        )
++        check(
++            "A11 manifest record_count=943",
++            manifest.get("record_count") == 943,
++            str(manifest.get("record_count")),
++        )
++        check(
++            "A11 manifest subject_count=7",
++            manifest.get("subject_count") == 7,
++            str(manifest.get("subject_count")),
++        )
++        check(
++            "A11 manifest bin_counts",
++            manifest.get("bin_counts") == EXPECTED_BIN_COUNTS,
++        )
++        check(
++            "A11 manifest utility hash",
++            utility_path.is_file()
++            and manifest.get("utility_sha256") == sha256(utility_path),
++        )
++        check(
++            "A11 manifest prior hash",
++            prior_path.is_file()
++            and manifest.get("visibility_prior_sha256") == sha256(prior_path),
++        )
++
++    width = max(len(name) for name, _, _ in RESULTS)
++    failed = []
++    for name, passed, detail in RESULTS:
++        print(f"[{'PASS' if passed else 'FAIL'}] {name:<{width}}  {detail}")
++        if not passed:
++            failed.append(name)
++
++    print()
++    print(
++        f"A11 ACCEPTANCE: {'PASS' if not failed else 'FAIL'} "
++        f"({len(RESULTS) - len(failed)}/{len(RESULTS)})"
++    )
++    return 0 if not failed else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+```
+
+---
+
+# Патч 13 — unit-тест детерминизма без внешнего датасета
+
+```diff
+diff --git a/app6/test_module/test_a11_artifacts.py b/app6/test_module/test_a11_artifacts.py
+new file mode 100644
+--- /dev/null
++++ b/app6/test_module/test_a11_artifacts.py
+@@ -0,0 +1,88 @@
++from __future__ import annotations
++
++import unittest
++
++import numpy as np
++
++from tools.rebuild_landmark_utility import (
++    BINS,
++    build,
++    build_visibility_prior,
++)
++
++
++class A11ArtifactTests(unittest.TestCase):
++    @staticmethod
++    def _rows():
++        rng = np.random.default_rng(20260803)
++        rows = []
++        for bi, bin_name in enumerate(BINS):
++            for frame in range(6):
++                points = rng.normal(
++                    loc=float(bi) * 0.01,
++                    scale=0.001,
++                    size=(134, 3),
++                ).astype(np.float64)
++                visible = np.ones(134, dtype=bool)
++                # Детерминированное частичное закрытие нескольких точек.
++                visible[(frame + bi) % 17::37] = False
++                rows.append({
++                    "bin": bin_name,
++                    "points": points,
++                    "visible": visible,
++                    "subject": f"person_{frame % 3}",
++                    "directory": f"{bin_name}/frame_{frame:03d}",
++                })
++        return rows
++
++    @staticmethod
++    def _loader(row):
++        return row["points"], row["visible"]
++
++    def test_build_is_deterministic(self):
++        rows = self._rows()
++        first, report_first = build(rows, self._loader)
++        second, report_second = build(rows, self._loader)
++
++        np.testing.assert_array_equal(
++            np.nan_to_num(first, nan=-1.0),
++            np.nan_to_num(second, nan=-1.0),
++        )
++        self.assertEqual(report_first["sha256"], report_second["sha256"])
++
++    def test_prior_is_deterministic(self):
++        rows = self._rows()
++        first = build_visibility_prior(rows, self._loader)
++        second = build_visibility_prior(rows, self._loader)
++        np.testing.assert_array_equal(first, second)
++
++    def test_shapes_and_bin_coverage(self):
++        rows = self._rows()
++        utility, report = build(rows, self._loader)
++        prior = build_visibility_prior(rows, self._loader)
++
++        self.assertEqual(utility.shape, (9, 134))
++        self.assertEqual(prior.shape, (9, 134))
++        self.assertTrue(np.isfinite(utility).any(axis=1).all())
++        self.assertTrue(np.isfinite(prior).all())
++        self.assertEqual(
++            report["bin_counts"],
++            {bin_name: 6 for bin_name in BINS},
++        )
++
++    def test_order_does_not_change_result(self):
++        rows = self._rows()
++        direct, _ = build(rows, self._loader)
++        reversed_result, _ = build(list(reversed(rows)), self._loader)
++
++        # np.var не должна зависеть от порядка кадров за пределами машинного
++        # epsilon; сравниваем с жёстким численным допуском.
++        np.testing.assert_allclose(
++            direct,
++            reversed_result,
++            rtol=1e-12,
++            atol=1e-14,
++            equal_nan=True,
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()
+```
+
+Для теста импорта `tools.*` желательно добавить маркер пакета:
+
+```diff
+diff --git a/tools/__init__.py b/tools/__init__.py
+new file mode 100644
+--- /dev/null
++++ b/tools/__init__.py
+@@ -0,0 +1 @@
++"""Детерминированные служебные инструменты проекта DEEPUTIN."""
+```
+
+---
+
+# Патч 14 — единая финальная приёмка проекта
+
+```diff
+diff --git a/tools/acceptance_all.sh b/tools/acceptance_all.sh
+new file mode 100755
+--- /dev/null
++++ b/tools/acceptance_all.sh
+@@ -0,0 +1,67 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
++cd "$PROJECT_ROOT"
++
++FRAMES_212="${FRAMES_212:-}"
++CALIBRATION_943="${CALIBRATION_943:-}"
++UI_ROOT="${UI_ROOT:-$PROJECT_ROOT/ui}"
++
++if [[ -z "$FRAMES_212" ]]; then
++  echo "FAIL: задайте FRAMES_212=/path/to/calibration_frames" >&2
++  exit 2
++fi
++
++if [[ -z "$CALIBRATION_943" ]]; then
++  echo "FAIL: задайте CALIBRATION_943=/path/to/calibration_dataset" >&2
++  exit 2
++fi
++
++echo "=== 1/5 Python compile ==="
++python3 -m py_compile \
++  tools/acceptance_round6.py \
++  tools/acceptance_a11.py \
++  tools/rebuild_landmark_utility.py
++
++echo "=== 2/5 Backend tests ==="
++python3 -m unittest \
++  app6.test_module.test_guard_edges \
++  app6.test_module.test_guard_edges2 \
++  app6.test_module.test_guard_edges3 \
++  app6.test_module.test_p18_hardening \
++  app6.test_module.test_provenance_integration \
++  app6.test_module.test_round5_patches \
++  app6.test_module.test_a11_artifacts
++
++echo "=== 3/5 Round 6 acceptance ==="
++python3 tools/acceptance_round6.py --frames "$FRAMES_212"
++
++echo "=== 4/5 Rebuild and accept A11 ==="
++python3 tools/rebuild_landmark_utility.py \
++  --calibration-root "$CALIBRATION_943"
++
++python3 tools/acceptance_a11.py \
++  --calibration-root "$CALIBRATION_943"
++
++echo "=== 5/5 UI ==="
++if [[ ! -f "$UI_ROOT/package-lock.json" ]]; then
++  echo "FAIL: UI package-lock.json не найден: $UI_ROOT" >&2
++  exit 2
++fi
++
++(
++  cd "$UI_ROOT"
++  rm -rf node_modules dist
++  npm ci
++  npm run check
++)
++
++echo
++echo "========================================"
++echo "PROJECT ACCEPTANCE: PASS"
++echo "========================================"
+```
+
+Сделать исполняемым:
+
+```bash
+chmod +x tools/acceptance_all.sh tools/acceptance_a11.py
+```
+
+---
+
+# Патч 15 — очистка корневого репозитория и macOS-мусора
+
+Если корневой `.gitignore` отсутствует:
+
+```diff
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,23 @@
++# Python
++__pycache__/
++*.py[cod]
++.pytest_cache/
++.venv/
++
++# Node / UI
++node_modules/
++dist/
++coverage/
++.vite/
++*.tsbuildinfo
++
++# macOS
++.DS_Store
++._*
++__MACOSX/
++
++# Generated runs
++runs/
++results/
++
++# Local model weights
++assets/
++*.pth
+```
+
+Если `.gitignore` уже существует, просто добавить отсутствующие строки.
+
+Удаление уже отслеживаемого мусора:
+
+```bash
+find . -name '.DS_Store' -delete
+find . -name '._*' -delete
+find . -type d -name '__MACOSX' -prune -exec rm -rf {} +
+
+git rm -r --cached --ignore-unmatch \
+  ui/node_modules \
+  ui/dist \
+  node_modules \
+  dist
+```
+
+---
+
+# Патч 16 — детерминированная сборка исходного архива без весов
+
+```diff
+diff --git a/tools/build_source_archive.py b/tools/build_source_archive.py
+new file mode 100755
+--- /dev/null
++++ b/tools/build_source_archive.py
+@@ -0,0 +1,102 @@
++"""Сборка воспроизводимого исходного ZIP без весов и локальных зависимостей."""
++from __future__ import annotations
++
++import argparse
++import hashlib
++from pathlib import Path
++import zipfile
++
++
++EXCLUDED_PARTS = {
++    ".git",
++    ".venv",
++    "__pycache__",
++    ".pytest_cache",
++    "node_modules",
++    "dist",
++    "coverage",
++    "__MACOSX",
++    "runs",
++}
++
++EXCLUDED_SUFFIXES = {
++    ".pyc",
++    ".pyo",
++    ".pth",
++}
++
++
++def excluded(path: Path, root: Path) -> bool:
++    relative = path.relative_to(root)
++    if any(part in EXCLUDED_PARTS for part in relative.parts):
++        return True
++    if any(part.startswith("._") for part in relative.parts):
++        return True
++    if path.name == ".DS_Store":
++        return True
++    if path.suffix.lower() in EXCLUDED_SUFFIXES:
++        return True
++    # Папки весов не входят в исходный архив.
++    if "assets" in relative.parts:
++        return True
++    return False
++
++
++def sha256(path: Path) -> str:
++    digest = hashlib.sha256()
++    with path.open("rb") as handle:
++        for chunk in iter(lambda: handle.read(1 << 20), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--root", default=".")
++    parser.add_argument("--out", default="deeputin-source-lite.zip")
++    args = parser.parse_args()
++
++    root = Path(args.root).resolve()
++    out = Path(args.out).resolve()
++
++    files = sorted(
++        path for path in root.rglob("*")
++        if path.is_file()
++        and path.resolve() != out
++        and not excluded(path, root)
++    )
++
++    # Фиксированная дата делает ZIP бинарно воспроизводимым.
++    fixed_time = (2026, 1, 1, 0, 0, 0)
++    with zipfile.ZipFile(
++        out,
++        "w",
++        compression=zipfile.ZIP_DEFLATED,
++        compresslevel=9,
++    ) as archive:
++        for path in files:
++            relative = path.relative_to(root).as_posix()
++            info = zipfile.ZipInfo(relative, date_time=fixed_time)
++            info.compress_type = zipfile.ZIP_DEFLATED
++            info.external_attr = 0o100644 << 16
++            archive.writestr(info, path.read_bytes())
++
++    with zipfile.ZipFile(out) as archive:
++        bad = archive.testzip()
++        if bad is not None:
++            raise RuntimeError(f"повреждённая запись ZIP: {bad}")
++
++    print("archive:", out)
++    print("files:", len(files))
++    print("bytes:", out.stat().st_size)
++    print("sha256:", sha256(out))
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+```
+
+---
+
+# Патч 17 — не использовать даты калибровки как временную ось
+
+Сами `info.json` изменять не нужно. Роль должна назначаться загрузчиком. Для нового nested-loader A11 даты вообще не читаются. Дополнительно закрепить это тестом:
+
+```diff
+diff --git a/app6/test_module/test_a11_artifacts.py b/app6/test_module/test_a11_artifacts.py
+--- a/app6/test_module/test_a11_artifacts.py
++++ b/app6/test_module/test_a11_artifacts.py
+@@ -1,6 +1,8 @@
+ from __future__ import annotations
+ 
++import json
++from pathlib import Path
++import tempfile
+ import unittest
+ 
+ import numpy as np
+@@ -8,6 +10,7 @@ from tools.rebuild_landmark_utility import (
+     BINS,
+     build,
+     build_visibility_prior,
++    load_nested_calibration,
+ )
+ 
+@@ -77,6 +80,42 @@ class A11ArtifactTests(unittest.TestCase):
+             equal_nan=True,
+         )
+ 
++    def test_nested_loader_does_not_require_temporal_axis(self):
++        with tempfile.TemporaryDirectory() as tmp:
++            directory = (
++                Path(tmp)
++                / "person_01"
++                / "frame_000001"
++            )
++            directory.mkdir(parents=True)
++            (directory / "info.json").write_text(
++                json.dumps({
++                    "date": "2001-01-01",
++                    "pose": {"pose_bin": "frontal"},
++                }),
++                encoding="utf-8",
++            )
++            with (directory / "ldm134_raw.csv").open(
++                "w", encoding="utf-8", newline=""
++            ) as handle:
++                handle.write(
++                    "landmark_id,x,y,z,visible,vertex_index\n"
++                )
++                for landmark_id in range(134):
++                    handle.write(
++                        f"{landmark_id},"
++                        f"{landmark_id * 0.001},0,0,1,{landmark_id}\n"
++                    )
++
++            rows = load_nested_calibration(Path(tmp))
++            self.assertEqual(len(rows), 1)
++            self.assertEqual(rows[0]["bin"], "frontal")
++            self.assertEqual(rows[0]["subject"], "person_01")
++            self.assertNotIn("date", rows[0])
++            self.assertNotIn("era", rows[0])
++            self.assertNotIn("temporal_axis", rows[0])
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+```
+
+---
+
+# Финальный порядок применения
+
+1. Применить предыдущие патчи **1–9**.
+2. Применить эти патчи **10–17**.
+3. Пересобрать A11 из 943 кадров.
+4. Запустить общую приёмку.
+
+```bash
+export FRAMES_212=/path/to/deeputin-calibration-frames/calibration_frames
+export CALIBRATION_943=/path/to/calibration_dataset
+export UI_ROOT=/path/to/ui
+
+bash tools/acceptance_all.sh
+```
+
+Единственный допустимый итог:
+
+```
+ACCEPTANCE: PASS  (22/22)
+A11 ACCEPTANCE: PASS
+PROJECT ACCEPTANCE: PASS
+```
+
+После успешной сборки необходимо закоммитить три A11-файла:
+
+```
+app6/atlas/landmark_utility.npy
+app6/atlas/visibility_prior.npy
+app6/atlas/landmark_utility_manifest.json
+```
+
+И не включать в коммит/архив:
+
+```
+assets/
+node_modules/
+dist/
+__MACOSX/
+.DS_Store
+._*
+```
+
+Это завершает набор известных исправлений: предыдущие 1–9 плюс оставшиеся 10–17.

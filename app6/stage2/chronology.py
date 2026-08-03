@@ -10,6 +10,7 @@ import math
 import numpy as np
 from app6.stage1.status_logger import log_status
 
+# Справочный порог (D-003): alignment_quality НЕ гейтит пары — некоррелирован.
 MIN_ALIGNMENT_QUALITY = 0.5
 
 def _days(a: str | None, b: str | None) -> int | None:
@@ -30,10 +31,9 @@ def _quality_exclusion_reason(row: dict) -> str | None:
     if bool(row.get('near_duplicate_pair')):return 'perceptual_duplicate_dependence'
     if bool(row.get('quality_limited')):
         return 'quality_limited'
-    alignment = [row.get('alignment_quality_a'), row.get('alignment_quality_b')]
-    finite_alignment = [float(v) for v in alignment if v is not None and np.isfinite(v)]
-    if finite_alignment and min(finite_alignment) < MIN_ALIGNMENT_QUALITY:
-        return 'alignment_quality_low'
+    # D-003 пересмотр (2026-08-03): alignment_quality некоррелирован с остатком
+    # (Spearman +0.096 на 212 кадрах vs −0.176 в атласе) — порог 0.5 был
+    # случайным прореживанием. Метрика остаётся диагностикой, пары не гейтятся.
     # Геометрическая детекция выражений (corner_lift_ioc + jaw_open_ratio)
     if row.get('smile_detected_a') or row.get('smile_detected_b') or \
        row.get('jaw_open_detected_a') or row.get('jaw_open_detected_b'):

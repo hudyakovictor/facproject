@@ -35,7 +35,8 @@ BFM_TOPOLOGY_SCHEMA = "deeputin-api-bfm-topology-v1.0"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TARBALL_PATH = PROJECT_ROOT / "3ddfa_v3" / "assets" / "face_model.tar.gz"
-CACHE_DIR = Path("/Volumes/SDCARD/project_data") / "bfm_cache"
+#: Локальный кэш BFM-геометрии (раньше был захардкожен на /Volumes/SDCARD/...).
+CACHE_DIR = PROJECT_ROOT / "runs" / "bfm_cache"
 CACHE_NPY_PATH = CACHE_DIR / "face_model.npy"
 #: Безопасный производный кэш: те же массивы, но в .npz без pickle (см. P1.7).
 CACHE_NPZ_PATH = CACHE_DIR / "face_model_safe.npz"
