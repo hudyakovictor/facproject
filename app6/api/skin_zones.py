@@ -29,7 +29,10 @@ from typing import Any
 SKIN_ZONES_SCHEMA = "deeputin-api-skin-zones-v1.0"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ATLAS_PATH = PROJECT_ROOT / "app6" / "atlas" / "skin_zone_atlas.json"
+# This is the versioned 40-zone v4 atlas used by the current 3DDFA pipeline.
+# Keep the API catalogue tied to the same source instead of an obsolete
+# `app6/atlas` location, which is not part of this checkout.
+ATLAS_PATH = PROJECT_ROOT / "3ddfa_v3" / "atlas" / "skin_zone_atlas.json"
 
 #: Статусы зоны в отчёте. `no_data` — Stage 1 не сохранил канал для этой зоны;
 #: это НЕ то же самое, что "зона в норме".

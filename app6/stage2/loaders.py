@@ -214,17 +214,18 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
 
 
 def load_calibration(calibration_root: Path) -> list[Record]:
-    """Загрузка калибровочных записей через Stage 1 из сырых фото.
+    """Загрузка калибровочных записей через завершённый Stage 1.
 
     🔥 ВАЖНО: данные в calibration_dataset/person_*/frame_*/ признаны
     неактуальными (извлечены неверно). Используются ТОЛЬКО сырые фото
     из calibration_dataset/photos/ с переизвлечением через Stage 1.
 
     Порядок работы:
-    1. Если calibration_root содержит main_timeline.csv — читает свежий
-       результат Stage 1 (формат run_calibration.py).
-    2. Иначе запускает Stage 1 pipeline на calibration_dataset/photos/
-       и возвращает результат.
+    1. Если calibration_root содержит main_timeline.csv и
+       all_calibration_index.csv — читает свежий результат Stage 1 и
+       восстанавливает субъект/кадр из индекса.
+    2. Иначе останавливается с инструкцией выполнить отдельный, явно
+       авторизованный прогон Stage 1 на съёмный носитель.
 
     🚨 Если веса моделей (net_recon.pth, retinaface_*.pth) отсутствуют —
     вызывает FileNotFoundError с инструкцией по установке.
@@ -232,11 +233,32 @@ def load_calibration(calibration_root: Path) -> list[Record]:
     log_status("load_calibration", "complete")
     root = calibration_root
 
-    # ✅ Свежий результат Stage 1 (предварительный прогон run_calibration.py)
+    # ✅ Свежий результат Stage 1.  Имена frame_* не несут хронологию:
+    # субъект и номер кадра берём только из отдельного проверяемого индекса.
     if (root / "main_timeline.csv").is_file():
+        index_path = root / "all_calibration_index.csv"
+        if not index_path.is_file():
+            raise FileNotFoundError(
+                f"отсутствует индекс калибровки: {index_path}. Выполните "
+                "app6/build_calibration_index.py для завершённого Stage 1."
+            )
+        index_rows = _rows(index_path)
+        by_photo_id = {row.get("photo_id", ""): row for row in index_rows}
+        if not index_rows or "" in by_photo_id or len(by_photo_id) != len(index_rows):
+            raise ValueError("all_calibration_index.csv содержит пустые или повторяющиеся photo_id")
         records = load_main(root)
+        unknown = sorted(record.record_id for record in records if record.record_id not in by_photo_id)
+        if unknown:
+            raise ValueError(f"Stage 1 содержит кадры вне all_calibration_index.csv: {unknown[:5]}")
+        if len(records) != len(index_rows):
+            raise ValueError("all_calibration_index.csv не покрывает все завершённые кадры Stage 1")
         for record in records:
-            record.dataset_id = "same_day_calibration"
+            index_row = by_photo_id[record.record_id]
+            if record.pose_bin != index_row.get("pose_bin"):
+                raise ValueError(f"несовпадение pose_bin для {record.record_id}")
+            record.dataset_id = str(index_row["dataset_id"])
+            # photo_id остаётся уникальным ключом конкретного файла.  Один и
+            # тот же кадр может законно переиспользоваться подборщиком пар.
             record.dataset_role = "calibration"
             record.date = None
             record.date_precision = "none"
@@ -245,7 +267,9 @@ def load_calibration(calibration_root: Path) -> list[Record]:
             raise FileNotFoundError(f"no valid Stage-1 calibration records under {root}")
         return records
 
-    # 🔥 Запуск Stage 1 на сырых фото из calibration_dataset/photos/
+    # Не запускаем тяжёлое извлечение неявно.  Это могло записать сотни
+    # гигабайт в рабочую папку и при этом старый код вызывал _one(), а не run(),
+    # то есть оставлял результат без main_timeline.csv.
     photos_dir = root / "photos"
     if not photos_dir.is_dir():
         raise FileNotFoundError(
@@ -253,62 +277,10 @@ def load_calibration(calibration_root: Path) -> list[Record]:
             "Ожидается структура: calibration_dataset/photos/person_*/frame_*.jpg"
         )
 
-    # Проверка наличия весов моделей
-    assets_dir = root.parent / "assets"
-    required_weights = [
-        "net_recon.pth", "large_base_net.pth",
-        "retinaface_resnet50_2020-07-20_old_torch.pth",
-        "similarity_Lm3D_all.mat",
-    ]
-    missing_weights = [w for w in required_weights if not (assets_dir / w).is_file()]
-    if missing_weights:
-        raise FileNotFoundError(
-            f"отсутствуют веса моделей Stage 1: {missing_weights}. "
-            f"Скопируйте их в {assets_dir} или выполните:\n"
-            f"  python app6/scripts/fetch_external_assets.py\n"
-            f"После установки весов запустите калибровку:\n"
-            f"  python app6/run_calibration.py --input {photos_dir} --output /Volumes/SDCARD/project_data/calibration_stage1"
-        )
-
-    # Запуск Stage 1 pipeline
-    from app6.stage1.config import Stage1Config
-    from app6.stage1.engine import Stage1Engine
-
-    output_dir = root / "runs" / "calibration_stage1"
-    cfg = Stage1Config(
-        project_root=root.parent,
-        input_dir=photos_dir,
-        output_dir=output_dir,
-        device="auto",
-        overwrite=True,
+    raise FileNotFoundError(
+        "калибровочный Stage 1 ещё не подготовлен. Выполните отдельный прогон "
+        "через /Users/victorkhudyakov/work/.venv/bin/python "
+        "app6/run_calibration.py --input " + str(photos_dir) +
+        " --output /Volumes/SDCARD/storage/calibration_stage1, затем постройте "
+        "all_calibration_index.csv командой app6/build_calibration_index.py."
     )
-    engine = Stage1Engine(cfg)
-
-    photos = sorted(
-        p for p in photos_dir.rglob("*")
-        if p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png")
-        and not p.name.startswith("._")
-    )
-    if not photos:
-        raise FileNotFoundError(f"нет фото в {photos_dir}")
-
-    for path in photos:
-        try:
-            engine._one(path)
-        except Exception as e:
-            log_status("load_calibration", f"warn: {path.name}: {e}")
-
-    # Чтение свежего результата
-    if not (output_dir / "main_timeline.csv").is_file():
-        raise FileNotFoundError(
-            f"Stage 1 не создал main_timeline.csv в {output_dir}. "
-            f"Проверьте логи выше."
-        )
-    records = load_main(output_dir)
-    for record in records:
-        record.dataset_id = "same_day_calibration"
-        record.dataset_role = "calibration"
-        record.date = None
-        record.date_precision = "none"
-        record.date_provenance_status = "not_applicable"
-    return records

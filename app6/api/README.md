@@ -19,20 +19,12 @@ uvicorn app6.api.server:app --reload --port 8000
 
 API всегда явно указывает `source_mode` в ответе:
 
-- **`demo`** (по умолчанию) — переменные окружения `DEEPUTIN_STAGE1_ROOT` /
-  `DEEPUTIN_STAGE2_ROOT` не заданы или не содержат валидного вывода.
-  Возвращается детерминированная синтетическая хронология
-  (`app6/api/demo_data.py`), но **вся геометрия считается тем же кодом**
-  `app6.stage2.core.compare_landmarks`, что и в исследовательском Stage 2 —
-  это не фронтендовый мок, а честная демонстрация метода на синтетических
-  landmark-облаках. Текстурные каналы (силикон/specular/LBP/frangi/wrinkle/
-  subsurface) — иллюстративные placeholder-значения, отдельно помеченные в
-  комментариях `app6/api/timeline.py`, так как настоящий текстурный анализ
-  требует Stage 1 с весами 3DDFA_V3.
-- **`research`** — `DEEPUTIN_STAGE2_ROOT` указывает на каталог с
-  `analysis_manifest.json` + `pair_metrics.csv` (реальный вывод
-  `Stage2Engine.run()`). Тогда `/api/v1/timeline` строится из настоящих
-  evidence-состояний (`app6/api/research_timeline.py`).
+- **`research`** — `DEEPUTIN_STAGE1_ROOT` и/или `DEEPUTIN_STAGE2_ROOT`
+  указывают на каталоги с реальным выводом пайплайна. Тогда `/api/v1/timeline`
+  и связанные эндпоинты строятся из настоящих записей Stage 1/2.
+
+Если вывод отсутствует, API отвечает ошибкой с объяснением, а не подменяет
+данные синтетикой.
 
 ## Переменные окружения
 

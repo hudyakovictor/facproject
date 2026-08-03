@@ -4,6 +4,7 @@ from pathlib import Path
 from PIL import Image
 from app6.api.research_timeline import build_research_timeline
 from app6.stage1.provenance_ledger import hamming_distance,load_provenance_sidecar,perceptual_dhash
+from app6.stage1.engine import discover_input_photos
 from app6.stage2.chronology import apply_chronology_rate_flags
 from app6.stage2.evidence import packet_from_pair
 from app6.stage2.integrity import compute_dataset_hash
@@ -33,6 +34,24 @@ class ProvenanceIntegrationTests(unittest.TestCase):
  def test_date_conflict_excludes_chronology(self):
   rows=[{'pair_type':'adjacent','pose_bin':'frontal','date_a':'2000-01-01','date_b':'2001-01-01','date_provenance_limited':True,'quality_limited':False,'p95_point_z':9.,'coherent_motion_fraction':.9,'significant_point_fraction':.8,'pair_index':1}]
   apply_chronology_rate_flags(rows);self.assertEqual(rows[0]['chronology_rate_status'],'excluded');self.assertEqual(rows[0]['chronology_rate_reason'],'date_provenance_conflict')
+ def test_input_preflight_rejects_invalid_authoritative_date_before_run(self):
+  with tempfile.TemporaryDirectory() as td:
+   root=Path(td)
+   Image.new('RGB',(10,10)).save(root/'2003_15_17.jpg')
+   Image.new('RGB',(10,10)).save(root/'2003_12_17(4).jpg')
+   (root/'._2003_12_17.jpg').write_bytes(b'macos-sidecar')
+   with self.assertRaisesRegex(ValueError,'2003_15_17.jpg'):
+    discover_input_photos(root)
+   (root/'2003_15_17.jpg').unlink()
+   self.assertEqual([p.name for p in discover_input_photos(root)],['2003_12_17(4).jpg'])
+ def test_calibration_input_allows_undated_frame_names(self):
+  with tempfile.TemporaryDirectory() as td:
+   root=Path(td);person=root/'person_01';person.mkdir()
+   Image.new('RGB',(10,10)).save(person/'frame_000204.jpg')
+   self.assertEqual(
+    [p.relative_to(root).as_posix() for p in discover_input_photos(root,require_filename_date=False)],
+    ['person_01/frame_000204.jpg'],
+   )
  def test_api_propagates_conflict(self):
   with tempfile.TemporaryDirectory() as td:
    r=Path(td);(r/'analysis_manifest.json').write_text(json.dumps({'schema_version':'x'}),encoding='utf-8')

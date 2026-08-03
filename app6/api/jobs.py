@@ -159,28 +159,31 @@ def make_extract_runner(input_dir: Path, output_dir: Path, project_root: Path,
                 f"нет входных изображений (.jpg/.jpeg/.png) в {input_dir}; "
                 "извлечение не запускалось"
             )
-        if limit > 0:
-            photos = photos[:limit]
-        job.progress_total = len(photos)
-        job.logs.append(f"найдено {len(photos)} фото в {input_dir}")
-
         cfg = Stage1Config(project_root=project_root, input_dir=input_dir, output_dir=output_dir,
                            device=device, overwrite=True, limit=limit)
         engine = Stage1Engine(cfg)
-        ok = fail = 0
-        for path in photos:
-            if job._cancel_requested:
-                job.status = "cancelled"
-                job.logs.append("отменено пользователем")
-                return
-            try:
-                engine._one(path)  # noqa: SLF001 - same call used by run_calibration.py
-                ok += 1
-            except Exception as exc:  # noqa: BLE001 - per-photo isolation, continue batch
-                fail += 1
-                job.logs.append(f"FAIL {path.name}: {exc}")
-            job.progress_done += 1
-        job.result = {"ok": ok, "fail": fail, "total": len(photos), "output_dir": str(output_dir)}
+        # `Stage1Engine.run()` не только обрабатывает отдельные кадры: он
+        # финализирует main_index.csv, main_timeline.csv, provenance и manifest.
+        # Вызов приватного `_one()` здесь оставлял API-job в статусе complete,
+        # но делал результат непригодным для UI и Stage 2.
+        selected = engine.photos[:limit] if limit > 0 else engine.photos
+        job.progress_total = len(selected)
+        job.logs.append(f"найдено {len(selected)} фото в {input_dir}")
+        if job._cancel_requested:
+            job.status = "cancelled"
+            job.logs.append("отменено до запуска извлечения")
+            return
+        manifest = engine.run()
+        job.progress_done = int(manifest.get("input_count", len(selected)))
+        job.result = {
+            "ok": int(manifest.get("success_count", 0)),
+            "fail": int(manifest.get("error_count", 0)),
+            "total": int(manifest.get("input_count", len(selected))),
+            "output_dir": str(output_dir),
+            "manifest": manifest,
+        }
+        if manifest.get("error_count"):
+            job.logs.append(f"Stage 1 завершён с ошибками: {manifest['error_count']}")
 
     return _extract_runner
 
@@ -204,4 +207,3 @@ def make_recompute_metrics_runner(stage1_root: Path, calibration_root: Path,
                      "output_dir": str(output_dir)}
 
     return _recompute_runner
-

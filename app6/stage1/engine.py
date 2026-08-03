@@ -31,7 +31,7 @@ from .config import (
 from .geometry import pack_mask, to_original_image
 from .status_logger import log_status, status_warning
 from .masks import build_mask_bundle
-from .naming import make_photo_id, parse_photo_name
+from .naming import PhotoName, make_nonchronological_photo_name, make_photo_id, parse_photo_name
 from .reconstruction import ReconstructionBundle, ReconstructionEngine
 from .storage import atomic_photo_directory, clean_incomplete, write_failure
 from .utils import atomic_json, runtime_versions, digest_file, digest_json, digest_paths, write_csv
@@ -43,6 +43,37 @@ from .authenticity import build_texture_package
 
 def _utc() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def discover_input_photos(input_dir: Path, require_filename_date: bool = True) -> list[Path]:
+    """Return eligible photos only after validating their authoritative dates.
+
+    A bad filename must not be converted into an ``errors.csv`` row after a
+    partially completed extraction: filename date is the chronology authority,
+    so accepting a partial timeline would make the batch scientifically
+    non-reproducible.  AppleDouble sidecars are deliberately ignored; they are
+    macOS metadata, never source photographs.
+    """
+    photos = sorted(
+        p for p in input_dir.rglob("*")
+        if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS and not p.name.startswith("._")
+    )
+    if not require_filename_date:
+        return photos
+    invalid: list[str] = []
+    for path in photos:
+        try:
+            parse_photo_name(path)
+        except ValueError as exc:
+            invalid.append(f"{path.relative_to(input_dir)}: {exc}")
+    if invalid:
+        examples = "; ".join(invalid[:10])
+        suffix = "" if len(invalid) <= 10 else f" (+{len(invalid) - 10} more)"
+        raise ValueError(
+            "input preflight failed: every photograph needs a valid calendar "
+            f"date in its filename; {examples}{suffix}"
+        )
+    return photos
 
 
 def _landmark_rows(points: np.ndarray, visible: np.ndarray, indices: np.ndarray,
@@ -107,6 +138,9 @@ class Stage1Engine:
         self.root = config.project_root.resolve()
         if not self.cfg.input_dir.is_dir():
             raise FileNotFoundError(f"input directory not found: {self.cfg.input_dir}")
+        # The filename date is the authority for chronology.  Validate every
+        # eligible photo before loading a neural model or creating an output.
+        self.photos = discover_input_photos(self.cfg.input_dir, self.cfg.require_filename_date)
         self.config_hash = digest_json(config.extraction_payload())
         package_dir = Path(__file__).resolve().parent
         workspace_dir = package_dir.parents[1]
@@ -128,10 +162,7 @@ class Stage1Engine:
         log_status("run", "complete")
         if not self.cfg.input_dir.is_dir():
             raise FileNotFoundError(f"input directory not found: {self.cfg.input_dir}")
-        photos = sorted(
-            p for p in self.cfg.input_dir.rglob("*")
-            if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS and not p.name.startswith("._")
-        )
+        photos = self.photos
         if self.cfg.limit:
             photos = photos[: self.cfg.limit]
         if not photos:
@@ -184,7 +215,7 @@ class Stage1Engine:
                 }
                 errors.append(payload)
                 try:
-                    parsed = parse_photo_name(path); source_hash = digest_file(path)
+                    parsed = self._photo_name(path); source_hash = digest_file(path)
                     write_failure(self.cfg.output_dir, make_photo_id(parsed, source_hash), payload)
                 except Exception as failure_exc:
                     status_warning("write_failure", f"could not persist failure record: {failure_exc}")
@@ -192,7 +223,7 @@ class Stage1Engine:
                 self.recon.cleanup()
                 if not self.cfg.continue_on_error:
                     raise
-        rows.sort(key=lambda r: (r["date"], int(r["same_date_sequence"]), r["photo_id"]))
+        rows.sort(key=lambda r: (r["date"] or "", int(r["same_date_sequence"]), r["photo_id"]))
         pose_counts: dict[str, int] = {}
         for i, row in enumerate(rows, 1):
             row["chronology_index_global"] = i
@@ -256,7 +287,7 @@ class Stage1Engine:
           - При continue_on_error=False — останавливается на первой ошибке
         """
         log_status("_one", "complete")
-        parsed = parse_photo_name(path)
+        parsed = self._photo_name(path)
         source_hash = digest_file(path)
         photo_id = make_photo_id(parsed, source_hash)
         final = self.cfg.output_dir / photo_id
@@ -533,9 +564,10 @@ class Stage1Engine:
             info = {
                 "schema_version": PHOTO_SCHEMA_VERSION, "photo_id": photo_id,
                 "source_filename": path.name, "source_relative_path": self._relative(path), "source_digest": source_hash,
-                "date": parsed.date_iso, "date_year": parsed.year, "date_month": parsed.month,
-                "date_day": parsed.day, "same_date_sequence": parsed.sequence,
-                "date_provenance":build_date_provenance(parsed.date_iso,decode_meta,source_provenance),
+                "date": parsed.date_iso or None, "date_year": parsed.year or None, "date_month": parsed.month or None,
+                "date_day": parsed.day or None, "same_date_sequence": parsed.sequence,
+                "date_provenance": (build_date_provenance(parsed.date_iso,decode_meta,source_provenance)
+                                    if self.cfg.require_filename_date else {"status": "not_applicable", "authority": "calibration_reference"}),
                 "source_provenance":source_provenance,"perceptual_dhash":perceptual_dhash(path),
                 "near_duplicate_of":(getattr(self,"_provenance_index",{}).get(self._relative(path),{}) or {}).get("near_duplicate_of") or None,
                 "extraction_timestamp": _utc(), "code_hash": self.code_hash,
@@ -612,6 +644,11 @@ class Stage1Engine:
             return str(path.resolve().relative_to(self.cfg.input_dir.resolve()))
         except ValueError:
             return path.name
+
+    def _photo_name(self, path: Path) -> PhotoName:
+        if self.cfg.require_filename_date:
+            return parse_photo_name(path)
+        return make_nonchronological_photo_name(path, self._relative(path))
 
     @staticmethod
     def _index_row(info: dict[str, Any]) -> dict[str, Any]:
