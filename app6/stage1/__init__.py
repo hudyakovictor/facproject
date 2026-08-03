@@ -1,8 +1,18 @@
-"""DEEPUTIN app6 Stage 1: deterministic 3DDFA_V3 extraction.
+"""DEEPUTIN Stage 1 extraction package.
 
-📦 CONVENTIONS v2 → Stage 1 (извлечение); правила: app6/CONVENTIONS.py
+Keep metadata/provenance utilities importable without OpenCV/Torch; the heavy
+inference engine is loaded only when ``Stage1Engine`` is requested.
 """
+from __future__ import annotations
+from typing import Any
+
 from .config import Stage1Config
-from .engine import Stage1Engine
 
 __all__ = ["Stage1Config", "Stage1Engine"]
+
+
+def __getattr__(name: str) -> Any:
+    if name == "Stage1Engine":
+        from .engine import Stage1Engine
+        return Stage1Engine
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
