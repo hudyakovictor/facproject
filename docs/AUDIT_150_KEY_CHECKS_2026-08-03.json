@@ -1,0 +1,1150 @@
+{
+  "schema": "deeputin-150-key-checks-v1.0",
+  "check_count": 150,
+  "passed": 129,
+  "failed": 21,
+  "checks": [
+    {
+      "id": "PY001",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/CONVENTIONS.py"
+    },
+    {
+      "id": "PY002",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/__init__.py"
+    },
+    {
+      "id": "PY003",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/__init__.py"
+    },
+    {
+      "id": "PY004",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/bfm_topology.py"
+    },
+    {
+      "id": "PY005",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/calibration.py"
+    },
+    {
+      "id": "PY006",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/compare.py"
+    },
+    {
+      "id": "PY007",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/demo_data.py"
+    },
+    {
+      "id": "PY008",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/jobs.py"
+    },
+    {
+      "id": "PY009",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/key_catalog.py"
+    },
+    {
+      "id": "PY010",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/noise_calibration.py"
+    },
+    {
+      "id": "PY011",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/pair_metrics.py"
+    },
+    {
+      "id": "PY012",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/report.py"
+    },
+    {
+      "id": "PY013",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/research_timeline.py"
+    },
+    {
+      "id": "PY014",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/server.py"
+    },
+    {
+      "id": "PY015",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/settings.py"
+    },
+    {
+      "id": "PY016",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/skin_zones.py"
+    },
+    {
+      "id": "PY017",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/system_health.py"
+    },
+    {
+      "id": "PY018",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/timeline.py"
+    },
+    {
+      "id": "PY019",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/api/ui_fields.py"
+    },
+    {
+      "id": "PY020",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/archive_adapter.py"
+    },
+    {
+      "id": "PY021",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_calibration.py"
+    },
+    {
+      "id": "PY022",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_calibration_re_extract.py"
+    },
+    {
+      "id": "PY023",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_preflight.py"
+    },
+    {
+      "id": "PY024",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_scenario_planner.py"
+    },
+    {
+      "id": "PY025",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_stage1.py"
+    },
+    {
+      "id": "PY026",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_stage2.py"
+    },
+    {
+      "id": "PY027",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_stage2b.py"
+    },
+    {
+      "id": "PY028",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/run_stage3.py"
+    },
+    {
+      "id": "PY029",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/scenarios.py"
+    },
+    {
+      "id": "PY030",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/schemas/__init__.py"
+    },
+    {
+      "id": "PY031",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/scripts/__init__.py"
+    },
+    {
+      "id": "PY032",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/scripts/fetch_external_assets.py"
+    },
+    {
+      "id": "PY033",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/scripts/prep_min_calibration.py"
+    },
+    {
+      "id": "PY034",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/__init__.py"
+    },
+    {
+      "id": "PY035",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/assets.py"
+    },
+    {
+      "id": "PY036",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/authenticity/__init__.py"
+    },
+    {
+      "id": "PY037",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/authenticity/albedo_analysis.py"
+    },
+    {
+      "id": "PY038",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/authenticity/extract.py"
+    },
+    {
+      "id": "PY039",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/authenticity/fft_analysis.py"
+    },
+    {
+      "id": "PY040",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/authenticity/lbp_analysis.py"
+    },
+    {
+      "id": "PY041",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/authenticity/v12_features.py"
+    },
+    {
+      "id": "PY042",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/config.py"
+    },
+    {
+      "id": "PY043",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/engine.py"
+    },
+    {
+      "id": "PY044",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/evidence.py"
+    },
+    {
+      "id": "PY045",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/geometry.py"
+    },
+    {
+      "id": "PY046",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/input_provenance.py"
+    },
+    {
+      "id": "PY047",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/masks.py"
+    },
+    {
+      "id": "PY048",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/naming.py"
+    },
+    {
+      "id": "PY049",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/provenance_ledger.py"
+    },
+    {
+      "id": "PY050",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/reconstruction.py"
+    },
+    {
+      "id": "PY051",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/skin_zone_atlas.py"
+    },
+    {
+      "id": "PY052",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/skin_zone_atlas_final.py"
+    },
+    {
+      "id": "PY053",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/status_logger.py"
+    },
+    {
+      "id": "PY054",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/storage.py"
+    },
+    {
+      "id": "PY055",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/utils.py"
+    },
+    {
+      "id": "PY056",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage1/validator.py"
+    },
+    {
+      "id": "PY057",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/__init__.py"
+    },
+    {
+      "id": "PY058",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/alpha_chronology.py"
+    },
+    {
+      "id": "PY059",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/analysis_policy.py"
+    },
+    {
+      "id": "PY060",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/anchor_policy.py"
+    },
+    {
+      "id": "PY061",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/angle_noise.py"
+    },
+    {
+      "id": "PY062",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/baseline_return.py"
+    },
+    {
+      "id": "PY063",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/calibration.py"
+    },
+    {
+      "id": "PY064",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/calibration_sensitivity.py"
+    },
+    {
+      "id": "PY065",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/chronology.py"
+    },
+    {
+      "id": "PY066",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/core.py"
+    },
+    {
+      "id": "PY067",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/corroboration.py"
+    },
+    {
+      "id": "PY068",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/date_provenance.py"
+    },
+    {
+      "id": "PY069",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/descriptors.py"
+    },
+    {
+      "id": "PY070",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/engine.py"
+    },
+    {
+      "id": "PY071",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/evidence.py"
+    },
+    {
+      "id": "PY072",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/export.py"
+    },
+    {
+      "id": "PY073",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/expression_pair_gate.py"
+    },
+    {
+      "id": "PY074",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/expression_qc.py"
+    },
+    {
+      "id": "PY075",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/fdr_control.py"
+    },
+    {
+      "id": "PY076",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/generate_mesh_zones.py"
+    },
+    {
+      "id": "PY077",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/integrity.py"
+    },
+    {
+      "id": "PY078",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/irreversible_return.py"
+    },
+    {
+      "id": "PY079",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/landmark_policy.py"
+    },
+    {
+      "id": "PY080",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/leads.py"
+    },
+    {
+      "id": "PY081",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/legacy_bridge.py"
+    },
+    {
+      "id": "PY082",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/loaders.py"
+    },
+    {
+      "id": "PY083",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/mesh_calibration.py"
+    },
+    {
+      "id": "PY084",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/mesh_dense.py"
+    },
+    {
+      "id": "PY085",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/metric_registry.py"
+    },
+    {
+      "id": "PY086",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/motion.py"
+    },
+    {
+      "id": "PY087",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/multiple_testing.py"
+    },
+    {
+      "id": "PY088",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/pose_leakage.py"
+    },
+    {
+      "id": "PY089",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/pose_policy.py"
+    },
+    {
+      "id": "PY090",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/postprocess_reports.py"
+    },
+    {
+      "id": "PY091",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/private_hypothesis.py"
+    },
+    {
+      "id": "PY092",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/quality_gate.py"
+    },
+    {
+      "id": "PY093",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/quality_integration.py"
+    },
+    {
+      "id": "PY094",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/quality_stratification.py"
+    },
+    {
+      "id": "PY095",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/robustness.py"
+    },
+    {
+      "id": "PY096",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/run_manifest.py"
+    },
+    {
+      "id": "PY097",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/same_day_gate.py"
+    },
+    {
+      "id": "PY098",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/space_selection.py"
+    },
+    {
+      "id": "PY099",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/technical_summary.py"
+    },
+    {
+      "id": "PY100",
+      "area": "python_syntax",
+      "status": "pass",
+      "detail": "app6/stage2/temporal_axis.py"
+    },
+    {
+      "id": "C101",
+      "area": "documentation",
+      "status": "fail",
+      "detail": "referenced canonical policy exists"
+    },
+    {
+      "id": "C102",
+      "area": "documentation",
+      "status": "fail",
+      "detail": "referenced scenario runbook exists"
+    },
+    {
+      "id": "C103",
+      "area": "scenario",
+      "status": "fail",
+      "detail": "README scenario runner exists"
+    },
+    {
+      "id": "C104",
+      "area": "tooling",
+      "status": "fail",
+      "detail": "README audit tool exists"
+    },
+    {
+      "id": "C105",
+      "area": "tests",
+      "status": "fail",
+      "detail": "API test directory exists"
+    },
+    {
+      "id": "C106",
+      "area": "dependencies",
+      "status": "fail",
+      "detail": "root runtime requirements exist"
+    },
+    {
+      "id": "C107",
+      "area": "ci",
+      "status": "fail",
+      "detail": "CI workflow directory exists"
+    },
+    {
+      "id": "C108",
+      "area": "assets",
+      "status": "fail",
+      "detail": "assets path resolves"
+    },
+    {
+      "id": "C109",
+      "area": "upstream",
+      "status": "fail",
+      "detail": "upstream compatibility symlink resolves"
+    },
+    {
+      "id": "C110",
+      "area": "calibration",
+      "status": "fail",
+      "detail": "calibration archive is a usable zip"
+    },
+    {
+      "id": "C111",
+      "area": "portability",
+      "status": "fail",
+      "detail": "top README has no machine-specific interpreter"
+    },
+    {
+      "id": "C112",
+      "area": "portability",
+      "status": "fail",
+      "detail": "app README has no machine-specific interpreter"
+    },
+    {
+      "id": "C113",
+      "area": "portability",
+      "status": "fail",
+      "detail": "calibration default output is repository-relative"
+    },
+    {
+      "id": "C114",
+      "area": "portability",
+      "status": "fail",
+      "detail": "re-extract script has no machine paths"
+    },
+    {
+      "id": "C115",
+      "area": "api_portability",
+      "status": "fail",
+      "detail": "API defaults are repository-relative"
+    },
+    {
+      "id": "C116",
+      "area": "calibration_contract",
+      "status": "fail",
+      "detail": "sidecar loader accepts checked-out info.json corpus"
+    },
+    {
+      "id": "C117",
+      "area": "calibration_contract",
+      "status": "fail",
+      "detail": "loader can consume pre-extracted corpus without raw photos"
+    },
+    {
+      "id": "C118",
+      "area": "documentation",
+      "status": "fail",
+      "detail": "claimed API test count is backed by repository"
+    },
+    {
+      "id": "C119",
+      "area": "scenario",
+      "status": "fail",
+      "detail": "README does not require unavailable scenario archive"
+    },
+    {
+      "id": "C120",
+      "area": "policy",
+      "status": "fail",
+      "detail": "duplicate v3 pose policies are semantically identical"
+    },
+    {
+      "id": "C121",
+      "area": "runbook",
+      "status": "fail",
+      "detail": "RUN_PROJECT check target exists"
+    },
+    {
+      "id": "C122",
+      "area": "ui",
+      "status": "pass",
+      "detail": "UI lockfile exists"
+    },
+    {
+      "id": "C123",
+      "area": "ui",
+      "status": "pass",
+      "detail": "UI smoke script exists"
+    },
+    {
+      "id": "C124",
+      "area": "input",
+      "status": "pass",
+      "detail": "pre-extracted calibration corpus present"
+    },
+    {
+      "id": "C125",
+      "area": "input",
+      "status": "pass",
+      "detail": "expected 943 calibration info sidecars present"
+    },
+    {
+      "id": "C126",
+      "area": "policy",
+      "status": "pass",
+      "detail": "pose policy has 180 cells plus header"
+    },
+    {
+      "id": "C127",
+      "area": "entrypoint",
+      "status": "pass",
+      "detail": "Stage 1 entrypoint exists"
+    },
+    {
+      "id": "C128",
+      "area": "entrypoint",
+      "status": "pass",
+      "detail": "Stage 2 entrypoint exists"
+    },
+    {
+      "id": "C129",
+      "area": "entrypoint",
+      "status": "pass",
+      "detail": "Stage 3 entrypoint exists"
+    },
+    {
+      "id": "C130",
+      "area": "scenario",
+      "status": "pass",
+      "detail": "Monte Carlo harness exists"
+    },
+    {
+      "id": "C131",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/CONVENTIONS.py"
+    },
+    {
+      "id": "C132",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/__init__.py"
+    },
+    {
+      "id": "C133",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/__init__.py"
+    },
+    {
+      "id": "C134",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/bfm_topology.py"
+    },
+    {
+      "id": "C135",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/calibration.py"
+    },
+    {
+      "id": "C136",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/compare.py"
+    },
+    {
+      "id": "C137",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/demo_data.py"
+    },
+    {
+      "id": "C138",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/jobs.py"
+    },
+    {
+      "id": "C139",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/key_catalog.py"
+    },
+    {
+      "id": "C140",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/noise_calibration.py"
+    },
+    {
+      "id": "C141",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/pair_metrics.py"
+    },
+    {
+      "id": "C142",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/report.py"
+    },
+    {
+      "id": "C143",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/research_timeline.py"
+    },
+    {
+      "id": "C144",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/server.py"
+    },
+    {
+      "id": "C145",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/settings.py"
+    },
+    {
+      "id": "C146",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/skin_zones.py"
+    },
+    {
+      "id": "C147",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/system_health.py"
+    },
+    {
+      "id": "C148",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/timeline.py"
+    },
+    {
+      "id": "C149",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/api/ui_fields.py"
+    },
+    {
+      "id": "C150",
+      "area": "source_inventory",
+      "status": "pass",
+      "detail": "non-empty source: app6/archive_adapter.py"
+    }
+  ],
+  "top_30_findings": [
+    {
+      "rank": 1,
+      "severity": "P0",
+      "area": "assets",
+      "finding": "Корневой assets — битая абсолютная symlink.",
+      "evidence": "assets → 3ddfa_v3/assets, а каталог weights отсутствует.",
+      "remediation": "Сделать portable bootstrap: assets/ создаётся fetch script либо configurable DEEPUTIN_ASSETS_ROOT; fail closed до run."
+    },
+    {
+      "rank": 2,
+      "severity": "P0",
+      "area": "upstream",
+      "finding": "3ddfa_v3/3DDFA-V3 указывает на отсутствующий /Users путь.",
+      "evidence": "Symlink resolves outside checkout and отсутствует.",
+      "remediation": "Удалить machine-local symlink из tracked tree или заменить относительной совместимой ссылкой."
+    },
+    {
+      "rank": 3,
+      "severity": "P0",
+      "area": "documentation",
+      "finding": "Код и README массово ссылаются на отсутствующий app6/AGENTS.md.",
+      "evidence": "C101 fail; множество runtime/docstring references.",
+      "remediation": "Восстановить канонический policy/runbook в git либо заменить все ссылки на docs/final."
+    },
+    {
+      "rank": 4,
+      "severity": "P1",
+      "area": "scenario",
+      "finding": "README обещает отсутствующий app6.test_module.runner.",
+      "evidence": "C103 fail; команда из README не исполнима.",
+      "remediation": "Либо реализовать runner, либо заменить документацию на существующие run_scenario_planner.py и suite tools."
+    },
+    {
+      "rank": 5,
+      "severity": "P1",
+      "area": "tooling",
+      "finding": "README обещает отсутствующий audit_50_implementation_checks.py.",
+      "evidence": "C104 fail.",
+      "remediation": "Добавить tool/CI job или убрать ложный release claim."
+    },
+    {
+      "rank": 6,
+      "severity": "P1",
+      "area": "api_tests",
+      "finding": "Документация заявляет API tests, но app6/api/tests отсутствует.",
+      "evidence": "C105 fail; статусы 138/162 tests невозможно воспроизвести.",
+      "remediation": "Добавить API integration tests и обновить честные counts."
+    },
+    {
+      "rank": 7,
+      "severity": "P1",
+      "area": "dependencies",
+      "finding": "Нет единого root runtime requirements/lockfile для Stage 1+2+3.",
+      "evidence": "C106 fail; 3ddfa requirements отдельно, API requirements отдельно.",
+      "remediation": "Собрать pinned environment/optional extras и CI install matrix."
+    },
+    {
+      "rank": 8,
+      "severity": "P1",
+      "area": "ci",
+      "finding": "В репозитории нет CI workflow.",
+      "evidence": "C107 fail.",
+      "remediation": "Добавить GitHub Actions: Python tests, UI check, compileall, contract and smoke gates."
+    },
+    {
+      "rank": 9,
+      "severity": "P1",
+      "area": "calibration",
+      "finding": "calibration_dataset.zip не является zip-архивом.",
+      "evidence": "C110 fail: файл 134 bytes, zipfile.is_zipfile=false.",
+      "remediation": "Удалить placeholder, заменить валидным manifest/text pointer или хранить release archive externally with checksum."
+    },
+    {
+      "rank": 10,
+      "severity": "P1",
+      "area": "calibration",
+      "finding": "Sidecar loader ищет metadata.json, но фактический corpus содержит info.json.",
+      "evidence": "C116 fail; load_calibration_from_sidecar пропускает 943 usable info sidecars.",
+      "remediation": "Добавить явно маркированный info.json loader либо мигратор в Stage-1-compatible artifact."
+    },
+    {
+      "rank": 11,
+      "severity": "P1",
+      "area": "calibration",
+      "finding": "Production load_calibration требует raw photos и weights, игнорируя pre-extracted corpus.",
+      "evidence": "C117 fail.",
+      "remediation": "Оставить production fail-closed, но добавить documented exploratory adapter и запрещать смешение с production threshold."
+    },
+    {
+      "rank": 12,
+      "severity": "P1",
+      "area": "portability",
+      "finding": "Top README требует конкретный /Users/... Python.",
+      "evidence": "C111 fail.",
+      "remediation": "Заменить на python3/.venv/bin/python и environment setup."
+    },
+    {
+      "rank": 13,
+      "severity": "P1",
+      "area": "portability",
+      "finding": "app6 README также требует конкретный Mac interpreter.",
+      "evidence": "C112 fail.",
+      "remediation": "Использовать $PYTHON, sys.executable или portable setup command."
+    },
+    {
+      "rank": 14,
+      "severity": "P1",
+      "area": "portability",
+      "finding": "run_calibration имеет default /Volumes output.",
+      "evidence": "C113 fail.",
+      "remediation": "Default results/calibration_stage1 или required --output."
+    },
+    {
+      "rank": 15,
+      "severity": "P1",
+      "area": "portability",
+      "finding": "run_calibration_re_extract.py зашит в /Users и /Volumes.",
+      "evidence": "C114 fail.",
+      "remediation": "Все пути через CLI/env; не создавать machine-local symlinks."
+    },
+    {
+      "rank": 16,
+      "severity": "P1",
+      "area": "api_portability",
+      "finding": "API server/settings используют /Volumes/SDCARD defaults.",
+      "evidence": "C115 fail.",
+      "remediation": "Перенести defaults в Settings/repository runs/ и проверять writable path."
+    },
+    {
+      "rank": 17,
+      "severity": "P1",
+      "area": "documentation",
+      "finding": "Статус-документ заявляет 138 API/162 total tests, которых в checkout нет.",
+      "evidence": "C118 fail.",
+      "remediation": "Автоматически генерировать counts в CI либо пометить историческими."
+    },
+    {
+      "rank": 18,
+      "severity": "P2",
+      "area": "scenario",
+      "finding": "README требует unavailable selected_photos tar archive.",
+      "evidence": "C119 fail.",
+      "remediation": "Документировать existing calibration directory path и fixture build command."
+    },
+    {
+      "rank": 19,
+      "severity": "P1",
+      "area": "policy",
+      "finding": "app6 и 3ddfa_v3 содержат несовместимые pose_policy_v3 CSV.",
+      "evidence": "C120 fail: app6 содержит pose_bin/visible_fraction, 3ddfa_v3 — другую 5-column схему и другой размер.",
+      "remediation": "Оставить один canonical policy, добавить migration/version guard и contract test, запрещающий silent divergence."
+    },
+    {
+      "rank": 20,
+      "severity": "P2",
+      "area": "runbook",
+      "finding": "run_calibration вызывает private Stage1Engine._one напрямую.",
+      "evidence": "Нарушает public API boundary и не гарантирует manifest finalisation.",
+      "remediation": "Добавить public batch/calibration method с structured result/error policy."
+    },
+    {
+      "rank": 21,
+      "severity": "P2",
+      "area": "runbook",
+      "finding": "run_calibration продолжает batch после errors, но не возвращает non-zero при fail>0.",
+      "evidence": "В конце только печать DONE.",
+      "remediation": "Определить error budget и return non-zero/manifest status when threshold exceeded."
+    },
+    {
+      "rank": 22,
+      "severity": "P2",
+      "area": "scenario",
+      "finding": "Current Monte Carlo covers landmark geometry only.",
+      "evidence": "No real image/UV/texture/provenance fixture can run without raw photos/weights.",
+      "remediation": "Add synthetic image/provenance fixtures and research-mode API/UI golden run after assets arrive."
+    },
+    {
+      "rank": 23,
+      "severity": "P2",
+      "area": "statistics",
+      "finding": "Calibration corpus has uneven person/bin coverage.",
+      "evidence": "Documented audit: e.g. very sparse deep/profile controls; 44/100 MC fixtures blocked.",
+      "remediation": "Collect balanced neutral frames; report effective clusters, not only frame count."
+    },
+    {
+      "rank": 24,
+      "severity": "P2",
+      "area": "statistics",
+      "finding": "One NULL false transition appeared under high coordinate noise.",
+      "evidence": "Monte Carlo run 17, S01 left_mid.",
+      "remediation": "Use quality/visibility/pose-stratified null and persistent-event confirmation."
+    },
+    {
+      "rank": 25,
+      "severity": "P2",
+      "area": "ui",
+      "finding": "Production UI bundle emits >500 kB chunk warning.",
+      "evidence": "vite build warning for main index bundle.",
+      "remediation": "Code-split heavy panels/three.js and set a budget gate."
+    },
+    {
+      "rank": 26,
+      "severity": "P2",
+      "area": "tests",
+      "finding": "UI tests emit React act warnings and NaN SVG warnings.",
+      "evidence": "Observed in test output although suite passes.",
+      "remediation": "Fix async test act boundaries and finite-coordinate guards; treat console warnings as CI failures."
+    },
+    {
+      "rank": 27,
+      "severity": "P2",
+      "area": "integrity",
+      "finding": "Root .gitignore has typo 3ddfav3/assets instead of 3ddfa_v3/assets.",
+      "evidence": "README describes ignored weights but typo weakens policy.",
+      "remediation": "Correct ignore rule and test that model weights cannot be staged."
+    },
+    {
+      "rank": 28,
+      "severity": "P2",
+      "area": "dependencies",
+      "finding": "3ddfa_v3 requirements are unpinned/optional mixed with heavy TensorFlow.",
+      "evidence": "Contains torch-summary/scipy/etc without a reproducible environment file.",
+      "remediation": "Split core/optional extras; pin compatible torch/cuda/cpu matrices."
+    },
+    {
+      "rank": 29,
+      "severity": "P2",
+      "area": "runbook",
+      "finding": "RUN_PROJECT check указывает на отсутствующий project_readiness.py.",
+      "evidence": "C121 fail; ./RUN_PROJECT.sh check завершается ошибкой.",
+      "remediation": "Реализовать readiness script либо изменить launcher и документацию на существующий preflight."
+    },
+    {
+      "rank": 30,
+      "severity": "P3",
+      "area": "quality",
+      "finding": "No explicit static-analysis command is integrated into release script.",
+      "evidence": "pyproject config exists but RUN_PROJECT has no lint target.",
+      "remediation": "Add RUN_PROJECT lint and CI ruff check with a reviewed baseline."
+    }
+  ]
+}
