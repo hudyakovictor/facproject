@@ -16,13 +16,7 @@ from app6.stage2.core import Record, build_coordinate_zone_map, compare_landmark
 from app6.stage2.anchor_policy import stable_anchor_mask
 
 from .bfm_topology import is_bfm_available, load_bfm_model
-from .demo_data import DemoPhoto
-
 COMPARE_SCHEMA = "deeputin-api-compare-v1.0"
-
-
-def photo_to_record(photo: DemoPhoto) -> Record:
-    return photo.record
 
 
 def compare_records(a: Record, b: Record) -> dict[str, Any]:
@@ -100,7 +94,7 @@ def compare_records(a: Record, b: Record) -> dict[str, Any]:
     return result
 
 
-def full_mesh_compare(photo_a: DemoPhoto, photo_b: DemoPhoto) -> dict[str, Any] | None:
+def full_mesh_compare(photo_a: Record, photo_b: Record) -> dict[str, Any] | None:
     """📤 Полное BFM-сравнение (35 709 вершин) для 3D Inspector-режима морфинга.
 
     Реконструирует identity-форму каждого carrier'а (`alpha_exp=0` — костная
@@ -118,8 +112,10 @@ def full_mesh_compare(photo_a: DemoPhoto, photo_b: DemoPhoto) -> dict[str, Any] 
     if not is_bfm_available():
         return None
     bfm = load_bfm_model()
-    shape_a = bfm.compute_shape(photo_a.record.alpha_id, np.zeros(64, np.float32)).astype(np.float64)
-    shape_b = bfm.compute_shape(photo_b.record.alpha_id, np.zeros(64, np.float32)).astype(np.float64)
+    if not (np.isfinite(photo_a.alpha_id).all() and np.isfinite(photo_b.alpha_id).all()):
+        return None
+    shape_a = bfm.compute_shape(photo_a.alpha_id, np.zeros(64, np.float32)).astype(np.float64)
+    shape_b = bfm.compute_shape(photo_b.alpha_id, np.zeros(64, np.float32)).astype(np.float64)
 
     _, rotation, translation, _ = robust_rigid_align(shape_b, shape_a)
     aligned_b = shape_b @ rotation + translation
@@ -148,5 +144,4 @@ def full_mesh_compare(photo_a: DemoPhoto, photo_b: DemoPhoto) -> dict[str, Any] 
             "линейной интерполяции (морфинга) A→B на фронтенде."
         ),
     }
-
 

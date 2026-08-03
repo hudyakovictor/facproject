@@ -1,8 +1,9 @@
-"""🚪 API → Вычисление полей, которых нет в Stage 1, но которые требует UI.
+"""Вычисление полей, которых нет в Stage 1, но которые требует UI.
 
-Замер (A29): API_CONTRACT.md объявляет обязательными id, date, t, era, bucket,
-quality, boneScore, p0, p1, p2. Stage 1 не производит ни boneScore, ни p0/p1/p2,
-ни era, ни t. Если их не вычислить здесь, фронтенд молча переходит на demo_data.
+API_CONTRACT.md объявляет обязательными id, date, t, era, bucket, quality,
+boneScore, p0, p1, p2. Stage 1 не производит ни boneScore, ни p0/p1/p2,
+ни era, ни t — их нужно собирать здесь, чтобы UI получал полный контракт
+без подмены данных.
 """
 from __future__ import annotations
 

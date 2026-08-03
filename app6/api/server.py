@@ -9,7 +9,8 @@
 Контракт эндпоинтов соответствует `ui/API_CONTRACT.md` и
 `docs/техническое задание проекта/aboutplatform.txt` ("Судебно-медицинская
 рабочая станция"). Все ответы, основанные на демо-данных, содержат
-`source_mode: "demo"` и `not_a_verdict: true` — см. `app6/AGENTS.md`.
+Все данные API происходят только из реальных артефактов Stage 1/2; отсутствие
+готового прогона возвращается как явное состояние, а не подменяется данными.
 """
 from __future__ import annotations
 
@@ -33,7 +34,6 @@ from .bfm_topology import is_bfm_available
 from .calibration import find_matching_calibration_frames, load_calibration_health
 
 from .compare import compare_records, full_mesh_compare
-from .demo_data import DemoPhoto, build_demo_records, build_demo_zone_maps, full_mesh_for_photo
 from .jobs import JobManager, make_extract_runner, make_recompute_metrics_runner
 from .noise_calibration import (
     apply_noise_subtraction, build_noise_index, noise_coverage_report, resolve_tolerance,
@@ -41,7 +41,6 @@ from .noise_calibration import (
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
 from .skin_zones import SKIN_ZONES_SCHEMA, load_skin_zone_report, zone_catalog
 from .system_health import build_system_health
-from .timeline import build_demo_timeline
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -68,13 +67,6 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 _job_manager = JobManager()
-
-# 💡 NOTE: demo-датасет строится лениво и кэшируется в памяти процесса —
-# построение реальной геометрии (Kabsch, zone map) для 520 записей занимает
-# заметное время, а данные детерминированы (тот же seed), так что кэш не
-# теряет актуальность между запросами одного процесса.
-_demo_cache: dict[str, Any] = {}
-
 
 def _stage1_root() -> Path | None:
     import os
@@ -108,15 +100,34 @@ def _calibration_root() -> Path:
     return Path(raw) if raw else PROJECT_ROOT / "calibration_dataset"
 
 
-def _get_demo_photos() -> list[DemoPhoto]:
-    if "photos" not in _demo_cache:
-        photos = build_demo_records()
-        zone106, zone134 = build_demo_zone_maps(photos)
-        _demo_cache["photos"] = photos
-        _demo_cache["zone106"] = zone106
-        _demo_cache["zone134"] = zone134
-        _demo_cache["by_id"] = {p.id: p for p in photos}
-    return _demo_cache["photos"]
+def _require_stage1() -> Path:
+    stage1_root = _stage1_root()
+    if stage1_root is None:
+        raise HTTPException(
+            status_code=409,
+            detail="данные Stage 1 ещё не настроены: задайте DEEPUTIN_STAGE1_ROOT на завершённый вывод с main_timeline.csv",
+        )
+    return stage1_root
+
+
+def _main_records() -> dict[str, Any]:
+    from app6.stage2.loaders import load_main
+    return {record.record_id: record for record in load_main(_require_stage1())}
+
+
+def _main_record(photo_id: str) -> Any:
+    record = _main_records().get(photo_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"photo not found in Stage 1 output: {photo_id}")
+    return record
+
+
+def _calibration_records() -> list[Any]:
+    from app6.stage2.loaders import load_calibration
+    try:
+        return load_calibration(_calibration_root())
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"калибровочный Stage 1 недоступен: {exc}") from exc
 
 
 @app.get("/api/v1/health")
@@ -129,51 +140,42 @@ def get_timeline() -> dict[str, Any]:
     """🚪 API → Хронология для главного таймлайна интерфейса.
 
     Возвращает вывод реального Stage 2 (`analysis_manifest.json` +
-    `pair_metrics.csv`), если `DEEPUTIN_STAGE2_ROOT` указывает на валидный
-    прогон; иначе — детерминированный demo-timeline (`timeline.py`),
-    честно помеченный `source_mode: "demo"`.
+    `pair_metrics.csv`). До завершения Stage 2 таймлайн честно остаётся
+    пустым и сообщает, какой шаг требуется выполнить.
     """
     stage2_root = _stage2_root()
-    if stage2_root is not None:
-        from .research_timeline import build_research_timeline
+    if stage2_root is None:
+        from .stage1_timeline import build_stage1_inventory
         try:
-            return build_research_timeline(stage2_root)
-        except Exception as exc:  # noqa: BLE001 - fall back to demo, do not 500 the UI
-            payload = build_demo_timeline()
-            payload["research_load_error"] = str(exc)
-            return payload
-    if "timeline" not in _demo_cache:
-        _demo_cache["timeline"] = build_demo_timeline()
-    return _demo_cache["timeline"]
+            return build_stage1_inventory(_require_stage1())
+        except (FileNotFoundError, ValueError, KeyError) as exc:
+            raise HTTPException(status_code=422, detail=f"вывод Stage 1 не прошёл проверку: {exc}") from exc
+    from .research_timeline import build_research_timeline
+    try:
+        return build_research_timeline(stage2_root)
+    except (FileNotFoundError, ValueError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=f"вывод Stage 2 не прошёл проверку: {exc}") from exc
 
 
 @app.get("/api/v1/photos")
 def list_photos() -> dict[str, Any]:
-    """🚪 API → Список фото (демо или research) с метаданными без raw-изображений."""
-    stage1_root = _stage1_root()
-    if stage1_root is not None:
-        manifest_path = stage1_root / "stage1_manifest.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
-        return {"schema": APP_SCHEMA, "source_mode": "research", "manifest": manifest,
-                "photo_dirs": sorted(p.name for p in stage1_root.iterdir() if p.is_dir() and not p.name.startswith("_"))}
-    photos = _get_demo_photos()
-    return {
-        "schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True,
-        "count": len(photos),
-        "photos": [{"id": p.id, "date": p.date, "bucket": p.pose_bin, "era": p.era} for p in photos],
-    }
+    """🚪 API → Список фото реального Stage 1 без raw-изображений."""
+    stage1_root = _require_stage1()
+    manifest_path = stage1_root / "stage1_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+    records = _main_records()
+    return {"schema": APP_SCHEMA, "source_mode": "research", "manifest": manifest,
+            "count": len(records), "photos": [
+                {"id": r.record_id, "date": r.date, "bucket": r.pose_bin}
+                for r in sorted(records.values(), key=lambda item: (item.date or "", item.sequence, item.record_id))]}
 
 
 @app.get("/api/v1/photos/{photo_id}")
 def get_photo(photo_id: str) -> dict[str, Any]:
-    photos_by_id = _get_demo_photos() and _demo_cache["by_id"]
-    photo = photos_by_id.get(photo_id)
-    if photo is None:
-        raise HTTPException(status_code=404, detail=f"photo not found: {photo_id}")
-    record = photo.record
+    record = _main_record(photo_id)
     return {
-        "schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True,
-        "id": photo.id, "date": photo.date, "bucket": photo.pose_bin, "era": photo.era,
+        "schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
+        "id": record.record_id, "date": record.date, "bucket": record.pose_bin,
         "angles": {"pitch": float(record.angles[0]), "yaw": float(record.angles[1]), "roll": float(record.angles[2])},
         "landmarks_106": record.ldm106.tolist(),
         "landmarks_134": record.ldm134.tolist(),
@@ -190,14 +192,18 @@ def get_photo_full_mesh(photo_id: str) -> dict[str, Any]:
     (`3ddfa_v3/assets/face_model.tar.gz`), без запуска нейросети — только
     линейная реконструкция формы из уже известного `alpha_id`.
     """
-    by_id = _get_demo_photos() and _demo_cache["by_id"]
-    photo = by_id.get(photo_id)
-    if photo is None:
-        raise HTTPException(status_code=404, detail=f"photo not found: {photo_id}")
+    record = _main_record(photo_id)
     if not is_bfm_available():
         raise HTTPException(status_code=503, detail="BFM geometry (face_model.tar.gz) unavailable in this environment")
-    mesh = full_mesh_for_photo(photo)
-    return {"schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True, "id": photo.id, **mesh}
+    from .bfm_topology import load_bfm_model
+    import numpy as np
+    if not np.isfinite(record.alpha_id).all():
+        raise HTTPException(status_code=422, detail="Stage 1 не содержит пригодных параметров identity для полного меша")
+    bfm = load_bfm_model()
+    vertices = bfm.compute_shape(record.alpha_id, np.zeros(64, np.float32)).astype(np.float32)
+    return {"schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
+            "id": record.record_id, "vertices": vertices.tolist(), "triangles": bfm.triangles.tolist(),
+            "vertex_count": int(vertices.shape[0]), "triangle_count": int(bfm.triangles.shape[0])}
 
 
 class UploadResponse(BaseModel):
@@ -212,7 +218,7 @@ class UploadResponse(BaseModel):
 def zones_catalog() -> dict[str, Any]:
     """🚪 API → Каталог зон кожи из нормативного атласа (для легенды UI).
 
-    Отдаёт то, что реально записано в `app6/atlas/skin_zone_atlas.json`.
+    Отдаёт то, что реально записано в `3ddfa_v3/atlas/skin_zone_atlas.json`.
     Веса зон не синтезируются: атлас их не содержит, а придумывать их в API
     значило бы подменить нормативную схему (`app6/AGENTS.md`).
     """
@@ -228,10 +234,9 @@ def get_photo_skin_zones(photo_id: str) -> dict[str, Any]:
     """🚪 API → Per-zone кожа/качество из УЖЕ сохранённых артефактов Stage 1.
 
     Ничего не пересчитывает: читает `skin_zone_quality.json`, `quality.json` и
-    `wrinkle_zones.json` рядом с фотографией. В demo-режиме (нет
-    `DEEPUTIN_STAGE1_ROOT`) настоящих текстурных артефактов не существует,
-    поэтому возвращается HTTP 409 с явной причиной — вместо синтетических
-    чисел, выдаваемых за анализ кожи.
+    `wrinkle_zones.json` рядом с фотографией. Если `DEEPUTIN_STAGE1_ROOT` не
+    задан, настоящих текстурных артефактов нет, поэтому возвращается HTTP 409
+    с явной причиной — вместо синтетических чисел, выдаваемых за анализ кожи.
     """
     stage1_root = _stage1_root()
     if stage1_root is None:
@@ -240,8 +245,8 @@ def get_photo_skin_zones(photo_id: str) -> dict[str, Any]:
             detail=(
                 "текстурные артефакты доступны только для вывода Stage 1. "
                 "Задайте DEEPUTIN_STAGE1_ROOT и выполните извлечение "
-                "(POST /api/v1/jobs {\"kind\": \"extract\"}). Демо-режим не "
-                "содержит реального анализа кожи."
+                "(POST /api/v1/jobs {\"kind\": \"extract\"}). Без этого "
+                "реальный анализ кожи недоступен."
             ),
         )
     photo_dir = stage1_root / photo_id
@@ -271,8 +276,9 @@ def get_photo_image(photo_id: str, kind: str = "original") -> FileResponse:
     (ТЗ: «визуализацией обоих изображений рядом»). Ничего не генерирует —
     только отдаёт уже лежащий на диске файл.
 
-    🚨 В demo-режиме исходных изображений не существует: возвращается 409 с
-    объяснением, а не заглушка, которую можно принять за реальный кадр.
+    Если `DEEPUTIN_STAGE1_ROOT` не задан, исходных изображений нет: тогда
+    возвращается 409 с объяснением, а не заглушка, которую можно принять за
+    реальный кадр.
     """
     if kind not in _PHOTO_IMAGE_KINDS:
         raise HTTPException(
@@ -285,8 +291,8 @@ def get_photo_image(photo_id: str, kind: str = "original") -> FileResponse:
             status_code=409,
             detail=(
                 "изображения доступны только для вывода Stage 1. Задайте "
-                "DEEPUTIN_STAGE1_ROOT и выполните извлечение. Демо-режим не "
-                "содержит исходных фотографий."
+                "DEEPUTIN_STAGE1_ROOT и выполните извлечение. Исходные "
+                "фотографии доступны только после реального Stage 1."
             ),
         )
     photo_dir = stage1_root / photo_id
@@ -407,16 +413,13 @@ def compare_pair(request: ComparePairRequest) -> dict[str, Any]:
     соответствует "умному кэшированию" из ТЗ: 3D-модель не извлекается
     заново для уже известных фото).
     """
-    by_id = _get_demo_photos() and _demo_cache["by_id"]
-    photo_a = by_id.get(request.photo_a)
-    photo_b = by_id.get(request.photo_b)
-    if photo_a is None or photo_b is None:
-        missing = [pid for pid in (request.photo_a, request.photo_b) if pid not in by_id]
-        raise HTTPException(status_code=404, detail=f"unknown photo id(s): {missing}")
-    result = compare_records(photo_a.record, photo_b.record)
-    result["source_mode"] = "demo"
-    result["photo_a"] = {"id": photo_a.id, "date": photo_a.date, "bucket": photo_a.pose_bin}
-    result["photo_b"] = {"id": photo_b.id, "date": photo_b.date, "bucket": photo_b.pose_bin}
+    photo_a = _main_record(request.photo_a)
+    photo_b = _main_record(request.photo_b)
+    result = compare_records(photo_a, photo_b)
+    result["source_mode"] = "research"
+    result["not_a_verdict"] = True
+    result["photo_a"] = {"id": photo_a.record_id, "date": photo_a.date, "bucket": photo_a.pose_bin}
+    result["photo_b"] = {"id": photo_b.record_id, "date": photo_b.date, "bucket": photo_b.pose_bin}
     return result
 
 
@@ -428,18 +431,15 @@ def compare_pair_full_mesh(request: ComparePairRequest) -> dict[str, Any]:
     сравнивается вся identity-форма (без мимики) с подлинной топологией
     треугольников — то, что нужно для настоящего 3D-морфинга A→B из ТЗ.
     """
-    by_id = _get_demo_photos() and _demo_cache["by_id"]
-    photo_a = by_id.get(request.photo_a)
-    photo_b = by_id.get(request.photo_b)
-    if photo_a is None or photo_b is None:
-        missing = [pid for pid in (request.photo_a, request.photo_b) if pid not in by_id]
-        raise HTTPException(status_code=404, detail=f"unknown photo id(s): {missing}")
+    photo_a = _main_record(request.photo_a)
+    photo_b = _main_record(request.photo_b)
     result = full_mesh_compare(photo_a, photo_b)
     if result is None:
         raise HTTPException(status_code=503, detail="BFM geometry (face_model.tar.gz) unavailable in this environment")
-    result["source_mode"] = "demo"
-    result["photo_a"] = {"id": photo_a.id, "date": photo_a.date, "bucket": photo_a.pose_bin}
-    result["photo_b"] = {"id": photo_b.id, "date": photo_b.date, "bucket": photo_b.pose_bin}
+    result["source_mode"] = "research"
+    result["not_a_verdict"] = True
+    result["photo_a"] = {"id": photo_a.record_id, "date": photo_a.date, "bucket": photo_a.pose_bin}
+    result["photo_b"] = {"id": photo_b.record_id, "date": photo_b.date, "bucket": photo_b.pose_bin}
     return result
 
 
@@ -481,17 +481,13 @@ def calibration_subtract_noise(request: NoiseSubtractionRequest) -> dict[str, An
     `uncompensated` и `degenerate_match`: компенсация уменьшает расхождение,
     и подменять ею исходное число молча недопустимо.
     """
-    by_id = _get_demo_photos() and _demo_cache["by_id"]
-    photo_a = by_id.get(request.photo_a)
-    photo_b = by_id.get(request.photo_b)
-    if photo_a is None or photo_b is None:
-        missing = [pid for pid in (request.photo_a, request.photo_b) if pid not in by_id]
-        raise HTTPException(status_code=404, detail=f"unknown photo id(s): {missing}")
+    photo_a = _main_record(request.photo_a)
+    photo_b = _main_record(request.photo_b)
 
-    comparison = compare_records(photo_a.record, photo_b.record)
+    comparison = compare_records(photo_a, photo_b)
     if comparison.get("status") != "measured":
         return {
-            "schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True,
+            "schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
             "status": comparison.get("status"),
             "uncompensated": True,
             "reason": "сравнение не в статусе measured — компенсировать нечего",
@@ -500,14 +496,15 @@ def calibration_subtract_noise(request: NoiseSubtractionRequest) -> dict[str, An
 
     outcome = apply_noise_subtraction(
         comparison.get("metrics") or {},
-        photo_a.record.angles, photo_b.record.angles,
+        photo_a.angles, photo_b.angles,
         photo_a.pose_bin,
         tolerance=request.tolerance,
-        exclude_records=(photo_a.record.record_id, photo_b.record.record_id),
+        calibration_records=_calibration_records(), cache_key=str(_calibration_root().resolve()),
+        exclude_records=(photo_a.record_id, photo_b.record_id),
     )
-    return {**outcome, "source_mode": "demo", "status": "measured",
-            "photo_a": {"id": photo_a.id, "bucket": photo_a.pose_bin},
-            "photo_b": {"id": photo_b.id, "bucket": photo_b.pose_bin}}
+    return {**outcome, "source_mode": "research", "status": "measured", "not_a_verdict": True,
+            "photo_a": {"id": photo_a.record_id, "bucket": photo_a.pose_bin},
+            "photo_b": {"id": photo_b.record_id, "bucket": photo_b.pose_bin}}
 
 
 @app.get("/api/v1/calibration/noise_model")
@@ -522,9 +519,10 @@ def calibration_noise_model(
     «сырые/компенсированные» вводит в заблуждение.
     """
     tolerance = resolve_tolerance({"yaw": yaw, "pitch": pitch, "roll": roll})
-    index = build_noise_index()
+    calibration_records = _calibration_records()
+    index = build_noise_index(calibration_records, cache_key=str(_calibration_root().resolve()))
 
-    photos = _get_demo_photos()
+    photos = list(_main_records().values())
     by_bin: dict[str, list[Any]] = {}
     for photo in photos:
         by_bin.setdefault(photo.pose_bin, []).append(photo)
@@ -535,20 +533,21 @@ def calibration_noise_model(
     for pose_bin, group in by_bin.items():
         for i in range(0, min(len(group) - 1, max(1, sample // max(1, len(by_bin))))):
             a, b = group[i], group[i + 1]
-            comparison = compare_records(a.record, b.record)
+            comparison = compare_records(a, b)
             if comparison.get("status") != "measured":
                 continue
             probes.append((comparison.get("metrics") or {},
-                           a.record.angles, b.record.angles, pose_bin))
+                           a.angles, b.angles, pose_bin))
 
-    coverage = noise_coverage_report(probes, tolerance=tolerance)
+    coverage = noise_coverage_report(probes, tolerance=tolerance, calibration_records=calibration_records,
+                                     cache_key=str(_calibration_root().resolve()))
     per_bin: dict[str, int] = {}
     for pair in index:
         key = str(pair.get("pose_bin"))
         per_bin[key] = per_bin.get(key, 0) + 1
 
     return {
-        "schema": APP_SCHEMA, "source_mode": "demo", "not_a_verdict": True,
+        "schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
         "tolerance": tolerance,
         "index_size": len(index),
         "pairs_per_pose_bin": per_bin,
@@ -578,7 +577,7 @@ def _require_stage2() -> Path:
             detail=(
                 "полные метрики доступны только для вывода Stage 2. Задайте "
                 "DEEPUTIN_STAGE2_ROOT на каталог с analysis_manifest.json. "
-                "Демо-режим не содержит реального попарного анализа."
+                "Без Stage 2 реальный попарный анализ недоступен."
             ),
         )
     return stage2_root
@@ -742,18 +741,15 @@ def calibration_match(photo_id: str | None = None, yaw: float | None = None,
                       pose_bin: str | None = None, limit: int = 5) -> dict[str, Any]:
     """🚪 API → Подобрать калибровочные кадры для угловой компенсации шума.
 
-    Принимает либо `photo_id` (углы берутся из уже известной demo/research
+    Принимает либо `photo_id` (углы берутся из уже известной research
     записи), либо явные `yaw`/`pitch`/`roll` (например, для кадра, ещё не
     сохранённого в базе). См. `app6/api/calibration.find_matching_calibration_frames`.
     """
     if photo_id is not None:
-        by_id = _get_demo_photos() and _demo_cache["by_id"]
-        photo = by_id.get(photo_id)
-        if photo is None:
-            raise HTTPException(status_code=404, detail=f"unknown photo id: {photo_id}")
-        yaw = float(photo.record.angles[1])
-        pitch = float(photo.record.angles[0])
-        roll = float(photo.record.angles[2])
+        photo = _main_record(photo_id)
+        yaw = float(photo.angles[1])
+        pitch = float(photo.angles[0])
+        roll = float(photo.angles[2])
         pose_bin = pose_bin or photo.pose_bin
     if yaw is None or pitch is None or roll is None:
         raise HTTPException(status_code=400, detail="provide either photo_id or yaw/pitch/roll")
@@ -775,11 +771,25 @@ class JobRequest(BaseModel):
     limit: int = 0
 
 
+def _require_removable_output(path: Path) -> Path:
+    """Не позволять API записывать извлечение вне выделенного съёмного диска."""
+    storage_root = Path("/Volumes/SDCARD/storage").resolve()
+    resolved = path.resolve()
+    try:
+        resolved.relative_to(storage_root)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"output_dir must be under {storage_root}; got {resolved}",
+        ) from exc
+    return resolved
+
+
 @app.post("/api/v1/jobs")
 def submit_job(request: JobRequest) -> dict[str, Any]:
     if request.kind == "extract":
         input_dir = Path(request.input_dir) if request.input_dir else _uploads_root() / "main"
-        output_dir = Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage1"
+        output_dir = _require_removable_output(Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage1")
         if not input_dir.is_dir():
             raise HTTPException(status_code=400, detail=f"input_dir does not exist: {input_dir}")
         runner = make_extract_runner(input_dir, output_dir, PROJECT_ROOT, device=request.device, limit=request.limit)
@@ -788,7 +798,7 @@ def submit_job(request: JobRequest) -> dict[str, Any]:
         if stage1_root is None:
             raise HTTPException(status_code=400, detail="stage1_root not provided and DEEPUTIN_STAGE1_ROOT not set")
         calibration_root = Path(request.calibration_root) if request.calibration_root else _calibration_root()
-        output_dir = Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage2"
+        output_dir = _require_removable_output(Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage2")
         runner = make_recompute_metrics_runner(stage1_root, calibration_root, output_dir)
     else:
         raise HTTPException(status_code=400, detail=f"unknown job kind: {request.kind}")
@@ -841,16 +851,17 @@ def reset_settings() -> dict[str, Any]:
 def clear_data() -> dict[str, Any]:
     """🚪 API → Очистить извлечённые данные без удаления исходных фото с диска.
 
-    Удаляет только `runs/api_stage1`, `runs/api_stage2` и локальный кэш job'ов
+    Удаляет только `/Volumes/SDCARD/storage/api_stage1`,
+    `/Volumes/SDCARD/storage/api_stage2` и локальный кэш job'ов
     процесса. Исходные фото под `DEEPUTIN_UPLOADS_ROOT`/`--input` не трогаются.
     """
     removed = []
+    storage_root = Path("/Volumes/SDCARD/storage")
     for rel in ("api_stage1", "api_stage2"):
-        path = Path("/Volumes/SDCARD/project_data") / rel
+        path = storage_root / rel
         if path.exists():
             shutil.rmtree(path)
             removed.append(rel)
-    _demo_cache.clear()
     return {"schema": APP_SCHEMA, "removed": removed, "note": "исходные фото не удалены"}
 
 

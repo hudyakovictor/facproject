@@ -32,6 +32,7 @@ from app6.stage2.angle_noise import (
     build_calibration_pair_index,
     subtract_angle_noise,
 )
+from app6.stage2.core import Record, build_coordinate_zone_map, compare_landmarks
 
 NOISE_CALIBRATION_SCHEMA = "deeputin-api-noise-calibration-v1.0"
 
@@ -41,39 +42,23 @@ _lock = threading.Lock()
 _index_cache: dict[str, list[dict[str, Any]]] = {}
 
 
-def build_noise_index(cache_key: str = "demo") -> list[dict[str, Any]]:
+def build_noise_index(records: list[Record], cache_key: str = "calibration") -> list[dict[str, Any]]:
     """🏭 FACTORY → Индекс калибровочных пар (кэшируется на процесс).
 
-    В demo-режиме источником «одного и того же человека» служат кадры одного
-    carrier: `build_demo_records` порождает их из одного alpha_id, поэтому
-    расхождение внутри carrier — это в точности шум метода, а не различие
-    личностей.
+    Источник — завершённый калибровочный Stage 1. Индекс допускает только
+    кадры с `dataset_role=calibration`; никаких синтетических записей нет.
     """
     with _lock:
         cached = _index_cache.get(cache_key)
         if cached is not None:
             return cached
 
-        from app6.stage2.core import compare_landmarks
-
-        from .demo_data import build_demo_records, build_demo_zone_maps
-
-        photos = build_demo_records()
-        zone106, zone134 = build_demo_zone_maps(photos)
-
-        # 🎯 КРИТИЧНО: `build_calibration_pair_index` группирует кадры по
-        # `record.dataset_id`, считая их одним человеком. В демо-наборе ВСЕ
-        # записи имеют dataset_id="demo_subject", хотя порождены тремя разными
-        # carrier'ами (разные alpha_id = разные «лица»). Без подмены
-        # идентификатора в «шум одного человека» попали бы пары разных людей:
-        # оценка шума оказалась бы завышенной, а вычитание замаскировало бы
-        # настоящие расхождения — прямо противоположно цели калибровки.
-        from dataclasses import replace as _replace
-
-        records = [
-            _replace(photo.record, dataset_id=f"carrier_{photo.carrier}")
-            for photo in photos
-        ]
+        if not records:
+            raise ValueError("калибровочный Stage 1 не содержит завершённых кадров")
+        if any(record.dataset_role != "calibration" for record in records):
+            raise ValueError("индекс шума принимает только калибровочные записи")
+        zone106, _ = build_coordinate_zone_map(records, 106)
+        zone134, _ = build_coordinate_zone_map(records, 134)
         index = build_calibration_pair_index(
             records, compare_landmarks, zone106, zone134, max_pairs_per_group=40)
         _index_cache[cache_key] = index
@@ -106,7 +91,8 @@ def apply_noise_subtraction(
     pose_bin: str | None,
     *,
     tolerance: dict[str, float] | None = None,
-    cache_key: str = "demo",
+    calibration_records: list[Record],
+    cache_key: str = "calibration",
     exclude_records: tuple[str | None, str | None] = (None, None),
 ) -> dict[str, Any]:
     """📊 METRIC → Вычесть угловой шум из метрик одной пары.
@@ -118,14 +104,14 @@ def apply_noise_subtraction(
         применяется, а не подменяется нулём.
     """
     tol = resolve_tolerance(tolerance)
-    index = build_noise_index(cache_key)
+    index = build_noise_index(calibration_records, cache_key)
 
     # 🚧 GATE → Исключение самоподбора (leakage). Если анализируемая пара сама
     # присутствует в калибровочном индексе, из наблюдаемого вычтется оно же и
     # компенсированное значение окажется ровно 0 — круговая логика, выдающая
     # «идеальное совпадение». В штатной конфигурации калибровочный и основной
-    # наборы физически разделены (`app6/AGENTS.md`), но в demo-режиме индекс
-    # строится из тех же кадров, поэтому защита обязательна.
+    # наборы физически разделены (`app6/AGENTS.md`), но защита от круговой
+    # логики обязательна и при ошибочной конфигурации путей.
     excluded = {r for r in exclude_records if r}
     if excluded:
         index = [
@@ -184,7 +170,8 @@ def noise_coverage_report(
     pairs: list[tuple[dict[str, float], Any, Any, str | None]],
     *,
     tolerance: dict[str, float] | None = None,
-    cache_key: str = "demo",
+    calibration_records: list[Record],
+    cache_key: str = "calibration",
 ) -> dict[str, Any]:
     """📤 Покрытие компенсации по набору пар: для скольких шум удалось вычесть.
 
@@ -200,7 +187,8 @@ def noise_coverage_report(
 
     for metrics, angles_a, angles_b, pose_bin in pairs:
         outcome = apply_noise_subtraction(
-            metrics, angles_a, angles_b, pose_bin, tolerance=tol, cache_key=cache_key)
+            metrics, angles_a, angles_b, pose_bin, calibration_records,
+            tolerance=tol, cache_key=cache_key)
         if outcome["uncompensated"]:
             reason = outcome["reason"] or "неизвестная причина"
             reasons[reason] = reasons.get(reason, 0) + 1

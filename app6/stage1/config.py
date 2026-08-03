@@ -85,6 +85,7 @@ class Stage1Config:
     continue_on_error: bool = True
     save_original: bool = True
     save_mesh: bool = True
+    require_filename_date: bool = True
 
     def __post_init__(self) -> None:
         if self.device not in {"auto", "cpu", "cuda"}:
@@ -113,6 +114,7 @@ class Stage1Config:
             "semantic_policy": SEMANTIC_POLICY,
             "pose_bins": POSE_BINS,
             "save_mesh": bool(self.save_mesh),
+            "require_filename_date": bool(self.require_filename_date),
         }
 
     # 📤 Публичный dict конфига для сериализации

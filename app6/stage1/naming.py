@@ -5,7 +5,6 @@
 """
 from __future__ import annotations
 from .status_logger import log_status
-
 import re
 from dataclasses import dataclass
 from datetime import date
@@ -30,7 +29,6 @@ class PhotoName:
 
 def parse_photo_name(path: Path) -> PhotoName:
     """Parse photo name, accepting YYYY_MM_DD[_N] with optional copy suffixes like (2), _2, -copy."""
-    log_status("parse_photo_name", "complete")
     stem = path.stem
     parsed = None
     date_end_pos = 0
@@ -65,6 +63,19 @@ def parse_photo_name(path: Path) -> PhotoName:
     if rest:
         canonical_stem += rest if rest.startswith("_") else f"_{rest}"
     return PhotoName(parsed.isoformat(), parsed.year, parsed.month, parsed.day, seq, canonical_stem)
+
+
+def make_nonchronological_photo_name(path: Path, relative_path: str) -> PhotoName:
+    """Create a stable ID for reference frames that intentionally have no date.
+
+    This is for calibration/reference material only; it must never be used for
+    the chronological main dataset.
+    """
+    del path
+    stem = re.sub(r"[^A-Za-z0-9]+", "_", relative_path.rsplit(".", 1)[0]).strip("_").lower()
+    if not stem:
+        raise ValueError("cannot create calibration photo id from empty relative path")
+    return PhotoName("", 0, 0, 0, 1, f"calibration_{stem}")
 
 
 def make_photo_id(parsed: PhotoName, source_digest: str | None) -> str:
