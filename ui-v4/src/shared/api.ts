@@ -428,6 +428,7 @@ export interface RunRow {
   schema?: string;
   run_id: string;
   legacy?: boolean;
+  archived?: boolean;
   label?: string;
   profile_id?: string | null;
   profile_name?: string | null;
@@ -712,3 +713,53 @@ export interface TimelineFindings {
   bins: Record<string, BinFindings>;
 }
 export const timelineFindings = () => apiJson<TimelineFindings>("/api/v1/timeline/findings");
+
+// ---------------------------------------------------------------------------
+// Iteration 13 — integrity, rollback, recommendations
+// ---------------------------------------------------------------------------
+export interface Stage1Integrity {
+  schema?: string;
+  unchanged: boolean;
+  baseline?: { dataset_hash?: string; timeline_sha256?: string; photo_count?: number } | null;
+  current?: { dataset_hash?: string; timeline_sha256?: string; photo_count?: number } | null;
+  note?: string;
+}
+export const stage1Integrity = () => apiJson<Stage1Integrity>("/api/v1/integrity/stage1");
+
+export interface RecommendationAction {
+  kind: string;
+  run_id?: string | null;
+  pose?: string | null;
+  profile_id?: string | null;
+}
+export interface Recommendation {
+  type: string;
+  priority: number;
+  title: string;
+  body: string;
+  action: RecommendationAction | null;
+}
+export interface Recommendations {
+  schema?: string;
+  generated_at?: string | null;
+  count: number;
+  max_total?: number;
+  recommendations: Recommendation[];
+  error?: string | null;
+  not_a_verdict?: boolean;
+}
+export interface RecTypeSettings { enabled: boolean; limit: number }
+export interface RecSettings {
+  schema?: string;
+  max_total: number;
+  types: Record<string, RecTypeSettings>;
+}
+export const recommendations = () => apiJson<Recommendations>("/api/v1/recommendations");
+export const recommendationSettings = () => apiJson<RecSettings>("/api/v1/recommendations/settings");
+export const saveRecommendationSettings = (payload: Partial<RecSettings>) =>
+  apiJson<RecSettings>("/api/v1/recommendations/settings", { method: "PUT", body: JSON.stringify(payload) });
+
+export const restoreRun = (runId: string) => apiJson<RunRow>(`/api/v1/runs/${encodeURIComponent(runId)}/restore`, { method: "POST" });
+export const retryRun = (runId: string, label?: string | null) =>
+  apiJson<RunRow>(`/api/v1/runs/${encodeURIComponent(runId)}/retry`, { method: "POST", body: JSON.stringify({ label: label ?? null }) });
+export const deleteRun = (runId: string) => apiJson<{ run_id: string; deleted: boolean }>(`/api/v1/runs/${encodeURIComponent(runId)}/delete`, { method: "POST" });

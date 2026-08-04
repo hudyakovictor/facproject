@@ -434,3 +434,92 @@ class TestEventLog:
         payload = client.post("/api/v1/logs/client", json={"events": [{"level": "error", "source": "x", "message": ""}]})
         assert payload.status_code == 200
         assert payload.json()["received"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Iteration 13 — integrity, rollback, recommendations
+# ---------------------------------------------------------------------------
+class TestIntegrityAndRollback:
+    def test_stage1_integrity_unchanged(self, client):
+        first = client.get("/api/v1/integrity/stage1").json()
+        assert first["unchanged"] is True
+        assert first["current"]["photo_count"] > 0
+        assert first["current"]["dataset_hash"]
+        # second call — still unchanged (no writes to stage1)
+        second = client.get("/api/v1/integrity/stage1").json()
+        assert second["unchanged"] is True
+        assert second["current"]["dataset_hash"] == first["current"]["dataset_hash"]
+
+    def test_rollback_guards(self, client):
+        # restore/retry/delete on nonexistent runs → 404/409, not 500
+        assert client.post("/api/v1/runs/run_nonexistent/restore").status_code == 409
+        assert client.post("/api/v1/runs/run_nonexistent/retry", json={}).status_code == 409
+        assert client.post("/api/v1/runs/run_nonexistent/delete").status_code == 409
+        # legacy run cannot be deleted
+        assert client.post("/api/v1/runs/legacy/delete").status_code == 409
+        # archiving a nonexistent run → 409
+        assert client.post("/api/v1/runs/run_nonexistent/archive").status_code == 409
+
+    def test_archive_restore_cycle(self, client, fixture):
+        """Archive a completed run, then restore it — data intact."""
+        import shutil
+        runs = fixture / "storage" / "stage2" / "runs"
+        if not runs.is_dir():
+            import pytest as _pytest
+            raise _pytest.skip("no runs in this fixture run")
+        items = [item for item in runs.iterdir() if item.is_dir() and item.name.startswith("run_")]
+        if not items:
+            import pytest as _pytest
+            raise _pytest.skip("no runs yet")
+        run_id = sorted(items)[0].name
+        archived = client.post(f"/api/v1/runs/{run_id}/archive")
+        assert archived.status_code == 200, archived.text
+        listed = client.get("/api/v1/runs").json()["runs"]
+        archived_row = next((row for row in listed if row["run_id"] == run_id), None)
+        assert archived_row and archived_row.get("archived") is True
+        restored = client.post(f"/api/v1/runs/{run_id}/restore")
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["run_id"] == run_id
+
+
+class TestRecommendations:
+    def test_recommendations_payload(self, client):
+        payload = client.get("/api/v1/recommendations")
+        assert payload.status_code == 200
+        data = payload.json()
+        assert data["schema"] == "deeputin-recommendations-v1.0"
+        assert isinstance(data["recommendations"], list)
+        for rec in data["recommendations"]:
+            assert rec["title"] and rec["body"]
+            assert isinstance(rec["priority"], int)
+            assert "action" in rec
+
+    def test_recommendation_settings_roundtrip(self, client):
+        settings = client.get("/api/v1/recommendations/settings").json()
+        assert len(settings["types"]) >= 10
+        # disable a type and persist
+        settings["types"]["coverage_gap"]["enabled"] = False
+        saved = client.put("/api/v1/recommendations/settings", json=settings).json()
+        assert saved["types"]["coverage_gap"]["enabled"] is False
+        # read back
+        reread = client.get("/api/v1/recommendations/settings").json()
+        assert reread["types"]["coverage_gap"]["enabled"] is False
+        # enable again (cleanup for other tests)
+        reread["types"]["coverage_gap"]["enabled"] = True
+        client.put("/api/v1/recommendations/settings", json=reread)
+
+    def test_recommendations_respect_settings(self, client):
+        settings = client.get("/api/v1/recommendations/settings").json()
+        # disable everything → zero recommendations
+        for key in settings["types"]:
+            settings["types"][key]["enabled"] = False
+        client.put("/api/v1/recommendations/settings", json=settings)
+        data = client.get("/api/v1/recommendations").json()
+        assert data["count"] == 0
+        # restore
+        settings = client.get("/api/v1/recommendations/settings").json()
+        for key in settings["types"]:
+            settings["types"][key]["enabled"] = True
+        client.put("/api/v1/recommendations/settings", json=settings)
+        data = client.get("/api/v1/recommendations").json()
+        assert data["count"] > 0

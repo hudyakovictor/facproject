@@ -172,6 +172,8 @@ export default function DataManager() {
         <div>
           <button className="primary" disabled={busy || !stage1 || stage1.status === "unavailable"} onClick={() => void activate()}>Подключить Stage 1</button>
           <button className="ghost" disabled={!stage1 || stage1.status === "unavailable"} onClick={() => { setIssuesOpen(true); setIssueOffset(0); }}>Реестр проблем ({issueTotal})</button>
+          <button className="ghost" disabled={!stage1 || stage1.status === "unavailable"} onClick={() => window.dispatchEvent(new CustomEvent("deeputin:navigate", { detail: { view: "runs" } }))} title="Следующий шаг: Stage 2">Прогоны Stage 2 →</button>
+          <button className="ghost" disabled={!stage1 || stage1.status === "unavailable"} onClick={() => window.dispatchEvent(new CustomEvent("deeputin:navigate", { detail: { view: "calibration" } }))} title="Проверить калибровку">Калибровка →</button>
         </div>
         <small>Stage 1 и calibration не изменяются. Регистрация пишется только в storage/registry.</small>
       </div>
