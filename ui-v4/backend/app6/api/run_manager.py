@@ -123,6 +123,15 @@ def list_runs(paths: RuntimePaths | None = None) -> list[dict[str, Any]]:
                 continue
             runs.append(_run_summary(item.name, item, legacy=False))
 
+    archive = root / "archive"
+    if archive.is_dir():
+        for item in sorted(archive.iterdir(), key=lambda p: p.name, reverse=True):
+            if not item.is_dir() or not item.name.startswith("run_"):
+                continue
+            summary = _run_summary(item.name, item, legacy=False)
+            summary["archived"] = True
+            runs.append(summary)
+
     runs.sort(key=lambda r: r.get("created_at") or "", reverse=True)
     return runs
 
@@ -157,6 +166,19 @@ def _run_summary(run_id: str, directory: Path, legacy: bool) -> dict[str, Any]:
     }
 
 
+def _resolve_run_directory(run_id: str, paths: RuntimePaths) -> Path:
+    """Run dir or archived run dir (rollback support)."""
+    if run_id == LEGACY_RUN_ID:
+        return paths.stage2_root
+    directory = run_dir(run_id, paths)
+    if directory.is_dir():
+        return directory
+    archived = archive_root(paths) / run_id
+    if archived.is_dir():
+        return archived
+    raise FileNotFoundError(f"run not found: {run_id}")
+
+
 def get_run(run_id: str, paths: RuntimePaths | None = None) -> dict[str, Any]:
     current = paths or load_runtime_paths()
     if run_id == LEGACY_RUN_ID:
@@ -165,9 +187,7 @@ def get_run(run_id: str, paths: RuntimePaths | None = None) -> dict[str, Any]:
             raise FileNotFoundError("legacy Stage 2 output not found")
         summary = _run_summary(LEGACY_RUN_ID, directory, legacy=True)
     else:
-        directory = run_dir(run_id, current)
-        if not directory.is_dir():
-            raise FileNotFoundError(f"run not found: {run_id}")
+        directory = _resolve_run_directory(run_id, current)
         summary = _run_summary(run_id, directory, legacy=False)
 
     status = _read_json(directory / "status.json") or _read_json(directory.parent / f"{run_id}.status.json") or {}
@@ -474,6 +494,70 @@ def start_stage2_run(profile_id: str | None, *, label: str | None = None,
         _ACTIVE_RUNS[run_id] = handle
     thread.start()
     return get_run(run_id, current)
+
+
+def restore_run(run_id: str, paths: RuntimePaths | None = None) -> dict[str, Any]:
+    """Restore an archived run back into stage2/runs (rollback support)."""
+    current = paths or load_runtime_paths()
+    archived = (archive_root(current) / run_id).resolve()
+    if not archived.is_dir():
+        raise FileNotFoundError(f"archived run not found: {run_id}")
+    destination = run_dir(run_id, current)
+    if destination.exists():
+        raise RuntimeError(f"run {run_id} already exists in runs/ — restore refused")
+    shutil.move(str(archived), str(destination))
+    log_event("info", "runs", f"Stage 2 run restored from archive: {run_id}", run_id=run_id)
+    return get_run(run_id, current)
+
+
+def retry_run(run_id: str, *, label: str | None = None,
+              paths: RuntimePaths | None = None) -> dict[str, Any]:
+    """Clone a completed/failed run's config into a NEW run and start it.
+
+    The original run is never modified — the retry gets a fresh run id, so
+    rollback to the previous result is always possible.
+    """
+    current = paths or load_runtime_paths()
+    directory = _resolve_run_directory(run_id, current)
+    config = _read_json(directory / "run_config.json")
+    if not config:
+        raise RuntimeError(f"run {run_id} has no run_config.json — cannot retry")
+    new_run = start_stage2_run(
+        config.get("profile_id") or None,
+        label=label or f"retry of {run_id}",
+        calibration_root=str(config.get("calibration_root")) if config.get("calibration_root") else None,
+        min_points106=int(config.get("min_points106", 24)),
+        min_points134=int(config.get("min_points134", 30)),
+        lead_archive=str(config.get("lead_archive")) if config.get("lead_archive") else None,
+        paths=current,
+    )
+    log_event("info", "runs", f"Stage 2 run retried: {run_id} → {new_run['run_id']}",
+              run_id=new_run["run_id"])
+    return new_run
+
+
+def delete_run(run_id: str, paths: RuntimePaths | None = None) -> dict[str, Any]:
+    """Delete a FAILED or CANCELLED run (garbage collection).
+
+    Completed runs are never deletable — they are part of the evidence trail.
+    """
+    current = paths or load_runtime_paths()
+    if run_id == LEGACY_RUN_ID:
+        raise RuntimeError("legacy Stage 2 output cannot be deleted")
+    directory = _resolve_run_directory(run_id, current)
+    status = _read_json(directory / "status.json") or _read_json(directory.parent / f"{run_id}.status.json") or {}
+    run_status = status.get("status", "unknown")
+    if run_status not in ("failed", "cancelled"):
+        raise RuntimeError(f"run {run_id} is {run_status}; only failed/cancelled runs can be deleted")
+    shutil.rmtree(directory)
+    live_status = directory.parent / f"{run_id}.status.json"
+    if live_status.is_file():
+        live_status.unlink(missing_ok=True)
+    live_log = directory.parent / f"{run_id}.status.log"
+    if live_log.is_file():
+        live_log.unlink(missing_ok=True)
+    log_event("info", "runs", f"Stage 2 run deleted (garbage): {run_id}", run_id=run_id)
+    return {"run_id": run_id, "deleted": True}
 
 
 def cancel_run(run_id: str, paths: RuntimePaths | None = None) -> dict[str, Any]:

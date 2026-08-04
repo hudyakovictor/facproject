@@ -47,6 +47,7 @@ from .runtime_config import (
     load_runtime_paths,
     runtime_path_report,
     save_active_dataset_registration,
+    stage1_integrity_snapshot,
 )
 from .analysis_profiles import (
     PHOTO_STATUSES,
@@ -75,16 +76,19 @@ from .selection_filters import (
     save_selection_manifest,
 )
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
-from .skin_zones import SKIN_ZONES_SCHEMA, load_skin_zone_report, zone_catalog
+from .skin_zones import SKIN_ZONES_SCHEMA, AtlasUnavailableError, load_skin_zone_report, zone_catalog
 from .system_health import build_system_health
 from .morphing_api import morphing_bins, mesh_displacement, photo_morph_payload
 from .landmark_compare import batch_displacement, compare_landmarks
 from .run_manager import (
     archive_run,
     cancel_run,
+    delete_run,
     get_run,
     list_runs,
     preflight_stage2,
+    restore_run,
+    retry_run,
     start_stage2_run,
     start_stage2b,
 )
@@ -92,6 +96,7 @@ from .report_manager import generate_report, get_report, list_reports, regenerat
 from .calibration_workspace import calibrated_thresholds, workspace_dashboard
 from .timeline_findings import timeline_findings
 from .event_log import EVENT_LOG_SCHEMA, ingest_client_events, list_events, log_event, summary
+from .recommendations import load_settings as load_rec_settings, recommend, save_settings as save_rec_settings
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -330,6 +335,13 @@ class UploadResponse(BaseModel):
 
 @app.get("/api/v1/zones/catalog")
 def zones_catalog() -> dict[str, Any]:
+    try:
+        return _zones_catalog_impl()
+    except AtlasUnavailableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+def _zones_catalog_impl() -> dict[str, Any]:
     """🚪 API → Каталог зон кожи из нормативного атласа (для легенды UI).
 
     Отдаёт то, что реально записано в `3ddfa_v3/atlas/skin_zone_atlas.json`.
@@ -366,7 +378,10 @@ def get_photo_skin_zones(photo_id: str) -> dict[str, Any]:
     photo_dir = stage1_root / photo_id
     if not photo_dir.is_dir():
         raise HTTPException(status_code=404, detail=f"no Stage 1 output for {photo_id}")
-    report = load_skin_zone_report(photo_dir)
+    try:
+        report = load_skin_zone_report(photo_dir)
+    except AtlasUnavailableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {**report, "source_mode": "research", "photo_id": photo_id}
 
 
@@ -977,6 +992,43 @@ def get_runtime_paths() -> dict[str, Any]:
     return runtime_path_report()
 
 
+@app.get("/api/v1/integrity/stage1")
+def api_stage1_integrity() -> dict[str, Any]:
+    """Immutable Stage 1 evidence check (baseline hash vs current hash)."""
+    return stage1_integrity_snapshot()
+
+
+# ---------------------------------------------------------------------------
+# Iteration 13 — recommendations
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/recommendations")
+def api_recommendations() -> dict[str, Any]:
+    try:
+        return recommend()
+    except Exception as exc:  # noqa: BLE001 - recommendations must never crash the API
+        return {
+            "schema": "deeputin-recommendations-v1.0",
+            "generated_at": None,
+            "count": 0,
+            "recommendations": [],
+            "error": str(exc),
+            "not_a_verdict": True,
+        }
+
+
+@app.get("/api/v1/recommendations/settings")
+def api_rec_settings() -> dict[str, Any]:
+    return load_rec_settings()
+
+
+@app.put("/api/v1/recommendations/settings")
+def api_save_rec_settings(payload: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return save_rec_settings(payload)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @app.get("/api/v1/datasets/inventory")
 def get_dataset_inventory() -> dict[str, Any]:
     inventory = build_dataset_inventory()
@@ -1357,6 +1409,37 @@ def api_archive_run(run_id: str) -> dict[str, Any]:
         return archive_run(run_id)
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=f"archive failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/restore")
+def api_restore_run(run_id: str) -> dict[str, Any]:
+    """Вернуть архивированный run в stage2/runs (откат)."""
+    try:
+        return restore_run(run_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"restore failed: {exc}") from exc
+
+
+class RetryRunRequest(BaseModel):
+    label: str | None = None
+
+
+@app.post("/api/v1/runs/{run_id}/retry")
+def api_retry_run(run_id: str, request: RetryRunRequest) -> dict[str, Any]:
+    """Новый run с конфигом старого (оригинал не трогается)."""
+    try:
+        return retry_run(run_id, label=request.label)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"retry failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/delete")
+def api_delete_run(run_id: str) -> dict[str, Any]:
+    """Удалить только failed/cancelled run (мусор)."""
+    try:
+        return delete_run(run_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"delete failed: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
