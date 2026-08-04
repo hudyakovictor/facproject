@@ -3,10 +3,15 @@ import {
   activateDataset,
   cancelJob,
   clearExtractedData,
+  fetchAnalysisRun,
+  fetchAnalysisRunPairs,
+  fetchAnalysisRuns,
   fetchDatasetInventory,
   fetchDatasetIssues,
   listJobs,
   submitExtractJob,
+  type AnalysisRunPairsResponse,
+  type AnalysisRunSummary,
   type DatasetInventory,
   type DatasetIssueReport,
   type JobRow,
@@ -18,6 +23,14 @@ const POSE_ORDER = [
   "left_profile", "left_deep", "left_mid", "left_light", "frontal",
   "right_light", "right_mid", "right_deep", "right_profile",
 ] as const;
+
+function formatCell(value: unknown): string {
+  if (value === undefined || value === null || value === "") return "—";
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value.toFixed(value >= 1 ? 4 : 6).replace(/0+$/, "").replace(/\.$/, "");
+  }
+  return String(value);
+}
 
 export default function DataManager() {
   const [mode, setMode] = useState<Mode>("limited");
@@ -33,6 +46,12 @@ export default function DataManager() {
   const [issueCategory, setIssueCategory] = useState("");
   const [issueOffset, setIssueOffset] = useState(0);
   const [issueReport, setIssueReport] = useState<DatasetIssueReport | null>(null);
+  const [analysisRuns, setAnalysisRuns] = useState<AnalysisRunSummary[]>([]);
+  const [selectedRun, setSelectedRun] = useState<AnalysisRunSummary | null>(null);
+  const [runPairs, setRunPairs] = useState<AnalysisRunPairsResponse | null>(null);
+  const [pairsOffset, setPairsOffset] = useState(0);
+  const [pairsLoading, setPairsLoading] = useState(false);
+  const [runFilter, setRunFilter] = useState("");
   const running = useMemo(() => jobs.some(j => j.status === "queued" || j.status === "running"), [jobs]);
 
   const refresh = async () => {
@@ -54,14 +73,21 @@ export default function DataManager() {
     }
   };
 
-  useEffect(() => { void refresh(); void loadInventory(); }, []);
+  useEffect(() => { void refresh(); void loadInventory(); void loadAnalysisRuns(); }, []);
   useEffect(() => {
-    const id = window.setInterval(() => void refresh(), running ? 1500 : 5000);
+    const id = window.setInterval(() => { void refresh(); void loadAnalysisRuns(); }, running ? 1500 : 5000);
     return () => clearInterval(id);
   }, [running]);
   useEffect(() => {
     if (issuesOpen) void loadIssues(issueOffset, issueCategory);
   }, [issuesOpen, issueOffset, issueCategory]);
+  useEffect(() => {
+    if (selectedRun?.run_id && selectedRun.has_stage2) {
+      void loadAnalysisRunPairs(selectedRun.run_id);
+    } else {
+      setRunPairs(null);
+    }
+  }, [selectedRun, pairsOffset]);
 
   const run = async () => {
     setBusy(true); setMessage(""); localStorage.setItem("deeputin.input_dir", inputDir);
@@ -102,6 +128,47 @@ export default function DataManager() {
   const maxYear = Math.max(1, ...yearEntries.map(([, count]) => Number(count) || 0));
   const poseCounts = stage1?.pose_counts || {} as Record<string, number>;
   const issueTotal = Object.values(stage1?.issue_counts || {}).reduce((sum: number, value) => sum + Number(value || 0), 0);
+
+  const loadAnalysisRuns = async () => {
+    try {
+      const data = await fetchAnalysisRuns({ limit: 50 });
+      setAnalysisRuns(data.runs || []);
+    } catch (error) {
+      setMessage((current) => current || (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  const loadAnalysisRunPairs = async (runId: string) => {
+    setPairsLoading(true);
+    try {
+      const next = await fetchAnalysisRunPairs(runId, { offset: pairsOffset, limit: 25 });
+      setRunPairs(next);
+    } catch (error) {
+      setRunPairs(null);
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPairsLoading(false);
+    }
+  };
+
+  const openRunDetail = async (runId: string) => {
+    try {
+      const detail = await fetchAnalysisRun(runId);
+      setSelectedRun(detail);
+      setPairsOffset(0);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const filteredRuns = useMemo(() => {
+    const needle = runFilter.trim().toLowerCase();
+    if (!needle) return analysisRuns;
+    return analysisRuns.filter((item) =>
+      item.run_id.toLowerCase().includes(needle) ||
+      (item.profile_id || "").toLowerCase().includes(needle),
+    );
+  }, [analysisRuns, runFilter]);
 
   return <div className="page-shell manager-page">
     <div className="page-heading">
@@ -195,7 +262,105 @@ export default function DataManager() {
       </section>
       <section className="card danger-card"><header><span>!</span><div><b>Очистить API outputs</b><small>api_stage1/api_stage2; immutable Stage 1 не трогается</small></div></header><p>Введите <strong>ОЧИСТИТЬ</strong>, затем подтвердите операцию.</p><div className="danger-line"><input value={confirmClear} onChange={e => setConfirmClear(e.target.value)} placeholder="ОЧИСТИТЬ"/><button disabled={busy || confirmClear !== "ОЧИСТИТЬ"} onClick={() => void clear()}>Удалить outputs</button></div></section>
     </div>
-    <section className="card jobs-card"><header><span>03</span><div><b>Очередь заданий</b><small>Реальный статус `/api/v1/jobs`</small></div></header>{jobs.length === 0 ? <div className="empty-row">Заданий пока нет</div> : <div className="job-list">{jobs.map(j => <article key={j.id}><div className={`job-state ${j.status}`}>{j.status}</div><div className="job-main"><b>{j.kind} · {j.id}</b><small>{j.created_at || "—"}</small><div className="progress"><i style={{width: `${j.progress?.total ? Math.min(100, j.progress.done / j.progress.total * 100) : 0}%`}}/></div><pre>{(j.logs || []).slice(-4).join("\n") || j.error || "Ожидание лога…"}</pre></div>{(j.status === "queued" || j.status === "running") && <button onClick={() => void cancelJob(j.id).then(refresh)}>Отменить</button>}</article>)}</div>}</section>
+    <section className="card jobs-card"><header><span>03</span><div><b>Очередь заданий</b><small>Реальный статус `/api/v1/jobs`</small></div></header>{jobs.length === 0 ? <div className="empty-row">Заданий пока нет</div> : <div className="job-list">{jobs.map(j => { const phases = (j.phases || []) as Array<{ name: string; status: string; progress?: { done: number; total: number }; note?: string | null; title?: string }>; return (<article key={j.id}><div className={`job-state ${j.status}`}>{j.status}</div><div className="job-main"><b>{j.kind} · {j.id}{j.profile_id ? ` · ${j.profile_id}` : ""}{j.run_id ? ` · ${j.run_id}` : ""}</b><small>{j.created_at || "—"}</small><div className="progress"><i style={{width: `${j.progress?.total ? Math.min(100, j.progress.done / j.progress.total * 100) : 0}%`}}/></div>{phases.length > 0 && (<ol className="phase-list">{phases.map((phase) => (<li key={phase.name} className={`phase-${phase.status}`}><b>{phase.title || phase.name}</b><span>{phase.status}</span><i>{phase.progress?.total ? `${phase.progress.done}/${phase.progress.total}` : "—"}</i>{phase.note && <em>{phase.note}</em>}</li>))}</ol>)}<pre>{(j.logs || []).slice(-4).join("\n") || j.error || "Ожидание лога…"}</pre></div>{(j.status === "queued" || j.status === "running") && <button onClick={() => void cancelJob(j.id).then(refresh)}>Отменить</button>}</article>);})}</div>}</section>
+
+    <section className="card runs-card"><header><span>04</span><div><b>Результаты расчётов</b><small>`/api/v1/analysis-runs` · завершённые Stage 2 + Stage 3 прогоны профилей</small></div></header>
+      <div className="runs-toolbar">
+        <input value={runFilter} onChange={e => setRunFilter(e.target.value)} placeholder="Фильтр по run_id или profile_id" />
+        <button className="ghost" onClick={() => void loadAnalysisRuns()}>↻ Обновить</button>
+        <span>{filteredRuns.length} из {analysisRuns.length}</span>
+      </div>
+      {filteredRuns.length === 0 ? (
+        <div className="empty-row">Прогонов пока нет · запустите Stage 2 + Stage 3 из Profiles</div>
+      ) : (
+        <div className="runs-table">
+          <div className="runs-head"><span>Run ID</span><span>Профиль</span><span>Статус</span><span>Фото</span><span>Phases</span><span>Действие</span></div>
+          {filteredRuns.map(run => {
+            const failedPhase = (run.phases || []).find((p) => p.status === "failed");
+            return (
+              <div key={run.run_id} className={`runs-row ${selectedRun?.run_id === run.run_id ? "active" : ""}`}>
+                <code>{run.run_id}</code>
+                <span>{run.profile_id || "—"}</span>
+                <b className={`run-status ${run.status || "unknown"}`}>{run.status || "—"}</b>
+                <span>{run.included_count ?? "—"}</span>
+                <span>{(run.phases || []).filter(p => p.status === "complete").length}/{(run.phases || []).length}{failedPhase ? ` · ⚠ ${failedPhase.name}` : ""}</span>
+                <button disabled={!run.has_summary} onClick={() => void openRunDetail(run.run_id)}>Детали</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedRun && (
+        <article className="run-detail">
+          <header>
+            <b>{selectedRun.run_id}</b>
+            <span>{selectedRun.profile_id || "—"} · {selectedRun.status || "—"} · {selectedRun.included_count ?? "—"} фото</span>
+            <button className="ghost" onClick={() => setSelectedRun(null)}>×</button>
+          </header>
+          {selectedRun.phases && selectedRun.phases.length > 0 && (
+            <div className="run-phases">
+              <b>Фазы</b>
+              <ol>
+                {selectedRun.phases.map((phase) => (
+                  <li key={phase.name} className={`phase-${phase.status}`}>
+                    <b>{phase.title || phase.name}</b>
+                    <span>{phase.status}</span>
+                    <i>{phase.progress?.total ? `${phase.progress.done}/${phase.progress.total}` : "—"}</i>
+                    {phase.note && <em>{phase.note}</em>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+          <div className="run-paths">
+            <div><span>stage2_output</span><code title={selectedRun.stage2_output || ""}>{selectedRun.stage2_output || "—"}</code></div>
+            <div><span>stage3_output</span><code title={selectedRun.stage3_output || ""}>{selectedRun.stage3_output || "—"}</code></div>
+            <div><span>run_dir</span><code title={selectedRun.run_dir || ""}>{selectedRun.run_dir || "—"}</code></div>
+            <div><span>manifest_digest</span><code title={selectedRun.selection_manifest_digest || ""}>{(selectedRun.selection_manifest_digest || "—").slice(0, 18)}…</code></div>
+          </div>
+          {selectedRun.has_stage2 ? (
+            <div className="run-pairs">
+              <header><b>Пары</b><span>{runPairs ? `${runPairs.count} всего · ${runPairs.pairs.length} показано` : "загрузка…"}</span></header>
+              {!runPairs || pairsLoading ? (
+                <div className="empty-row">Загрузка пар…</div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Pair</th>
+                      <th>Pose bin</th>
+                      {(runPairs.fields || []).filter((f) => f !== "photo_a" && f !== "photo_b" && f !== "pose_bin").map((field) => (
+                        <th key={field}>{field}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {runPairs.pairs.map((pair, index) => (
+                      <tr key={`${pair.pair || ""}-${index}`}>
+                        <td>{pairsOffset + index + 1}</td>
+                        <td><code>{pair.pair || "—"}</code></td>
+                        <td><code>{pair.pose_bin || "—"}</code></td>
+                        {(runPairs.fields || []).filter((f) => f !== "photo_a" && f !== "photo_b" && f !== "pose_bin").map((field) => (
+                          <td key={field}>{formatCell(pair[field])}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <footer>
+                <button disabled={pairsOffset <= 0} onClick={() => setPairsOffset((value) => Math.max(0, value - 25))}>← Назад</button>
+                <button disabled={!runPairs || !runPairs.has_more} onClick={() => setPairsOffset((value) => value + 25)}>Вперёд →</button>
+              </footer>
+            </div>
+          ) : (
+            <div className="empty-row">Stage 2 ещё не завершён — пары появятся позже</div>
+          )}
+        </article>
+      )}
+    </section>
 
     {issuesOpen && <div className="issues-backdrop" onClick={() => setIssuesOpen(false)}>
       <section className="issues-dialog" onClick={e => e.stopPropagation()}>

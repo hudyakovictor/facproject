@@ -194,6 +194,7 @@ export interface JobRow {
   started_at?: string | null; finished_at?: string | null;
   progress?: { done: number; total: number }; logs?: string[];
   result?: Record<string, unknown> | null; error?: string | null;
+  phases?: AnalysisRunPhase[]; run_id?: string | null; profile_id?: string | null;
 }
 export interface UploadResult { photo_id: string; date: string | null; stored: boolean; message: string }
 export interface MeshPayload {
@@ -416,6 +417,10 @@ export const restoreAutomatic = (id: string, photo_ids: string[]) =>
   apiJson<Record<string, unknown>>(`/api/v1/profiles/${encodeURIComponent(id)}/curation/restore`, { method: "POST", body: JSON.stringify({ photo_ids }) });
 export const fetchProfileStatuses = (id: string) => apiJson<ProfileStatusMap>(`/api/v1/profiles/${encodeURIComponent(id)}/statuses`);
 export const freezeProfile = (id: string) => apiJson<{ path: string; manifest: Record<string, unknown> }>(`/api/v1/profiles/${encodeURIComponent(id)}/freeze`, { method: "POST" });
+export const submitProfileAnalysis = (id: string) => apiJson<{ job_id: string; run_id: string; profile_id: string; included_count: number }>(`/api/v1/profiles/${encodeURIComponent(id)}/analysis-runs`, {
+  method: "POST",
+  body: JSON.stringify({ confirm_frozen_selection: true }),
+});
 export const diffProfiles = (a: string, b: string) => apiJson<Record<string, unknown>>(`/api/v1/profiles/diff/${encodeURIComponent(a)}/${encodeURIComponent(b)}`);
 export const exportProfile = (id: string) => apiJson<Record<string, unknown>>(`/api/v1/profiles/${encodeURIComponent(id)}/export`);
 export const importProfile = (payload: Record<string, unknown>) => apiJson<ProfileDetail>("/api/v1/profiles/import", { method: "POST", body: JSON.stringify(payload) });
@@ -763,3 +768,144 @@ export const restoreRun = (runId: string) => apiJson<RunRow>(`/api/v1/runs/${enc
 export const retryRun = (runId: string, label?: string | null) =>
   apiJson<RunRow>(`/api/v1/runs/${encodeURIComponent(runId)}/retry`, { method: "POST", body: JSON.stringify({ label: label ?? null }) });
 export const deleteRun = (runId: string) => apiJson<{ run_id: string; deleted: boolean }>(`/api/v1/runs/${encodeURIComponent(runId)}/delete`, { method: "POST" });
+
+// ---------------------------------------------------------------------------
+// Iteration 06 — Profile preview + analysis runs (from stashed)
+// ---------------------------------------------------------------------------
+
+// Iteration 06 — предварительная оценка профиля + каталог прогонов анализа
+// ---------------------------------------------------------------------------
+
+export interface ProfilePreviewPairBreakdown {
+  pose_bin: string;
+  included_count: number;
+  adjacent_pairs: number;
+  baseline_pairs: number;
+  total_pairs: number;
+  calibration_pairs?: number;
+}
+export interface ProfilePreviewEstimatedRuntime {
+  stage2_seconds: number;
+  stage3_seconds: number;
+  total_seconds: number;
+  stage2_human: string;
+  stage3_human: string;
+  total_human: string;
+  notes: string[];
+}
+export interface ProfilePreviewFilterSummary {
+  active_metrics: string[];
+  active_ranges: { metric: string; min: number | null; max: number | null }[];
+  active_booleans: string[];
+  pose_outlier: { enabled: boolean; method?: string; master_percentile?: number; mad_multiplier?: number };
+  manual_include_count: number;
+  manual_exclude_count: number;
+}
+export interface ProfilePreview {
+  schema: string;
+  not_a_verdict: boolean;
+  profile_id: string;
+  selection_manifest_path: string | null;
+  selected_at: string | null;
+  included_count: number;
+  excluded_count: number;
+  status_counts: Record<string, number>;
+  total_pairs: number;
+  pair_breakdown: ProfilePreviewPairBreakdown[];
+  estimated_runtime: ProfilePreviewEstimatedRuntime;
+  filter_summary: ProfilePreviewFilterSummary;
+  blockers: string[];
+  warnings: string[];
+  is_runnable: boolean;
+  calibration_root: string | null;
+  stage1_root: string | null;
+}
+export const fetchProfilePreview = (profileId: string) =>
+  apiJson<ProfilePreview>(`/api/v1/profiles/${encodeURIComponent(profileId)}/preview`);
+
+export interface AnalysisRunPhase {
+  name: string;
+  title?: string;
+  status: "pending" | "running" | "complete" | "failed" | "blocked" | "skipped" | string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  progress: { done: number; total: number };
+  note?: string | null;
+}
+export interface AnalysisRunSummary {
+  schema: string;
+  not_a_verdict: boolean;
+  run_id: string;
+  run_dir?: string;
+  status: string | null;
+  status_updated_at?: string | null;
+  selected_at?: string | null;
+  included_count?: number | null;
+  profile_id?: string | null;
+  stage2_output?: string | null;
+  stage3_output?: string | null;
+  has_summary: boolean;
+  has_stage2: boolean;
+  has_stage3: boolean;
+  phases?: AnalysisRunPhase[];
+  selection_manifest_digest?: string | null;
+  summary?: Record<string, unknown>;
+  stage2_manifest?: Record<string, unknown>;
+}
+export interface AnalysisRunListResponse {
+  schema: string;
+  not_a_verdict: boolean;
+  count: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+  runs: AnalysisRunSummary[];
+}
+export interface AnalysisRunPairEntry {
+  pose_bin?: string;
+  pair?: string;
+  photo_a?: string;
+  photo_b?: string;
+  status?: string;
+  score?: number;
+  landmark_distance?: number;
+  landmark_distance_106?: number;
+  landmark_distance_134?: number;
+  mesh_distance?: number;
+  texture_distance?: number;
+  pair_id?: string;
+  [key: string]: unknown;
+}
+export interface AnalysisRunPairsResponse {
+  schema: string;
+  not_a_verdict: boolean;
+  run_id: string;
+  count: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+  pairs: AnalysisRunPairEntry[];
+  fields?: string[];
+  missing?: string;
+}
+export const fetchAnalysisRuns = (opts?: { profileId?: string; offset?: number; limit?: number }) => {
+  const params = new URLSearchParams();
+  if (opts?.profileId) params.set("profile_id", opts.profileId);
+  params.set("offset", String(opts?.offset ?? 0));
+  params.set("limit", String(opts?.limit ?? 50));
+  return apiJson<AnalysisRunListResponse>(`/api/v1/analysis-runs?${params.toString()}`);
+};
+export const fetchAnalysisRun = (runId: string) =>
+  apiJson<AnalysisRunSummary>(`/api/v1/analysis-runs/${encodeURIComponent(runId)}`);
+export const fetchAnalysisRunPairs = (
+  runId: string,
+  opts?: { offset?: number; limit?: number; poseBin?: string },
+) => {
+  const params = new URLSearchParams();
+  params.set("offset", String(opts?.offset ?? 0));
+  params.set("limit", String(opts?.limit ?? 50));
+  if (opts?.poseBin) params.set("pose_bin", opts.poseBin);
+  return apiJson<AnalysisRunPairsResponse>(
+    `/api/v1/analysis-runs/${encodeURIComponent(runId)}/pairs?${params.toString()}`,
+  );
+};

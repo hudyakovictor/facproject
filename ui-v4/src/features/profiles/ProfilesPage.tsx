@@ -5,6 +5,7 @@ import {
   createProfile,
   diffProfiles,
   exportProfile,
+  fetchProfilePreview,
   fetchProfileStatuses,
   freezeProfile,
   getProfile,
@@ -13,7 +14,9 @@ import {
   lockProfile,
   renameProfile,
   restoreAutomatic,
+  submitProfileAnalysis,
   type ProfileDetail,
+  type ProfilePreview,
   type ProfileStatusMap,
   type ProfileSummary,
 } from "../../shared/api";
@@ -58,6 +61,11 @@ export default function ProfilesPage() {
   const [busy, setBusy] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [importText, setImportText] = useState("");
+  const [preview, setPreview] = useState<ProfilePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewShown, setPreviewShown] = useState(false);
+  const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
+  const [calcConfirmed, setCalcConfirmed] = useState(false);
 
   const refreshList = async () => {
     const rows = await listProfiles();
@@ -71,6 +79,31 @@ export default function ProfilesPage() {
     setDetail(profile);
     setStatuses(statusMap);
     setSelected([]);
+    setPreview(null);
+    setPreviewShown(false);
+    setCalcConfirmed(false);
+  };
+
+  const runPreview = async () => {
+    if (!activeId) return;
+    setPreviewLoading(true); setMessage("");
+    try {
+      const next = await fetchProfilePreview(activeId);
+      setPreview(next);
+      setPreviewShown(true);
+      setCalcConfirmed(false);
+      setMessage(
+        next.is_runnable
+          ? `Предварительный просмотр: ${next.included_count} фото · ${next.total_pairs} пар · оценка ${next.estimated_runtime.total_human}`
+          : `Предварительный просмотр содержит блокирующие проблемы`,
+      );
+    } catch (error) {
+      setPreview(null);
+      setPreviewShown(false);
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   useEffect(() => { void refreshList().catch(e => setMessage(e instanceof Error ? e.message : String(e))); }, []);
@@ -163,16 +196,85 @@ export default function ProfilesPage() {
             })}>{detail.locked ? "Разблокировать" : "Заблокировать"}</button>
             <button className="primary run-profile-btn" disabled={busy || detail.locked} onClick={runWithProfile} title="Запустить Stage 2 с этой выборкой (новый run, откат возможен)">▶ Stage 2 с этим профилем</button>
             <button className="primary" disabled={busy || detail.locked} onClick={() => void run(async () => {
-              const frozen = await freezeProfile(activeId);
-              setMessage(`selection_manifest frozen · ${frozen.path}`);
+              await freezeProfile(activeId);
+              setMessage("Выборка профиля заморожена и готова к расчёту");
               await refreshList(); await refreshActive();
-            })}>Freeze manifest</button>
-            <button disabled={busy} onClick={() => void run(async () => {
-              const payload = await exportProfile(activeId);
-              await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-              setMessage("Export JSON скопирован в буфер");
-            })}>Export</button>
+            })}>Заморозить выборку</button>
+            <button className="primary" disabled={busy || !preview || !preview.is_runnable || !calcConfirmed || !detail.selection_manifest} onClick={() => void run(async () => {
+              const submitted = await submitProfileAnalysis(activeId);
+              setAnalysisJobId(submitted.job_id);
+              setMessage(`Расчёт запущен · ${submitted.included_count} фото · задание ${submitted.job_id}. Прогресс — в Data Manager → «Результаты расчётов».`);
+              setCalcConfirmed(false);
+            })}>▶ Запустить Stage 2 + Stage 3</button>
+            <button className="ghost" disabled={busy || previewLoading} onClick={() => void runPreview()}>
+              {previewLoading ? "Оценка…" : preview ? "↻ Переоценить" : "Оценить объём"}
+            </button>
+            {analysisJobId && (
+              <small className="preview-job-inline">Задание {analysisJobId} запущено. Прогресс — в Data Manager → «Результаты расчётов».</small>
+            )}
           </div>
+
+          {previewShown && preview && (
+            <div className={`profile-preview ${preview.is_runnable ? "ok" : "bad"}`}>
+              <header>
+                <b>Предварительный просмотр</b>
+                <span>{preview.included_count} фото · {preview.total_pairs} пар · {preview.estimated_runtime.total_human}</span>
+                <em className={`runnable-flag ${preview.is_runnable ? "ok" : "blocked"}`}>{preview.is_runnable ? "Можно запускать" : "Заблокировано"}</em>
+              </header>
+              {preview.blockers.length > 0 && (
+                <div className="preview-section blockers">
+                  <b>Блокирующие проблемы</b>
+                  <ul>{preview.blockers.map((line, idx) => <li key={idx}>{line}</li>)}</ul>
+                </div>
+              )}
+              {preview.warnings.length > 0 && (
+                <div className="preview-section warnings">
+                  <b>Предупреждения</b>
+                  <ul>{preview.warnings.map((line, idx) => <li key={idx}>{line}</li>)}</ul>
+                </div>
+              )}
+              <div className="preview-summary">
+                <div><strong>{preview.total_pairs}</strong><span>пар посчитано</span></div>
+                <div><strong>{preview.estimated_runtime.stage2_human}</strong><span>Stage 2 оценка</span></div>
+                <div><strong>{preview.estimated_runtime.stage3_human}</strong><span>Stage 3 оценка</span></div>
+                <div><strong>{preview.estimated_runtime.total_human}</strong><span>итого</span></div>
+              </div>
+              <div className="preview-section breakdown">
+                <b>Разбивка по ракурсам</b>
+                <table>
+                  <thead><tr><th>Ракурс</th><th>Фото</th><th>Adjacent</th><th>Baseline</th><th>Пар всего</th><th>Калибр. пар</th></tr></thead>
+                  <tbody>
+                    {preview.pair_breakdown.map(row => (
+                      <tr key={row.pose_bin}>
+                        <td><code>{row.pose_bin}</code></td>
+                        <td>{row.included_count}</td>
+                        <td>{row.adjacent_pairs}</td>
+                        <td>{row.baseline_pairs}</td>
+                        <td><b>{row.total_pairs}</b></td>
+                        <td>{row.calibration_pairs ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="preview-section filters">
+                <b>Применённые фильтры</b>
+                <small>Активные метрики: {preview.filter_summary.active_metrics.length ? preview.filter_summary.active_metrics.join(", ") : "—"}</small>
+                <small>Активные булевы: {preview.filter_summary.active_booleans.length ? preview.filter_summary.active_booleans.join(", ") : "—"}</small>
+                <small>Pose-outlier: {preview.filter_summary.pose_outlier.enabled ? `включён · ${preview.filter_summary.pose_outlier.method ?? "?"} · ${preview.filter_summary.pose_outlier.master_percentile?.toFixed?.(1) ?? "?"}%` : "выключен"}</small>
+                <small>Ручные override: include={preview.filter_summary.manual_include_count}, exclude={preview.filter_summary.manual_exclude_count}</small>
+              </div>
+              {preview.is_runnable && (
+                <label className="confirm-line">
+                  <input type="checkbox" checked={calcConfirmed} onChange={e => setCalcConfirmed(e.target.checked)} />
+                  <span>Подтверждаю запуск: <b>{preview.total_pairs}</b> пар · <b>{preview.estimated_runtime.total_human}</b></span>
+                </label>
+              )}
+              <small className="preview-notes">
+                Оценка линейна: {preview.estimated_runtime.notes.join(" · ")}.
+              </small>
+            </div>
+          )}
 
           <div className="curation-toolbar">
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>

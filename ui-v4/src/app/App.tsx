@@ -9,12 +9,11 @@ import DataManager from "../features/data-manager/DataManager";
 import SettingsPage from "../features/settings/SettingsPage";
 import PhotoPage from "../features/photo-lab/PhotoPage";
 import ProfilesPage from "../features/profiles/ProfilesPage";
-import RunManagerPage from "../features/runs/RunManagerPage";
 import CalibrationPage from "../features/calibration/CalibrationPage";
 import MorphingWorkspace from "../features/morphing/MorphingWorkspace";
 import LandmarkCompareWorkspace from "../features/landmarks/LandmarkCompareWorkspace";
 
-type View = "timeline" | "data" | "profiles" | "settings" | "runs" | "calibration" | "icons";
+type View = "timeline" | "data" | "profiles" | "settings" | "calibration" | "icons";
 
 export interface CompareRequest {
   kind: "morphing" | "landmarks";
@@ -54,8 +53,8 @@ export default function App() {
     const runId = (extra?.run_id as string) || null;
     const profileId = (extra?.profile_id as string) || null;
     switch (kind) {
-      case "open_runs": setView("runs"); break;
-      case "open_reports": setView("runs"); break;
+      case "open_runs": setView("timeline"); break;
+      case "open_reports": setView("timeline"); break;
       case "open_calibration": setView("calibration"); break;
       case "open_profiles": setView("profiles"); break;
       case "open_integrity": setView("data"); break;
@@ -67,7 +66,7 @@ export default function App() {
         setCompare({ kind: "landmarks", pose });
         break;
       case "open_run":
-        setView("runs");
+        setView("timeline");
         if (runId) setTimeout(() => window.dispatchEvent(new CustomEvent("deeputin:open-run", { detail: { run_id: runId } })), 50);
         break;
       case "open_profile":
@@ -117,8 +116,7 @@ export default function App() {
       <div className="nav-logo"><i>D</i><span>V4</span></div>
       <nav>
         <button className={view === "timeline" ? "active" : ""} onClick={() => setView("timeline")} title="Timeline"><Icon name="timeline" size={19} /><b>Timeline</b></button>
-        <button className={view === "runs" ? "active" : ""} onClick={() => setView("runs")} title="Run Manager"><Icon name="runs" size={19} /><b>Run Manager</b></button>
-        <button className={view === "calibration" ? "active" : ""} onClick={() => setView("calibration")} title="Calibration"><Icon name="calibration" size={19} /><b>Calibration</b></button>
+          <button className={view === "calibration" ? "active" : ""} onClick={() => setView("calibration")} title="Calibration"><Icon name="calibration" size={19} /><b>Calibration</b></button>
         <button className={view === "data" ? "active" : ""} onClick={() => setView("data")} title="Data Manager"><Icon name="dataset" size={19} /><b>Data Manager</b></button>
         <button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")} title="Profiles"><Icon name="profiles" size={19} /><b>Profiles</b></button>
         <button className={view === "settings" ? "active" : ""} onClick={() => setView("settings")} title="Настройки"><Icon name="settings" size={19} /><b>Settings</b></button>
@@ -134,7 +132,6 @@ export default function App() {
       {view === "data" && <DataManager />}
       {view === "profiles" && <ProfilesPage />}
       {view === "settings" && <SettingsPage openPhoto={openPhoto} />}
-      {view === "runs" && <RunManagerPage />}
       {view === "calibration" && <CalibrationPage />}
       {view === "icons" && <IconGalleryPage />}
     </div>

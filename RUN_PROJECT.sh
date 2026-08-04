@@ -13,7 +13,7 @@ export DEEPUTIN_CALIBRATION_ROOT="${DEEPUTIN_CALIBRATION_ROOT:-/Volumes/SDCARD/c
 MODE="${1:-ui}"
 case "$MODE" in
   ui) cd "$ROOT/ui-v4"; exec npm run dev ;;
-  api) shift; cd "$ROOT"; exec "$PYTHON" -m uvicorn app6.api.server:app --host 0.0.0.0 --port "${PORT:-8000}" "$@" ;;
+  api) shift; cd "$ROOT/ui-v4/backend"; exec "$PYTHON" -m uvicorn app6.api.server:app --host 0.0.0.0 --port "${PORT:-8000}" "$@" ;;
   check) cd "$ROOT"; exec "$PYTHON" -m pytest -q app6/test_module ;;
   preflight) shift; exec "$PYTHON" "$ROOT/app6/run_preflight.py" --project-root "$ROOT" "$@" ;;
   stage1) shift; exec "$PYTHON" "$ROOT/app6/run_stage1.py" --project-root "$ROOT" "$@" ;;
