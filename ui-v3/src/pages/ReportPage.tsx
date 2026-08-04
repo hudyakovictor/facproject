@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchReportSection, fetchReportSummary } from "../lib/api";
 import { Banner, Button, Empty, Panel } from "../components/ui";
+import StructuredData from "../components/StructuredData";
 export default function ReportPage() {
   const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
   const [section, setSection] = useState("");
@@ -38,12 +39,12 @@ export default function ReportPage() {
       {err && <Banner kind="warn" title="report недоступен">{err}</Banner>}
       {!summary && !err && <Empty title="Загрузка отчёта" />}
       {summary && (<>
-        <Panel title="Summary"><pre className="code">{JSON.stringify(summary, null, 2)}</pre></Panel>
+        <Panel title="Summary"><StructuredData data={summary} /></Panel>
         <Panel title="Секции">
           <div className="pill-tabs" style={{ marginBottom: 12 }}>
             {((summary.sections as string[]) || []).map(s => (<button key={s} type="button" className={section===s?"active":""} onClick={() => setSection(s)}>{s}</button>))}
           </div>
-          <pre className="code">{JSON.stringify(body || {}, null, 2)}</pre>
+          <StructuredData data={body} />
         </Panel>
       </>)}
     </div>

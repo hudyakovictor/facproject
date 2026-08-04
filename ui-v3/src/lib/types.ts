@@ -15,7 +15,6 @@ export const POSE_LABELS: Record<PoseBucket, string> = {
 };
 
 export type PhotoImageKind = "original" | "thumbnail" | "face_crop" | "uv_texture" | "zones_overlay";
-export type Hypothesis = "H0" | "H1" | "H2";
 export type DataMode = "research" | "loading" | "error" | "empty";
 
 export interface EraMeta { label: string; short?: string; start?: string; end?: string; color?: string }
@@ -27,7 +26,7 @@ export interface Photo {
   siliconeProb: number; specular: number; lbpEntropy: number; frangi: number; wrinkle: number; subsurface: number;
   visualAge: number; calendarAge: number; confidence: number;
   zOrbitDepth: number; zChinProj: number; zJawWidth: number; zCheek: number;
-  p0: number; p1: number; p2: number; dominant: Hypothesis; fuzzy: string; flags: string[];
+  flags: string[]; legacyHypothesisQuarantined?: boolean;
   hidden?: boolean; exifAnomaly?: boolean; exifDate?: string | null; dateDeltaDays?: number | null;
   sourceClaimedDate?: string | null; sourceClaimedDeltaDays?: number | null;
   [key: string]: unknown;

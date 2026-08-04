@@ -3,6 +3,7 @@ import type { Photo } from "../lib/types";
 import { fetchPairMetrics } from "../lib/api";
 import PhotoArtifactImage from "../components/PhotoArtifactImage";
 import { Banner, Button, Empty, Panel, Select } from "../components/ui";
+import StructuredData from "../components/StructuredData";
 export default function PairsPage({ photos }: { photos: Photo[] }) {
   const groups = useMemo(() => {
     const m = new Map<string, Photo[]>();
@@ -48,7 +49,7 @@ export default function PairsPage({ photos }: { photos: Photo[] }) {
         <Panel title={`B · ${b || "—"}`}>{b ? <div style={{ height: 280 }}><PhotoArtifactImage photoId={b} kind="original" /></div> : null}</Panel>
       </div>
       {err && <Banner kind="bad" title="Пара ограничена">{err}</Banner>}
-      {data && <Panel title="pair metrics"><Banner kind="info" title="not a verdict">Observation/candidate для ручной проверки.</Banner><pre className="code">{JSON.stringify(data, null, 2)}</pre></Panel>}
+      {data && <Panel title="pair metrics"><Banner kind="info" title="not a verdict">Observation/candidate для ручной проверки.</Banner><StructuredData data={data} /></Panel>}
     </div>
   );
 }

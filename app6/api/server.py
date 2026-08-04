@@ -14,10 +14,12 @@
 """
 from __future__ import annotations
 
+import csv
 import json
 import os
 import shutil
 import uuid
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +43,7 @@ from .noise_calibration import (
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
 from .skin_zones import SKIN_ZONES_SCHEMA, load_skin_zone_report, zone_catalog
 from .system_health import build_system_health
+from .review import append_review
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -110,9 +113,14 @@ def _require_stage1() -> Path:
     return stage1_root
 
 
-def _main_records() -> dict[str, Any]:
+@lru_cache(maxsize=2)
+def _cached_main_records(root_text: str, manifest_mtime_ns: int) -> dict[str, Any]:
     from app6.stage2.loaders import load_main
-    return {record.record_id: record for record in load_main(_require_stage1())}
+    return {record.record_id: record for record in load_main(Path(root_text))}
+
+def _main_records() -> dict[str, Any]:
+    root=_require_stage1();marker=root/"stage1_manifest.json"
+    return _cached_main_records(str(root.resolve()),marker.stat().st_mtime_ns if marker.is_file() else 0)
 
 
 def _main_record(photo_id: str) -> Any:
@@ -120,6 +128,62 @@ def _main_record(photo_id: str) -> Any:
     if record is None:
         raise HTTPException(status_code=404, detail=f"photo not found in Stage 1 output: {photo_id}")
     return record
+
+
+_UI_ARTIFACTS = {"face_mask.png": "image/png", "texture.json": "application/json", "info.json": "application/json"}
+_LANDMARK_FILES = {
+    (106, "raw"): ("ldm106_raw.csv", "raw_object_normalized"),
+    (106, "aligned"): ("ldm106_chronology.csv", "chronology_aligned"),
+    (106, "original"): ("ldm106_original.csv", "original_image_px"),
+    (134, "raw"): ("ldm134_raw.csv", "raw_object_normalized"),
+    (134, "aligned"): ("ldm134_chronology.csv", "chronology_aligned"),
+    (134, "original"): ("ldm134_original.csv", "original_image_px"),
+}
+
+
+def _safe_record_file(photo_id: str, filename: str) -> Path:
+    root = Path(str(_main_record(photo_id).record_dir)).resolve()
+    path = (root / filename).resolve()
+    if root not in path.parents:
+        raise HTTPException(status_code=400, detail="invalid artifact path")
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail=f"artifact not found: {filename}")
+    return path
+
+
+@app.get("/api/v1/photos/{photo_id}/artifacts/{name}")
+def get_photo_artifact(photo_id: str, name: str):
+    media_type = _UI_ARTIFACTS.get(name)
+    if media_type is None:
+        raise HTTPException(status_code=404, detail="artifact is not allowlisted")
+    path = _safe_record_file(photo_id, name)
+    if media_type == "application/json":
+        try:
+            return JSONResponse(json.loads(path.read_text(encoding="utf-8")), headers={"Cache-Control": "no-store"})
+        except (OSError, json.JSONDecodeError) as exc:
+            raise HTTPException(status_code=422, detail=f"invalid {name}: {exc}") from exc
+    return FileResponse(path, media_type=media_type, filename=name, headers={"Cache-Control": "private, max-age=300"})
+
+
+@app.get("/api/v1/photos/{photo_id}/landmarks/{count}/{space}")
+def get_photo_landmarks(photo_id: str, count: int, space: str) -> dict[str, Any]:
+    spec = _LANDMARK_FILES.get((count, space))
+    if spec is None:
+        raise HTTPException(status_code=404, detail="supported counts: 106/134; spaces: raw/aligned/original")
+    filename, coordinate_space = spec
+    path = _safe_record_file(photo_id, filename)
+    points: list[list[float]] = []
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as stream:
+            for row in csv.DictReader(stream):
+                points.append([float(row["x"]), float(row["y"]), float(row.get("z") or 0.0)])
+    except (OSError, ValueError, KeyError, csv.Error) as exc:
+        raise HTTPException(status_code=422, detail=f"invalid landmark CSV {filename}: {exc}") from exc
+    if len(points) != count:
+        raise HTTPException(status_code=422, detail=f"expected {count} landmark rows, got {len(points)}")
+    return {"schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
+            "photo_id": photo_id, "count": count, "space": space,
+            "coordinate_space": coordinate_space, "points": points, "source_file": filename}
 
 
 def _calibration_records() -> list[Any]:
@@ -152,22 +216,19 @@ def get_timeline() -> dict[str, Any]:
             raise HTTPException(status_code=422, detail=f"вывод Stage 1 не прошёл проверку: {exc}") from exc
     from .research_timeline import build_research_timeline
     try:
-        return build_research_timeline(stage2_root)
+        return build_research_timeline(stage2_root, _stage1_root())
     except (FileNotFoundError, ValueError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=f"вывод Stage 2 не прошёл проверку: {exc}") from exc
 
 
 @app.get("/api/v1/photos")
-def list_photos() -> dict[str, Any]:
+def list_photos(offset: int = 0, limit: int = 200, pose_bin: str | None = None) -> dict[str, Any]:
     """🚪 API → Список фото реального Stage 1 без raw-изображений."""
     stage1_root = _require_stage1()
     manifest_path = stage1_root / "stage1_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
-    records = _main_records()
-    return {"schema": APP_SCHEMA, "source_mode": "research", "manifest": manifest,
-            "count": len(records), "photos": [
-                {"id": r.record_id, "date": r.date, "bucket": r.pose_bin}
-                for r in sorted(records.values(), key=lambda item: (item.date or "", item.sequence, item.record_id))]}
+    records=list(_main_records().values());records=[r for r in records if pose_bin is None or r.pose_bin==pose_bin];records=sorted(records,key=lambda item:(item.date or "",item.sequence,item.record_id));limit=max(1,min(limit,1000));page=records[max(0,offset):max(0,offset)+limit]
+    return {"schema":APP_SCHEMA,"source_mode":"research","manifest":manifest,"count":len(records),"offset":offset,"limit":limit,"photos":[{"id":r.record_id,"date":r.date,"bucket":r.pose_bin} for r in page]}
 
 
 @app.get("/api/v1/photos/{photo_id}")
@@ -185,7 +246,7 @@ def get_photo(photo_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/v1/photos/{photo_id}/mesh")
-def get_photo_full_mesh(photo_id: str) -> dict[str, Any]:
+def get_photo_full_mesh(photo_id: str, lod: int = 1) -> dict[str, Any]:
     """🚪 API → Полный BFM-меш (35 709 вершин, реальная топология) для 3D Inspector.
 
     Использует ту же геометрическую модель, что и продакшн Stage 1
@@ -201,9 +262,13 @@ def get_photo_full_mesh(photo_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="Stage 1 не содержит пригодных параметров identity для полного меша")
     bfm = load_bfm_model()
     vertices = bfm.compute_shape(record.alpha_id, np.zeros(64, np.float32)).astype(np.float32)
+    lod=max(1,min(int(lod),8))
+    if lod>1:
+        keep=np.arange(0,vertices.shape[0],lod);mapping={int(old):i for i,old in enumerate(keep)};tri=np.asarray([t for t in bfm.triangles if all(int(x) in mapping for x in t)],np.int32);tri=np.asarray([[mapping[int(x)] for x in t] for t in tri],np.int32);vertices=vertices[keep]
+    else:tri=bfm.triangles
     return {"schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
-            "id": record.record_id, "vertices": vertices.tolist(), "triangles": bfm.triangles.tolist(),
-            "vertex_count": int(vertices.shape[0]), "triangle_count": int(bfm.triangles.shape[0])}
+            "id": record.record_id, "vertices": vertices.tolist(), "triangles": tri.tolist(),"lod":lod,
+            "vertex_count": int(vertices.shape[0]), "triangle_count": int(tri.shape[0])}
 
 
 class UploadResponse(BaseModel):
@@ -639,6 +704,12 @@ def get_run_artifact(name: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+
+@app.get("/api/v1/run/keys/{name}")
+def get_run_key_alias(name: str) -> dict[str, Any]:
+    """Backward-compatible alias used by UI v3."""
+    return get_run_artifact(name)
+
 @app.get("/api/v1/photos/{photo_id}/info_keys")
 def get_photo_info_keys(photo_id: str) -> dict[str, Any]:
     """🚪 API → `info.json` фото (156 листовых ключей) по категориям C/D/G/H.
@@ -826,6 +897,12 @@ def cancel_job(job_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=409, detail="job not cancellable (unknown or already terminal)")
     return {"schema": APP_SCHEMA, "cancelled": job_id}
 
+
+
+@app.post("/api/v1/reviews")
+def create_review(payload: dict[str, Any]) -> dict[str, Any]:
+    try:return append_review(PROJECT_ROOT,payload)
+    except ValueError as exc:raise HTTPException(status_code=422,detail=str(exc)) from exc
 
 @app.get("/api/v1/system/health")
 def system_health() -> dict[str, Any]:

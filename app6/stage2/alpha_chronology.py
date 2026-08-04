@@ -56,8 +56,6 @@ def apply_alpha_chronology(rows: list[dict[str, Any]], model: Any) -> dict[str, 
         alpha_id_jump = alpha_id_score["status"] == "elevated" and float(alpha_id_score["robust_z"]) >= 3.5
         if alpha_id_jump and str(r.get("status")) in {"within_reconstruction_noise", "scattered_or_uncertain", "elevated_but_uncertain"}:
             r["status"] = "alpha_id_jump_candidate"
-        if alpha_exp_jump and not alpha_id_jump and str(r.get("status")) in {"coherent_jump_candidate", "alpha_id_jump_candidate"}:
-            r["status"] = "expression_dominated"
         if r.get("pair_type") == "adjacent" and (alpha_id_jump or alpha_exp_jump):
             events.append({
                 "pair_id": r.get("pair_id"),

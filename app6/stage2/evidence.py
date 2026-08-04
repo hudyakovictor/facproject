@@ -28,7 +28,6 @@ STATUS_TO_EVIDENCE_STATE = {
     "persistent_geometric_change": "persistent_geometric_change",
     "baseline_return_candidate": "reversible_change_candidate",
     "alpha_id_jump_candidate": "alpha_id_change_candidate",
-    "expression_dominated": "expression_dominated",
     "same_day_structural_conflict": "same_day_conflict_candidate",
     "biologically_improbable_rate_candidate": "rate_change_candidate",
     "persistent_biologically_improbable_change": "persistent_rate_change_candidate",
@@ -70,13 +69,15 @@ def alternative_reasons(row: dict[str, Any]) -> list[str]:
     if row.get("source_provenance_status_a") != "provided" or row.get("source_provenance_status_b") != "provided":reasons.append("source_chain_incomplete")
     if row.get("quality_limited"):
         reasons.append("low_or_missing_quality")
-    if row.get("qc_skip_reason") == "expression_too_strong":
-        reasons.append("expression_detected")
     if row.get("calibration_limited"):
         reasons.append("unstable_or_sparse_calibration")
     if row.get("pose_leakage_limited"):
         reasons.append("metric_may_retain_pose_dependence")
-    if row.get("expression_influence", 0.0) >= 0.45:
+    try:
+        expression_influence = float(row.get("expression_influence") or 0.0)
+    except (TypeError, ValueError):
+        expression_influence = 0.0
+    if expression_influence >= 0.45:
         reasons.append("expression_or_soft_tissue_influence")
     if row.get("common_visible134", 999) < 60:
         reasons.append("limited_landmark_visibility")

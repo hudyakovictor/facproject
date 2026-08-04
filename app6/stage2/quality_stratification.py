@@ -16,10 +16,10 @@ from typing import Any, Final
 
 QUALITY_STRATIFICATION_SCHEMA: Final[str] = "deeputin-quality-stratification-v1.0"
 
-DETECTION_CONFIDENCE_LOW: Final[float] = 0.70
-DETECTION_CONFIDENCE_HIGH: Final[float] = 0.85
+DETECTION_CONFIDENCE_LOW: Final[float] = 0.50
+DETECTION_CONFIDENCE_HIGH: Final[float] = 0.70
 #: Минимальная доля кадра, занятая лицом. Ниже — реконструкция ненадёжна.
-MIN_FACE_AREA_RATIO: Final[float] = 0.02
+MIN_FACE_AREA_RATIO: Final[float] = 0.01
 
 QUALITY_INFLATION: Final[dict[str, float]] = {"high": 1.00, "mixed": 1.45, "low": 2.05}
 

@@ -33,7 +33,6 @@ _EVIDENCE_TO_FUZZY = {
     "quality_limited": "WEAK_EVIDENCE",
     "calibration_limited": "WEAK_EVIDENCE",
     "pose_leakage_limited":"WEAK_EVIDENCE","date_provenance_limited":"INSUFFICIENT_DATA","near_duplicate_limited":"INSUFFICIENT_DATA",
-    "expression_dominated": "WEAK_EVIDENCE",
     "coherent_jump_candidate": "SUSPICIOUS_TEXTURE",
     "reversible_change_candidate": "SUSPICIOUS_TEXTURE",
     "alpha_id_change_candidate": "GEOMETRIC_MISMATCH",
@@ -65,11 +64,12 @@ def _date_to_ms(date_iso: str | None) -> int | None:
     return int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp() * 1000)
 
 
-def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
-    """🚪 ENTRY POINT (программный) → Построить timeline payload из реального Stage 2.
+def build_research_timeline(stage2_root: Path, stage1_root: Path | None = None) -> dict[str, Any]:
+    """Построить хронологию из Stage 2, сохранив измерения кадра из Stage 1.
 
-    Raises:
-        FileNotFoundError: если обязательные артефакты Stage 2 отсутствуют.
+    Stage 2 хранит метрики пар, а не самостоятельные характеристики фото.
+    Поэтому углы, покрытие и provenance берутся из ``main_timeline.csv``;
+    результаты пар агрегируются отдельно и не выдаются за свойства кадра.
     """
     manifest_path = stage2_root / "analysis_manifest.json"
     pairs_path = stage2_root / "pair_metrics.csv"
@@ -80,20 +80,52 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
     with pairs_path.open(newline="", encoding="utf-8") as handle:
         pair_rows = [r for r in csv.DictReader(handle) if r.get("status") != "no_pairs"]
 
+    stage1_by_id: dict[str, dict[str, str]] = {}
+    if stage1_root is not None:
+        timeline_path = stage1_root / "main_timeline.csv"
+        if timeline_path.is_file():
+            with timeline_path.open(newline="", encoding="utf-8") as handle:
+                stage1_by_id = {
+                    str(row.get("photo_id")): row
+                    for row in csv.DictReader(handle) if row.get("photo_id")
+                }
+
     photos_by_id: dict[str, dict[str, Any]] = {}
+
+    def _optional_num(value: Any) -> float | None:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return None
+        return number if number == number else None
 
     def _ensure_photo(photo_id: str, date_iso: str | None, pose_bin: str) -> dict[str, Any]:
         if photo_id not in photos_by_id:
+            stage1 = stage1_by_id.get(photo_id, {})
+            actual_date = stage1.get("date") or date_iso
+            actual_pose = stage1.get("pose_bin") or pose_bin
             photos_by_id[photo_id] = {
-                "id": photo_id, "date": date_iso, "t": _date_to_ms(date_iso), "bucket": pose_bin,
-                "era": "STAGE2_RESEARCH", "quality": None, "hidden": False,
+                "id": photo_id, "date": actual_date, "t": _date_to_ms(actual_date), "bucket": actual_pose,
+                "era": "STAGE2_RESEARCH",
+                "quality": _optional_num(stage1.get("combined_visible_fraction")),
+                "qualityBasis": "combined_visible_fraction", "hidden": False,
                 "boneScore": None, "orbit": None, "chin": None, "jaw": None, "cheek": None, "symmetry": None,
-                "yaw": None, "siliconeProb": None, "specular": None, "lbpEntropy": None, "frangi": None,
+                "yaw": _optional_num(stage1.get("yaw")), "pitch": _optional_num(stage1.get("pitch")),
+                "roll": _optional_num(stage1.get("roll")),
+                "siliconeProb": None, "specular": None, "lbpEntropy": None, "frangi": None,
                 "wrinkle": None, "subsurface": None, "visualAge": None, "calendarAge": None,
                 "p0": None, "p1": None, "p2": None, "dominant": None, "fuzzy": "INSUFFICIENT_DATA",
-                "confidence":None,"flags":[],"exifAnomaly":False,"dateProvenanceStatus":"unknown","exifDate":None,"dateDeltaDays":None,"sourceClaimedDate":None,"sourceClaimedDeltaDays":None,"dateConflictSources":[],"dateProvenanceLimited":False,
-                "zOrbitDepth": 0.0, "zChinProj": 0.0, "zJawWidth": 0.0, "zCheek": 0.0,
-                "sourceMode": "research", "bayesianProjectionAvailable": False,
+                "confidence": None, "flags": [], "exifAnomaly": False,
+                "dateProvenanceStatus": stage1.get("date_provenance_status") or "unknown",
+                "exifDate": stage1.get("exif_date") or None,
+                "dateDeltaDays": _optional_num(stage1.get("date_delta_days")),
+                "sourceClaimedDate": stage1.get("source_claimed_date") or None,
+                "sourceClaimedDeltaDays": _optional_num(stage1.get("source_claimed_delta_days")),
+                "dateConflictSources": [], "dateProvenanceLimited": False,
+                "zOrbitDepth": None, "zChinProj": None, "zJawWidth": None, "zCheek": None,
+                "sourceMode": "research", "analysisStage": "stage2_pairs",
+                "bayesianProjectionAvailable": False, "measurementStatus": "compared",
+                "stage2PairCount": 0, "stage2StatusCounts": {}, "stage2EvidenceCounts": {},
             }
         return photos_by_id[photo_id]
 
@@ -117,23 +149,31 @@ def build_research_timeline(stage2_root: Path) -> dict[str, Any]:
             if photo["exifAnomaly"]:photo["flags"].append("DATE_PROVENANCE_CONFLICT")
 
         evidence_state = str(row.get("evidence_state") or "")
+        status = str(row.get("status") or "unknown")
         fuzzy = _EVIDENCE_TO_FUZZY.get(evidence_state, "INSUFFICIENT_DATA")
-        target["fuzzy"] = fuzzy
-        target["quality"] = 1.0 if not row.get("quality_limited") else 0.3
-        target["confidence"] = 1.0 - min(1.0, _num(row.get("primary_robust_z")) / 10.0)
-        raw_z = row.get("p95_point_z")
-        try:
-            z_val = float(raw_z) if raw_z not in (None, "") else None
-        except (TypeError, ValueError):
-            z_val = None
-        target["boneScore"] = _ui_bone_score({"p95_point_z": z_val}) if z_val is not None else None
-        target["yaw"] = _num(row.get("angles_b_1"), _num(row.get("yaw_b")))
-        if evidence_state in ("persistent_geometric_change", "persistent_rate_change_candidate"):
-            target["flags"].append("IDENTITY_ANOMALY")
-        if evidence_state == "same_day_conflict_candidate":
-            target["flags"].append("TEMPORAL_IMPOSSIBILITY")
-        target["evidenceState"] = evidence_state
-        target["measurementStatus"]=row.get("status");target["dateProvenanceLimited"]=str(row.get("date_provenance_limited","")).lower() in {"true","1","yes"}
+        for photo in (source, target):
+            photo["stage2PairCount"] += 1
+            photo["stage2StatusCounts"][status] = photo["stage2StatusCounts"].get(status, 0) + 1
+            photo["stage2EvidenceCounts"][evidence_state] = photo["stage2EvidenceCounts"].get(evidence_state, 0) + 1
+            photo["dateProvenanceLimited"] = photo["dateProvenanceLimited"] or str(row.get("date_provenance_limited", "")).lower() in {"true", "1", "yes"}
+            # Pair evidence is only a review signal. Keep it explicitly separate
+            # from an identity verdict and mark both endpoints symmetrically.
+            if evidence_state in ("persistent_geometric_change", "persistent_rate_change_candidate") and "GEOMETRY_REVIEW_PAIR" not in photo["flags"]:
+                photo["flags"].append("GEOMETRY_REVIEW_PAIR")
+            if evidence_state == "same_day_conflict_candidate" and "TEMPORAL_REVIEW_PAIR" not in photo["flags"]:
+                photo["flags"].append("TEMPORAL_REVIEW_PAIR")
+            if evidence_state == "quality_limited" and "QUALITY_LIMITED_PAIR" not in photo["flags"]:
+                photo["flags"].append("QUALITY_LIMITED_PAIR")
+            if evidence_state == "calibration_limited" and "CALIBRATION_LIMITED_PAIR" not in photo["flags"]:
+                photo["flags"].append("CALIBRATION_LIMITED_PAIR")
+            if fuzzy != "INSUFFICIENT_DATA":
+                photo["fuzzy"] = fuzzy
+
+    # A photo can participate in many pair types. Expose complete aggregates;
+    # never let the final CSV row silently overwrite its earlier pair states.
+    for photo in photos_by_id.values():
+        evidence_counts = photo["stage2EvidenceCounts"]
+        photo["evidenceState"] = next(iter(evidence_counts)) if len(evidence_counts) == 1 else "mixed"
 
     rows = list(photos_by_id.values())
     rows.sort(key=lambda r: (r["date"] or "", r["id"]))

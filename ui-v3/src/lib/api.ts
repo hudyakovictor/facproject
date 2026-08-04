@@ -57,7 +57,7 @@ const NULLABLE = [
   "quality", "boneScore", "orbit", "chin", "jaw", "cheek", "symmetry", "yaw", "pitch", "roll",
   "siliconeProb", "specular", "lbpEntropy", "frangi", "wrinkle", "subsurface",
   "visualAge", "calendarAge", "confidence",
-  "zOrbitDepth", "zChinProj", "zJawWidth", "zCheek", "p0", "p1", "p2",
+  "zOrbitDepth", "zChinProj", "zJawWidth", "zCheek"
 ] as const;
 
 function buildEraMeta(raw: Record<string, { label?: string; start?: string; end?: string }> | undefined, photos: Photo[]): Record<string, EraMeta> {
@@ -97,15 +97,9 @@ function validatePhoto(value: unknown, knownEras: ReadonlySet<string>): { ok: tr
   photo.id = String(row.id); photo.date = String(row.date); photo.t = Number(row.t);
   photo.era = era; photo.bucket = bucket as PoseBucket;
   photo.flags = Array.isArray(row.flags) ? row.flags.map(String) : [];
-  photo.dominant = (row.dominant === "H1" || row.dominant === "H2" ? row.dominant : "H0") as Photo["dominant"];
+  photo.legacyHypothesisQuarantined = Boolean(row.hypothesis || row.dominant || row.p0 || row.p1 || row.p2);
   photo.fuzzy = typeof row.fuzzy === "string" ? row.fuzzy : "UNKNOWN";
   for (const k of NULLABLE) (photo as Record<string, unknown>)[k] = normNum(row[k]);
-  const hyp = row.hypothesis as Record<string, unknown> | undefined;
-  if (hyp) {
-    photo.p0 = normNum(hyp.H0 ?? hyp.h0 ?? photo.p0);
-    photo.p1 = normNum(hyp.H1 ?? hyp.h1 ?? photo.p1);
-    photo.p2 = normNum(hyp.H2 ?? hyp.h2 ?? photo.p2);
-  }
   return { ok: true, photo };
 }
 
@@ -166,7 +160,7 @@ export async function fetchPairMetrics(a: string, b: string): Promise<Record<str
 }
 export async function fetchRunSummary(): Promise<Record<string, unknown>> { return apiJson("/api/v1/run/summary"); }
 export async function fetchRunKeys(name: string): Promise<Record<string, unknown>> {
-  return apiJson(`/api/v1/run/keys/${encodeURIComponent(name)}`);
+  return apiJson(`/api/v1/run/artifacts/${encodeURIComponent(name)}`);
 }
 export async function fetchReportSummary(): Promise<Record<string, unknown>> { return apiJson("/api/v1/report/summary"); }
 export async function fetchReportSection(name: string): Promise<Record<string, unknown>> {

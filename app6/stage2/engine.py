@@ -62,6 +62,7 @@ from .pose_leakage import pose_leakage_diagnostic
 from .metric_registry import build_metric_catalog
 from .evidence import EVIDENCE_SCHEMA, evidence_state, packet_from_pair, is_reportable_change
 from .validation import validate_analysis_contract
+from .pair_planner import plan_pairs
 
 SCHEMA='deeputin-stage2-v1.4-robustness'
 # D-003 (2026-08-03): alignment_quality некоррелирован с остатком (Spearman
@@ -135,35 +136,9 @@ def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]],
   'jaw_open_ratio_a':qa.get('jaw_open_ratio'),'jaw_open_ratio_b':qb.get('jaw_open_ratio'),
   'smile_detected_a':qa.get('smile_detected',False),'smile_detected_b':qb.get('smile_detected',False),
   'jaw_open_detected_a':qa.get('jaw_open_detected',False),'jaw_open_detected_b':qb.get('jaw_open_detected',False),
- }
+  }
  if qa.get('status')!='available' or qb.get('status')!='available':
   return {**base,'applicable':False,'skip_reason':'missing_mandatory_qc','qc_reason_a':qa.get('reason'),'qc_reason_b':qb.get('reason')}
- # D-003 (2026-08-03): alignment_quality не гейтит пары (некоррелирован).
- # Жёсткое исключение по челюсти (вместо инфляции 1.46): рассогласование
- # jaw_open_detected — отдельный кластер остатков (10.8× при контроле эпохи),
- # пара уходит в excluded.
- if bool(qa.get('jaw_open_detected',False)) != bool(qb.get('jaw_open_detected',False)):
-  return {**base,'applicable':False,'skip_reason':'jaw_state_mismatch','qc_reason_a':'jaw_open_detected','qc_reason_b':'jaw_open_detected'}
- 
- # Детекция выражений по геометрии ландмарок
- def _is_expressive(q):
-  if q.get('smile_detected') or q.get('jaw_open_detected'):
-   return True
-  corner=q.get('corner_lift_ioc')
-  jaw=q.get('jaw_open_ratio')
-  if corner is not None and corner_threshold is not None and float(corner)>corner_threshold:
-   return True
-  if jaw is not None and jaw_threshold is not None and float(jaw)>jaw_threshold:
-   return True
-  return False
- 
- expr_a=_is_expressive(qa); expr_b=_is_expressive(qb)
- 
- if expr_a or expr_b:
-  return {**base,'applicable':False,'skip_reason':'expression_too_strong',
-          'qc_reason_a':'smile_or_jaw_detected' if expr_a else '',
-          'qc_reason_b':'smile_or_jaw_detected' if expr_b else '',
-          'corner_threshold':corner_threshold,'jaw_threshold':jaw_threshold}
  return {**base,'applicable':True,'skip_reason':'',
          'qc_reason_a':'','qc_reason_b':'',
          'corner_threshold':corner_threshold,'jaw_threshold':jaw_threshold}
@@ -225,7 +200,10 @@ class Stage2Engine:
   z106,m106=build_coordinate_zone_map(cal,106);z134,m134=build_coordinate_zone_map(cal,134);model=CalibrationModel(cal,z106,z134);point_model=PointNoiseModel(cal);descriptor_model=DescriptorNoiseModel(cal);mesh_model=MeshNoiseModel(cal)
   if o.exists() and self.cfg.overwrite:
    for child in o.iterdir():
-    shutil.rmtree(child) if child.is_dir() else child.unlink()
+    try:
+     shutil.rmtree(child) if child.is_dir() else child.unlink()
+    except FileNotFoundError:
+     pass
   o.mkdir(parents=True,exist_ok=True)
   atomic_json(o/'zone_map.json',{'schema':'coordinate-zone-map-v1','ldm106':z106,'ldm134':z134,'ldm106_meta':m106,'ldm134_meta':m134})
   atomic_json(o/'calibration_noise_model.json',{'schema':'calibration-noise-v2-balanced','policy':'equal_person_median_of_quantiles_v1','datasets':model.datasets,'record_count':len(cal),'references':model.references})
@@ -270,8 +248,7 @@ class Stage2Engine:
   if missing_qc_record_count:status_warning('mandatory_qc',f'{missing_qc_record_count} records are fail-closed')
   for pose,rs in sorted(groups.items()):
    rs.sort(key=lambda x:(x.date or '9999',x.sequence,x.record_id))
-   candidates=[('adjacent',a,b) for a,b in zip(rs,rs[1:])]
-   if len(rs)>2:candidates.extend(('baseline',rs[0],b) for b in rs[2:])
+   candidates=plan_pairs(rs)
    for ptype,a,b in candidates:
     decision=_pair_qc_decision(a,b,qc_by_id)
     if not decision['applicable']:
@@ -279,21 +256,14 @@ class Stage2Engine:
      skipped_pair_rows.append({'pair_type':ptype,'pose_bin':pose,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,**decision})
      continue
     specs.append((ptype,a,b,decision))
-  rows=[];zones=[];details=[];quality_zone_rows=[];texture_zone_rows=[];mesh_rows=[];mesh_zones=[];anchor_policy_by_bin={};expr_gate_summary={'pairs':0,'within_era_excluded':0,'cross_era_stratum':0,'degree_gap_kept':0,'clean':0}
+  rows=[];zones=[];details=[];quality_zone_rows=[];texture_zone_rows=[];mesh_rows=[];mesh_zones=[];anchor_policy_by_bin={};expr_gate_summary={'pairs':0,'accepted':0}
   for n,(ptype,a,b,qc_decision) in enumerate(specs,1):
    pid=f'{ptype}__{a.record_id}__{b.record_id}'
    meta_a={'detection_confidence':detection_confidence.get(a.record_id),'skin_quality_score':skin_quality_score.get(a.record_id),'face_area_ratio':face_area_ratio.get(a.record_id)}
    meta_b={'detection_confidence':detection_confidence.get(b.record_id),'skin_quality_score':skin_quality_score.get(b.record_id),'face_area_ratio':face_area_ratio.get(b.record_id)}
    expr_gate=expression_gate({**meta_a,'jaw_open_detected':jaw_open_detected.get(a.record_id,False),'jaw_open_degree':jaw_open_degree.get(a.record_id),'smile_detected':smile_detected.get(a.record_id,False)},{**meta_b,'jaw_open_detected':jaw_open_detected.get(b.record_id,False),'jaw_open_degree':jaw_open_degree.get(b.record_id),'smile_detected':smile_detected.get(b.record_id,False)},era_a=(str(a.date)[:4] if a.date else None),era_b=(str(b.date)[:4] if b.date else None))
    expr_gate_summary['pairs']+=1
-   if not expr_gate.get('accepted'):expr_gate_summary['within_era_excluded']+=1
-   elif expr_gate.get('stratum'):expr_gate_summary['cross_era_stratum']+=1
-   elif expr_gate.get('jaw_degree_gap_exceeded'):expr_gate_summary['degree_gap_kept']+=1
-   else:expr_gate_summary['clean']+=1
-   if not expr_gate.get('accepted'):
-    skipped_counts[expr_gate.get('reason','expression_gate_rejected')]+=1
-    skipped_pair_rows.append({'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'applicable':False,'skip_reason':expr_gate.get('reason','expression_gate_rejected'),'expression_gate_jaw_mismatch':expr_gate.get('jaw_mismatch'),'expression_gate_jaw_degree_gap':expr_gate.get('jaw_degree_gap'),'qc_reason_a':'','qc_reason_b':''})
-    continue
+   if expr_gate.get('accepted'):expr_gate_summary['accepted']+=1
    q_gate=quality_gate(meta_a,meta_b)
    c=compare_landmarks(a,b,z106,z134,self.cfg.min_points106,self.cfg.min_points134);matched=model.matched_null(a,b) if c.status=='measured' else {};scores={}
    if c.diagnostics.get('anchor134_policy'):
@@ -318,9 +288,6 @@ class Stage2Engine:
        expression_influence = float(max(0., 1. - identity_rmse / full_rmse))
    if c.status=='measured':status=motion_score134['status']
    if descriptor_score['status']=='descriptor_jump_candidate' and status in ('within_reconstruction_noise','scattered_or_uncertain'):status='coherent_jump_candidate'
-   if status=='coherent_jump_candidate':
-    es=scores.get('alpha_exp_l2',{}).get('status')
-    status='expression_dominated' if expression_influence>=.45 and es in ('elevated','elevated_but_uncertain') else 'coherent_jump_candidate'
    safe_pid=pid.replace('/','_');np.savez_compressed(motion_dir/f'{safe_pid}.npz',ldm106_vectors=motion106['vectors'],ldm106_magnitude=motion106['magnitude'],ldm106_point_z=motion_score106['z'],ldm106_significant=motion_score106['significant'],ldm134_vectors=motion134['vectors'],ldm134_magnitude=motion134['magnitude'],ldm134_point_z=motion_score134['z'],ldm134_significant=motion_score134['significant'],ldm134_identity_only_vectors=identity_motion['vectors'],ldm134_identity_only_magnitude=identity_motion['magnitude'],descriptor_names=np.asarray(DESCRIPTOR_NAMES),descriptor_values=descriptor_score['values'],descriptor_z=descriptor_score['z'],descriptor_significant=descriptor_score['significant'])
    ms=motion_score134['summary'];ds=descriptor_score['summary'];lead=pair_leads(leads,a.date,b.date);mesh_row,mesh_zone_list=dense_mesh_pair(a,b,o,pid);texture_row,texture_zone_list=texture_pair_deltas(a,b,pid);texture_zone_rows.extend(texture_zone_list);mesh_score=mesh_model.score(a.pose_bin,mesh_row);mesh_row.update(mesh_score);mesh_rows.append({'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**mesh_row});mesh_zones.extend(mesh_zone_list)
    row={'pair_id':pid,'pair_index':n,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'source_group_a':a.source_group,'source_group_b':b.source_group,'source_digest_a':a.source_digest,'source_digest_b':b.source_digest,'analysis_space':a.analysis_space,'date_provenance_status_a':a.date_provenance_status,'date_provenance_status_b':b.date_provenance_status,'exif_date_a':a.exif_date,'exif_date_b':b.exif_date,'date_delta_days_a':a.date_delta_days,'date_delta_days_b':b.date_delta_days,'source_claimed_date_a':a.source_claimed_date,'source_claimed_date_b':b.source_claimed_date,'source_claimed_delta_days_a':a.source_claimed_delta_days,'source_claimed_delta_days_b':b.source_claimed_delta_days,'date_conflict_sources_a':a.date_conflict_sources,'date_conflict_sources_b':b.date_conflict_sources,'date_provenance_limited':bool(a.date_provenance_status=='conflict' or b.date_provenance_status=='conflict'),'near_duplicate_of_a':a.near_duplicate_of,'near_duplicate_of_b':b.near_duplicate_of,'near_duplicate_pair':bool(a.near_duplicate_of or b.near_duplicate_of),'source_provenance_status_a':a.source_provenance.get('status','not_provided'),'source_provenance_status_b':b.source_provenance.get('status','not_provided'),'source_url_a':a.source_provenance.get('source_url'),'source_url_b':b.source_provenance.get('source_url'),'archive_url_a':a.source_provenance.get('archive_url'),'archive_url_b':b.source_provenance.get('archive_url'),'alignment_quality_a':alignment_quality.get(a.record_id),'alignment_quality_b':alignment_quality.get(b.record_id),'corner_lift_ioc_a':corner_lift_ioc.get(a.record_id),'corner_lift_ioc_b':corner_lift_ioc.get(b.record_id),'jaw_open_ratio_a':jaw_open_ratio.get(a.record_id),'jaw_open_ratio_b':jaw_open_ratio.get(b.record_id),'smile_detected_a':smile_detected.get(a.record_id),'smile_detected_b':smile_detected.get(b.record_id),'jaw_open_detected_a':jaw_open_detected.get(a.record_id),'jaw_open_detected_b':jaw_open_detected.get(b.record_id),'expression_source':'geometry_landmarks_v1','qc_skip_reason':qc_decision.get('skip_reason',''),'status':status,'motion_file':f'point_motion/{safe_pid}.npz',**mesh_row,**texture_row,'point_motion_status':motion_score134['status'],'ldm134_anchor_count':motion134.get('anchor_count',0),'ldm134_anchor_policy':motion134.get('anchor_policy','unknown'),'ldm134_alignment_policy':motion134.get('alignment_policy','unknown'),'ldm134_alignment_trimmed_count':motion134.get('alignment_trimmed_count',0),'ldm106_anchor_count':motion106.get('anchor_count',0),'ldm106_anchor_policy':motion106.get('anchor_policy','unknown'),'descriptor_status':descriptor_score['status'],'descriptor_significant_fraction':ds.get('significant_cell_fraction',0.),'descriptor_landmark_fraction':ds.get('significant_landmark_fraction',0.),'descriptor_p95_z':ds.get('p95_descriptor_z',0.),'descriptor_top_families':ds.get('top_descriptor_families',''),'descriptor_top_counts':ds.get('top_descriptor_counts',''),'calibrated_point_count':ms.get('calibrated_point_count',0),'significant_point_count':ms.get('significant_point_count',0),'significant_point_fraction':ms.get('significant_fraction',0.),'coherent_motion_fraction':ms.get('coherent_fraction',0.),'median_point_z':ms.get('median_point_z',0.),'p95_point_z':ms.get('p95_point_z',0.),'identity_only_motion_rmse':identity_rmse,'expression_influence':expression_influence,**lead,**c.diagnostics,**c.metrics,'primary_robust_z':float(primary.get('robust_z',0)),'primary_calibration_p95':float(primary.get('calibration_p95',0)),'matched_calibration_sets':len(matched.get('ldm134_rmse',[]))}
@@ -335,11 +302,14 @@ class Stage2Engine:
     'quality_texture_score_a': float(getattr(a, 'quality_texture_score', 0.0) or 0.0),
     'quality_texture_score_b': float(getattr(b, 'quality_texture_score', 0.0) or 0.0),
     'quality_limited': qlimited,
-    'forehead_wrinkle_supported_a': bool(getattr(a, 'forehead_wrinkle_supported', False)),
-    'forehead_wrinkle_supported_b': bool(getattr(b, 'forehead_wrinkle_supported', False)),
+'forehead_wrinkle_supported_a': bool(getattr(a, 'forehead_wrinkle_supported', False)),
+   'forehead_wrinkle_supported_b': bool(getattr(b, 'forehead_wrinkle_supported', False)),
    })
    row.update({'expression_gate_multiplier':expr_gate.get('threshold_multiplier'),'expression_gate_jaw_mismatch':expr_gate.get('jaw_mismatch'),'expression_gate_smile_mismatch':expr_gate.get('smile_mismatch'),'expression_gate_jaw_degree_gap':expr_gate.get('jaw_degree_gap'),'expression_gate_confidence':expr_gate.get('confidence'),'expression_gate_stratum':expr_gate.get('stratum'),'expression_gate_jaw_degree_gap_exceeded':expr_gate.get('jaw_degree_gap_exceeded'),'quality_stratum_a':q_gate.get('stratum_a'),'quality_stratum_b':q_gate.get('stratum_b'),'quality_stratum':q_gate.get('stratum'),'quality_calibration_key_suffix':q_gate.get('calibration_key_suffix'),'quality_threshold_multiplier':q_gate.get('threshold_multiplier'),'quality_gate_accepted':q_gate.get('accepted'),'visibility_gate_common134':vis134.get('common'),'visibility_gate_required134':vis134.get('required'),'visibility_gate_accepted134':vis134.get('accepted'),'visibility_gate_common106':vis106.get('common'),'visibility_gate_required106':vis106.get('required'),'visibility_gate_accepted106':vis106.get('accepted')})
-   row['evidence_state']=('date_provenance_limited' if row.get('date_provenance_limited') else ('near_duplicate_limited' if row.get('near_duplicate_pair') and status not in ('within_reconstruction_noise','within_calibration_noise') else evidence_state(str(row.get('status','')),quality_limited=qlimited)))
+   dpl = row.get('date_provenance_limited')
+   if isinstance(dpl, str):
+       dpl = dpl.strip().lower() in ('true', '1', 'yes')
+   row['evidence_state']=('date_provenance_limited' if dpl else ('near_duplicate_limited' if row.get('near_duplicate_pair') and status not in ('within_reconstruction_noise','within_calibration_noise') else evidence_state(str(row.get('status','')),quality_limited=qlimited)))
    rows.append(row)
    for z in c.zones:
     zr={'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**z}
@@ -351,7 +321,7 @@ class Stage2Engine:
   # 🚧 Патч 14: без временной оси (калибровка, единичная дата) временные
   # детекторы не запускаются вовсе, а в отчёт идёт явный skip-статус.
   temporal_axis = require_temporal_axis(main)
-  if temporal_axis is None:
+  if temporal_axis is not None:
       alpha_chronology_report=apply_alpha_chronology(rows,model)
       baseline_return_report=apply_baseline_return(rows,o)
       chronology_refs=apply_chronology_rate_flags(rows)
@@ -359,8 +329,8 @@ class Stage2Engine:
   else:
       _temporal_skip = {"schema": TEMPORAL_AXIS_SCHEMA,
                         "status": "skipped_no_temporal_axis",
-                        "reason": temporal_axis.get("reason"),
-                        "temporal_axis": temporal_axis}
+                        "reason": "dataset has no validated evidence time axis",
+                        "temporal_axis": None}
       alpha_chronology_report = _temporal_skip
       baseline_return_report = _temporal_skip
       chronology_refs = _temporal_skip

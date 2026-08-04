@@ -78,7 +78,12 @@ def load_main(stage1_root: Path) -> list[Record]:
         source_group = source_parts[0] if len(source_parts) > 1 else "unknown"
         qsum = info.get("quality_summary") or {}
         chronology_info = info.get("chronology") or {}
-        gtq = qsum.get("global_texture_quality") or {}
+        # Stage 1 writes the measured global texture quality to texture.json.
+        # Older Stage 2 code looked for a non-existent nested
+        # quality_summary.global_texture_quality object and silently replaced
+        # every score with zero, making every pair quality_limited.
+        texture_payload = json.loads((directory / "texture.json").read_text(encoding="utf-8"))
+        gtq = texture_payload.get("quality") or {}
         qzones = load_quality_zone_summary(directory)
         # 🚧 Патч 13: разрешение даты и её точности через resolve_date.
         resolved = resolve_date(
@@ -106,8 +111,8 @@ def load_main(stage1_root: Path) -> list[Record]:
                 capture_event=capture_event,
                 identity_only106=(z["ldm106_identity_only"] if "ldm106_identity_only" in z else z["vertices_identity_only"][idx106]).astype(np.float32),
                 identity_only134=(z["ldm134_identity_only"] if "ldm134_identity_only" in z else z["vertices_identity_only"][idx134]).astype(np.float32),
-                quality_status=str(gtq.get("status", qsum.get("status", "unknown"))),
-                quality_texture_score=float(gtq.get("texture_score_0_1", 0.0) or 0.0),
+                quality_status=str(gtq.get("status") or info.get("skin_quality_status") or "unknown"),
+                quality_texture_score=float(gtq.get("score", info.get("skin_quality_score", 0.0)) or 0.0),
                 forehead_wrinkle_supported=bool(qsum.get("supported_forehead_wrinkle_pose_v1", False)),
                 quality_zones=qzones,
                 record_dir=str(directory),
@@ -213,25 +218,46 @@ def load_calibration_from_sidecar(root: Path) -> list[Record]:
     return out
 
 
+def load_legacy_calibration_archive(root: Path) -> list[Record]:
+    """Read the published person_*/frame_*/info.json archive as raw object-normalized calibration.
+
+    This path is explicit and marked legacy; it never treats chronology/aligned CSVs as primary.
+    """
+    out=[]
+    for info_path in sorted(root.glob("person_*/frame_*/info.json")):
+        directory=info_path.parent
+        info=json.loads(info_path.read_text(encoding="utf-8"))
+        validation_path=directory/"validation.json"
+        if validation_path.is_file() and json.loads(validation_path.read_text()).get("status")!="complete":continue
+        norm=info.get("normalization") or {}; center=np.asarray(norm.get("center"),np.float64); scale=float(norm.get("scale") or 0)
+        if center.shape!=(3,) or not np.isfinite(center).all() or not np.isfinite(scale) or scale<=0:raise ValueError(f"invalid normalization: {directory}")
+        raw106=_read_landmark_csv(directory/"ldm106_raw.csv",106);raw134=_read_landmark_csv(directory/"ldm134_raw.csv",134)
+        pose=info.get("pose") or {}; chronology=info.get("chronology") or {}
+        visible106=np.ones(106,bool);visible134=np.ones(134,bool)
+        out.append(Record(record_id=str(info.get("photo_id") or directory.name),dataset_id=directory.parent.name,date=None,sequence=len(out),pose_bin=str(pose.get("pose_bin") or chronology.get("pose_bin") or "unknown"),angles=np.asarray([pose.get("pitch",0),pose.get("yaw",0),pose.get("roll",0)],np.float32),ldm106=((raw106-center)/scale).astype(np.float32),ldm134=((raw134-center)/scale).astype(np.float32),visible106=visible106,visible134=visible134,alpha_id=_missing_alpha(80),alpha_exp=_missing_alpha(64),record_dir=str(directory),source_group=directory.parent.name,source_digest=info.get("source_digest"),analysis_space=ANALYSIS_COORDINATE_SPACE,dataset_role="calibration",date_precision="none",date_provenance_status="not_applicable"))
+    if not out:raise FileNotFoundError(f"no legacy calibration frames under {root}")
+    return out
+
+
 def load_calibration(calibration_root: Path) -> list[Record]:
-    """Загрузка калибровочных записей через завершённый Stage 1.
+    """Загрузить уже извлечённую калибровку или завершённый Stage 1.
 
-    🔥 ВАЖНО: данные в calibration_dataset/person_*/frame_*/ признаны
-    неактуальными (извлечены неверно). Используются ТОЛЬКО сырые фото
-    из calibration_dataset/photos/ с переизвлечением через Stage 1.
-
-    Порядок работы:
-    1. Если calibration_root содержит main_timeline.csv и
-       all_calibration_index.csv — читает свежий результат Stage 1 и
-       восстанавливает субъект/кадр из индекса.
-    2. Иначе останавливается с инструкцией выполнить отдельный, явно
-       авторизованный прогон Stage 1 на съёмный носитель.
-
-    🚨 Если веса моделей (net_recon.pth, retinaface_*.pth) отсутствуют —
-    вызывает FileNotFoundError с инструкцией по установке.
+    При наличии ``metadata.json`` читается опубликованный архив
+    ``person_*/frame_*/`` напрямую через raw CSV и metadata arrays.
+    Каталог ``photos`` в этом режиме не требуется, а переизвлечение
+    никогда не запускается неявно.
     """
     log_status("load_calibration", "complete")
     root = calibration_root
+
+    # Published calibration archive: metadata.json + sidecar CSV/NPZ files.
+    # This is already-extracted data; never require photos/ or trigger Stage 1.
+    if any(root.glob("person_*/frame_*/metadata.json")):
+        return load_calibration_from_sidecar(root)
+
+    # Explicit compatibility path for the older info.json archive.
+    if any(root.glob("person_*/frame_*/info.json")):
+        return load_legacy_calibration_archive(root)
 
     # ✅ Свежий результат Stage 1.  Имена frame_* не несут хронологию:
     # субъект и номер кадра берём только из отдельного проверяемого индекса.

@@ -60,6 +60,18 @@ def resolve_date(*, filename: str | None = None, exif_date: str | None = None,
                 "note": "калибровочный набор упорядочивается по позе и sequence"}
 
     fn_date, fn_precision = parse_filename_date(filename or "")
+    # Игнорировать EXIF-даты, лежащие более чем на 365 дней в будущем
+    # относительно даты из имени файла: типично для пересканированных
+    # фото, где EXIF содержит дату сканирования, а не съёмки.
+    if exif_date:
+        try:
+            exif_d = date.fromisoformat(exif_date[:10])
+            if fn_date:
+                fn_d = date.fromisoformat(fn_date[:10])
+                if (exif_d - fn_d).days > 365:
+                    exif_date = None
+        except (TypeError, ValueError):
+            pass
     candidates = {"exif": (exif_date, "day"),
                   "filename": (fn_date, fn_precision),
                   "claimed": (claimed_date, "day")}

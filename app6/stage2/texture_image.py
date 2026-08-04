@@ -448,3 +448,15 @@ def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], l
         "texture_image_backend": "scikit-image" if _HAS_SKIMAGE else "numpy_cv2_fallback",
         "texture_image_schema": TEXTURE_IMAGE_SCHEMA,
     }, rows
+
+
+def pose_normalize_texture(image: np.ndarray, yaw_deg: float) -> tuple[np.ndarray, dict]:
+    """Deterministic diagnostic normalization; not an evidence channel.
+
+    Mild horizontal compensation only inside |yaw|<=25. Profiles abstain.
+    """
+    arr=np.asarray(image)
+    if abs(float(yaw_deg))>25:return arr,{"status":"not_applicable_profile","evidence_role":"visualization_only"}
+    factor=max(.75,float(np.cos(np.deg2rad(yaw_deg))))
+    width=max(1,int(round(arr.shape[1]/factor)));normalized=cv2.resize(arr,(width,arr.shape[0]),interpolation=cv2.INTER_LINEAR)
+    return normalized,{"status":"diagnostic","evidence_role":"visualization_only","yaw_deg":float(yaw_deg)}
