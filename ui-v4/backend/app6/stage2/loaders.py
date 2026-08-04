@@ -36,12 +36,15 @@ def _required_npz_array(z: np.lib.npyio.NpzFile, key: str, shape: tuple[int, ...
     return arr
 
 
-def load_main(stage1_root: Path) -> list[Record]:
+def load_main(stage1_root: Path, selection_ids: set[str] | None = None) -> list[Record]:
     """🎯 CRITICAL → Загрузка записей Stage 1 для анализа Stage 2.
 
     Читает main_timeline.csv, затем для каждого фото:
     - info.json (метаданные, pose, alignment quality)
     - reconstruction.npz (вершины, ландмарки, видимость)
+
+    `selection_ids`: ограничить выборку только перечисленными photo_id
+    (immutable selection manifest). None = весь Stage 1.
 
     🔗 DEPENDS ON:
       - engine.run() — вызывается в начале Stage 2
@@ -67,6 +70,8 @@ def load_main(stage1_root: Path) -> list[Record]:
     out: list[Record] = []
     for row in _rows(index):
         if not row.get("photo_id"):
+            continue
+        if selection_ids is not None and row["photo_id"] not in selection_ids:
             continue
         directory = stage1_root / row["photo_id"]
         validation = json.loads((directory / "validation.json").read_text(encoding="utf-8"))
