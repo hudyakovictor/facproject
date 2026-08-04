@@ -170,13 +170,15 @@ def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]],
 
 @dataclass(frozen=True)
 class Stage2Config:
- stage1_root:Path;calibration_root:Path;output_dir:Path;overwrite:bool=False;min_points106:int=24;min_points134:int=30;lead_archive:Path|None=None
+ stage1_root:Path;calibration_root:Path;output_dir:Path;overwrite:bool=False;min_points106:int=24;min_points134:int=30;lead_archive:Path|None=None;selection_manifest:Path|None=None
  # Selection/cancel/progress hooks (Iteration 05 run manager). None = unrestricted.
  selection_ids:set[str]|None=None
  cancel_event:Any|None=None
  progress_callback:Any|None=None
  # 🏭 FACTORY → сборка итогового payload прогона
- def payload(self):return {'schema':SCHEMA,'min106':self.min_points106,'min134':self.min_points134,'calibration':'equal-person-balanced-reference-v1','visibility_policy':'intersection_fail_closed_v1','cross_pose_policy':'reject_before_score_v1','noise_policy':'explicit_sigma_only_v1','chronology_policy':'adjacent_plus_anchor_plus_cusum_v1','lead_policy':'coverage_only_not_threshold_tuning','descriptor_families':list(DESCRIPTOR_NAMES),'selection_ids':sorted(self.selection_ids) if self.selection_ids is not None else None}
+ def payload(self):
+  selection_digest=digest_file(self.selection_manifest) if self.selection_manifest else None
+  return {'schema':SCHEMA,'min106':self.min_points106,'min134':self.min_points134,'calibration':'equal-person-balanced-reference-v1','visibility_policy':'intersection_fail_closed_v1','cross_pose_policy':'reject_before_score_v1','noise_policy':'explicit_sigma_only_v1','chronology_policy':'adjacent_plus_anchor_plus_cusum_v1','lead_policy':'coverage_only_not_threshold_tuning','descriptor_families':list(DESCRIPTOR_NAMES),'selection_ids':sorted(self.selection_ids) if self.selection_ids is not None else None,'selection_manifest_digest':selection_digest}
 
  def __post_init__(self):
   if self.min_points106 < 8 or self.min_points134 < 8:raise ValueError('min_points must be >= 8')
@@ -184,6 +186,8 @@ class Stage2Config:
   for source,name in ((self.stage1_root,'stage1_root'),(self.calibration_root,'calibration_root')):
    source=Path(source).resolve()
    if output==source or source in output.parents:raise ValueError(f'output_dir must not equal or be inside {name}')
+  if self.selection_manifest is not None and not Path(self.selection_manifest).is_file():
+   raise FileNotFoundError(f'selection_manifest not found: {self.selection_manifest}')
 
 class Stage2Engine:
  def __init__(self,cfg):self.cfg=cfg
@@ -225,6 +229,17 @@ class Stage2Engine:
   if o.exists() and any(o.iterdir()) and not self.cfg.overwrite:raise FileExistsError(f'output exists: {o}')
   # Load and construct every read-only dependency before destructive overwrite.
   main=load_main(self.cfg.stage1_root,selection_ids=self.cfg.selection_ids);cal=load_calibration(self.cfg.calibration_root);leads=load_leads(self.cfg.lead_archive)
+  selection_meta=None
+  if self.cfg.selection_manifest is not None:
+   selection_meta=json.loads(Path(self.cfg.selection_manifest).read_text(encoding='utf-8'))
+   if selection_meta.get('immutable_stage1') is not True:raise RuntimeError('selection manifest is not frozen')
+   included_ids=selection_meta.get('included_ids')
+   if not isinstance(included_ids,list) or not included_ids:raise RuntimeError('selection manifest has no included_ids')
+   selected={str(value) for value in included_ids}
+   available={record.record_id for record in main}
+   unknown=sorted(selected-available)
+   if unknown:raise RuntimeError(f'selection manifest references unknown Stage1 ids: {unknown[:10]}')
+   main=[record for record in main if record.record_id in selected]
   if not main:raise RuntimeError('no valid stage1 records')
   z106,m106=build_coordinate_zone_map(cal,106);z134,m134=build_coordinate_zone_map(cal,134);model=CalibrationModel(cal,z106,z134);point_model=PointNoiseModel(cal);descriptor_model=DescriptorNoiseModel(cal);mesh_model=MeshNoiseModel(cal)
   if o.exists() and self.cfg.overwrite:
@@ -420,7 +435,7 @@ class Stage2Engine:
   _model_path=_work_root/'3ddfa_v3'/'assets'/'face_model.npy'
   _model_hash=digest_file(_model_path) if _model_path.is_file() else 'missing'
   _run_manifest=build_manifest(_work_root,code_hash=digest_file(Path(__file__)),config_hash=digest_json(self.cfg.payload()),model_hash=_model_hash,reuse_report=_reuse_report,space_manifest=_space_manifest,anchor_policy=anchor_policy_by_bin)
-  manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.']}
+  manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'main_record_count':len(main),'selection_profile_id':selection_meta.get('profile_id') if selection_meta else None,'selection_manifest_digest':digest_file(self.cfg.selection_manifest) if self.cfg.selection_manifest else None,'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.']}
   atomic_json(o/'technical_summary.json',build_technical_summary(rows,changes,manifest))
   atomic_json(o/'analysis_manifest.json',manifest)
   req=['analysis_manifest.json','technical_summary.json','calibration_noise_model.json','calibration_sensitivity.json','mesh_noise_model.json','point_noise_model.npz','descriptor_noise_model.npz','lead_registry.json','lead_coverage.csv','chronology_rate_model.json','alpha_chronology.json','alpha_chronology_events.csv','baseline_return.json','cumulative_drift.json','cross_bin_corroboration.json','event_aggregation.csv','pose_leakage_diagnostic.json','metric_catalog.json','zone_map.json','pair_metrics.csv','zone_metrics.csv','quality_zone_pair_coverage.csv','texture_pair_metrics.csv','texture_zone_metrics.csv','mesh_pair_metrics.csv','mesh_zone_metrics.csv','pair_details.json','evidence_packets.json','evidence_packets.jsonl','multiple_testing.json','change_points.json','manual_review_queue.csv','public_safety_report.json','degraded_modules.json','mesh_shape_summary.csv','texture_summary.json','status_summary.csv','gate_report.json','stage3_input_summary.json','artifact_index.json','evidence_chain_manifest.json']

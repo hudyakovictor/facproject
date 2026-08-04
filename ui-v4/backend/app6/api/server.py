@@ -36,7 +36,7 @@ from .bfm_topology import is_bfm_available
 from .calibration import find_matching_calibration_frames, load_calibration_health
 
 from .compare import compare_records, full_mesh_compare
-from .jobs import JobManager, make_extract_runner, make_recompute_metrics_runner
+from .jobs import JobManager, make_analysis_runner, make_extract_runner, make_recompute_metrics_runner
 from .noise_calibration import (
     apply_noise_subtraction, build_noise_index, noise_coverage_report, resolve_tolerance,
 )
@@ -67,6 +67,12 @@ from .analysis_profiles import (
     set_profile_lock,
     update_profile_filters,
 )
+from .analysis_runs import (
+    get_analysis_run,
+    list_analysis_run_pairs,
+    list_analysis_runs,
+)
+from .profile_preview import build_profile_preview
 from .selection_filters import (
     DEFAULT_FILTER_STATE,
     QUALITY_FILTER_KEYS,
@@ -890,6 +896,10 @@ def calibration_match(photo_id: str | None = None, yaw: float | None = None,
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+class ProfileAnalysisRequest(BaseModel):
+    confirm_frozen_selection: bool = False
+
+
 class JobRequest(BaseModel):
     kind: str
     input_dir: str | None = None
@@ -941,6 +951,40 @@ def submit_job(request: JobRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=f"unknown job kind: {request.kind}")
     job_id = _job_manager.submit(request.kind, runner)
     return {"schema": APP_SCHEMA, "job_id": job_id}
+
+
+@app.post("/api/v1/profiles/{profile_id}/analysis-runs")
+def submit_profile_analysis(profile_id: str, request: ProfileAnalysisRequest) -> dict[str, Any]:
+    """Start Stage 2 → Stage 3 from an immutable profile manifest."""
+    if request.confirm_frozen_selection is not True:
+        raise HTTPException(status_code=400, detail="confirm_frozen_selection=true required")
+    try:
+        profile = get_profile(profile_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    manifest_path = Path(str((profile.get("paths") or {}).get("manifest") or ""))
+    manifest = profile.get("selection_manifest")
+    if not manifest_path.is_file() or not isinstance(manifest, dict):
+        raise HTTPException(status_code=409, detail="сначала заморозьте выборку профиля")
+    if manifest.get("immutable_stage1") is not True:
+        raise HTTPException(status_code=409, detail="манифест профиля не является immutable")
+    included_ids = manifest.get("included_ids")
+    if not isinstance(included_ids, list) or not included_ids:
+        raise HTTPException(status_code=409, detail="замороженная выборка пуста")
+    paths = load_runtime_paths()
+    run_id = f"{profile_id}_{uuid.uuid4().hex[:10]}"
+    run_root = paths.storage_root / "analysis_runs" / run_id
+    runner = make_analysis_runner(
+        _require_stage1(), _calibration_root(), profile_id, manifest_path, run_root,
+    )
+    job_id = _job_manager.submit("profile_analysis", runner, run_id=run_id, profile_id=profile_id)
+    return {
+        "schema": APP_SCHEMA,
+        "job_id": job_id,
+        "run_id": run_id,
+        "profile_id": profile_id,
+        "included_count": len(included_ids),
+    }
 
 
 @app.get("/api/v1/jobs")
@@ -1318,6 +1362,74 @@ def api_import_profile(payload: dict[str, Any]) -> dict[str, Any]:
         return import_profile(payload)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Iteration 06 — Profile preview + completed analysis runs
+# ---------------------------------------------------------------------------
+# Предварительный просмотр объёма работы и каталог сохранённых прогонов,
+# чтобы UI давал пользователю честную оценку «сколько пар / сколько времени»
+# до старта тяжёлого Stage 2.
+
+
+@app.get("/api/v1/profiles/{profile_id}/preview")
+def api_profile_preview(profile_id: str) -> dict[str, Any]:
+    """🧮 API → Предварительная оценка профиля перед запуском Stage 2 + Stage 3.
+
+    Не запускает расчёт — только читает frozen манифест и Stage 1 timeline,
+    считает число пар внутри каждого pose bin и оценку времени. Возвращает
+    blockers/warnings + is_runnable.
+    """
+    try:
+        get_profile(profile_id)  # ensure profile exists
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    _, photos = _timeline_photos_for_filters()
+    return build_profile_preview(profile_id, photos=photos, paths=load_runtime_paths())
+
+
+@app.get("/api/v1/analysis-runs")
+def api_list_analysis_runs(
+    profile_id: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, Any]:
+    """📚 API → Список завершённых (и активных) прогонов анализа профилей."""
+    if limit > 200:
+        raise HTTPException(status_code=400, detail="limit must be ≤ 200")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must be ≥ 0")
+    return list_analysis_runs(profile_id=profile_id, offset=offset, limit=limit, paths=load_runtime_paths())
+
+
+@app.get("/api/v1/analysis-runs/{run_id}")
+def api_get_analysis_run(run_id: str) -> dict[str, Any]:
+    """📄 API → Детали прогона + ``run_summary.json`` если сохранён."""
+    try:
+        return get_analysis_run(run_id, paths=load_runtime_paths())
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/analysis-runs/{run_id}/pairs")
+def api_list_analysis_run_pairs(
+    run_id: str,
+    offset: int = 0,
+    limit: int = 50,
+    pose_bin: str | None = None,
+) -> dict[str, Any]:
+    """📑 API → Список пар из ``stage2/pair_metrics.csv`` с пагинацией."""
+    if limit > 500:
+        raise HTTPException(status_code=400, detail="limit must be ≤ 500")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must be ≥ 0")
+    try:
+        return list_analysis_run_pairs(run_id, offset=offset, limit=limit, pose_bin=pose_bin,
+                                       paths=load_runtime_paths())
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
