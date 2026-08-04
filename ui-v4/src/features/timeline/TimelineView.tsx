@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type WheelEvent as ReactWheelEvent } from "react";
-import { batchPairs, calibrationThresholds, fetchSettings, image, timeline, type AppSettings } from "../../shared/api";
+import {
+  batchPairs, calibrationThresholds, fetchSettings, image, timeline,
+  timelineFindings, type AppSettings, type BinFindings, type DenseZone, type PairFinding,
+} from "../../shared/api";
+import { displacementRamp } from "../../shared/landmarkRenderer";
 import FilterPanel, { type FilterEvalResult } from "./FilterPanel";
 import { LABEL, POSES, type Photo, type Pose, type TimelineData } from "../../shared/types";
 import type { CompareRequest } from "../../app/App";
@@ -158,7 +162,96 @@ function PaneControls({ pane, index, count, update, remove, add }: { pane: PaneC
   </div>;
 }
 
-function PosePane({ pane, index, count, photos, width, thumbSize, xOf, selected, onSelect, openPhoto, update, remove, add, shiftThresholds, photoA, photoB, viewportLeft, viewportRight }: { pane: PaneConfig; index: number; count: number; photos: Photo[]; width: number; thumbSize: number; xOf: (time: number) => number; selected: string | null; onSelect: (id: string) => void; openPhoto: (id: string) => void; update: (patch: Partial<PaneConfig>) => void; remove: () => void; add: () => void; shiftThresholds: { tolerance: number; suspect: number; calibrated: boolean } | null; photoA: string | null; photoB: string | null; viewportLeft: number; viewportRight: number }) {
+interface FindingsLayers { anomalies: boolean; shape: boolean; texture: boolean; density: boolean }
+
+function shapeColor(rmse: number | null, maxRmse: number): string {
+  if (rmse === null || !Number.isFinite(rmse)) return "#3a4654";
+  const t = Math.min(1, Math.max(0, rmse / Math.max(maxRmse, 1e-6)));
+  const [r, g, b] = displacementRamp(t);
+  return `rgb(${r},${g},${b})`;
+}
+
+function FindingsStrip({ bin, xOf, width, layers, positionMap }: {
+  bin: BinFindings | null;
+  xOf: (time: number) => number;
+  width: number;
+  layers: FindingsLayers;
+  positionMap: Map<string, number>;
+}) {
+  if (!bin) return null;
+  const xOfPhoto = (id: string | null | undefined) => {
+    if (!id) return null;
+    const fromMap = positionMap.get(id);
+    if (fromMap !== undefined) return fromMap;
+    return null;
+  };
+  const xOfDate = (date: string | null | undefined) => {
+    if (!date) return null;
+    const ms = new Date(date).getTime();
+    return Number.isFinite(ms) ? xOf(ms) : null;
+  };
+  const shapeMax = Math.max(1e-6, ...bin.pairs.map(p => p.shape.rmse ?? 0));
+  const textureMax = Math.max(1e-6, ...bin.pairs.map(p => p.texture.delta ?? 0));
+
+  const showShape = layers.shape && bin.pairs.length > 0;
+  const showTexture = layers.texture && bin.pairs.some(p => p.texture.delta !== null || p.texture.status);
+  const showAnomalies = layers.anomalies && (bin.change_points.length > 0 || bin.returns.length > 0);
+  if (!showShape && !showTexture && !showAnomalies) return null;
+
+  const height = (showShape || showTexture ? 44 : 0) + (showAnomalies ? 22 : 0);
+  return <div className="findings-strip" style={{ height }}>
+    {showAnomalies && (
+      <div className="findings-flags">
+        {bin.change_points.map((cp, index) => {
+          const x = xOfDate(cp.date) ?? xOfPhoto(cp.pair?.split(" → ")[1]) ?? 0;
+          const tone = String(cp.status || "").includes("persistent") || String(cp.status || "").includes("improbable") ? "bad" : "warn";
+          return <button key={`cp-${index}`} className={`finding-flag cp ${tone}`} style={{ left: x - 8, top: 0 }}
+            title={`Change point ${cp.date}\n${cp.status}\n${cp.pair}\np95_z: ${cp.p95_z?.toFixed(2) ?? "—"}`}>⚑</button>;
+        })}
+        {bin.returns.map((ret, index) => {
+          const x = xOfPhoto(ret.photo_id) ?? xOfDate(ret.date) ?? 0;
+          const bx = xOfPhoto(ret.baseline_photo_id);
+          return <button key={`rt-${index}`} className="finding-flag ret" style={{ left: x - 8, top: 22 }}
+            title={`Возврат к предыдущему состоянию\n${ret.kind}\nфото: ${ret.photo_id}\nбазовая линия: ${ret.baseline_photo_id ?? "—"}\nсила: ${ret.strength?.toFixed(3) ?? "—"}`}>↩</button>;
+        })}
+      </div>
+    )}
+    {(showShape || showTexture) && (
+      <svg className="findings-bridges" width={width} height={44}>
+        {showTexture && bin.pairs.map((pair, index) => {
+          const x1 = xOfPhoto(pair.a), x2 = xOfPhoto(pair.b);
+          if (x1 === null || x2 === null) return null;
+          const mid = (x1 + x2) / 2;
+          const delta = pair.texture.delta;
+          const color = delta !== null ? shapeColor(delta, textureMax) : "#4a5564";
+          const hollow = pair.texture.status === "unavailable" || pair.texture.status === null;
+          return <g key={`tx-${index}`}>
+            <path d={`M ${x1} 34 Q ${mid} 44 ${x2} 34`} fill="none" stroke={hollow ? "#556070" : color}
+              strokeWidth={delta !== null ? 1 + delta / textureMax * 3 : 1} strokeDasharray={hollow ? "3 3" : undefined} opacity={hollow ? 0.45 : 0.9}>
+              <title>{`Текстура кожи ${pair.a} → ${pair.b}\nстатус: ${pair.texture.status ?? "—"}\ndelta: ${delta?.toFixed(4) ?? "—"}`}</title>
+            </path>
+          </g>;
+        })}
+        {showShape && bin.pairs.map((pair, index) => {
+          const x1 = xOfPhoto(pair.a), x2 = xOfPhoto(pair.b);
+          if (x1 === null || x2 === null) return null;
+          const mid = (x1 + x2) / 2;
+          const rmse = pair.shape.rmse;
+          const color = shapeColor(rmse, shapeMax);
+          const width2 = 1 + Math.min(4, (pair.shape.p95_z ?? 0) * 0.5);
+          const alert = pair.shape.alert;
+          return <g key={`sh-${index}`}>
+            <path d={`M ${x1} 20 Q ${mid} 4 ${x2} 20`} fill="none" stroke={color} strokeWidth={width2} opacity={alert ? 0.95 : 0.45}>
+              <title>{`Форма ${pair.a} → ${pair.b}\nrmse: ${rmse?.toFixed(5) ?? "—"}\np95_z: ${pair.shape.p95_z?.toFixed(2) ?? "—"}\nстатус: ${pair.shape.status}\nзначимых: ${(pair.shape.significant_fraction ?? 0 * 100).toFixed(1)}%\n${pair.shape.rate_status ?? ""}`}</title>
+            </path>
+          </g>;
+        })}
+      </svg>
+    )}
+  </div>;
+}
+
+function PosePane({ pane, index, count, photos, width, thumbSize, xOf, selected, onSelect, openPhoto, update, remove, add, shiftThresholds, photoA, photoB, findingsBin, layers, onZoneClick, viewportLeft, viewportRight }: { pane: PaneConfig; index: number; count: number; photos: Photo[]; width: number; thumbSize: number; xOf: (time: number) => number; selected: string | null; onSelect: (id: string) => void; openPhoto: (id: string) => void; update: (patch: Partial<PaneConfig>) => void; remove: () => void; add: () => void; shiftThresholds: { tolerance: number; suspect: number; calibrated: boolean } | null; photoA: string | null; photoB: string | null; findingsBin: BinFindings | null; layers: FindingsLayers; onZoneClick: (zone: DenseZone) => void; viewportLeft: number; viewportRight: number }) {
   const panePhotos = useMemo(() => photos.filter(photo => photo.bucket === pane.pose && (!pane.anomalyOnly || photo.flags.length > 0) && (!Number.isFinite(photo.quality) || photo.quality >= pane.minQuality)), [photos, pane]);
   const layout = useMemo(() => placeSingleRow(panePhotos, xOf, thumbSize), [panePhotos, xOf, thumbSize]);
   const overscan = thumbSize * 4;
@@ -170,13 +263,28 @@ function PosePane({ pane, index, count, photos, width, thumbSize, xOf, selected,
   const anomalyHeight = panePhotos.some(photo => photo.flags.length) ? 34 : 0;
   const landmarkEnabled = pane.metrics.includes("landmarkShift");
   const metricDefs = pane.metrics.map(key => METRICS.find(item => item.key === key)).filter((item): item is MetricDef => Boolean(item) && item?.kind !== "landmark");
-  return <section className="pose-pane" style={{ minHeight: photoArea + anomalyHeight + metricDefs.length * 56 + (landmarkEnabled ? 72 : 0) + 42 }}>
+  const suggested = useMemo(() => {
+    const set = new Set<string>();
+    (findingsBin?.zones ?? []).forEach(zone => zone.remove.forEach(entry => set.add(entry.id)));
+    return set;
+  }, [findingsBin]);
+  const findingsActive = layers.shape || layers.texture || layers.anomalies || layers.density;
+  return <section className="pose-pane" style={{ minHeight: photoArea + anomalyHeight + (findingsActive ? 44 : 0) + metricDefs.length * 56 + (landmarkEnabled ? 72 : 0) + 42 }}>
     <PaneControls pane={pane} index={index} count={count} update={update} remove={remove} add={add}/>
     <div className="pose-pane-canvas" style={{ width }}>
+      {layers.density && (findingsBin?.zones ?? []).map((zone, index) => {
+        const x1 = zone.start ? xOf(new Date(zone.start).getTime()) : 0;
+        const x2 = zone.end ? xOf(new Date(zone.end).getTime()) : x1 + thumbSize;
+        return <button key={`zone-${index}`} className="dense-zone" style={{ left: Math.min(x1, x2) - 4, width: Math.abs(x2 - x1) + 8 }}
+          onClick={() => onZoneClick(zone)} title={`${zone.count} фото за ${zone.days} дн — предложено удалить ${zone.remove.length}`}>
+          <span>▦ ×{zone.count} · {zone.days}д · −{zone.remove.length}</span>
+        </button>;
+      })}
       <div className="photo-strip" style={{ height: photoArea }}>
-        {visibleLayout.map(({ photo, x, row }) => <button className={`pure-thumb ${selected === photo.id ? "selected" : ""} ${photoA === photo.id ? "is-a" : ""} ${photoB === photo.id ? "is-b" : ""}`} key={photo.id} style={{ width: thumbSize, height: thumbSize, left: x - thumbSize / 2, top: 6 + row * (thumbSize + 5) }} onClick={() => onSelect(photo.id)} onDoubleClick={() => openPhoto(photo.id)} title={photo.id}><img src={image(photo.id, "thumbnail")} alt="" loading="lazy" /></button>)}
+        {visibleLayout.map(({ photo, x, row }) => <button className={`pure-thumb ${selected === photo.id ? "selected" : ""} ${photoA === photo.id ? "is-a" : ""} ${photoB === photo.id ? "is-b" : ""} ${suggested.has(photo.id) ? "suggest-remove" : ""}`} key={photo.id} style={{ width: thumbSize, height: thumbSize, left: x - thumbSize / 2, top: 6 + row * (thumbSize + 5) }} onClick={() => onSelect(photo.id)} onDoubleClick={() => openPhoto(photo.id)} title={photo.id}><img src={image(photo.id, "thumbnail")} alt="" loading="lazy" />{suggested.has(photo.id) && <i className="rm-badge" title="предложено исключить (лишний шум)">−</i>}</button>)}
         {panePhotos.length === 0 && <div className="empty-pose">Нет кадров для выбранного ракурса и фильтров</div>}
       </div>
+      {findingsActive && <FindingsStrip bin={findingsBin} xOf={xOf} width={width} layers={layers} positionMap={positionMap} />}
       {anomalyHeight > 0 && <div className="anomaly-strip" style={{ height: anomalyHeight }}>{visiblePhotos.flatMap(photo => photo.flags.map((flag, flagIndex) => <button key={`${photo.id}-${flag}-${flagIndex}`} className={`anomaly-icon ${anomalyTone(flag)}`} style={{ left: positionOf(photo) - 11, top: flagIndex % 2 ? 13 : 2 }} title={`${photo.id}\n${flag}`} onClick={() => onSelect(photo.id)}>{anomalyIcon(flag)}</button>))}</div>}
       {landmarkEnabled && <LandmarkShiftTrack photos={visiblePhotos} positionOf={positionOf} thresholds={shiftThresholds}/>}
       {metricDefs.map(metric => <MetricTrack key={metric.key} metric={metric} photos={visiblePhotos} positionOf={positionOf} width={width}/>) }
@@ -210,6 +318,9 @@ export default function TimelineView({ openPhoto, openCompare }: { openPhoto: (i
   const [photoB, setPhotoB] = useState<string | null>(null);
   const [jumpInput, setJumpInput] = useState("");
   const jumpRef = useRef<HTMLInputElement>(null);
+  const [findings, setFindings] = useState<Awaited<ReturnType<typeof timelineFindings>> | null>(null);
+  const [findLayers, setFindLayers] = useState<FindingsLayers>({ anomalies: true, shape: true, texture: true, density: true });
+  const [zonePanel, setZonePanel] = useState<{ pose: string; zone: DenseZone } | null>(null);
   const [panes, setPanes] = useState<PaneConfig[]>(loadPresetPanes);
   const [zoom, setZoom] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
@@ -247,6 +358,28 @@ export default function TimelineView({ openPhoto, openCompare }: { openPhoto: (i
     return () => window.removeEventListener("keydown", onKey);
   }, [data.photos, sortedPhotos, selected, photoA, photoB, openCompare]);
 
+  useEffect(() => {
+    if (!findLayers.anomalies && !findLayers.shape && !findLayers.texture && !findLayers.density) {
+      setFindings(null);
+      return;
+    }
+    let dead = false;
+    timelineFindings()
+      .then(data => { if (!dead) setFindings(data); })
+      .catch(() => { if (!dead) setFindings(null); });
+    return () => { dead = true; };
+  }, [findLayers]);
+
+  const excludeZone = (zone: DenseZone) => {
+    setExcludedIds(current => {
+      const next = new Set(current);
+      zone.remove.forEach(entry => next.add(entry.id));
+      return next;
+    });
+    setSelectionNote(`Плотный участок ${zone.start}—${zone.end}: исключено ${zone.remove.length} шумных фото`);
+    setZonePanel(null);
+  };
+
   const jumpToDate = () => {
     const parsed = new Date(jumpInput);
     if (Number.isNaN(parsed.getTime())) return;
@@ -281,7 +414,16 @@ export default function TimelineView({ openPhoto, openCompare }: { openPhoto: (i
         </>}
         {abMode && <button className="ghost" onClick={() => { setPhotoA(null); setPhotoB(null); }}>✕</button>}
       </div>
-      <label className="jump-date"><input ref={jumpRef} value={jumpInput} onChange={event => setJumpInput(event.target.value)} onKeyDown={event => { if (event.key === "Enter") jumpToDate(); }} placeholder="ГГГГ-ММ-ДД" /><button onClick={jumpToDate}>⌖</button></label><button onClick={() => { setZoom(1); if (scrollRef.current) scrollRef.current.scrollLeft = 0; }}>↔ Fit</button><button onClick={load}>↻</button></header>
+      <label className="jump-date"><input ref={jumpRef} value={jumpInput} onChange={event => setJumpInput(event.target.value)} onKeyDown={event => { if (event.key === "Enter") jumpToDate(); }} placeholder="ГГГГ-ММ-ДД" /><button onClick={jumpToDate}>⌖</button></label>
+      <div className="findings-toggles" title={`Слой находок · run ${findings?.run_id ?? "нет"}`}>
+        {([["anomalies", "⚑ Аномалии"], ["shape", "⌁ Форма"], ["texture", "◈ Текстура"], ["density", "▦ Плотность"]] as const).map(([key, label]) => (
+          <label key={key} className={findings?.has_stage2 === false && key !== "density" ? "disabled" : ""}>
+            <input type="checkbox" checked={findLayers[key]} onChange={event => setFindLayers(layers => ({ ...layers, [key]: event.target.checked }))} />
+            {label}
+          </label>
+        ))}
+        {findings?.has_stage2 === false && <em className="no-stage2">нет Stage 2</em>}
+      </div><button onClick={() => { setZoom(1); if (scrollRef.current) scrollRef.current.scrollLeft = 0; }}>↔ Fit</button><button onClick={load}>↻</button></header>
     {data.mode !== "research" ? <div className={`state ${data.mode}`}><span>{data.mode === "loading" ? "◌" : "!"}</span><b>{data.mode === "loading" ? "Чтение timeline" : "Timeline недоступен"}</b><p>{data.message}</p>{data.mode !== "loading" && <button onClick={load}>Повторить</button>}</div> : <div className="multi-body">
       <div className="shared-ruler-left"><small>SHARED TIME</small><b>{new Date(bounds.min).getFullYear()}—{new Date(bounds.max).getFullYear()}</b></div>
       <div ref={scrollRef} className={`multi-scroll ${drag ? "dragging" : ""}`} onScroll={event => setScrollLeft(event.currentTarget.scrollLeft)} onWheel={onWheel} onPointerDown={event => { if (event.button === 1 || event.shiftKey) { event.preventDefault(); setDrag({ x: event.clientX, scroll: scrollRef.current?.scrollLeft || 0 }); event.currentTarget.setPointerCapture(event.pointerId); } }} onPointerMove={event => { if (drag && scrollRef.current) scrollRef.current.scrollLeft = drag.scroll - (event.clientX - drag.x); }} onPointerUp={() => setDrag(null)}>
@@ -295,12 +437,44 @@ export default function TimelineView({ openPhoto, openCompare }: { openPhoto: (i
           if (!photoA || (photoA && photoB)) { setPhotoA(id); setPhotoB(null); }
           else setPhotoB(id);
         }
-      }} openPhoto={openPhoto} update={patch => updatePane(pane.id, patch)} remove={() => setPanes(items => items.filter(item => item.id !== pane.id))} add={addPane} shiftThresholds={settings?.landmark_shift ?? null} photoA={photoA} photoB={photoB} viewportLeft={viewportLeft} viewportRight={viewportRight}/>)}</div>
+      }} openPhoto={openPhoto} update={patch => updatePane(pane.id, patch)} remove={() => setPanes(items => items.filter(item => item.id !== pane.id))} add={addPane} shiftThresholds={settings?.landmark_shift ?? null} photoA={photoA} photoB={photoB}
+          findingsBin={findings?.bins?.[pane.pose] ?? null} layers={findLayers}
+          onZoneClick={zone => setZonePanel({ pose: pane.pose, zone })}
+          viewportLeft={viewportLeft} viewportRight={viewportRight}/>)}</div>
           {playhead !== null && <div className="multi-playhead" style={{ left: CONTROL_WIDTH + xOf(playhead) }}/>} 
         </div>
       </div>
     </div>}
     {filterOpen && <FilterPanel open={filterOpen} onClose={() => setFilterOpen(false)} onApplied={(result: FilterEvalResult) => { setExcludedIds(new Set(result.excluded_ids || [])); setSelectionNote(`${result.included_count} in · ${result.excluded_count} out`); }} />}
+    {zonePanel && (
+      <aside className="findings-zone-panel">
+        <header>
+          <div>
+            <small>DENSE ZONE · {zonePanel.pose}</small>
+            <b>{zonePanel.zone.count} фото за {zonePanel.zone.days} дней</b>
+            <span>{zonePanel.zone.start} — {zonePanel.zone.end}</span>
+          </div>
+          <button onClick={() => setZonePanel(null)}>×</button>
+        </header>
+        <div className="zone-panel-body">
+          <p>В этом участке избыточное количество копий за короткий срок. Предлагается исключить фото, дающие лишний шум (плохое качество, крайние позы, дубликаты):</p>
+          <div className="zone-remove-list">
+            {zonePanel.zone.remove.map(entry => (
+              <div key={entry.id} className="zone-remove-row">
+                <code>{entry.id}</code>
+                <span>{entry.reasons.join(" · ")}</span>
+                <b>{entry.noise_score.toFixed(2)}</b>
+              </div>
+            ))}
+          </div>
+          <div className="zone-keep">Останется: {zonePanel.zone.keep.length} фото</div>
+        </div>
+        <footer>
+          <button className="ghost" onClick={() => setZonePanel(null)}>Отмена</button>
+          <button className="primary" onClick={() => excludeZone(zonePanel.zone)}>Исключить {zonePanel.zone.remove.length}</button>
+        </footer>
+      </aside>
+    )}
     <footer><span>● APP6 DATA CONTRACT</span><em>{data.message}</em><strong>{filteredPhotos.length}/{data.photos.length} фото{selectionNote ? ` · ${selectionNote}` : ""} · scroll {Math.round(scrollLeft)}px</strong><small>Double click → Photo Lab · A/B mode: клик = A, ещё клик = B · Enter = сравнение точек · ←→ = навигация</small></footer>
   </main>;
 }
