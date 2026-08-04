@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { image, landmarkCompare, morphingBins, type LandmarkComparePayload, type MorphBin } from "../../shared/api";
 import { drawLandmarkComparison, type CompareDisplayMode } from "../../shared/landmarkRenderer";
 import { LABEL, POSES, type Pose } from "../../shared/types";
+import { logError } from "../../shared/logger";
 
 const POSE_ORDER = POSES as readonly string[];
 const REGIONS = ["contour", "brows", "eyes", "nose", "mouth", "cheeks", "inner_contour"];
@@ -89,7 +90,7 @@ export default function LandmarkCompareWorkspace({ initialPose, initialA, initia
     setMessage("");
     landmarkCompare(photoA, photoB, count, "chronology")
       .then(payload => { if (!dead) setData(payload); })
-      .catch(error => { if (!dead) setMessage(error instanceof Error ? error.message : String(error)); });
+      .catch(error => { if (!dead) { const text = error instanceof Error ? error.message : String(error); setMessage(text); logError("landmarks", `сравнение ${photoA} ↔ ${photoB}`, error); } });
     return () => { dead = true; };
   }, [photoA, photoB, count]);
 

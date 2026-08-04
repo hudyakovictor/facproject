@@ -163,3 +163,34 @@ tracks — all feasible on top of the current structure.
    session; the two failing tests will pass once it is present).
 6. Optional: bookmarks and zoom presets on the timeline (Iteration 07 tail),
    q-value / pose-gap tracks, PDF export for reports.
+
+## Iteration 12 — Event log panel ✅ (done)
+
+Глобальная панель логирования: вкладки «Клиент» (живой журнал браузера) и
+«Сервер» (append-only журнал API).
+
+Backend (`app6/api/event_log.py`):
+- `GET /api/v1/logs` — журнал (новые сверху), фильтры level/source/origin/since.
+- `GET /api/v1/logs/summary` — счётчики по уровням/источникам.
+- `POST /api/v1/logs/client` — приём событий из браузера (кап 100/запрос).
+- `GET /api/v1/logs/export` — скачивание полного журнала `.jsonl`.
+- Middleware пишет каждый HTTP-ответ ≥400 (warn), ≥500 (error); обработчик
+  исключений пишет error со стеком; хуки в run_manager (старт/завершение/
+  отмена/архив), report_manager (генерация, lint-fail), jobs (статусы).
+- Журнал хранится в `<storage>/registry/logs/events.jsonl`, append-only,
+  зеркалится в кольцевой буфер (2000) и переживает перезапуск сервера.
+
+Frontend:
+- `src/shared/logger.ts` — кольцевой буфер (1000), подписка, глобальный
+  перехват `window.onerror` / `unhandledrejection`, debounced-отправка
+  клиентских событий на сервер (без зацикливания при сбое отправки).
+- `api.ts` — каждая неудачная API-выборка логируется автоматически
+  (путь + статус + деталь).
+- `src/features/logs/LogPanel.tsx` — slide-out панель: табы Клиент/Сервер,
+  фильтры по уровню/источнику, поиск, раскрытие деталей и стеков, экспорт
+  JSON, очистка локальных, скачивание серверного журнала, индикатор LIVE.
+- Кнопка «⌑ Logs» в навигации с бейджем непрочитанных warn/error, хоткей
+  Ctrl+Shift+L.
+
+Тесты: 5 новых (журнал+middleware, client ingest+фильтры, summary, export,
+капы/валидация) — всего 25 в test_iteration5_11.py.

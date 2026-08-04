@@ -4,6 +4,7 @@ import {
   timelineFindings, type AppSettings, type BinFindings, type DenseZone, type PairFinding,
 } from "../../shared/api";
 import { displacementRamp } from "../../shared/landmarkRenderer";
+import { log } from "../../shared/logger";
 import FilterPanel, { type FilterEvalResult } from "./FilterPanel";
 import { LABEL, POSES, type Photo, type Pose, type TimelineData } from "../../shared/types";
 import type { CompareRequest } from "../../app/App";
@@ -330,7 +331,13 @@ export default function TimelineView({ openPhoto, openCompare }: { openPhoto: (i
   const [drag, setDrag] = useState<{ x: number; scroll: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(Math.max(2, loadPresetPanes().length + 1));
-  const load = useCallback(() => { setData(value => ({ ...value, mode: "loading" })); void timeline().then(setData); }, []);
+  const load = useCallback(() => {
+    setData(value => ({ ...value, mode: "loading" }));
+    void timeline().then(result => {
+      if (result.mode === "error") log("warn", "timeline", result.message);
+      setData(result);
+    });
+  }, []);
   useEffect(load, [load]);
   useEffect(() => { void fetchSettings().then(setSettings).catch(() => setSettings(null)); }, []);
   useEffect(() => { const element = scrollRef.current; if (!element) return; const observer = new ResizeObserver(() => setViewportWidth(Math.max(1, element.clientWidth))); observer.observe(element); setViewportWidth(element.clientWidth); return () => observer.disconnect(); }, []);

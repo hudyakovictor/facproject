@@ -12,6 +12,7 @@ import {
   type CalibrationThresholdRow, type CalibrationThresholds, type CalibrationWorkspace,
 } from "../../shared/api";
 import { LABEL, POSES, type Pose } from "../../shared/types";
+import { logError } from "../../shared/logger";
 
 export default function CalibrationPage() {
   const [workspace, setWorkspace] = useState<CalibrationWorkspace | null>(null);
@@ -22,7 +23,7 @@ export default function CalibrationPage() {
   useEffect(() => {
     void Promise.all([calibrationWorkspace(), calibrationThresholds()])
       .then(([ws, th]) => { setWorkspace(ws); setThresholds(th); })
-      .catch(error => setMessage(error instanceof Error ? error.message : String(error)));
+      .catch(error => { const text = error instanceof Error ? error.message : String(error); setMessage(text); logError("calibration", "не удалось загрузить калибровку", error); });
   }, []);
 
   const reference = (rows: CalibrationThresholdRow[] | undefined, pose: string, count: 106 | 134) =>
