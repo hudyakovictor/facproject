@@ -74,3 +74,7 @@ app6/AUDIT_50_REPORT.json
 app6/AUDIT_50_REPORT.md
 # Symlink to 3ddfav3/assets (absolute path, not portable)
 
+
+# Allow committed UI-v5 design mockups (override *.png above)
+!ui-v4/docs/v5-screens/**/*.png
+!ui-v4/docs/*.png
