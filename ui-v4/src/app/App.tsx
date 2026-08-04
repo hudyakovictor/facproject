@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { subscribeLogs } from "../shared/logger";
 import LogPanel from "../features/logs/LogPanel";
 import RecommendationsPanel from "../features/recommendations/RecommendationsPanel";
+import IconGalleryPage from "../features/icons/IconGalleryPage";
+import { Icon } from "../shared/icons";
 import TimelineView from "../features/timeline/TimelineView";
 import DataManager from "../features/data-manager/DataManager";
 import SettingsPage from "../features/settings/SettingsPage";
@@ -12,7 +14,7 @@ import CalibrationPage from "../features/calibration/CalibrationPage";
 import MorphingWorkspace from "../features/morphing/MorphingWorkspace";
 import LandmarkCompareWorkspace from "../features/landmarks/LandmarkCompareWorkspace";
 
-type View = "timeline" | "data" | "profiles" | "settings" | "runs" | "calibration";
+type View = "timeline" | "data" | "profiles" | "settings" | "runs" | "calibration" | "icons";
 
 export interface CompareRequest {
   kind: "morphing" | "landmarks";
@@ -114,15 +116,16 @@ export default function App() {
     <aside className="app-nav">
       <div className="nav-logo"><i>D</i><span>V4</span></div>
       <nav>
-        <button className={view === "timeline" ? "active" : ""} onClick={() => setView("timeline")} title="Timeline"><span>⌁</span><b>Timeline</b></button>
-        <button className={view === "runs" ? "active" : ""} onClick={() => setView("runs")} title="Run Manager"><span>▶</span><b>Run Manager</b></button>
-        <button className={`${logsOpen ? "active" : ""} nav-logs`} onClick={() => setLogsOpen(value => !value)} title="Журнал событий (Ctrl+Shift+L)"><span>⌑</span><b>Logs</b>{unreadLogs > 0 && <i className="nav-badge">{unreadLogs > 99 ? "99+" : unreadLogs}</i>}</button>
-        <button className={`${recsOpen ? "active" : ""} nav-recs`} onClick={() => setRecsOpen(value => !value)} title="Рекомендации (Ctrl+Shift+R)"><span>💡</span><b>Advisor</b>{recCount !== null && recCount > 0 && <i className="nav-badge rec-badge">{recCount > 99 ? "99+" : recCount}</i>}</button>
-        <button className={view === "calibration" ? "active" : ""} onClick={() => setView("calibration")} title="Calibration"><span>⌗</span><b>Calibration</b></button>
-        <button className={view === "data" ? "active" : ""} onClick={() => setView("data")} title="Data Manager"><span>▦</span><b>Data Manager</b></button>
-        <button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")} title="Profiles"><span>▣</span><b>Profiles</b></button>
-        <button className={view === "settings" ? "active" : ""} onClick={() => setView("settings")} title="Настройки"><span>⚙</span><b>Settings</b></button>
-        <button className={photoId !== null ? "active" : ""} onClick={() => setPhotoId("")} title="Фото"><span>◫</span><b>Photo Lab</b></button>
+        <button className={view === "timeline" ? "active" : ""} onClick={() => setView("timeline")} title="Timeline"><Icon name="timeline" size={19} /><b>Timeline</b></button>
+        <button className={view === "runs" ? "active" : ""} onClick={() => setView("runs")} title="Run Manager"><Icon name="runs" size={19} /><b>Run Manager</b></button>
+        <button className={view === "calibration" ? "active" : ""} onClick={() => setView("calibration")} title="Calibration"><Icon name="calibration" size={19} /><b>Calibration</b></button>
+        <button className={view === "data" ? "active" : ""} onClick={() => setView("data")} title="Data Manager"><Icon name="dataset" size={19} /><b>Data Manager</b></button>
+        <button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")} title="Profiles"><Icon name="profiles" size={19} /><b>Profiles</b></button>
+        <button className={view === "settings" ? "active" : ""} onClick={() => setView("settings")} title="Настройки"><Icon name="settings" size={19} /><b>Settings</b></button>
+        <button className={photoId !== null ? "active" : ""} onClick={() => setPhotoId("")} title="Фото"><Icon name="photoLab" size={19} /><b>Photo Lab</b></button>
+        <button className={`${logsOpen ? "active" : ""} nav-logs`} onClick={() => setLogsOpen(value => !value)} title="Журнал событий (Ctrl+Shift+L)"><Icon name="logs" size={19} /><b>Logs</b>{unreadLogs > 0 && <i className="nav-badge">{unreadLogs > 99 ? "99+" : unreadLogs}</i>}</button>
+        <button className={`${recsOpen ? "active" : ""} nav-recs`} onClick={() => setRecsOpen(value => !value)} title="Рекомендации (Ctrl+Shift+R)"><Icon name="advisor" size={19} /><b>Advisor</b>{recCount !== null && recCount > 0 && <i className="nav-badge rec-badge">{recCount > 99 ? "99+" : recCount}</i>}</button>
+        <button className={view === "icons" ? "active" : ""} onClick={() => setView("icons")} title="Коллекция иконок"><Icon name="grid" size={19} /><b>Иконки</b></button>
       </nav>
       <small>APP6<br />CONTROL</small>
     </aside>
@@ -133,6 +136,7 @@ export default function App() {
       {view === "settings" && <SettingsPage openPhoto={openPhoto} />}
       {view === "runs" && <RunManagerPage />}
       {view === "calibration" && <CalibrationPage />}
+      {view === "icons" && <IconGalleryPage />}
     </div>
     {photoId !== null && (
       <div className="photo-modal-backdrop" onClick={closePhoto}>
