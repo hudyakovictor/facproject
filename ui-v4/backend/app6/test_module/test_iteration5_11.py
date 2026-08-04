@@ -98,6 +98,30 @@ class TestMorphingApi:
         payload = client.get("/api/v1/morphing/photo/does_not_exist")
         assert payload.status_code in (404, 422)
 
+    def test_morphing_diff_heatmap(self, client):
+        photos = _first_bin_photos(client)
+        payload = client.get(f"/api/v1/morphing/diff/{photos[0]['id']}/{photos[1]['id']}")
+        assert payload.status_code == 200, payload.text
+        data = payload.json()
+        assert data["vertex_count"] > 0
+        assert len(data["magnitudes"]) == data["vertex_count"]
+        assert len(data["vertices_a"]) == data["vertex_count"] * 3
+        assert len(data["vertices_b"]) == data["vertex_count"] * 3
+        assert all(value >= 0 for value in data["magnitudes"])
+        stats = data["stats"]
+        assert 0 <= stats["min"] <= stats["median"] <= stats["p95"] <= stats["max"]
+        # calibration context present (per-vertex p95 map)
+        assert data["calibration"]["available"] is True
+        assert len(data["calibration"]["per_vertex_p95"]) == data["vertex_count"]
+
+    def test_morphing_diff_identical_photos(self, client):
+        photos = _first_bin_photos(client)
+        payload = client.get(f"/api/v1/morphing/diff/{photos[0]['id']}/{photos[0]['id']}")
+        assert payload.status_code == 200
+        data = payload.json()
+        # same photo → alignment is identity, displacement ≈ 0
+        assert data["stats"]["max"] < 0.02
+
 
 # ---------------------------------------------------------------------------
 # Iteration 08 — Landmark comparison

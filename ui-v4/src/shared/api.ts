@@ -569,6 +569,31 @@ export const morphingBins = () => apiJson<MorphingBins>("/api/v1/morphing/bins")
 export const morphingPhoto = (id: string) => apiJson<MorphPhotoPayload>(`/api/v1/morphing/photo/${encodeURIComponent(id)}`);
 
 // ---------------------------------------------------------------------------
+// Iteration 09b — 3D heatmap (per-vertex mesh displacement)
+// ---------------------------------------------------------------------------
+export interface MorphingDiff {
+  schema?: string;
+  not_a_verdict?: boolean;
+  photo_a: string;
+  photo_b: string;
+  pose_bin: string;
+  vertex_count: number;
+  triangle_count: number;
+  vertices_a: number[];
+  vertices_b: number[]; // B aligned to A (Kabsch on 106 landmarks)
+  magnitudes: number[]; // per-vertex |vB_aligned − vA|
+  stats: { min: number; median: number; p95: number; max: number };
+  calibration: {
+    available: boolean;
+    mean_p95: number | null;
+    per_vertex_p95: number[] | null;
+    pose_bin?: string;
+  };
+}
+export const morphingDiff = (a: string, b: string) =>
+  apiJson<MorphingDiff>(`/api/v1/morphing/diff/${encodeURIComponent(a)}/${encodeURIComponent(b)}`);
+
+// ---------------------------------------------------------------------------
 // Iteration 10 — Calibration workspace
 // ---------------------------------------------------------------------------
 export interface CalibrationWorkspace {

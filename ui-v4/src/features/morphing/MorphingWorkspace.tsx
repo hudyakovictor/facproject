@@ -13,7 +13,8 @@
  * Stage 2 and never interpreted as measurements.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { image, morphingBins, morphingPhoto, photoLandmarks, type MorphBin, type MorphPhoto, type MorphPhotoPayload } from "../../shared/api";
+import { image, morphingBins, morphingDiff, morphingPhoto, photoLandmarks, type MorphBin, type MorphPhoto, type MorphPhotoPayload } from "../../shared/api";
+import { displacementRamp } from "../../shared/landmarkRenderer";
 import { MorphRenderer, type MorphMeshData } from "../../shared/morphRenderer";
 import { LABEL, POSES, type Pose } from "../../shared/types";
 
@@ -44,6 +45,8 @@ export default function MorphingWorkspace({ initialPose, initialA, initialB, onC
   const [speed, setSpeed] = useState(1.2);
   const [loop, setLoop] = useState(true);
   const [wireframe, setWireframe] = useState(false);
+  const [heatmap, setHeatmap] = useState(false);
+  const [heatInfo, setHeatInfo] = useState<{ scale: number; calibrated: boolean; stats: { min: number; p95: number; max: number } } | null>(null);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [spin, setSpin] = useState(false);
   const [message, setMessage] = useState("");
@@ -224,6 +227,46 @@ export default function MorphingWorkspace({ initialPose, initialA, initialB, onC
     renderer.render();
   }, [blend, camera, wireframe, showLandmarks, photoA, photoB]);
 
+  // ---- 3D heatmap: per-vertex displacement A↔B ----
+  useEffect(() => {
+    if (!photoA || !photoB || photoA === photoB || !rendererRef.current) return;
+    let dead = false;
+    const renderer = rendererRef.current;
+    if (!heatmap) {
+      const b = cacheRef.current.get(photoB);
+      if (b) renderer.setMeshB(new Float32Array(b.mesh.vertices));
+      renderer.setVertexColors(null);
+      setHeatInfo(null);
+      return () => { dead = true; };
+    }
+    setMessage("");
+    setHeatInfo(null);
+    morphingDiff(photoA, photoB)
+      .then(diff => {
+        if (dead || !rendererRef.current) return;
+        const current = rendererRef.current;
+        current.setMeshB(new Float32Array(diff.vertices_b));
+        // scale anchor: calibrated mean p95 × 2.5 (falls back to data p95 × 1.5)
+        const scale = Math.max(
+          diff.calibration.mean_p95 ? diff.calibration.mean_p95 * 2.5 : 0,
+          diff.stats.p95 * 1.5,
+          1e-6,
+        );
+        const colors = new Float32Array(diff.vertex_count * 3);
+        for (let i = 0; i < diff.vertex_count; i++) {
+          const t = Math.min(1, Math.max(0, diff.magnitudes[i] / scale));
+          const [r, g, b] = displacementRamp(t);
+          colors[i * 3] = r / 255;
+          colors[i * 3 + 1] = g / 255;
+          colors[i * 3 + 2] = b / 255;
+        }
+        current.setVertexColors(colors);
+        setHeatInfo({ scale, calibrated: diff.calibration.available, stats: diff.stats });
+      })
+      .catch(error => setMessage(error instanceof Error ? error.message : String(error)));
+    return () => { dead = true; };
+  }, [photoA, photoB, heatmap]);
+
   // ---- pose / mode changes ----
   const switchPose = (next: string) => {
     setPose(next);
@@ -356,6 +399,16 @@ export default function MorphingWorkspace({ initialPose, initialA, initialB, onC
               <input type="checkbox" checked={spin} onChange={event => setSpin(event.target.checked)} />
               <b>Авто-вращение</b>
             </label>
+            <label className="filter-enable">
+              <input type="checkbox" checked={heatmap} onChange={event => setHeatmap(event.target.checked)} />
+              <b>Тепловая карта смещений A–B {heatmap ? "(вместо текстуры)" : ""}</b>
+            </label>
+            {heatInfo && (
+              <div className="heat-info">
+                <span>масштаб: {heatInfo.scale.toFixed(4)}</span>
+                <span>{heatInfo.calibrated ? "якорь: cal. p95 × 2.5" : "якорь: p95 данных × 1.5 (нет Stage 2)"}</span>
+              </div>
+            )}
             <button className="ghost" onClick={() => currentBin && setCamera({ yaw: currentBin.camera.yaw_deg, elev: currentBin.camera.elevation_deg, dist: 3.2 })}>↺ Сбросить камеру</button>
           </section>
           <footer className="workspace-notice">
@@ -370,6 +423,16 @@ export default function MorphingWorkspace({ initialPose, initialA, initialB, onC
             <div className="canvas-badge">{currentBin ? LABEL[currentBin.pose as Pose] : pose} · каноническая поза</div>
             <div className="canvas-caption a">{photoAObj ? `${photoAObj.date} · A` : "A"}</div>
             <div className="canvas-caption b">{photoBObj ? `${photoBObj.date} · B` : "B"}</div>
+            {heatmap && heatInfo && (
+              <div className="heat-colorbar">
+                <div className="heat-gradient" />
+                <div className="heat-labels">
+                  <span>min</span>
+                  <span>≈ p95</span>
+                  <span>макс {heatInfo.stats.max.toFixed(4)}</span>
+                </div>
+              </div>
+            )}
           </div>
           {message && <div className="workspace-error">{message}</div>}
         </main>

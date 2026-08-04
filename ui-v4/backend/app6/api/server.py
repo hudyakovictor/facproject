@@ -76,7 +76,7 @@ from .selection_filters import (
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
 from .skin_zones import SKIN_ZONES_SCHEMA, load_skin_zone_report, zone_catalog
 from .system_health import build_system_health
-from .morphing_api import morphing_bins, photo_morph_payload
+from .morphing_api import morphing_bins, mesh_displacement, photo_morph_payload
 from .landmark_compare import batch_displacement, compare_landmarks
 from .run_manager import (
     archive_run,
@@ -1442,6 +1442,16 @@ def api_morphing_photo(photo_id: str) -> dict[str, Any]:
         payload = photo_morph_payload(photo_id)
     except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=f"morphing payload failed: {exc}") from exc
+    return payload
+
+
+@app.get("/api/v1/morphing/diff/{photo_a}/{photo_b}")
+def api_morphing_diff(photo_a: str, photo_b: str) -> dict[str, Any]:
+    """Per-vertex displacement between two canonical meshes (3D heatmap)."""
+    try:
+        payload = mesh_displacement(photo_a, photo_b)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=f"morphing diff failed: {exc}") from exc
     return payload
 
 
