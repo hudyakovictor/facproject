@@ -41,11 +41,28 @@ ZONE_STATUSES = ("active", "excluded", "no_data")
 _atlas_cache: dict[str, Any] | None = None
 
 
+class AtlasUnavailableError(RuntimeError):
+    """Атлас зон кожи отсутствует в окружении — честное unavailable, не 500."""
+
+
 def _load_atlas() -> dict[str, Any]:
-    """🔍 QUERY → Атлас зон кожи (единственный источник имён/групп/исключений)."""
+    """🔍 QUERY → Атлас зон кожи (единственный источник имён/групп/исключений).
+
+    Raises:
+        AtlasUnavailableError: файл атласа не найден или невалиден. Атлас —
+        нормативные данные, которые нельзя синтезировать в коде.
+    """
     global _atlas_cache
     if _atlas_cache is None:
-        _atlas_cache = json.loads(ATLAS_PATH.read_text(encoding="utf-8"))
+        if not ATLAS_PATH.is_file():
+            raise AtlasUnavailableError(
+                f"skin_zone_atlas.json не найден: {ATLAS_PATH}. "
+                "Атлас зон — нормативные данные 3DDFA_V3; скопируйте его из полной поставки проекта."
+            )
+        try:
+            _atlas_cache = json.loads(ATLAS_PATH.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise AtlasUnavailableError(f"skin_zone_atlas.json повреждён: {exc}") from exc
     return _atlas_cache
 
 

@@ -85,6 +85,12 @@ export default function ProfilesPage() {
     return photos.filter(item => item.status === filterStatus);
   }, [statuses, filterStatus]);
 
+  const runWithProfile = () => {
+    if (!activeId) return;
+    window.dispatchEvent(new CustomEvent("deeputin:navigate", { detail: { view: "runs" } }));
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent("deeputin:open-run-form", { detail: { profile_id: activeId } })), 60);
+  };
+
   const run = async (fn: () => Promise<void>) => {
     setBusy(true); setMessage("");
     try { await fn(); }
@@ -155,6 +161,7 @@ export default function ProfilesPage() {
               await lockProfile(activeId, !detail.locked);
               await refreshList(); await refreshActive();
             })}>{detail.locked ? "Разблокировать" : "Заблокировать"}</button>
+            <button className="primary run-profile-btn" disabled={busy || detail.locked} onClick={runWithProfile} title="Запустить Stage 2 с этой выборкой (новый run, откат возможен)">▶ Stage 2 с этим профилем</button>
             <button className="primary" disabled={busy || detail.locked} onClick={() => void run(async () => {
               const frozen = await freezeProfile(activeId);
               setMessage(`selection_manifest frozen · ${frozen.path}`);
