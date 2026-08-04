@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .runtime_config import RuntimePaths, ensure_runtime_write_dirs, load_runtime_paths
+from .event_log import log_event
 
 RUN_MANAGER_SCHEMA = "deeputin-run-manager-v1.0"
 RUN_CONFIG_SCHEMA = "deeputin-run-config-v1.0"
@@ -370,10 +371,13 @@ def _log_runner(handle: RunHandle, config: dict[str, Any], stage1_root: Path,
                 append_log="Stage 2 finished",
             )
         handle.finalize_metadata(config, selection_manifest)
+        log_event("info", "runs", f"Stage 2 run completed: {handle.run_id}", run_id=handle.run_id)
     except Exception as exc:  # noqa: BLE001 - boundary: any failure is recorded
         handle.write_status("failed", finished_at=_utc(), error=f"{type(exc).__name__}: {exc}",
                             append_log=traceback.format_exc())
         handle.finalize_metadata(config, selection_manifest)
+        log_event("error", "runs", f"Stage 2 run failed: {handle.run_id}: {exc}",
+                  stack=traceback.format_exc(), run_id=handle.run_id)
     finally:
         with _ACTIVE_LOCK:
             _ACTIVE_RUNS.pop(handle.run_id, None)
@@ -456,6 +460,9 @@ def start_stage2_run(profile_id: str | None, *, label: str | None = None,
     handle = RunHandle(run_id=run_id, directory=directory, status_path=live_status)
     handle.write_status("queued", progress={"done": 0, "total": 1, "phase": "queued"},
                         append_log=f"run created; profile={profile_id or 'none'}")
+    log_event("info", "runs", f"Stage 2 run started: {run_id}",
+              detail=f"profile={profile_id or 'none'} included={selection.get('included_count')}",
+              run_id=run_id)
     thread = threading.Thread(
         target=_log_runner,
         args=(handle, config, stage1_root, cal_root, lead_path, manifest if selection_ids is not None else None),
@@ -475,6 +482,7 @@ def cancel_run(run_id: str, paths: RuntimePaths | None = None) -> dict[str, Any]
     if not directory.is_dir():
         raise FileNotFoundError(f"run not found: {run_id}")
     handle = _ACTIVE_RUNS.get(run_id)
+    log_event("warn", "runs", f"Stage 2 run cancellation requested: {run_id}", run_id=run_id)
     if handle is not None:
         handle.cancel_event.set()
         handle.write_status("cancelling", append_log="cancellation requested")
@@ -538,6 +546,7 @@ def archive_run(run_id: str, paths: RuntimePaths | None = None) -> dict[str, Any
     if destination.exists():
         raise RuntimeError(f"archive destination already exists: {destination}")
     shutil.move(str(directory), str(destination))
+    log_event("info", "runs", f"Stage 2 run archived: {run_id} → {destination}", run_id=run_id)
     return {
         "schema": RUN_MANAGER_SCHEMA,
         "run_id": run_id,

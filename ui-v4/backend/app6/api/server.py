@@ -18,6 +18,7 @@ import csv
 import json
 import os
 import shutil
+import traceback
 import uuid
 from pathlib import Path
 from typing import Any
@@ -90,6 +91,7 @@ from .run_manager import (
 from .report_manager import generate_report, get_report, list_reports, regenerate_report
 from .calibration_workspace import calibrated_thresholds, workspace_dashboard
 from .timeline_findings import timeline_findings
+from .event_log import EVENT_LOG_SCHEMA, ingest_client_events, list_events, log_event, summary
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -114,6 +116,24 @@ app.add_middleware(
 # треугольников) сжимается более чем в 10 раз gzip'ом. Без этого middleware
 # каждый запрос 3D Inspector/Compare был бы неоправданно тяжёлым по сети.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+
+@app.middleware("http")
+async def _event_log_http_middleware(request: Any, call_next: Any):
+    """Log every HTTP response with status >= 400 into the event journal."""
+    try:
+        response = await call_next(request)
+    except Exception:
+        raise  # the exception handler below records the stack trace
+    status = response.status_code
+    if status >= 500:
+        log_event("error", "api", f"{request.method} {request.url.path} → {status}",
+                  detail=None, path=request.url.path)
+    elif status >= 400:
+        log_event("warn", "api", f"{request.method} {request.url.path} → {status}",
+                  detail=None, path=request.url.path)
+    return response
+
 
 _job_manager = JobManager()
 
@@ -1481,6 +1501,49 @@ def api_timeline_findings() -> dict[str, Any]:
         raise HTTPException(status_code=409, detail=f"findings недоступны: {exc}") from exc
 
 
+# ---------------------------------------------------------------------------
+# Iteration 12 — event log panel
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/logs")
+def api_logs(limit: int = 500, level: str | None = None, source: str | None = None,
+             origin: str | None = None, since: str | None = None) -> dict[str, Any]:
+    """Event journal (newest first). Filters: level/source/origin/since."""
+    return {
+        "schema": EVENT_LOG_SCHEMA,
+        "events": list_events(limit=limit, level=level, source=source, origin=origin, since=since),
+    }
+
+
+@app.get("/api/v1/logs/summary")
+def api_logs_summary() -> dict[str, Any]:
+    return summary()
+
+
+class ClientLogRequest(BaseModel):
+    events: list[dict[str, Any]] = []
+
+
+@app.post("/api/v1/logs/client")
+def api_logs_client(request: ClientLogRequest) -> dict[str, Any]:
+    try:
+        return ingest_client_events({"events": request.events})
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/logs/export")
+def api_logs_export() -> FileResponse:
+    """Download the full append-only server journal (.jsonl)."""
+    from .event_log import _log_path
+    path = _log_path()
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="journal is empty")
+    from datetime import datetime as _dt, timezone as _tz
+    stamp = _dt.now(_tz.utc).strftime("%Y%m%d")
+    return FileResponse(path, media_type="application/x-ndjson",
+                        filename=f"deeputin_events_{stamp}.jsonl")
+
+
 @app.post("/api/v1/data/clear")
 def clear_data() -> dict[str, Any]:
     """🚪 API → Очистить API-извлечённые данные без удаления исходных фото и Stage 1 evidence."""
@@ -1495,5 +1558,7 @@ def clear_data() -> dict[str, Any]:
 
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(_request: Any, exc: Exception) -> JSONResponse:
+async def unhandled_exception_handler(request: Any, exc: Exception) -> JSONResponse:
+    log_event("error", "api.exception", f"{type(exc).__name__}: {exc}",
+              detail=str(exc), stack=traceback.format_exc(), path=getattr(request, "url", None) and str(request.url))
     return JSONResponse(status_code=500, content={"schema": APP_SCHEMA, "error": str(exc), "not_a_verdict": True})

@@ -1,4 +1,5 @@
 import { POSES, type Era, type Photo, type TimelineData } from "./types";
+import { log, scheduleFlush } from "./logger";
 
 const POSE_SET = new Set<string>(POSES);
 const REQUIRED = ["id", "date", "t", "era", "bucket"] as const;
@@ -45,9 +46,18 @@ async function apiJson<T>(path: string, init?: RequestInit & { timeoutMs?: numbe
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       const detail = extractApiError(body);
-      throw new Error(`HTTP ${response.status} ${path}${detail ? `: ${detail}` : ""}`);
+      const message = `HTTP ${response.status} ${path}${detail ? `: ${detail}` : ""}`;
+      log(response.status >= 500 ? "error" : "warn", "api", message, { detail, path });
+      scheduleFlush();
+      throw new Error(message);
     }
     return await response.json() as T;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("HTTP")) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    log("error", "api", `${init?.method ?? "GET"} ${path} failed`, { detail: message, path });
+    scheduleFlush();
+    throw error;
   } finally {
     window.clearTimeout(timer);
   }
@@ -107,7 +117,10 @@ export async function timeline(signal?: AbortSignal): Promise<TimelineData> {
     }
     if (!response.ok) {
       const body = await response.text().catch(() => "");
-      throw new Error(`Timeline unavailable: HTTP ${response.status}${body ? ` · ${extractApiError(body)}` : ""}`);
+      const message = `Timeline unavailable: HTTP ${response.status}${body ? ` · ${extractApiError(body)}` : ""}`;
+      log("warn", "timeline", message, { path: endpoint });
+      scheduleFlush();
+      throw new Error(message);
     }
     const payload = await response.json() as { photos?: unknown[]; items?: unknown[]; source_mode?: string; analysis_stage?: string; note?: string; era_meta?: Record<string, Partial<Era>> } | unknown[];
     if (!Array.isArray(payload) && payload.source_mode !== "research") throw new Error(`Non-research timeline rejected (source_mode=${String(payload.source_mode ?? "missing")})`);

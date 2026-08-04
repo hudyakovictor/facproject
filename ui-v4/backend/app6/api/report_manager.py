@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from .runtime_config import RuntimePaths, ensure_runtime_write_dirs, load_runtime_paths
+from .event_log import log_event
 
 REPORT_MANAGER_SCHEMA = "deeputin-report-manager-v1.0"
 REPORT_CONFIG_SCHEMA = "deeputin-report-config-v1.0"
@@ -313,9 +314,13 @@ def _render_report(report_id: str, directory: Path, run_directory: Path, run_id:
         lint = _public_lint(data)
         _atomic_json(directory / "public_lint.json", lint)
         if lint["status"] != "pass":
+            log_event("error", "reports", f"public-safety lint failed for {report_id}",
+                      detail=f"{lint['violation_count']} violations", run_id=run_id)
             raise RuntimeError(f"public-safety lint failed with {lint['violation_count']} violations")
 
     exports = _write_exports(directory, run_directory, data, mode)
+    log_event("info", "reports", f"Stage 3 report generated: {report_id}",
+              detail=f"mode={mode} run={run_id}", run_id=run_id)
     return get_report(report_id, paths)
 
 

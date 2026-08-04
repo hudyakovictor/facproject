@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from .event_log import log_event
+
 JOB_SCHEMA = "deeputin-api-job-v1.0"
 
 
@@ -98,8 +100,12 @@ class JobManager:
                 job.status = "failed"
                 job.error = f"{type(exc).__name__}: {exc}"
                 job.logs.append(traceback.format_exc())
+                log_event("error", "jobs", f"job {job.id} failed: {exc}",
+                          stack=traceback.format_exc(), job_id=job.id)
             finally:
                 job.finished_at = _utc()
+                if job.status not in ("failed", "blocked", "cancelled"):
+                    log_event("info", "jobs", f"job {job.id} → {job.status}", job_id=job.id)
 
         thread = threading.Thread(target=_run, daemon=True)
         thread.start()

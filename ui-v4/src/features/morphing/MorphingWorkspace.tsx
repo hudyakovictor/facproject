@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { image, morphingBins, morphingDiff, morphingPhoto, photoLandmarks, type MorphBin, type MorphPhoto, type MorphPhotoPayload } from "../../shared/api";
 import { displacementRamp } from "../../shared/landmarkRenderer";
+import { logError } from "../../shared/logger";
 import { MorphRenderer, type MorphMeshData } from "../../shared/morphRenderer";
 import { LABEL, POSES, type Pose } from "../../shared/types";
 
@@ -113,7 +114,9 @@ export default function MorphingWorkspace({ initialPose, initialA, initialB, onC
       cacheRef.current.set(id, loaded);
       return loaded;
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
+      const text = error instanceof Error ? error.message : String(error);
+      setMessage(text);
+      logError("morphing", `не удалось загрузить модель ${id}`, error);
       return null;
     }
   }, []);
