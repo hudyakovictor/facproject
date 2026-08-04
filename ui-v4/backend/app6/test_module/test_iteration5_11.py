@@ -297,3 +297,78 @@ class TestRunManagerSelection:
         data = payload.json()
         assert data["selection"]["profile_id"] == profile_id
         assert data["stage1"]["selected_count"] <= data["stage1"]["record_count"]
+
+
+# ---------------------------------------------------------------------------
+# Iteration 07b — Timeline findings layer
+# ---------------------------------------------------------------------------
+class TestTimelineFindings:
+    def test_findings_payload(self, client):
+        payload = client.get("/api/v1/timeline/findings")
+        assert payload.status_code == 200, payload.text
+        data = payload.json()
+        assert data["schema"] == "deeputin-timeline-findings-v1.0"
+        assert data["has_stage2"] is True
+        assert data["run_id"]
+        assert len(data["bins"]) == 9
+        frontal = data["bins"]["frontal"]
+        assert frontal["pairs"], "frontal bin must have adjacent pairs after the run"
+        pair = frontal["pairs"][0]
+        assert pair["a"] and pair["b"]
+        assert "rmse" in pair["shape"]
+        assert "status" in pair["shape"]
+        assert "texture" in pair and "status" in pair["texture"]
+
+    def test_findings_change_and_return_arrays(self, client):
+        data = client.get("/api/v1/timeline/findings").json()
+        for pose, bin_data in data["bins"].items():
+            assert isinstance(bin_data["change_points"], list)
+            assert isinstance(bin_data["returns"], list)
+            assert isinstance(bin_data["zones"], list)
+
+    def test_dense_zone_prune_suggestions(self):
+        """Zone logic: dense cluster → prune suggestions with reasons."""
+        from app6.api.timeline_findings import _dense_zones
+        photos = []
+        base = "2020-01-01"
+        for i in range(8):
+            photos.append({
+                "id": f"dense_{i:02d}",
+                "date": f"2020-01-{i + 1:02d}",
+                "t": None,  # replaced below
+                "bucket": "frontal",
+                "quality": 0.9 - 0.05 * (i % 3),
+                "yaw": 2.0 if i != 3 else 18.0,   # one extreme pose outlier
+                "pitch": 0.0,
+                "roll": 0.0,
+                "near_duplicate_of": "dense_00" if i == 7 else "",
+            })
+        from datetime import datetime, timezone
+        for photo in photos:
+            parsed = datetime.fromisoformat(photo["date"]).replace(tzinfo=timezone.utc)
+            photo["t"] = int(parsed.timestamp() * 1000)
+        zones = _dense_zones(photos)
+        assert len(zones) == 1
+        zone = zones[0]
+        assert zone["count"] == 8
+        assert zone["remove"], "dense zone must suggest removals"
+        ids = [entry["id"] for entry in zone["remove"]]
+        # the extreme pose outlier and the duplicate are the strongest noise
+        assert "dense_03" in ids or "dense_07" in ids
+        for entry in zone["remove"]:
+            assert entry["reasons"], "every suggestion must carry reasons"
+        assert len(zone["keep"]) >= 3
+
+    def test_findings_before_stage2(self, client, fixture):
+        runs = fixture / "storage" / "stage2" / "runs"
+        if runs.exists():
+            import shutil as _shutil
+            _shutil.rmtree(runs)
+        payload = client.get("/api/v1/timeline/findings")
+        assert payload.status_code == 200
+        data = payload.json()
+        assert data["has_stage2"] is False
+        for pose, bin_data in data["bins"].items():
+            assert bin_data["pairs"] == []
+            # zones still computed from Stage 1 inventory (density is stage-1 data)
+            assert isinstance(bin_data["zones"], list)

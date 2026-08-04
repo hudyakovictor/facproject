@@ -89,6 +89,7 @@ from .run_manager import (
 )
 from .report_manager import generate_report, get_report, list_reports, regenerate_report
 from .calibration_workspace import calibrated_thresholds, workspace_dashboard
+from .timeline_findings import timeline_findings
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -1466,6 +1467,18 @@ def api_calibration_workspace() -> dict[str, Any]:
 @app.get("/api/v1/calibration/thresholds")
 def api_calibration_thresholds() -> dict[str, Any]:
     return calibrated_thresholds()
+
+
+# ---------------------------------------------------------------------------
+# Iteration 07b — timeline findings layer (anomalies / shape / texture /
+# baseline-returns / dense-copy zones with prune suggestions)
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/timeline/findings")
+def api_timeline_findings() -> dict[str, Any]:
+    try:
+        return timeline_findings()
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"findings недоступны: {exc}") from exc
 
 
 @app.post("/api/v1/data/clear")

@@ -632,3 +632,70 @@ export interface CalibrationThresholds {
 }
 export const calibrationWorkspace = () => apiJson<CalibrationWorkspace>("/api/v1/calibration/workspace");
 export const calibrationThresholds = () => apiJson<CalibrationThresholds>("/api/v1/calibration/thresholds");
+
+// ---------------------------------------------------------------------------
+// Iteration 07b — timeline findings layer
+// ---------------------------------------------------------------------------
+export interface ShapeFinding {
+  rmse: number | null;
+  ldm134_rmse: number | null;
+  p95_z: number | null;
+  status: string;
+  significant_fraction: number | null;
+  coherent_fraction: number | null;
+  rate_status: string | null;
+  alert: boolean;
+}
+export interface TextureFinding {
+  status: string | null;
+  quality_a: number | null;
+  quality_b: number | null;
+  delta: number | null;
+}
+export interface PairFinding {
+  a: string;
+  b: string;
+  date_a: string | null;
+  date_b: string | null;
+  days_delta: number | null;
+  shape: ShapeFinding;
+  texture: TextureFinding;
+}
+export interface ChangePointFinding {
+  date: string | null;
+  status: string | null;
+  pair: string | null;
+  days_delta: number | null;
+  p95_z: number | null;
+  rate_status: string | null;
+}
+export interface ReturnFinding {
+  date: string | null;
+  photo_id: string | null;
+  baseline_photo_id: string | null;
+  kind: string | null;
+  strength: number | null;
+}
+export interface ZonePhotoSuggestion { id: string; noise_score: number; reasons: string[] }
+export interface DenseZone {
+  start: string | null;
+  end: string | null;
+  count: number;
+  days: number;
+  remove: ZonePhotoSuggestion[];
+  keep: string[];
+}
+export interface BinFindings {
+  pairs: PairFinding[];
+  change_points: ChangePointFinding[];
+  returns: ReturnFinding[];
+  zones: DenseZone[];
+}
+export interface TimelineFindings {
+  schema?: string;
+  not_a_verdict?: boolean;
+  run_id: string | null;
+  has_stage2: boolean;
+  bins: Record<string, BinFindings>;
+}
+export const timelineFindings = () => apiJson<TimelineFindings>("/api/v1/timeline/findings");
