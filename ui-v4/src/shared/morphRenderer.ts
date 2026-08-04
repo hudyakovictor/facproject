@@ -21,22 +21,29 @@ export interface MorphMeshData {
 const VERT_SRC = `
 attribute vec3 aPos;
 attribute vec2 aUv;
+attribute vec3 aColor;
 uniform mat4 uProjView;
 varying vec2 vUv;
+varying vec3 vColor;
 void main() {
   vUv = aUv;
+  vColor = aColor;
   gl_Position = uProjView * vec4(aPos, 1.0);
 }`;
 
 const FRAG_SRC = `
 precision mediump float;
 varying vec2 vUv;
+varying vec3 vColor;
 uniform sampler2D uTexA;
 uniform sampler2D uTexB;
 uniform float uBlend;
 uniform float uHasTextures;
+uniform float uHasColors;
 void main() {
-  if (uHasTextures > 0.5) {
+  if (uHasColors > 0.5) {
+    gl_FragColor = vec4(vColor, 1.0);
+  } else if (uHasTextures > 0.5) {
     vec4 a = texture2D(uTexA, vUv);
     vec4 b = texture2D(uTexB, vUv);
     gl_FragColor = mix(a, b, uBlend);
@@ -93,6 +100,8 @@ export class MorphRenderer {
   private meshVerts: WebGLBuffer | null = null;
   private meshUv: WebGLBuffer | null = null;
   private meshTris: WebGLBuffer | null = null;
+  private colorBuffer: WebGLBuffer | null = null;
+  private vertexColors: Float32Array | null = null;
   private meshTriCount = 0;
   private ldmBuffer: WebGLBuffer | null = null;
   private ldmCount = 0;
@@ -132,6 +141,8 @@ export class MorphRenderer {
     if (!this.meshVerts) this.meshVerts = gl.createBuffer();
     if (!this.meshUv) this.meshUv = gl.createBuffer();
     if (!this.meshTris) this.meshTris = gl.createBuffer();
+    if (!this.colorBuffer) this.colorBuffer = gl.createBuffer();
+    this.vertexColors = null;
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.meshVerts);
     gl.bufferData(gl.ARRAY_BUFFER, va, gl.DYNAMIC_DRAW);
@@ -155,6 +166,27 @@ export class MorphRenderer {
       this.ldmCount = points.length / 3;
     } else {
       this.ldmCount = 0;
+    }
+  }
+
+  /**
+   * Per-vertex colors (flat RGB 0..1, one triple per vertex). When set, the
+   * mesh is drawn with these colors instead of the UV textures — used for the
+   * 3D displacement heatmap. Pass null to switch back to textures.
+   */
+  setVertexColors(colors: Float32Array | null): void {
+    this.vertexColors = colors;
+    if (colors && this.colorBuffer) {
+      const gl = this.gl;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+    }
+  }
+
+  /** Replace the B mesh vertices (e.g. with the Kabsch-aligned set). */
+  setMeshB(vertices: Float32Array): void {
+    if (this.mesh && this.mesh.vb.length === vertices.length) {
+      this.mesh.vb = vertices;
     }
   }
 
@@ -221,9 +253,19 @@ export class MorphRenderer {
     gl.useProgram(this.meshProgram);
     const posLoc = gl.getAttribLocation(this.meshProgram, "aPos");
     const uvLoc = gl.getAttribLocation(this.meshProgram, "aUv");
+    const colorLoc = gl.getAttribLocation(this.meshProgram, "aColor");
     gl.bindBuffer(gl.ARRAY_BUFFER, this.meshVerts);
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+    if (this.vertexColors && this.colorBuffer) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+      gl.enableVertexAttribArray(colorLoc);
+      gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+      gl.uniform1f(gl.getUniformLocation(this.meshProgram, "uHasColors"), 1);
+    } else {
+      gl.disableVertexAttribArray(colorLoc);
+      gl.uniform1f(gl.getUniformLocation(this.meshProgram, "uHasColors"), 0);
+    }
     if (uv && uv.length && this.texA && this.texB) {
       gl.bindBuffer(gl.ARRAY_BUFFER, this.meshUv);
       gl.enableVertexAttribArray(uvLoc);
