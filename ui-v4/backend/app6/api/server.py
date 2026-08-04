@@ -76,6 +76,19 @@ from .selection_filters import (
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
 from .skin_zones import SKIN_ZONES_SCHEMA, load_skin_zone_report, zone_catalog
 from .system_health import build_system_health
+from .morphing_api import morphing_bins, photo_morph_payload
+from .landmark_compare import batch_displacement, compare_landmarks
+from .run_manager import (
+    archive_run,
+    cancel_run,
+    get_run,
+    list_runs,
+    preflight_stage2,
+    start_stage2_run,
+    start_stage2b,
+)
+from .report_manager import generate_report, get_report, list_reports, regenerate_report
+from .calibration_workspace import calibrated_thresholds, workspace_dashboard
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -1232,6 +1245,217 @@ def api_import_profile(payload: dict[str, Any]) -> dict[str, Any]:
         return import_profile(payload)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Iteration 05 — Stage 2 Run Manager
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/runs")
+def api_list_runs() -> dict[str, Any]:
+    try:
+        return {"schema": APP_SCHEMA, "runs": list_runs()}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=f"runs недоступны: {exc}") from exc
+
+
+@app.get("/api/v1/runs/{run_id}")
+def api_get_run(run_id: str) -> dict[str, Any]:
+    try:
+        return get_run(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+class Stage2PreflightRequest(BaseModel):
+    profile_id: str | None = None
+    calibration_root: str | None = None
+    min_points106: int = 24
+    min_points134: int = 30
+
+
+@app.post("/api/v1/runs/preflight")
+def api_stage2_preflight(request: Stage2PreflightRequest) -> dict[str, Any]:
+    try:
+        return preflight_stage2(
+            request.profile_id,
+            min_points106=request.min_points106,
+            min_points134=request.min_points134,
+            calibration_root=request.calibration_root,
+        )
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=409, detail=f"preflight failed: {exc}") from exc
+
+
+class Stage2RunRequest(BaseModel):
+    profile_id: str | None = None
+    label: str | None = None
+    calibration_root: str | None = None
+    min_points106: int = 24
+    min_points134: int = 30
+    lead_archive: str | None = None
+
+
+@app.post("/api/v1/runs/stage2")
+def api_start_stage2(request: Stage2RunRequest) -> dict[str, Any]:
+    try:
+        return start_stage2_run(
+            request.profile_id,
+            label=request.label,
+            calibration_root=request.calibration_root,
+            min_points106=request.min_points106,
+            min_points134=request.min_points134,
+            lead_archive=request.lead_archive,
+        )
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=409, detail=f"run start failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/cancel")
+def api_cancel_run(run_id: str) -> dict[str, Any]:
+    try:
+        return cancel_run(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+class Stage2BRequest(BaseModel):
+    prior_root: str | None = None
+
+
+@app.post("/api/v1/runs/{run_id}/stage2b")
+def api_stage2b(run_id: str, request: Stage2BRequest) -> dict[str, Any]:
+    try:
+        return start_stage2b(run_id, prior_root=request.prior_root)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"Stage 2B failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/archive")
+def api_archive_run(run_id: str) -> dict[str, Any]:
+    try:
+        return archive_run(run_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"archive failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Iteration 06 — Stage 3 Report Manager
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/reports")
+def api_list_reports() -> dict[str, Any]:
+    try:
+        return {"schema": APP_SCHEMA, "reports": list_reports()}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=f"reports недоступны: {exc}") from exc
+
+
+@app.get("/api/v1/reports/{report_id}")
+def api_get_report(report_id: str) -> dict[str, Any]:
+    try:
+        return get_report(report_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+class ReportRequest(BaseModel):
+    run_id: str
+    mode: str = "technical"  # technical | internal | public
+    label: str | None = None
+
+
+@app.post("/api/v1/reports")
+def api_generate_report(request: ReportRequest) -> dict[str, Any]:
+    try:
+        return generate_report(request.run_id, mode=request.mode, label=request.label)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"report generation failed: {exc}") from exc
+
+
+@app.post("/api/v1/reports/{report_id}/regenerate")
+def api_regenerate_report(report_id: str) -> dict[str, Any]:
+    try:
+        return regenerate_report(report_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"regeneration failed: {exc}") from exc
+
+
+@app.get("/api/v1/reports/{report_id}/file/{name:path}")
+def api_report_file(report_id: str, name: str) -> FileResponse:
+    from .report_manager import report_dir
+    directory = report_dir(report_id)
+    if not directory.is_dir():
+        raise HTTPException(status_code=404, detail="report not found")
+    # allow only files directly in the report dir or in exports/
+    allowed_roots = [directory.resolve()]
+    exports = directory / "exports"
+    if exports.is_dir():
+        allowed_roots.append(exports.resolve())
+    candidate = (directory / name).resolve()
+    if not any(str(candidate) == str(root) or str(candidate).startswith(str(root) + "/") for root in allowed_roots):
+        raise HTTPException(status_code=400, detail="invalid file name")
+    if not candidate.is_file():
+        raise HTTPException(status_code=404, detail=f"file not found: {name}")
+    media = "text/html" if candidate.suffix == ".html" else "application/json" if candidate.suffix == ".json" else "text/csv"
+    return FileResponse(candidate, media_type=media, filename=candidate.name)
+
+
+# ---------------------------------------------------------------------------
+# Iteration 07/08 — pair batch + landmark comparison
+# ---------------------------------------------------------------------------
+class BatchPairsRequest(BaseModel):
+    pairs: list[list[str]]
+    count: int = 106
+
+
+@app.post("/api/v1/pairs/batch")
+def api_batch_pairs(request: BatchPairsRequest) -> dict[str, Any]:
+    try:
+        return batch_displacement(request.pairs, count=request.count)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/landmarks/compare/{photo_a}/{photo_b}")
+def api_landmark_compare(photo_a: str, photo_b: str, count: int = 134, space: str = "chronology") -> dict[str, Any]:
+    try:
+        return compare_landmarks(photo_a, photo_b, count=count, space=space)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=f"landmark comparison failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Iteration 09 — Morphing workspace
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/morphing/bins")
+def api_morphing_bins() -> dict[str, Any]:
+    """Photos per pose bin in chronology order (lightweight — no meshes)."""
+    stage1_root = _require_stage1()
+    from .stage1_timeline import build_stage1_inventory
+    inventory = build_stage1_inventory(stage1_root)
+    return morphing_bins(inventory["photos"])
+
+
+@app.get("/api/v1/morphing/photo/{photo_id}")
+def api_morphing_photo(photo_id: str) -> dict[str, Any]:
+    """Canonical mesh + UV + landmarks for one photo (morphing-ready)."""
+    try:
+        payload = photo_morph_payload(photo_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=f"morphing payload failed: {exc}") from exc
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# Iteration 10 — Calibration workspace
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/calibration/workspace")
+def api_calibration_workspace() -> dict[str, Any]:
+    return workspace_dashboard()
+
+
+@app.get("/api/v1/calibration/thresholds")
+def api_calibration_thresholds() -> dict[str, Any]:
+    return calibrated_thresholds()
 
 
 @app.post("/api/v1/data/clear")

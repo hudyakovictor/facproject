@@ -402,6 +402,16 @@ def calibrated_score(
     threshold = float(reference.get("p95", 0.0))
     if matched_arr.size:
         threshold = max(threshold, float(np.percentile(matched_arr, 95)))
+    # 🚧 GATE: метрика без калибровочного референса и без matched-null не может
+    # быть оценена. Раньше threshold оставался 0 и noise_adjusted_threshold
+    # падал с ValueError — редкая метрика валила весь прогон. Теперь это
+    # честный статус insufficient_calibration (не «elevated» и не нуль).
+    if threshold <= 0.0:
+        return {"calibration_median": float(reference.get("median", 0.0)),
+                "calibration_p95": None,
+                "calibration_p95_unadjusted": None,
+                "coordinate_noise_sigma": float(coordinate_noise_sigma),
+                "robust_z": float("nan"), "status": "insufficient_calibration"}
     unadjusted_threshold = threshold
     if coordinate_noise_sigma > 0:
         threshold = noise_adjusted_threshold(threshold, coordinate_noise_sigma)

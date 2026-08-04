@@ -406,3 +406,204 @@ export const freezeProfile = (id: string) => apiJson<{ path: string; manifest: R
 export const diffProfiles = (a: string, b: string) => apiJson<Record<string, unknown>>(`/api/v1/profiles/diff/${encodeURIComponent(a)}/${encodeURIComponent(b)}`);
 export const exportProfile = (id: string) => apiJson<Record<string, unknown>>(`/api/v1/profiles/${encodeURIComponent(id)}/export`);
 export const importProfile = (payload: Record<string, unknown>) => apiJson<ProfileDetail>("/api/v1/profiles/import", { method: "POST", body: JSON.stringify(payload) });
+
+// ---------------------------------------------------------------------------
+// Iteration 05 — Stage 2 Run Manager
+// ---------------------------------------------------------------------------
+export interface RunProgress { done: number; total: number; phase: string }
+export interface RunRow {
+  schema?: string;
+  run_id: string;
+  legacy?: boolean;
+  label?: string;
+  profile_id?: string | null;
+  profile_name?: string | null;
+  created_at?: string;
+  status: "queued" | "running" | "complete" | "failed" | "cancelled" | "cancelling" | string;
+  progress?: RunProgress;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error?: string | null;
+  has_manifest?: boolean;
+  valid?: boolean;
+  validation_status?: string | null;
+  record_count?: number | null;
+  pair_count?: number | null;
+  included_count?: number | null;
+  directory?: string;
+  logs?: string[];
+  artifacts?: string[];
+  config?: Record<string, unknown>;
+  selection?: Record<string, unknown> | null;
+  stage2b?: Record<string, unknown> | null;
+  stage2b_output?: string | null;
+}
+export interface Stage2Preflight {
+  schema?: string;
+  ready: boolean;
+  stage1: { root: string; record_count: number; selected_count: number; per_bin: Record<string, { records: number; adjacent_pairs: number; baseline_pairs: number }> };
+  calibration: { root: string; record_count: number; person_count: number; persons: string[]; pose_bins: string[] };
+  pairs: { adjacent: number; baseline: number; total_estimate: number };
+  selection?: { profile_id?: string | null; profile_name?: string | null; included_count: number; excluded_count: number } | null;
+  min_points106: number;
+  min_points134: number;
+  not_a_verdict?: boolean;
+}
+export const listRuns = async (): Promise<RunRow[]> => (await apiJson<{ runs: RunRow[] }>("/api/v1/runs")).runs || [];
+export const getRun = (runId: string) => apiJson<RunRow>(`/api/v1/runs/${encodeURIComponent(runId)}`);
+export const preflightStage2 = (payload: { profile_id?: string | null; calibration_root?: string | null; min_points106?: number; min_points134?: number }) =>
+  apiJson<Stage2Preflight>("/api/v1/runs/preflight", { method: "POST", body: JSON.stringify(payload) });
+export const startStage2Run = (payload: { profile_id?: string | null; label?: string; calibration_root?: string | null; min_points106?: number; min_points134?: number; lead_archive?: string | null }) =>
+  apiJson<RunRow>("/api/v1/runs/stage2", { method: "POST", body: JSON.stringify(payload) });
+export const cancelRun = (runId: string) => apiJson<RunRow>(`/api/v1/runs/${encodeURIComponent(runId)}/cancel`, { method: "POST" });
+export const runStage2b = (runId: string, priorRoot?: string | null) =>
+  apiJson<RunRow>(`/api/v1/runs/${encodeURIComponent(runId)}/stage2b`, { method: "POST", body: JSON.stringify({ prior_root: priorRoot ?? null }) });
+export const archiveRun = (runId: string) => apiJson<{ archived: boolean; destination: string }>(`/api/v1/runs/${encodeURIComponent(runId)}/archive`, { method: "POST" });
+
+// ---------------------------------------------------------------------------
+// Iteration 06 — Stage 3 Report Manager
+// ---------------------------------------------------------------------------
+export interface ReportRow {
+  schema?: string;
+  report_id: string;
+  legacy?: boolean;
+  label?: string;
+  mode?: "technical" | "internal" | "public" | string;
+  run_id?: string | null;
+  created_at?: string;
+  valid?: boolean;
+  validation_status?: string | null;
+  pair_count?: number | null;
+  change_count?: number | null;
+  status_counts?: Record<string, number> | null;
+  files?: string[];
+  exports?: string[];
+  public_lint?: { status?: string; violation_count?: number; violations?: { path: string; term: string }[] } | null;
+  directory?: string;
+}
+export const listReports = async (): Promise<ReportRow[]> => (await apiJson<{ reports: ReportRow[] }>("/api/v1/reports")).reports || [];
+export const getReport = (reportId: string) => apiJson<ReportRow>(`/api/v1/reports/${encodeURIComponent(reportId)}`);
+export const generateReport = (payload: { run_id: string; mode: string; label?: string | null }) =>
+  apiJson<ReportRow>("/api/v1/reports", { method: "POST", body: JSON.stringify(payload) });
+export const regenerateReport = (reportId: string) => apiJson<ReportRow>(`/api/v1/reports/${encodeURIComponent(reportId)}/regenerate`, { method: "POST" });
+export const reportFileUrl = (reportId: string, name: string) =>
+  `${apiBase()}/api/v1/reports/${encodeURIComponent(reportId)}/file/${name.split("/").map(encodeURIComponent).join("/")}`;
+
+// ---------------------------------------------------------------------------
+// Iteration 07 — batch pair displacement (timeline LDM tracks)
+// ---------------------------------------------------------------------------
+export interface PairDisplacement {
+  photo_a: string;
+  photo_b: string;
+  count: number;
+  rms: number | null;
+  p95: number | null;
+  max: number | null;
+  common_visible: number;
+  calibrated: boolean;
+  exceeds_calibration_p95?: number | null;
+  source?: string;
+}
+export const batchPairs = (pairs: [string, string][], count = 106) =>
+  apiJson<{ results: PairDisplacement[]; errors: { photo_a: string; photo_b: string; error: string }[] }>(
+    "/api/v1/pairs/batch", { method: "POST", body: JSON.stringify({ pairs, count }) });
+
+// ---------------------------------------------------------------------------
+// Iteration 08 — Landmark comparison
+// ---------------------------------------------------------------------------
+export interface LandmarkComparePoint {
+  i: number;
+  region: string;
+  x_a: number; y_a: number; z_a: number;
+  x_b: number; y_b: number; z_b: number;
+  dx: number; dy: number; dz: number;
+  magnitude: number | null;
+  visible_a: boolean; visible_b: boolean;
+  common_visible: boolean;
+  calibration_median?: number | null;
+  calibration_p95?: number | null;
+  exceeds_calibration_p95?: boolean;
+}
+export interface LandmarkComparePayload {
+  schema?: string;
+  not_a_verdict?: boolean;
+  photo_a: string;
+  photo_b: string;
+  count: number;
+  space: string;
+  pose_bin: string;
+  summary: { rms: number | null; p95: number | null; max: number | null; common_visible: number; exceeds_calibration_p95: number; calibrated: boolean };
+  calibration?: { pose_bin: string; count: number; median?: number[] | null; mad?: number[] | null; p95?: number[] | null; calibrated: boolean } | null;
+  points: LandmarkComparePoint[];
+}
+export const landmarkCompare = (a: string, b: string, count: 106 | 134 = 134, space = "chronology") =>
+  apiJson<LandmarkComparePayload>(`/api/v1/landmarks/compare/${encodeURIComponent(a)}/${encodeURIComponent(b)}?count=${count}&space=${space}`);
+
+// ---------------------------------------------------------------------------
+// Iteration 09 — Morphing workspace
+// ---------------------------------------------------------------------------
+export interface MorphPhoto { id: string; date: string; t?: number | null; quality?: number | null; yaw?: number | null; pitch?: number | null; roll?: number | null }
+export interface MorphBin {
+  pose: string;
+  label: string;
+  camera: { yaw_deg: number; elevation_deg: number };
+  photos: MorphPhoto[];
+}
+export interface MorphingBins { schema?: string; pose_bins: MorphBin[] }
+export interface MorphPhotoPayload {
+  schema?: string;
+  photo_id: string;
+  pose_bin: string;
+  date?: string | null;
+  vertices: number[];
+  triangles: number[];
+  uv_coords: number[];
+  vertex_count: number;
+  triangle_count: number;
+  has_uv: boolean;
+  texture_url?: string | null;
+  actual_pose_deg?: number[] | null;
+  canonical_pose_deg?: { yaw: number; pitch: number; roll: number } | null;
+}
+export const morphingBins = () => apiJson<MorphingBins>("/api/v1/morphing/bins");
+export const morphingPhoto = (id: string) => apiJson<MorphPhotoPayload>(`/api/v1/morphing/photo/${encodeURIComponent(id)}`);
+
+// ---------------------------------------------------------------------------
+// Iteration 10 — Calibration workspace
+// ---------------------------------------------------------------------------
+export interface CalibrationWorkspace {
+  schema?: string;
+  status: string;
+  person_count?: number;
+  persons?: { person: string; total: number; per_bin: Record<string, number>; covered_bins: number }[];
+  pose_bins?: { pose: string; total: number; persons_with_frames: number; adjacent_pair_estimate: number }[];
+  complete_bins?: string[];
+  covered_bin_count?: number;
+  total_frames?: number;
+  total_pair_estimate?: number;
+  detail?: string;
+  not_a_verdict?: boolean;
+}
+export interface CalibrationThresholdRow {
+  pose_bin: string;
+  count: number;
+  supported_points: number | null;
+  scalar: { median: number | null; mad: number | null; p95: number | null };
+  per_point: { median: number[]; mad?: number[] | null; p95?: number[] | null };
+}
+export interface CalibrationThresholds {
+  schema?: string;
+  status: string;
+  calibrated: boolean;
+  run_id?: string | null;
+  run_directory?: string;
+  references: CalibrationThresholdRow[];
+  sensitivity?: Record<string, unknown> | null;
+  mesh_noise_model?: Record<string, unknown> | null;
+  manifest?: { record_count?: number | null; pair_count?: number | null } | null;
+  distinction?: Record<string, string>;
+  detail?: string;
+  not_a_verdict?: boolean;
+}
+export const calibrationWorkspace = () => apiJson<CalibrationWorkspace>("/api/v1/calibration/workspace");
+export const calibrationThresholds = () => apiJson<CalibrationThresholds>("/api/v1/calibration/thresholds");
