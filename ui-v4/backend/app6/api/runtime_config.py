@@ -89,6 +89,80 @@ def runtime_path_report(paths: RuntimePaths | None = None) -> dict[str, Any]:
     }
 
 
+def stage1_integrity_snapshot(paths: RuntimePaths | None = None) -> dict[str, Any]:
+    """Content hash of the immutable Stage 1 evidence (baseline + current).
+
+    The snapshot is stored in the registry on first call and re-computed on
+    every call; any difference means Stage 1 was modified (a violation of the
+    evidence contract). Stage 1 itself is never written by this function.
+    """
+    import hashlib as _hashlib
+
+    current = paths or load_runtime_paths()
+    stage1 = current.stage1_root
+    timeline = stage1 / "main_timeline.csv"
+
+    def _sha(path: Path) -> str:
+        if not path.is_file():
+            return "missing"
+        digest = _hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    timeline_digest = _sha(timeline)
+    photo_dirs = sorted(
+        item.name for item in stage1.iterdir() if item.is_dir() and (item / "info.json").is_file()
+    ) if stage1.is_dir() else []
+    manifest_digest = _sha(stage1 / "stage1_manifest.json")
+    # dataset hash is path-independent (ordered photo ids + timeline content)
+    dataset_hash = _hashlib.sha256()
+    dataset_hash.update(timeline_digest.encode())
+    for name in photo_dirs:
+        dataset_hash.update(name.encode())
+    dataset_hash.update(manifest_digest.encode())
+
+    current_snapshot = {
+        "schema": "deeputin-stage1-integrity-v1.0",
+        "stage1_root": str(stage1),
+        "timeline_sha256": timeline_digest,
+        "manifest_sha256": manifest_digest,
+        "photo_count": len(photo_dirs),
+        "dataset_hash": dataset_hash.hexdigest(),
+    }
+
+    current.registry_root.mkdir(parents=True, exist_ok=True)
+    baseline_path = current.registry_root / "stage1_integrity_baseline.json"
+    if baseline_path.is_file():
+        try:
+            baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            baseline = None
+    else:
+        baseline = None
+
+    if baseline is None:
+        # first sighting: store the current snapshot as the immutable baseline
+        baseline = current_snapshot
+        temporary = baseline_path.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary.replace(baseline_path)
+
+    unchanged = bool(
+        baseline.get("dataset_hash") == current_snapshot["dataset_hash"]
+        and baseline.get("timeline_sha256") == current_snapshot["timeline_sha256"]
+        and baseline.get("photo_count") == current_snapshot["photo_count"]
+    )
+    return {
+        "schema": "deeputin-stage1-integrity-v1.0",
+        "unchanged": unchanged,
+        "baseline": baseline,
+        "current": current_snapshot,
+        "note": "Stage 1 evidence is immutable; any change invalidates rollback guarantees.",
+    }
+
+
 def save_active_dataset_registration(
     payload: dict[str, Any], paths: RuntimePaths | None = None
 ) -> Path:

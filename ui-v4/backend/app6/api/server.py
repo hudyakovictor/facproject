@@ -18,6 +18,7 @@ import csv
 import json
 import os
 import shutil
+import traceback
 import uuid
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,7 @@ from .runtime_config import (
     load_runtime_paths,
     runtime_path_report,
     save_active_dataset_registration,
+    stage1_integrity_snapshot,
 )
 from .analysis_profiles import (
     PHOTO_STATUSES,
@@ -74,8 +76,27 @@ from .selection_filters import (
     save_selection_manifest,
 )
 from .settings import DEFAULT_SETTINGS, load_settings, save_settings
-from .skin_zones import SKIN_ZONES_SCHEMA, load_skin_zone_report, zone_catalog
+from .skin_zones import SKIN_ZONES_SCHEMA, AtlasUnavailableError, load_skin_zone_report, zone_catalog
 from .system_health import build_system_health
+from .morphing_api import morphing_bins, mesh_displacement, photo_morph_payload
+from .landmark_compare import batch_displacement, compare_landmarks
+from .run_manager import (
+    archive_run,
+    cancel_run,
+    delete_run,
+    get_run,
+    list_runs,
+    preflight_stage2,
+    restore_run,
+    retry_run,
+    start_stage2_run,
+    start_stage2b,
+)
+from .report_manager import generate_report, get_report, list_reports, regenerate_report
+from .calibration_workspace import calibrated_thresholds, workspace_dashboard
+from .timeline_findings import timeline_findings
+from .event_log import EVENT_LOG_SCHEMA, ingest_client_events, list_events, log_event, summary
+from .recommendations import load_settings as load_rec_settings, recommend, save_settings as save_rec_settings
 
 APP_SCHEMA = "deeputin-api-v1.0"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -100,6 +121,24 @@ app.add_middleware(
 # треугольников) сжимается более чем в 10 раз gzip'ом. Без этого middleware
 # каждый запрос 3D Inspector/Compare был бы неоправданно тяжёлым по сети.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+
+@app.middleware("http")
+async def _event_log_http_middleware(request: Any, call_next: Any):
+    """Log every HTTP response with status >= 400 into the event journal."""
+    try:
+        response = await call_next(request)
+    except Exception:
+        raise  # the exception handler below records the stack trace
+    status = response.status_code
+    if status >= 500:
+        log_event("error", "api", f"{request.method} {request.url.path} → {status}",
+                  detail=None, path=request.url.path)
+    elif status >= 400:
+        log_event("warn", "api", f"{request.method} {request.url.path} → {status}",
+                  detail=None, path=request.url.path)
+    return response
+
 
 _job_manager = JobManager()
 
@@ -296,6 +335,13 @@ class UploadResponse(BaseModel):
 
 @app.get("/api/v1/zones/catalog")
 def zones_catalog() -> dict[str, Any]:
+    try:
+        return _zones_catalog_impl()
+    except AtlasUnavailableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+def _zones_catalog_impl() -> dict[str, Any]:
     """🚪 API → Каталог зон кожи из нормативного атласа (для легенды UI).
 
     Отдаёт то, что реально записано в `3ddfa_v3/atlas/skin_zone_atlas.json`.
@@ -332,7 +378,10 @@ def get_photo_skin_zones(photo_id: str) -> dict[str, Any]:
     photo_dir = stage1_root / photo_id
     if not photo_dir.is_dir():
         raise HTTPException(status_code=404, detail=f"no Stage 1 output for {photo_id}")
-    report = load_skin_zone_report(photo_dir)
+    try:
+        report = load_skin_zone_report(photo_dir)
+    except AtlasUnavailableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {**report, "source_mode": "research", "photo_id": photo_id}
 
 
@@ -943,6 +992,43 @@ def get_runtime_paths() -> dict[str, Any]:
     return runtime_path_report()
 
 
+@app.get("/api/v1/integrity/stage1")
+def api_stage1_integrity() -> dict[str, Any]:
+    """Immutable Stage 1 evidence check (baseline hash vs current hash)."""
+    return stage1_integrity_snapshot()
+
+
+# ---------------------------------------------------------------------------
+# Iteration 13 — recommendations
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/recommendations")
+def api_recommendations() -> dict[str, Any]:
+    try:
+        return recommend()
+    except Exception as exc:  # noqa: BLE001 - recommendations must never crash the API
+        return {
+            "schema": "deeputin-recommendations-v1.0",
+            "generated_at": None,
+            "count": 0,
+            "recommendations": [],
+            "error": str(exc),
+            "not_a_verdict": True,
+        }
+
+
+@app.get("/api/v1/recommendations/settings")
+def api_rec_settings() -> dict[str, Any]:
+    return load_rec_settings()
+
+
+@app.put("/api/v1/recommendations/settings")
+def api_save_rec_settings(payload: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return save_rec_settings(payload)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @app.get("/api/v1/datasets/inventory")
 def get_dataset_inventory() -> dict[str, Any]:
     inventory = build_dataset_inventory()
@@ -1234,6 +1320,313 @@ def api_import_profile(payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+# ---------------------------------------------------------------------------
+# Iteration 05 — Stage 2 Run Manager
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/runs")
+def api_list_runs() -> dict[str, Any]:
+    try:
+        return {"schema": APP_SCHEMA, "runs": list_runs()}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=f"runs недоступны: {exc}") from exc
+
+
+@app.get("/api/v1/runs/{run_id}")
+def api_get_run(run_id: str) -> dict[str, Any]:
+    try:
+        return get_run(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+class Stage2PreflightRequest(BaseModel):
+    profile_id: str | None = None
+    calibration_root: str | None = None
+    min_points106: int = 24
+    min_points134: int = 30
+
+
+@app.post("/api/v1/runs/preflight")
+def api_stage2_preflight(request: Stage2PreflightRequest) -> dict[str, Any]:
+    try:
+        return preflight_stage2(
+            request.profile_id,
+            min_points106=request.min_points106,
+            min_points134=request.min_points134,
+            calibration_root=request.calibration_root,
+        )
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=409, detail=f"preflight failed: {exc}") from exc
+
+
+class Stage2RunRequest(BaseModel):
+    profile_id: str | None = None
+    label: str | None = None
+    calibration_root: str | None = None
+    min_points106: int = 24
+    min_points134: int = 30
+    lead_archive: str | None = None
+
+
+@app.post("/api/v1/runs/stage2")
+def api_start_stage2(request: Stage2RunRequest) -> dict[str, Any]:
+    try:
+        return start_stage2_run(
+            request.profile_id,
+            label=request.label,
+            calibration_root=request.calibration_root,
+            min_points106=request.min_points106,
+            min_points134=request.min_points134,
+            lead_archive=request.lead_archive,
+        )
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=409, detail=f"run start failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/cancel")
+def api_cancel_run(run_id: str) -> dict[str, Any]:
+    try:
+        return cancel_run(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+class Stage2BRequest(BaseModel):
+    prior_root: str | None = None
+
+
+@app.post("/api/v1/runs/{run_id}/stage2b")
+def api_stage2b(run_id: str, request: Stage2BRequest) -> dict[str, Any]:
+    try:
+        return start_stage2b(run_id, prior_root=request.prior_root)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"Stage 2B failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/archive")
+def api_archive_run(run_id: str) -> dict[str, Any]:
+    try:
+        return archive_run(run_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"archive failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/restore")
+def api_restore_run(run_id: str) -> dict[str, Any]:
+    """Вернуть архивированный run в stage2/runs (откат)."""
+    try:
+        return restore_run(run_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"restore failed: {exc}") from exc
+
+
+class RetryRunRequest(BaseModel):
+    label: str | None = None
+
+
+@app.post("/api/v1/runs/{run_id}/retry")
+def api_retry_run(run_id: str, request: RetryRunRequest) -> dict[str, Any]:
+    """Новый run с конфигом старого (оригинал не трогается)."""
+    try:
+        return retry_run(run_id, label=request.label)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"retry failed: {exc}") from exc
+
+
+@app.post("/api/v1/runs/{run_id}/delete")
+def api_delete_run(run_id: str) -> dict[str, Any]:
+    """Удалить только failed/cancelled run (мусор)."""
+    try:
+        return delete_run(run_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"delete failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Iteration 06 — Stage 3 Report Manager
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/reports")
+def api_list_reports() -> dict[str, Any]:
+    try:
+        return {"schema": APP_SCHEMA, "reports": list_reports()}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=409, detail=f"reports недоступны: {exc}") from exc
+
+
+@app.get("/api/v1/reports/{report_id}")
+def api_get_report(report_id: str) -> dict[str, Any]:
+    try:
+        return get_report(report_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+class ReportRequest(BaseModel):
+    run_id: str
+    mode: str = "technical"  # technical | internal | public
+    label: str | None = None
+
+
+@app.post("/api/v1/reports")
+def api_generate_report(request: ReportRequest) -> dict[str, Any]:
+    try:
+        return generate_report(request.run_id, mode=request.mode, label=request.label)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"report generation failed: {exc}") from exc
+
+
+@app.post("/api/v1/reports/{report_id}/regenerate")
+def api_regenerate_report(report_id: str) -> dict[str, Any]:
+    try:
+        return regenerate_report(report_id)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"regeneration failed: {exc}") from exc
+
+
+@app.get("/api/v1/reports/{report_id}/file/{name:path}")
+def api_report_file(report_id: str, name: str) -> FileResponse:
+    from .report_manager import report_dir
+    directory = report_dir(report_id)
+    if not directory.is_dir():
+        raise HTTPException(status_code=404, detail="report not found")
+    # allow only files directly in the report dir or in exports/
+    allowed_roots = [directory.resolve()]
+    exports = directory / "exports"
+    if exports.is_dir():
+        allowed_roots.append(exports.resolve())
+    candidate = (directory / name).resolve()
+    if not any(str(candidate) == str(root) or str(candidate).startswith(str(root) + "/") for root in allowed_roots):
+        raise HTTPException(status_code=400, detail="invalid file name")
+    if not candidate.is_file():
+        raise HTTPException(status_code=404, detail=f"file not found: {name}")
+    media = "text/html" if candidate.suffix == ".html" else "application/json" if candidate.suffix == ".json" else "text/csv"
+    return FileResponse(candidate, media_type=media, filename=candidate.name)
+
+
+# ---------------------------------------------------------------------------
+# Iteration 07/08 — pair batch + landmark comparison
+# ---------------------------------------------------------------------------
+class BatchPairsRequest(BaseModel):
+    pairs: list[list[str]]
+    count: int = 106
+
+
+@app.post("/api/v1/pairs/batch")
+def api_batch_pairs(request: BatchPairsRequest) -> dict[str, Any]:
+    try:
+        return batch_displacement(request.pairs, count=request.count)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/landmarks/compare/{photo_a}/{photo_b}")
+def api_landmark_compare(photo_a: str, photo_b: str, count: int = 134, space: str = "chronology") -> dict[str, Any]:
+    try:
+        return compare_landmarks(photo_a, photo_b, count=count, space=space)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=f"landmark comparison failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Iteration 09 — Morphing workspace
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/morphing/bins")
+def api_morphing_bins() -> dict[str, Any]:
+    """Photos per pose bin in chronology order (lightweight — no meshes)."""
+    stage1_root = _require_stage1()
+    from .stage1_timeline import build_stage1_inventory
+    inventory = build_stage1_inventory(stage1_root)
+    return morphing_bins(inventory["photos"])
+
+
+@app.get("/api/v1/morphing/photo/{photo_id}")
+def api_morphing_photo(photo_id: str) -> dict[str, Any]:
+    """Canonical mesh + UV + landmarks for one photo (morphing-ready)."""
+    try:
+        payload = photo_morph_payload(photo_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=f"morphing payload failed: {exc}") from exc
+    return payload
+
+
+@app.get("/api/v1/morphing/diff/{photo_a}/{photo_b}")
+def api_morphing_diff(photo_a: str, photo_b: str) -> dict[str, Any]:
+    """Per-vertex displacement between two canonical meshes (3D heatmap)."""
+    try:
+        payload = mesh_displacement(photo_a, photo_b)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=f"morphing diff failed: {exc}") from exc
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# Iteration 10 — Calibration workspace
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/calibration/workspace")
+def api_calibration_workspace() -> dict[str, Any]:
+    return workspace_dashboard()
+
+
+@app.get("/api/v1/calibration/thresholds")
+def api_calibration_thresholds() -> dict[str, Any]:
+    return calibrated_thresholds()
+
+
+# ---------------------------------------------------------------------------
+# Iteration 07b — timeline findings layer (anomalies / shape / texture /
+# baseline-returns / dense-copy zones with prune suggestions)
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/timeline/findings")
+def api_timeline_findings() -> dict[str, Any]:
+    try:
+        return timeline_findings()
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"findings недоступны: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Iteration 12 — event log panel
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/logs")
+def api_logs(limit: int = 500, level: str | None = None, source: str | None = None,
+             origin: str | None = None, since: str | None = None) -> dict[str, Any]:
+    """Event journal (newest first). Filters: level/source/origin/since."""
+    return {
+        "schema": EVENT_LOG_SCHEMA,
+        "events": list_events(limit=limit, level=level, source=source, origin=origin, since=since),
+    }
+
+
+@app.get("/api/v1/logs/summary")
+def api_logs_summary() -> dict[str, Any]:
+    return summary()
+
+
+class ClientLogRequest(BaseModel):
+    events: list[dict[str, Any]] = []
+
+
+@app.post("/api/v1/logs/client")
+def api_logs_client(request: ClientLogRequest) -> dict[str, Any]:
+    try:
+        return ingest_client_events({"events": request.events})
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/logs/export")
+def api_logs_export() -> FileResponse:
+    """Download the full append-only server journal (.jsonl)."""
+    from .event_log import _log_path
+    path = _log_path()
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="journal is empty")
+    from datetime import datetime as _dt, timezone as _tz
+    stamp = _dt.now(_tz.utc).strftime("%Y%m%d")
+    return FileResponse(path, media_type="application/x-ndjson",
+                        filename=f"deeputin_events_{stamp}.jsonl")
+
+
 @app.post("/api/v1/data/clear")
 def clear_data() -> dict[str, Any]:
     """🚪 API → Очистить API-извлечённые данные без удаления исходных фото и Stage 1 evidence."""
@@ -1248,5 +1641,7 @@ def clear_data() -> dict[str, Any]:
 
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(_request: Any, exc: Exception) -> JSONResponse:
+async def unhandled_exception_handler(request: Any, exc: Exception) -> JSONResponse:
+    log_event("error", "api.exception", f"{type(exc).__name__}: {exc}",
+              detail=str(exc), stack=traceback.format_exc(), path=getattr(request, "url", None) and str(request.url))
     return JSONResponse(status_code=500, content={"schema": APP_SCHEMA, "error": str(exc), "not_a_verdict": True})
