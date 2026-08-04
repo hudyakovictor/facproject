@@ -29,7 +29,7 @@ SIGNIFICANT_STATES = {
     "coherent_jump_candidate",
     "alpha_id_change_candidate",
 }
-WEAK_STATES = {"elevated_uncertain", "quality_limited", "calibration_limited", "pose_leakage_limited", "expression_dominated"}
+WEAK_STATES = {"elevated_uncertain", "quality_limited", "calibration_limited", "pose_leakage_limited"}
 NO_SUPPORT_STATES = {"within_noise", "insufficient_visibility", "insufficient_calibration", "unsupported_pose", "inapplicable_pose"}
 KNOWN_EVIDENCE_STATES=set(STATUS_TO_EVIDENCE_STATE.values())|{"calibration_limited","pose_leakage_limited"}
 UNCLASSIFIED_EVIDENCE_STATES=KNOWN_EVIDENCE_STATES-(SIGNIFICANT_STATES|WEAK_STATES|NO_SUPPORT_STATES)

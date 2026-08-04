@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchRunKeys, fetchRunSummary } from "../lib/api";
 import { Banner, Button, Chip, Empty, Panel, Stat } from "../components/ui";
+import StructuredData from "../components/StructuredData";
 export default function RunPage() {
   const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
   const [keysName, setKeysName] = useState("technical_summary");
@@ -29,9 +30,9 @@ export default function RunPage() {
           <div className="row-wrap" style={{ marginBottom: 10 }}>
             {Object.keys(hashes).length ? Object.entries(hashes).map(([k, v]) => (<Chip key={k} kind="info">{k}: {String(v).slice(0, 12)}…</Chip>)) : <span className="muted">Хеши не пришли в summary.</span>}
           </div>
-          <pre className="code">{JSON.stringify(hashes, null, 2)}</pre>
+          <StructuredData data={hashes} />
         </Panel>
-        <Panel title="Full summary"><pre className="code">{JSON.stringify(summary, null, 2)}</pre></Panel>
+        <Panel title="Full summary"><StructuredData data={summary} /></Panel>
         <Panel title="Run keys" right={<>
           <select className="select" style={{ width: 220 }} value={keysName} onChange={e => setKeysName(e.target.value)}>
             <option value="technical_summary">technical_summary</option>
@@ -41,7 +42,7 @@ export default function RunPage() {
           </select>
           <Button size="sm" onClick={() => void fetchRunKeys(keysName).then(setKeys).catch(e => setKeys({ error: String(e) }))}>загрузить</Button>
         </>}>
-          <pre className="code">{JSON.stringify(keys || { note: "выберите artifact" }, null, 2)}</pre>
+          <StructuredData data={keys || { note: "выберите artifact" }} />
         </Panel>
       </>)}
     </div>

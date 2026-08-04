@@ -32,16 +32,6 @@ def _quality_exclusion_reason(row: dict) -> str | None:
     if bool(row.get('quality_limited')):
         return 'quality_limited'
     # D-003 пересмотр (2026-08-03): alignment_quality некоррелирован с остатком
-    # (Spearman +0.096 на 212 кадрах vs −0.176 в атласе) — порог 0.5 был
-    # случайным прореживанием. Метрика остаётся диагностикой, пары не гейтятся.
-    # Геометрическая детекция выражений (corner_lift_ioc + jaw_open_ratio)
-    if row.get('smile_detected_a') or row.get('smile_detected_b') or \
-       row.get('jaw_open_detected_a') or row.get('jaw_open_detected_b'):
-        return 'expression_too_strong'
-    if row.get('qc_skip_reason') == 'expression_too_strong':
-        return 'expression_too_strong'
-    if row.get('status') == 'expression_dominated':
-        return 'expression_dominated'
     return None
 
 def _mark_chronology_excluded(row: dict, reason: str) -> None:
@@ -104,8 +94,6 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
             same_day=(d==0 and pz>=4.5 and coh>=0.35)
             fast=(d is not None and 0<d<=60 and pz>=4.5 and sig>=0.15 and coh>=0.45 and rate_z>=3.0)
             medium=(d is not None and 60<d<=180 and pz>=5.5 and sig>=0.18 and coh>=0.5 and rate_z>=3.5)
-            if r.get('status')=='expression_dominated':
-                r['chronology_rate_status']='expression_excluded'; r['chronology_rate_reason']='expression_dominated'; continue
             if same_day:
                 r['chronology_rate_status']='same_day_structural_conflict'; r['chronology_rate_reason']='same day but coherent structural shift above calibrated noise'
             elif fast or medium:

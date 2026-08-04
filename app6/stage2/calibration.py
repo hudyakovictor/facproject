@@ -69,7 +69,20 @@ class CalibrationModel:
                     obs.extend(float(v) for v in vals)
                     ids.extend([dataset] * len(vals))
                 if len(set(ids)) >= 2:
-                    ci = cluster_bootstrap_ci(obs, ids)
+                    # Filter to finite values and check cluster count
+                    finite_ids = [id_ for v, id_ in zip(obs, ids) if np.isfinite(v)]
+                    if len(set(finite_ids)) >= 2:
+                        ci = cluster_bootstrap_ci(obs, ids)
+                        ref["ci_lo"] = ci["ci_lo"]
+                        ref["ci_hi"] = ci["ci_hi"]
+                        ref["ci_width"] = ci["width"]
+                        ref["ci_naive_width"] = ci["naive_width"]
+                        ref["ci_width_underestimate_factor"] = ci["width_underestimate_factor"]
+                        ref["ci_n_observations"] = ci["n_observations"]
+                        ref["ci_n_clusters"] = ci["n_clusters"]
+                        ref["ci_method"] = ci["method"]
+                    else:
+                        ref["ci_status"] = "insufficient_clusters_after_filter"
                     ref["ci_lo"] = ci["ci_lo"]
                     ref["ci_hi"] = ci["ci_hi"]
                     ref["ci_width"] = ci["width"]

@@ -28,6 +28,8 @@ def build_date_provenance(filename_date:str,decode_meta:dict[str,Any],source_pro
     tags=decode_meta.get("exif_camera_processing") or {}
     raw=tags.get("DateTimeOriginal") or tags.get("DateTimeDigitized") or tags.get("DateTime")
     exif=_parse_exif_date(raw)
+    if exif and (exif - primary).days > 365:
+        exif = None
     delta=abs((exif-primary).days) if exif else None
     claimed_raw=source_provenance.get("claimed_date");claimed=date.fromisoformat(str(claimed_raw)) if claimed_raw else None
     claimed_delta=abs((claimed-primary).days) if claimed else None;conflict_sources=[]

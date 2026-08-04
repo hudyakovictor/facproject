@@ -70,8 +70,16 @@ export default function PairCompareView({ photos }: Props) {
   // Селекторы работают со ВСЕМ архивом через PhotoPicker (поиск + честное
   // усечение). Прежний `.slice(0, 500)` молча скрывал остальные кадры.
   const hasPhotos = photos.length > 0;
+  const stage2Available = photos.some(
+    p => p.analysisStage !== "stage1_inventory" && p.measurementStatus !== "not_compared"
+  );
 
   const runCompare = async () => {
+    if (!stage2Available) {
+      setStatus("error");
+      setErrorMessage("Попарное геометрическое сравнение доступно только после расчёта Stage 2. Сейчас загружен только инвентарь Stage 1.");
+      return;
+    }
     // Отменяем всё, что осталось от предыдущего запуска, и помечаем новый.
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -154,6 +162,12 @@ export default function PairCompareView({ photos }: Props) {
         </button>
       </header>
 
+      {!stage2Available && (
+        <div role="status" className="mb-4 border border-warning/50 bg-warning/10 p-4 font-mono text-[11px] text-warning">
+          Попарное геометрическое сравнение пока недоступно: реальные записи Stage 1 содержат фото, даты, ракурсы и качество, но не содержат измеренных landmarks. Сначала выполните Stage 2.
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <div className="font-mono text-[9px] text-text-muted tracking-forensic mb-1">{t.choosePhotoA}</div>
@@ -170,7 +184,7 @@ export default function PairCompareView({ photos }: Props) {
       </div>
 
       <div className="flex items-center gap-4 mb-5">
-        <button onClick={runCompare} disabled={status === "loading" || !photoAId || !photoBId}
+        <button onClick={runCompare} disabled={status === "loading" || !stage2Available || !photoAId || !photoBId}
           className="px-4 py-2 font-mono text-[10px] tracking-forensic border border-info/50 bg-info/20 hover:bg-info/40 disabled:opacity-50">
           {status === "loading" ? t.comparing : t.runCompare}
         </button>

@@ -1,0 +1,93 @@
+"""🏭 FACTORY → Парсинг имён фото и детерминированная генерация photo_id.
+🔗 DEPENDS ON: utils.digest_file — photo_id включает хэш содержимого
+📤 API: parse_photo_name(), make_photo_id()
+💡 NOTE: дата из имени файла — первичный источник хронологии для stage2.
+"""
+from __future__ import annotations
+from .status_logger import log_status
+import re
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+
+# Only underscore separator allowed
+_DATE_PATTERNS = (
+    re.compile(r"(?<!\d)(?P<y>19\d{2}|20\d{2})_(?P<m>\d{1,2})_(?P<d>\d{1,2})(?!\d)"),
+)
+_COPY_SUFFIX = re.compile(r"(?:\s*\((?P<n1>\d+)\)|[_-](?P<n2>\d+)|[-_ ]copy)$", re.I)
+
+
+@dataclass(frozen=True)
+class PhotoName:
+    date_iso: str
+    year: int
+    month: int
+    day: int
+    sequence: int
+    canonical_stem: str
+
+
+def parse_photo_name(path: Path) -> PhotoName:
+    """Parse photo name, accepting YYYY_MM_DD[_N] with optional copy suffixes like (2), _2, -copy."""
+    stem = path.stem
+    parsed = None
+    date_end_pos = 0
+    for pattern in _DATE_PATTERNS:
+        m = pattern.search(stem)
+        if m:
+            try:
+                parsed = date(int(m.group("y")), int(m.group("m")), int(m.group("d")))
+                date_end_pos = m.end()
+                break
+            except ValueError:
+                pass
+    if parsed is None:
+        raise ValueError(f"invalid filename; could not parse date: {path.name}")
+
+    # DEV_FIX_TZ (найдено тестом P2.13): вариант "-copy"/"_copy" описан в
+    # docstring как поддерживаемый, но не содержит числовых групп n1/n2 —
+    # прежний код падал на нём с TypeError вместо возврата sequence=1.
+    # Отсутствующий номер копии означает первую копию, а не ошибку разбора.
+    suffix_match = _COPY_SUFFIX.search(stem[date_end_pos:])
+    seq_text = None
+    if suffix_match:
+        seq_text = suffix_match.group("n1") or suffix_match.group("n2")
+    seq = int(seq_text) if seq_text else 1
+    # Весь остаток имени после даты (кроме расширения) идёт в canonical_stem,
+    # чтобы папка называлась ТОЧНО как фото (напр. 2025_03_27_y5p10r0).
+    # Пробелы и скобки нормализуются в подчёркивания.
+    rest = stem[date_end_pos:]
+    rest = re.sub(r"[\s()]", "_", rest)
+    rest = re.sub(r"_+", "_", rest).strip("_")
+    canonical_stem = f"{parsed.year:04d}_{parsed.month:02d}_{parsed.day:02d}"
+    if rest:
+        canonical_stem += rest if rest.startswith("_") else f"_{rest}"
+    return PhotoName(parsed.isoformat(), parsed.year, parsed.month, parsed.day, seq, canonical_stem)
+
+
+def make_nonchronological_photo_name(path: Path, relative_path: str) -> PhotoName:
+    """Create a stable ID for reference frames that intentionally have no date.
+
+    This is for calibration/reference material only; it must never be used for
+    the chronological main dataset.
+    """
+    del path
+    stem = re.sub(r"[^A-Za-z0-9]+", "_", relative_path.rsplit(".", 1)[0]).strip("_").lower()
+    if not stem:
+        raise ValueError("cannot create calibration photo id from empty relative path")
+    return PhotoName("", 0, 0, 0, 1, f"calibration_{stem}")
+
+
+def make_photo_id(parsed: PhotoName, source_digest: str | None) -> str:
+    """Collision-safe controlled slug plus source-byte hash prefix.
+
+    Copy spellings normalised by ``parse_photo_name`` remain identical, while
+    different bytes can never silently publish to the same photo directory.
+    """
+    log_status("make_photo_id", "complete")
+    if not source_digest:
+        return parsed.canonical_stem
+    digest = str(source_digest).lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("source_digest must be 64 lowercase/uppercase hex characters")
+    return f"{parsed.canonical_stem}__{digest[:12]}"

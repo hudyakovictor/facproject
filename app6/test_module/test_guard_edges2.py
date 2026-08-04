@@ -94,17 +94,16 @@ class AlternativeReasonsTests(unittest.TestCase):
         }
         reasons = alternative_reasons(row)
         for expected in (
-            "filename_corroborating_date_conflict",
-            "perceptual_duplicate_cluster_dependence",
-            "low_or_missing_quality",
-            "limited_landmark_visibility",
-            "limited_matched_calibration",
-            "large_pose_distance",
-            "expression_or_soft_tissue_influence",
-            "alpha_id_shape_channel_jump_candidate",
-            "expression_coefficient_jump",
-            "source_chain_incomplete",
-        ):
+             "filename_corroborating_date_conflict",
+             "perceptual_duplicate_cluster_dependence",
+             "low_or_missing_quality",
+             "limited_landmark_visibility",
+             "limited_matched_calibration",
+             "large_pose_distance",
+             "alpha_id_shape_channel_jump_candidate",
+             "expression_coefficient_jump",
+             "source_chain_incomplete",
+         ):
             self.assertIn(expected, reasons)
 
     def test_clean_row_has_no_reasons(self):

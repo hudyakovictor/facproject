@@ -160,7 +160,7 @@ def make_extract_runner(input_dir: Path, output_dir: Path, project_root: Path,
                 "извлечение не запускалось"
             )
         cfg = Stage1Config(project_root=project_root, input_dir=input_dir, output_dir=output_dir,
-                           device=device, overwrite=True, limit=limit)
+                           device=device, overwrite=True, limit=limit, cancel_check=lambda: job._cancel_requested)
         engine = Stage1Engine(cfg)
         # `Stage1Engine.run()` не только обрабатывает отдельные кадры: он
         # финализирует main_index.csv, main_timeline.csv, provenance и manifest.

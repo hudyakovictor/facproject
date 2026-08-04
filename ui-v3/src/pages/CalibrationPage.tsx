@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchCalibrationHealth, fetchZoneCatalog } from "../lib/api";
 import { Banner, Button, Empty, Panel } from "../components/ui";
+import StructuredData from "../components/StructuredData";
 export default function CalibrationPage() {
   const [health, setHealth] = useState<Record<string, unknown> | null>(null);
   const [zones, setZones] = useState<Record<string, unknown> | null>(null);
@@ -22,8 +23,8 @@ export default function CalibrationPage() {
       {err && <Banner kind="bad">{err}</Banner>}
       {!health && !err && <Empty title="Загрузка…" />}
       <div className="grid-2">
-        <Panel title="calibration/health"><pre className="code">{JSON.stringify(health || {}, null, 2)}</pre></Panel>
-        <Panel title="zones/catalog"><pre className="code">{JSON.stringify(zones || {}, null, 2)}</pre></Panel>
+        <Panel title="calibration/health"><StructuredData data={health} /></Panel>
+        <Panel title="zones/catalog"><StructuredData data={zones} /></Panel>
       </div>
     </div>
   );
