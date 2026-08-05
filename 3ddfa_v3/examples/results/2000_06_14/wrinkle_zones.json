@@ -1,8 +1,0 @@
-{
-  "schema": "wrinkle_v3",
-  "pose_bin": "frontal",
-  "usable_zone_count": 0,
-  "zones": {},
-  "uv_available": true,
-  "note": "zone analysis disabled: uv_module.zones/SkinAnalyzer removed; only UV texture is generated"
-}
