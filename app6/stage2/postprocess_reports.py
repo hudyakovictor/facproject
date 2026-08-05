@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from app6.stage1.utils import atomic_json, digest_file, write_csv
+from app6.stage2.evidence import alternative_reasons
 
 POSTPROCESS_SCHEMA = "deeputin-stage2-postprocess-v1.0"
 FORBIDDEN_PUBLIC_TERMS = (
@@ -201,6 +202,91 @@ def _write_stage3_input_summary(out: Path, rows: list[dict[str, Any]], changes: 
     return report
 
 
+def build_journalist_handoff(rows: list[dict[str, Any]], changes: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build a deterministic Stage-2 handoff for a journalist + technical editor.
+
+    The handoff is not an article and contains no identity/material conclusion.
+    It preserves evidence references, denominators and alternative explanations
+    so Stage 3 can generate reviewable publication drafts without inventing
+    measurements or silently strengthening a candidate status.
+    """
+    adjacent = [r for r in rows if str(r.get("pair_type")) == "adjacent"]
+    limited = {
+        "quality": sum(bool(r.get("quality_limited")) for r in adjacent),
+        "calibration": sum(bool(r.get("calibration_limited")) for r in adjacent),
+        "pose_leakage": sum(bool(r.get("pose_leakage_limited")) for r in adjacent),
+        "date_provenance": sum(bool(r.get("date_provenance_limited")) for r in adjacent),
+        "near_duplicate": sum(bool(r.get("near_duplicate_pair")) for r in adjacent),
+    }
+    by_pair = {str(r.get("pair_id")): r for r in rows if r.get("pair_id")}
+    candidate_cards: list[dict[str, Any]] = []
+    for change in sorted(changes, key=lambda c: (str(c.get("date") or ""), str(c.get("pair_id") or ""))):
+        pair_id = str(change.get("pair_id") or "")
+        row = by_pair.get(pair_id, {})
+        candidate_cards.append({
+            "pair_id": pair_id,
+            "date": change.get("date") or row.get("date_b"),
+            "pose_bin": change.get("pose_bin") or row.get("pose_bin"),
+            "photo_a": change.get("photo_a") or row.get("photo_a"),
+            "photo_b": change.get("photo_b") or row.get("photo_b"),
+            "evidence_state": change.get("evidence_state") or row.get("evidence_state"),
+            "measurement_status": change.get("measurement_status") or row.get("status"),
+            "p95_point_z": change.get("p95_point_z", row.get("p95_point_z")),
+            "significant_point_fraction": change.get(
+                "significant_point_fraction", row.get("significant_point_fraction")
+            ),
+            "coherent_motion_fraction": change.get(
+                "coherent_motion_fraction", row.get("coherent_motion_fraction")
+            ),
+            "days_delta": change.get("days_delta", row.get("days_delta")),
+            "calibrated_point_count": row.get("calibrated_point_count"),
+            "matched_calibration_sets": row.get("matched_calibration_sets"),
+            "alternative_explanations": alternative_reasons(row),
+            "review_state": "unreviewed",
+            "evidence_refs": [
+                "pair_metrics.csv#pair_id=" + pair_id,
+                "change_points.json#pair_id=" + pair_id,
+                "evidence_packets.json#pair_id=" + pair_id,
+            ],
+        })
+    return {
+        "schema": "deeputin-journalist-handoff-v1.0",
+        "draft": True,
+        "not_a_verdict": True,
+        "human_review_required": True,
+        "purpose": "Structured handoff from Stage 2 to a journalist and technical editor.",
+        "counts": {
+            "pair_count": len(rows),
+            "adjacent_pair_count": len(adjacent),
+            "reportable_candidate_count": len(candidate_cards),
+            "limited_adjacent_pairs": limited,
+        },
+        "candidate_cards": candidate_cards,
+        "method_evidence_refs": [
+            "analysis_manifest.json",
+            "technical_summary.json",
+            "calibration_noise_model.json",
+            "calibration_sensitivity.json",
+            "multiple_testing.json",
+            "pose_leakage_diagnostic.json",
+            "degraded_modules.json",
+            "public_safety_report.json",
+        ],
+        "editorial_rules": [
+            "Keep observation, interpretation and external reporting in separate paragraphs.",
+            "Every numerical statement must retain its denominator and evidence reference.",
+            "Candidate is not a conclusion; include applicability, calibration and alternatives.",
+            "Do not publish a card before independent human review and provenance check.",
+        ],
+    }
+
+
+def _write_journalist_handoff(out: Path, rows: list[dict[str, Any]], changes: list[dict[str, Any]]) -> dict[str, Any]:
+    payload = build_journalist_handoff(rows, changes)
+    atomic_json(out / "journalist_handoff.json", payload)
+    return payload
+
+
 def write_postprocess_reports(
     out: Path,
     *,
@@ -220,6 +306,7 @@ def write_postprocess_reports(
     _write_status_summary(out, rows)
     gate = _write_gate_report(out, rows, changes)
     _write_stage3_input_summary(out, rows, changes)
+    handoff = _write_journalist_handoff(out, rows, changes)
     artifact_index = _write_artifact_index(out)
     evidence_chain = {
         "schema": POSTPROCESS_SCHEMA,
@@ -236,10 +323,11 @@ def write_postprocess_reports(
         "texture_usable_zone_row_count": texture_summary.get("usable_texture_zone_row_count", 0),
         "gate": gate.get("recommended_next_gate"),
         "degraded_counts": degraded.get("counts", {}),
+        "journalist_handoff_candidate_count": handoff.get("counts", {}).get("reportable_candidate_count", 0),
         "postprocess_outputs": [
             "manual_review_queue.csv", "public_safety_report.json", "degraded_modules.json",
             "mesh_shape_summary.csv", "texture_summary.json", "status_summary.csv",
-            "gate_report.json", "stage3_input_summary.json", "artifact_index.json",
-            "evidence_chain_manifest.json",
+            "gate_report.json", "stage3_input_summary.json", "journalist_handoff.json",
+            "artifact_index.json", "evidence_chain_manifest.json",
         ],
     }

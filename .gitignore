@@ -72,6 +72,8 @@ node_modules/
 dist/
 coverage/
 .vite/
+playwright-report/
+test-results/
 *.tsbuildinfo
 
 # Regenerable audit reports (`python app6/scripts/audit_50_implementation_checks.py`)

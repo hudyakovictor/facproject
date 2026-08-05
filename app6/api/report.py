@@ -39,6 +39,7 @@ REPORT_SECTIONS: dict[str, str] = {
     "zones": "Зонные метрики",
     "metric_catalog": "Каталог метрик",
     "methodology": "Методология",
+    "publication_drafts": "Публикационные черновики и claims ledger",
     "analysis_manifest": "Манифест Stage 2",
     "summary": "Счётчики отчёта",
 }
@@ -186,6 +187,27 @@ def load_report_section(
     }
 
 
+def resolve_publication_draft(stage3_root: Path, name: str) -> tuple[Path, str]:
+    """Resolve one allowlisted Stage-3 publication draft without path traversal."""
+    if not name or Path(name).name != name:
+        raise ValueError("invalid publication draft name")
+    manifest = _read_report(stage3_root).get("publication_drafts")
+    manifest = manifest if isinstance(manifest, dict) else {}
+    allowed = {
+        str(item.get("name"))
+        for item in (manifest.get("files") or [])
+        if isinstance(item, dict) and item.get("name")
+    }
+    if name not in allowed:
+        raise KeyError(f"unknown publication draft: {name}")
+    root = (stage3_root / str(manifest.get("directory") or "drafts")).resolve()
+    path = (root / name).resolve()
+    if root not in path.parents or not path.is_file():
+        raise FileNotFoundError(f"publication draft not found: {name}")
+    media_type = "application/json" if path.suffix.lower() == ".json" else "text/markdown"
+    return path, media_type
+
+
 def report_available(stage3_root: Path | None) -> bool:
     """🔍 QUERY → Есть ли пригодный вывод Stage 3."""
     if stage3_root is None:
@@ -200,5 +222,6 @@ __all__ = [
     "WITHHELD_COLUMN_PREFIXES",
     "load_report_section",
     "load_report_summary",
+    "resolve_publication_draft",
     "report_available",
 ]
