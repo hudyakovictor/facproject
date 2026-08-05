@@ -60,6 +60,11 @@ results/
 assets/
 patch/
 
+# Sync ui-v5 screenshots with GitHub
+!ui-v5/
+!ui-v5/screens/
+!ui-v5/screens/*.png
+
 # UI build/deps (rebuilt via `cd ui && npm ci && npm run build`)
 ui/node_modules/
 ui/dist/
