@@ -8,6 +8,7 @@ import {
   type QualityFilterKey,
 } from "../../shared/api";
 
+const FILTER_STATE_KEY = "deeputin.timeline.selection_state";
 const LABELS: Record<string, string> = {
   visibility: "Visibility",
   confidence: "Confidence",
@@ -58,7 +59,11 @@ export default function FilterPanel({
       .then(async defaults => {
         if (dead) return;
         setKeys(defaults.quality_keys || Object.keys(LABELS));
-        const initial = cloneState(defaults.filter_state);
+        let initial = cloneState(defaults.filter_state);
+        try {
+          const saved = localStorage.getItem(FILTER_STATE_KEY);
+          if (saved) initial = { ...initial, ...cloneState(JSON.parse(saved) as FilterState) };
+        } catch { /* use backend defaults */ }
         setState(initial);
         const evaluation = await evaluateSelection(initial);
         if (!dead) {
@@ -116,6 +121,7 @@ export default function FilterPanel({
 
   const runEvaluate = async () => {
     if (!state) return;
+    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify(state));
     setBusy(true); setMessage("");
     try {
       const evaluation = await evaluateSelection(state);
@@ -131,6 +137,7 @@ export default function FilterPanel({
 
   const runSave = async () => {
     if (!state) return;
+    localStorage.setItem(FILTER_STATE_KEY, JSON.stringify(state));
     setBusy(true); setMessage("");
     try {
       const saved = await saveSelection(state, `selection_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`);
