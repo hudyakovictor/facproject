@@ -1,8 +1,0 @@
-node_modules/
-dist/
-coverage/
-.vite/
-*.tsbuildinfo
-.DS_Store
-._*
-npm-debug.log*

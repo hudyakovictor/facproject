@@ -5,8 +5,8 @@ import RecommendationsPanel from "../features/recommendations/RecommendationsPan
 import IconGalleryPage from "../features/icons/IconGalleryPage";
 import { Icon } from "../shared/icons";
 import TimelineView from "../features/timeline/TimelineView";
-import DataManager from "../features/data-manager/DataManager";
 import SettingsPage from "../features/settings/SettingsPage";
+import DataManager from "../features/data-manager/DataManager";
 import PhotoPage from "../features/photo-lab/PhotoPage";
 import ProfilesPage from "../features/profiles/ProfilesPage";
 import CalibrationPage from "../features/calibration/CalibrationPage";
@@ -29,6 +29,7 @@ export default function App() {
   const [logsOpen, setLogsOpen] = useState(false);
   const [unreadLogs, setUnreadLogs] = useState(0);
   const [recsOpen, setRecsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [recCount, setRecCount] = useState<number | null>(null);
   const seenRef = useRef(0);
   useEffect(() => {
@@ -119,7 +120,6 @@ export default function App() {
           <button className={view === "calibration" ? "active" : ""} onClick={() => setView("calibration")} title="Calibration"><Icon name="calibration" size={19} /><b>Calibration</b></button>
         <button className={view === "data" ? "active" : ""} onClick={() => setView("data")} title="Data Manager"><Icon name="dataset" size={19} /><b>Data Manager</b></button>
         <button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")} title="Profiles"><Icon name="profiles" size={19} /><b>Profiles</b></button>
-        <button className={view === "settings" ? "active" : ""} onClick={() => setView("settings")} title="Настройки"><Icon name="settings" size={19} /><b>Settings</b></button>
         <button className={photoId !== null ? "active" : ""} onClick={() => setPhotoId("")} title="Фото"><Icon name="photoLab" size={19} /><b>Photo Lab</b></button>
         <button className={`${logsOpen ? "active" : ""} nav-logs`} onClick={() => setLogsOpen(value => !value)} title="Журнал событий (Ctrl+Shift+L)"><Icon name="logs" size={19} /><b>Logs</b>{unreadLogs > 0 && <i className="nav-badge">{unreadLogs > 99 ? "99+" : unreadLogs}</i>}</button>
         <button className={`${recsOpen ? "active" : ""} nav-recs`} onClick={() => setRecsOpen(value => !value)} title="Рекомендации (Ctrl+Shift+R)"><Icon name="advisor" size={19} /><b>Advisor</b>{recCount !== null && recCount > 0 && <i className="nav-badge rec-badge">{recCount > 99 ? "99+" : recCount}</i>}</button>
@@ -128,10 +128,9 @@ export default function App() {
       <small>APP6<br />CONTROL</small>
     </aside>
     <div className="app-content">
-      {view === "timeline" && <TimelineView openPhoto={openPhoto} openCompare={openCompare} />}
+      {view === "timeline" && <TimelineView openPhoto={openPhoto} openCompare={openCompare} onOpenSettings={() => setSettingsOpen(true)} />}
       {view === "data" && <DataManager />}
       {view === "profiles" && <ProfilesPage />}
-      {view === "settings" && <SettingsPage openPhoto={openPhoto} />}
       {view === "calibration" && <CalibrationPage />}
       {view === "icons" && <IconGalleryPage />}
     </div>
@@ -143,6 +142,7 @@ export default function App() {
         </div>
       </div>
     )}
+    {settingsOpen && <div className="compact-settings-backdrop" onClick={() => setSettingsOpen(false)}><div className="compact-settings" onClick={event => event.stopPropagation()}><button className="compact-settings-close" onClick={() => setSettingsOpen(false)}>×</button><SettingsPage openPhoto={openPhoto} /></div></div>}
     <LogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
     <RecommendationsPanel
       open={recsOpen}
