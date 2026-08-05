@@ -12,6 +12,17 @@ JSON/CSV — source of truth; HTML/print — представление. Export 
 
 `FORBIDDEN_PUBLIC_TERMS` проверяется в evidence packets и дополнительно в финальном HTML, print report и export JSON. Проверка блокирует publication build. Внутренние исследовательские гипотезы отделены от публичного отчёта.
 
+## Многоаудиторные публикационные черновики
+
+После Stage 2 создаётся структурированный `journalist_handoff.json`, а Stage 3 формирует синхронизированный draft package для четырёх аудиторий:
+
+1. понятное объяснение метода для широкой аудитории;
+2. техническое приложение с точными contracts и reproducibility;
+3. skeptic Q&A с альтернативами и falsification tests;
+4. machine-review packet с claims ledger и evidence pointers.
+
+Каждая числовая публичная формулировка сохраняет знаменатель, applicability, calibration/uncertainty и ссылку на artifact. `candidate` нельзя усиливать редакционной правкой без нового review/evidence state. Method series не зависит от результатов основного расследования. Полный контракт: `docs/PUBLICATION_PIPELINE.md`.
+
 ## Golden end-to-end fixture
 
-Минимальный synthetic artifact должен содержать 9 bins, quality-limited pair, date conflict, same-day conflict, NULL sequence, true step и true return. Snapshot покрывает API response, timeline, anomaly counts, report sections, print/export и mobile rendering.
+Минимальный synthetic artifact должен содержать 9 bins, quality-limited pair, date conflict, same-day conflict, NULL sequence, true step и true return. Snapshot покрывает API response, timeline, anomaly counts, report sections, publication drafts/claims ledger, print/export и mobile rendering.

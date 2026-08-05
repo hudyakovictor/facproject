@@ -798,6 +798,20 @@ def get_report_section(name: str, offset: int = 0, limit: int = 100) -> dict[str
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@app.get("/api/v1/report/publication-drafts/{name}")
+def get_publication_draft(name: str):
+    """🚪 API → Один allowlisted Markdown/JSON черновик Stage 3."""
+    from .report import resolve_publication_draft
+    stage3_root = _require_stage3()
+    try:
+        path, media_type = resolve_publication_draft(stage3_root, name)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return FileResponse(path, media_type=media_type, filename=name, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/api/v1/calibration/health")
 def calibration_health() -> dict[str, Any]:
     try:

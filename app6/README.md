@@ -43,7 +43,7 @@
 1999_01_11_3.png
 ```
 
-EXIF не читается.
+EXIF сохраняется и сравнивается как corroboration, но никогда не заменяет authoritative дату из имени файла.
 
 ## MacBook M1
 
@@ -85,28 +85,27 @@ EXIF не читается.
   -s app6/test_module -p 'test*.py' -v
 ```
 
-## Этап 2
+## Этап 2 и правила разработки
 
-Актуальные контракты Stage 2 описаны в `app6/AGENTS.md`; фактический статус
-реализации отслеживается репродуцируемым аудитом
-`app6/scripts/audit_50_implementation_checks.py` (генерирует
-`app6/AUDIT_50_REPORT.{json,md}`, не хранится в git — см. `.gitignore`) и
-regression-тестами `app6/test_module/`.
+Актуальные backend-правила описаны в [`app6/AGENTS.md`](AGENTS.md), а полный
+25-факторный workflow — в [`../SKILL.md`](../SKILL.md). Фактический статус
+подтверждается regression/contract tests из `app6/test_module/` и
+`app6/api/tests/`; отсутствующий в текущем checkout инструмент нельзя считать
+пройденным gate.
 
-## Сценарная лестница минимальных запусков
+Для планирования небольших сценариев используется `app6/run_scenario_planner.py`.
+Обязательные scenario truth cases и release gates перечислены в
+[`../docs/final/07_TESTING_AND_ACCEPTANCE.md`](../docs/final/07_TESTING_AND_ACCEPTANCE.md).
 
-`app6/test_module/runner.py` реализует «обязательную лестницу минимальных
-запусков» из `AGENTS.md`/`SKILL.md`:
+Минимальная проверка:
 
 ```bash
-$PY -m app6.test_module.runner execute \
-  --scenario S01 --pose frontal --combinations 1 \
-  --stage all --mode fast --device cpu --fail-fast
+$PY -m compileall -q app6
+$PY -m pytest -q app6/test_module app6/api/tests
 ```
 
-Список сценариев: `$PY -m app6.test_module.runner list`. Сценарии проверяются
-на публикуемом архиве `selected_photos_7x9x3_data.tar.gz` (7 персон × 9
-ракурсов, только геометрия). Regression-тест самого runner'а
-(`app6/test_module/test_runner.py`) использует полностью синтетический архив
-(`app6/test_module/synthetic_archive.py`) и не требует внешних файлов.
+Полный Stage 1/2 E2E запускается только при явном доступе к локальным весам,
+фото и calibration artifacts. Их отсутствие в конкретном checkout не означает,
+что они отсутствуют в локальной среде владельца, и не разрешает synthetic
+fallback в production API.
 
