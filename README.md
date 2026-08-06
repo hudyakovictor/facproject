@@ -163,4 +163,5 @@ app6/
 - [3DDFA_V3 документация →](3ddfa_v3/README.md)
 - [Целевой UI v5 и стек →](ui-v5/README.md)
 - [Правила для агентов →](AGENTS.md)
+- [Настройка Hermes Agent для проекта (RU) →](docs/HERMES_AGENT_SETUP_RU.md)
 - [25-факторный implementation skill →](SKILL.md)
