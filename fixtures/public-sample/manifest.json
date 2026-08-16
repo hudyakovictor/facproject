@@ -1,0 +1,29 @@
+{
+  "fixture_schema": "facproject-public-review-fixture-v1",
+  "selected_photo_ids": [
+    "1998_01_01__9714228198ba",
+    "2014_08_12__88096c430de2",
+    "2026_05_13__13961b16e4b8"
+  ],
+  "selected_dates": [
+    "1998-01-01",
+    "2014-08-12",
+    "2026-05-13"
+  ],
+  "stage1_artifacts": "complete for the three selected photos, including original/derived images, masks, UV texture, OBJ/MTL, NPZ, CSV and JSON metadata",
+  "stage2_artifacts": {
+    "pair_rows_touching_selected_photos": 236,
+    "full_pair_matrix_included": false
+  },
+  "omitted_from_github": [
+    "model weights",
+    "full Stage1 storage",
+    "full Stage2 pair_metrics.csv",
+    "full local run outputs"
+  ],
+  "local_full_data": {
+    "stage1": "/Volumes/SDCARD/storage/stage1",
+    "stage2": "/Volumes/SDCARD/storage/stage2_resumable_20260816"
+  },
+  "review_note": "Это намеренно урезанный публичный набор для анализа ошибок; локальная версия содержит полный прогон."
+}
