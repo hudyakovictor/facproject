@@ -110,6 +110,8 @@ const TRACK_HEIGHT = 68;
 /** Столбцов плотности на минимапе: достаточно для формы распределения. */
 const DENSITY_BUCKETS = 160;
 const THUMB_SLOT = 62;
+/** Ширина колонки подписей: должна совпадать с grid-template-columns в .row. */
+const LABEL_COLUMN = "8.5rem";
 
 export function TimelinePage() {
   const query = useTimeline();
@@ -556,10 +558,29 @@ export function TimelinePage() {
         {/* Дорожки метрик на Canvas. */}
         <div
           ref={areaRef}
+          className={styles.trackStack}
           onWheel={handleWheel}
           onMouseMove={handleMove}
           onMouseLeave={() => setHover(null)}
         >
+          {/*
+            Единая вертикаль через все дорожки (§8.4). Перекрестие внутри
+            отдельного canvas обрывается на его границе, и сопоставить значение
+            метрики с кадром в соседней дорожке на глаз невозможно.
+          */}
+          {hover ? (
+            <div
+              className={styles.playhead}
+              style={{
+                left: `calc(${LABEL_COLUMN} + (100% - ${LABEL_COLUMN}) * ${timeToRatio(viewport, hover.time)})`,
+              }}
+              aria-hidden="true"
+            >
+              <span className={styles.playheadLabel}>
+                {new Date(hover.time).toISOString().slice(0, 10)}
+              </span>
+            </div>
+          ) : null}
           {multiPose ? (
             <PoseLanes
               photos={inViewport}

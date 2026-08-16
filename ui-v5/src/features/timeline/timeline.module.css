@@ -831,3 +831,32 @@
 .histBarCut {
   background: var(--border-strong);
 }
+
+/* ---- Единая вертикаль через дорожки (§8.4) ---- */
+
+.trackStack {
+  position: relative;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 0;
+  border-left: 1px dashed var(--cyan-400);
+  pointer-events: none;
+}
+
+.playheadLabel {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  border-radius: 0 0 var(--radius-xs) 0;
+  background: var(--surface-overlay);
+  padding: 0 3px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--cyan-300);
+  white-space: nowrap;
+}

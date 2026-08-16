@@ -92,7 +92,18 @@ export function PhotoTooltip({
       )}
 
       <div className={styles.tooltipHint}>
-        Клик — назначить A/B · <Link to="/inspector">инспектор</Link>
+        Клик — назначить A/B ·{" "}
+        {/*
+          Ссылка несёт идентификатор кадра: без него инспектор открывался
+          пустым, и кадр приходилось искать заново.
+        */}
+        <Link to="/inspector" search={(prev) => ({ ...prev, photo: photo.id })}>
+          инспектор
+        </Link>
+        {" · "}
+        <Link to="/pair-analysis" search={(prev) => ({ ...prev, photo: photo.id })}>
+          сравнение
+        </Link>
       </div>
     </div>
   );
