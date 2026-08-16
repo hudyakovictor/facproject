@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { TimelinePage } from "../features/timeline/TimelinePage";
 import { ClusteringPage } from "../features/clustering/ClusteringPage";
 import { DataManagerPage } from "../features/data-manager/DataManagerPage";
+import { useAnalysisStore } from "../shared/state/analysisStore";
 import { OverviewPage } from "../features/overview/OverviewPage";
 import { PairAnalysisPage } from "../features/pair-analysis/PairAnalysisPage";
 import { MorphingPage } from "../features/morphing/MorphingPage";
@@ -126,12 +127,29 @@ function renderPage(ui: ReactNode) {
 }
 
 const settled = async (container: HTMLElement) => {
-  await waitFor(() => expect(container.textContent).not.toMatch(/Загрузка/), { timeout: 4000 });
+  // Пустой контейнер тоже «не содержит слова Загрузка»: без проверки на
+  // непустоту ожидание завершалось до первого рендера страницы.
+  await waitFor(
+    () => {
+      expect(container.textContent?.length ?? 0).toBeGreaterThan(0);
+      expect(container.textContent).not.toMatch(/Загрузка/);
+    },
+    { timeout: 4000 },
+  );
   return container.textContent ?? "";
 };
 
+/**
+ * Общий стор переживает размонтирование компонентов, поэтому его нужно
+ * возвращать к исходному виду между тестами: иначе фильтр по ракурсу,
+ * выставленный одним тестом, отфильтровывал бы данные в следующем, и тот
+ * проверял бы пустой экран, ничего не замечая.
+ */
+const initialStore = useAnalysisStore.getState();
+
 beforeEach(() => {
   vi.unstubAllGlobals();
+  useAnalysisStore.setState(initialStore, true);
 });
 
 describe("пустые данные не приводят к пустому экрану", () => {
@@ -215,10 +233,14 @@ describe("null не превращается в ноль", () => {
     mockApi(body([photo({ quality: null, yaw: null })]));
     const { container } = renderPage(<DataManagerPage />);
     await settled(container);
-    const cells = [...(container.querySelector("tbody tr")?.querySelectorAll("td") ?? [])].map((c) => c.textContent);
+    // Таблица виртуализирована: строки — div с role="row", а не <tr>.
+    const row = container.querySelector('[role="row"][aria-selected]');
+    const cells = [...(row?.querySelectorAll('[role="cell"]') ?? [])].map((c) => c.textContent);
+    expect(cells.length).toBeGreaterThan(0);
     expect(cells).not.toContain("0.00");
     expect(cells).not.toContain("0°");
-    expect(cells.filter((c) => c === "н/д").length).toBeGreaterThanOrEqual(2);
+    expect(cells).not.toContain("0%");
+    expect(cells).toContain("н/д");
   });
 
   test("карточка кадра показывает н/д вместо нулей", async () => {
@@ -327,19 +349,23 @@ describe("порядок и время", () => {
   });
 });
 
-describe("пагинация отражает реальность", () => {
-  test("в DOM ровно столько строк, сколько обещает подпись", async () => {
+describe("таблица отражает реальность", () => {
+  test("подпись под таблицей считается по данным, а не написана литералом", async () => {
     const photos = Array.from({ length: 137 }, (_, i) =>
       photo({ id: `p${i}`, date: `20${String(10 + (i % 15)).padStart(2, "0")}-01-01`, t: 1577836800000 + i * 86400000 }),
     );
     mockApi(body(photos));
     const { container } = renderPage(<DataManagerPage />);
     await settled(container);
-    const rows = container.querySelectorAll("tbody tr").length;
     const footer = container.textContent ?? "";
-    expect(rows).toBe(50);
-    expect(footer).toMatch(/1–50 из 137/);
+    // Раньше здесь стояли «1–50 из 137» и кнопки страниц без обработчиков.
+    expect(footer).toMatch(/Всего в архиве: 137/);
+    expect(footer).toMatch(/Строк: 137/);
     expect(footer).not.toMatch(/10 на странице/);
+
+    // В разметку попадает лишь видимая часть — весь набор в DOM не держится.
+    const rows = container.querySelectorAll('[role="row"][aria-selected]').length;
+    expect(rows).toBeLessThan(137);
   });
 });
 

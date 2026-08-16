@@ -1,5 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { calibrationHealth, researchTimeline, runSummary } from "../researchApi";
+import { getValidated, mutateValidated } from "./client";
+import {
+  DeleteResultSchema,
+  JobCancelSchema,
+  JobListSchema,
+  JobSubmitSchema,
+  PhotoInventorySchema,
+  UploadResultSchema,
+} from "./schemas";
 
 /**
  * Единые ключи и хуки запросов.
@@ -13,6 +22,9 @@ export const queryKeys = {
   timeline: ["research-timeline"] as const,
   runSummary: ["run-summary"] as const,
   calibrationHealth: ["calibration-health"] as const,
+  jobs: ["jobs"] as const,
+  photoInventory: (offset: number, limit: number, poseBin: string | null) =>
+    ["photo-inventory", offset, limit, poseBin] as const,
 };
 
 /** Ошибки контракта и 4xx повторять бессмысленно — причина не в сети. */
@@ -44,5 +56,110 @@ export function useCalibrationHealth() {
     queryKey: queryKeys.calibrationHealth,
     queryFn: calibrationHealth,
     retry: retryPolicy,
+  });
+}
+
+/**
+ * Очередь заданий (§7.7).
+ *
+ * Пока хотя бы одно задание не в терминальном состоянии, список опрашивается
+ * раз в две секунды. Опрос останавливается сам: постоянный таймер на экране,
+ * где ничего не происходит, тратит батарею и засоряет журнал запросов.
+ */
+export function useJobs(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: queryKeys.jobs,
+    queryFn: () => getValidated("/api/v1/jobs", JobListSchema),
+    retry: retryPolicy,
+    enabled: options.enabled ?? true,
+    refetchInterval: (query) => {
+      const jobs = query.state.data?.jobs ?? [];
+      const active = jobs.some(
+        (job) => job.status === "queued" || job.status === "running",
+      );
+      return active ? 2000 : false;
+    },
+  });
+}
+
+/** Постраничный инвентарь Stage 1. */
+export function usePhotoInventory(
+  params: { offset: number; limit: number; poseBin?: string | null },
+  options: { enabled?: boolean } = {},
+) {
+  const { offset, limit, poseBin = null } = params;
+  return useQuery({
+    queryKey: queryKeys.photoInventory(offset, limit, poseBin),
+    queryFn: () => {
+      const search = new URLSearchParams({
+        offset: String(offset),
+        limit: String(limit),
+      });
+      if (poseBin) search.set("pose_bin", poseBin);
+      return getValidated(`/api/v1/photos?${search.toString()}`, PhotoInventorySchema);
+    },
+    retry: retryPolicy,
+    enabled: options.enabled ?? true,
+  });
+}
+
+export interface SubmitJobInput {
+  kind: "extract" | "recompute_metrics";
+  input_dir?: string;
+  output_dir?: string;
+  stage1_root?: string;
+  calibration_root?: string;
+  device?: string;
+  limit?: number;
+}
+
+export function useSubmitJob() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SubmitJobInput) =>
+      mutateValidated("/api/v1/jobs", JobSubmitSchema, { method: "POST", body: input }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: queryKeys.jobs }),
+  });
+}
+
+export function useCancelJob() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) =>
+      mutateValidated(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, JobCancelSchema, {
+        method: "POST",
+      }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: queryKeys.jobs }),
+  });
+}
+
+export function useUploadPhoto() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return mutateValidated("/api/v1/photos/upload", UploadResultSchema, {
+        method: "POST",
+        body: form,
+      });
+    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: queryKeys.timeline }),
+  });
+}
+
+/**
+ * Удаление производных Stage 1. Исходный файл backend не трогает — интерфейс
+ * обязан говорить об этом прямо, чтобы «удалить» не читалось как «стереть
+ * фотографию из архива».
+ */
+export function useDeletePhotoDerivatives() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (photoId: string) =>
+      mutateValidated(`/api/v1/photos/${encodeURIComponent(photoId)}`, DeleteResultSchema, {
+        method: "DELETE",
+      }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: queryKeys.timeline }),
   });
 }

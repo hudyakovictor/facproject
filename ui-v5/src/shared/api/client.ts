@@ -112,3 +112,79 @@ export async function getValidated<T>(
   }
   return result.data;
 }
+
+/**
+ * Запрос, изменяющий состояние (POST/DELETE).
+ *
+ * Вынесен отдельно от `getValidated`, потому что у мутаций другая цена ошибки:
+ * повторить безопасный GET можно молча, а повторить постановку задания или
+ * удаление — нельзя. Здесь нет ретраев, и вызывающий код обязан показать
+ * причину отказа пользователю.
+ */
+export async function mutateValidated<T>(
+  endpoint: string,
+  schema: z.ZodType<T>,
+  options: { method: "POST" | "DELETE" | "PUT"; body?: unknown } ,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let payload: unknown;
+
+  try {
+    const isFormData = options.body instanceof FormData;
+    const response = await fetch(endpoint, {
+      method: options.method,
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        ...(options.body !== undefined && !isFormData
+          ? { "Content-Type": "application/json" }
+          : {}),
+      },
+      body:
+        options.body === undefined
+          ? undefined
+          : isFormData
+            ? (options.body as FormData)
+            : JSON.stringify(options.body),
+    });
+    if (!response.ok) {
+      const detail = extractDetail(await response.text());
+      consoleLogger.addLog(
+        "ERROR",
+        "API",
+        `${response.status} ${options.method} ${endpoint}`,
+        detail,
+      );
+      throw new ApiError(response.status, endpoint, detail);
+    }
+    payload = await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    const aborted = error instanceof DOMException && error.name === "AbortError";
+    const message = aborted
+      ? `Превышено время ожидания ${REQUEST_TIMEOUT_MS / 1000} с`
+      : error instanceof Error
+        ? error.message
+        : String(error);
+    consoleLogger.addLog("ERROR", "API", `Сбой запроса ${endpoint}`, message);
+    throw new ApiError(0, endpoint, message);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const result = schema.safeParse(payload);
+  if (!result.success) {
+    const issues = result.error.issues
+      .slice(0, 10)
+      .map((issue) => `${issue.path.join(".") || "<корень>"}: ${issue.message}`);
+    consoleLogger.addLog(
+      "ERROR",
+      "API_CONTRACT",
+      `Ответ ${endpoint} не соответствует схеме`,
+      issues.join("\n"),
+    );
+    throw new ContractError(endpoint, issues);
+  }
+  return result.data;
+}

@@ -109,7 +109,11 @@ export const RunSummarySchema = z
     source_mode: z.string().catch("research"),
     not_a_verdict: z.boolean().catch(true),
     categories: z.record(z.string(), z.unknown()).optional(),
-    /** Каталог метрик backend уже отдаёт; интерфейс его раньше отбрасывал. */
+    /**
+     * Каталог метрик. Поле объявлено на будущее (задача B-09): текущий backend
+     * его не присылает, поэтому подписи ведутся в `shared/metrics.ts`.
+     * Ранний аудит утверждал обратное — это была ошибка.
+     */
     metric_catalog: z.array(z.record(z.string(), z.unknown())).optional(),
     artifacts: z.record(z.string(), z.unknown()).optional(),
     category_titles: z.record(z.string(), z.string()).optional(),
@@ -160,3 +164,80 @@ export type CalibrationHealthResponse = z.infer<typeof CalibrationHealthSchema>;
  * пользователя, а не молча показать неполные данные.
  */
 export const UI_FIELDS_SCHEMA = "deeputin-ui-fields-v1.0";
+
+/**
+ * Задание пакетной обработки (`/api/v1/jobs`).
+ *
+ * Зеркало `app6/api/jobs.py`. Статус `blocked` существует потому, что backend
+ * честно сообщает о невозможности выполнить извлечение без весов модели, а не
+ * притворяется завершённым. Интерфейс обязан показывать это состояние как
+ * отдельное, иначе «заблокировано» будет прочитано как «готово».
+ */
+export const JobSchema = z
+  .object({
+    schema: z.string().optional(),
+    id: z.string(),
+    kind: z.string(),
+    status: z.enum(["queued", "running", "complete", "blocked", "failed", "cancelled"]).catch("queued"),
+    created_at: z.string().optional(),
+    started_at: z.string().nullable().optional(),
+    finished_at: z.string().nullable().optional(),
+    progress: z
+      .object({ done: z.number().catch(0), total: z.number().catch(0) })
+      .catch({ done: 0, total: 0 }),
+    logs: z.array(z.string()).catch([]),
+    result: z.record(z.string(), z.unknown()).nullable().optional(),
+    error: z.string().nullable().optional(),
+  })
+  .loose();
+
+export const JobListSchema = z
+  .object({ schema: z.string().optional(), jobs: z.array(JobSchema).catch([]) })
+  .loose();
+
+export const JobSubmitSchema = z
+  .object({ schema: z.string().optional(), job_id: z.string() })
+  .loose();
+
+export const JobCancelSchema = z
+  .object({ schema: z.string().optional(), cancelled: z.string() })
+  .loose();
+
+/** Инвентарь Stage 1 (`/api/v1/photos`) — постраничный список без изображений. */
+export const PhotoInventorySchema = z
+  .object({
+    schema: z.string().optional(),
+    source_mode: z.string().catch("research"),
+    manifest: z.record(z.string(), z.unknown()).catch({}),
+    count: z.number().catch(0),
+    offset: z.number().catch(0),
+    limit: z.number().catch(0),
+    photos: z
+      .array(
+        z
+          .object({
+            id: z.string(),
+            date: z.string().nullable().catch(null),
+            bucket: z.string().catch("unknown"),
+          })
+          .loose(),
+      )
+      .catch([]),
+  })
+  .loose();
+
+export const UploadResultSchema = z
+  .object({
+    schema: z.string().optional(),
+    stored: z.string().optional(),
+    filename: z.string().optional(),
+    path: z.string().optional(),
+  })
+  .loose();
+
+export const DeleteResultSchema = z
+  .object({ schema: z.string().optional(), deleted: z.string() })
+  .loose();
+
+export type Job = z.infer<typeof JobSchema>;
+export type PhotoInventory = z.infer<typeof PhotoInventorySchema>;

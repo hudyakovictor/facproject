@@ -1,46 +1,41 @@
-import React, { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { SortingState } from "@tanstack/react-table";
+import { Search, Columns3, RefreshCw } from "lucide-react";
 import { useTimeline } from "../../shared/api/queries";
-import { type ResearchPhoto } from "../../shared/researchApi";
+import type { ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel, sortPoseBins } from "../../shared/poseBins";
 import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
+import { DataContractBanner } from "../../shared/ui/DataContractBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 import { useAnalysisStore } from "../../shared/state/analysisStore";
-import { PhotoImage } from "../../shared/ui/PhotoImage";
-import {
-  UploadCloud,
-  Search,
-  Check,
-} from "lucide-react";
+import { DATA_COLUMNS, DEFAULT_COLUMN_IDS } from "./columns";
+import { DataTable } from "./DataTable";
+import { DetailDrawer } from "./DetailDrawer";
+import { IngestPanel } from "./IngestPanel";
+import { JobQueue } from "./JobQueue";
+import { BatchBar } from "./BatchBar";
+import styles from "./dataManager.module.css";
 
-interface DataRow {
-  id: string;
-  timestamp: string;
-  year: number | null;
-  poseBin: string;
-  qualityQ: number | null;
-  yaw: number | null;
-  sourceUrl: string;
-  sha256: string;
-  filename: string;
-  exifMatch: boolean;
-  era: string;
-  poseCode: string;
-  hasSidecar: boolean;
-  shaMatch: boolean;
-  flagMessage?: string;
-  flagTone?: "error" | "warn" | "neutral";
-}
+/**
+ * Экран «Данные и provenance» (§7 ТЗ).
+ *
+ * Что здесь исправлено по сравнению с прежней версией (BUG-3, D11):
+ *  - таблица виртуализирована и сортируется по-настоящему; пагинация с
+ *    литеральной подписью «1–10 из 137» и кнопками без обработчиков убрана;
+ *  - колонки, для которых у API нет источника (хеши, дубликаты, права),
+ *    больше не изображают результат: они помечены «нет источника» и
+ *    показывают «н/д» вместо галочки о совпадении, которого никто не проверял;
+ *  - появились приём файлов, очередь заданий и пакетные операции — разделы
+ *    §7.1, §7.6, §7.7, которых не было вовсе.
+ */
 
-export const DataManagerPage: React.FC = () => {
-  /**
-   * Поиск, фильтр ракурса и выбранная запись берутся из общего стора: раньше
-   * страница дублировала их в собственных `useState`, и один и тот же «активный
-   * ракурс» на разных экранах означал разное (BUG-1).
-   */
+const TABLE_HEIGHT = 420;
+
+export function DataManagerPage() {
   const {
-    search: searchQuery,
-    setSearch: setSearchQuery,
+    search,
+    setSearch,
     activePose,
     setActivePose,
     multiPose,
@@ -48,323 +43,206 @@ export const DataManagerPage: React.FC = () => {
     selectedPhoto,
     setSelectedPhoto,
   } = useAnalysisStore();
-  const [page, setPage] = useState<number>(0);
-  const [pageSize, setPageSize] = useState<number>(50);
 
-  const timelineQuery = useTimeline();
-  const stage = resolveStage(timelineQuery.data);
-  const rows: DataRow[] = (timelineQuery.data?.photos ?? []).map((p: ResearchPhoto) => {
-    const isConflict = p.dateProvenanceStatus === "conflict";
-    const noSidecar = p.analysisStage !== "stage2";
-    return {
-      id: p.id,
-      timestamp: p.date ?? "дата отсутствует",
-      year: p.date ? Number(p.date.slice(0, 4)) : null,
-      poseBin: p.bucket,
-      qualityQ: p.quality == null ? null : p.quality * 100,
-      yaw: p.yaw,
-      sourceUrl: `Stage 2 · ${p.sourceMode}`,
-      sha256: "недоступен в API",
-      filename: p.id,
-      exifMatch: !isConflict,
-      era: p.era,
-      poseCode: p.bucket,
-      hasSidecar: !noSidecar,
-      shaMatch: false,
-      flagMessage: isConflict
-        ? "конфликт дат · EXIF ≠ имя"
-        : p.flags.length
-        ? p.flags.join(", ")
-        : undefined,
-      flagTone: isConflict ? "warn" : p.flags.length ? "error" : "neutral",
-    };
-  });
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_COLUMN_IDS);
+  const [showColumnChooser, setShowColumnChooser] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([{ id: "date", desc: false }]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const filteredRows = rows.filter((r) => {
-    if (!multiPose && r.poseBin !== activePose) return false;
-    if (searchQuery && !r.filename.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
+  const query = useTimeline();
+  const stage = resolveStage(query.data);
+  const photos = useMemo(() => query.data?.photos ?? [], [query.data]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const safePage = Math.min(page, pageCount - 1);
-  const pageStart = safePage * pageSize;
-  const pageRows = filteredRows.slice(pageStart, pageStart + pageSize);
+  const poseOptions = useMemo(
+    () => sortPoseBins(Array.from(new Set(photos.map((photo) => photo.bucket)))),
+    [photos],
+  );
 
-  const poseOptions = sortPoseBins(Array.from(new Set(rows.map((row) => row.poseBin))));
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return photos.filter((photo) => {
+      if (!multiPose && photo.bucket !== activePose) return false;
+      if (!needle) return true;
+      // Поиск идёт по тем же полям, что показаны в таблице.
+      return [photo.id, photo.date, photo.bucket, photo.era, ...photo.flags]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle);
+    });
+  }, [photos, multiPose, activePose, search]);
 
-  const activeRow = rows.find((row) => row.id === selectedPhoto) ?? filteredRows[0] ?? rows[0];
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
-  if (timelineQuery.isLoading) return <LoadingState text="Загрузка каталога данных…" />;
-  if (timelineQuery.error) return <ErrorState title="Каталог данных недоступен" error={timelineQuery.error} onRetry={() => void timelineQuery.refetch()} />;
-  if (!activeRow) return <EmptyState title="Записей нет" description="API вернул пустой список фотографий. Проверьте, что Stage 1 выполнен и каталог данных смонтирован." />;
+  const selectedPhotos = useMemo(
+    () => photos.filter((photo) => selectedIds.has(photo.id)),
+    [photos, selectedIds],
+  );
+
+  const detail: ResearchPhoto | undefined = useMemo(
+    () => photos.find((photo) => photo.id === selectedPhoto),
+    [photos, selectedPhoto],
+  );
+
+  if (query.isLoading) return <LoadingState text="Загрузка каталога данных…" />;
+  if (query.error)
+    return (
+      <ErrorState
+        title="Каталог данных недоступен"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+      />
+    );
 
   return (
-    <div className="flex flex-col h-workspace w-full bg-surface-canvas text-ink-primary overflow-hidden select-none font-sans">
-      {/* 1. TOP STATS & ACTION BAR (Matching 04-data-manager.png) */}
-      <div className="border-b border-line-default bg-surface-base px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="font-mono text-sm font-bold text-cyan-300 uppercase">
-            DEEPUTIN V5 · ДАННЫЕ И PROVENANCE · {stageLabel(stage)}
-          </div>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <h2 className={styles.title}>
+          ДАННЫЕ И PROVENANCE · {stageLabel(stage)}
+        </h2>
 
-          <div className="flex items-center gap-2">
-            <select
-              aria-label="Фильтр по ракурсу"
-              value={multiPose ? "ALL" : activePose}
-              onChange={(e) => {
-                const next = e.target.value;
-                if (next === "ALL") setMultiPose(true);
-                else { setMultiPose(false); setActivePose(next); }
-                setPage(0);
-              }}
-              className="rounded bg-surface-overlay px-2.5 py-1 font-mono text-xs text-ink-primary border border-line-default"
-            >
-              <option value="ALL">РАКУРС: ВСЕ</option>
-              {poseOptions.map((pose: string) => (
-                <option key={pose} value={pose}>{poseLabel(pose)}</option>
+        <select
+          aria-label="Фильтр по ракурсу"
+          value={multiPose ? "ALL" : activePose}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (next === "ALL") setMultiPose(true);
+            else {
+              setMultiPose(false);
+              setActivePose(next);
+            }
+          }}
+          className={styles.select}
+        >
+          <option value="ALL">Ракурс: все</option>
+          {poseOptions.map((pose) => (
+            <option key={pose} value={pose}>
+              {poseLabel(pose)}
+            </option>
+          ))}
+        </select>
+
+        <label className={styles.searchBox}>
+          <Search className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="sr-only">Поиск по кадрам</span>
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="ID, дата, отметка…"
+          />
+        </label>
+
+        <div className={styles.menuRoot}>
+          <button
+            type="button"
+            className={styles.linkButton}
+            aria-expanded={showColumnChooser}
+            onClick={() => setShowColumnChooser((value) => !value)}
+          >
+            <Columns3 className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+            Колонки · {visibleColumns.length}
+          </button>
+          {showColumnChooser && (
+            <div className={styles.columnMenu} role="group" aria-label="Выбор колонок">
+              {DATA_COLUMNS.map((column) => (
+                <label key={column.id} className={styles.columnRow}>
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.includes(column.id)}
+                    onChange={() =>
+                      setVisibleColumns((prev) =>
+                        prev.includes(column.id)
+                          ? prev.filter((id) => id !== column.id)
+                          : [...prev, column.id],
+                      )
+                    }
+                  />
+                  <span>{column.header}</span>
+                  {column.origin === "absent" && (
+                    <span className={styles.columnAbsent} title={column.note}>
+                      нет источника
+                    </span>
+                  )}
+                </label>
               ))}
-            </select>
-          </div>
+              <p className={styles.columnNote}>
+                Колонки с пометкой «нет источника» остаются в списке намеренно:
+                отсутствие хешей и sidecar в API — факт о системе, а не пустая
+                ячейка.
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="rounded bg-surface-overlay px-3 py-1 font-mono text-xs text-ink-secondary border border-line-default">
-            {rows.length.toLocaleString("ru-RU")} фото · <strong className="text-amber-400">{stageLabel(stage)}</strong> ·{" "}
-            <strong className="text-red-400">{rows.filter((r) => r.flagMessage).length} флагов</strong>
-          </span>
+        <button
+          type="button"
+          className={styles.linkButton}
+          onClick={() => void query.refetch()}
+          aria-label="Обновить каталог"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+        </button>
+      </header>
 
-          <div className="flex items-center gap-2">
-            <button className="rounded bg-surface-raised px-3 py-1 font-mono text-xs text-cyan-300 border border-cyan-600 hover:bg-surface-subtle transition">
-              [импорт]
-            </button>
-            <button className="rounded bg-surface-raised px-3 py-1 font-mono text-xs text-green-300 border border-green-500 hover:bg-surface-subtle transition">
-              [проверить provenance]
-            </button>
-            <button className="rounded bg-surface-raised px-3 py-1 font-mono text-xs text-amber-300 border border-amber-500 hover:bg-surface-subtle transition">
-              [пересчитать]
-            </button>
-          </div>
-        </div>
+      <div className={styles.banners}>
+        <StageBanner stage={stage} note={query.data?.note} />
+        <DataContractBanner
+          photos={photos}
+          totalPhotos={photos.length}
+          completeCount={query.data?.ui_fields_complete_photo_count}
+          violationsByField={query.data?.ui_fields_violations_by_field}
+          schema={query.data?.ui_fields_schema}
+        />
       </div>
 
-      <div className="px-6 py-2"><StageBanner stage={stage} note={timelineQuery.data?.note} /></div>
-
-      {/* 2. MAIN WORKSPACE: TABLE LEFT (70%) + SIDECAR DRAWER RIGHT (30%) */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEFT AREA: DATA TABLE (70%) */}
-        <div className="w-[70%] border-r border-line-default flex flex-col justify-between overflow-hidden">
-          {/* Dropzone top bar */}
-          <div className="border-b border-line-default bg-surface-canvas px-4 py-2 flex items-center justify-between text-xs text-ink-muted font-mono">
-            <div className="flex items-center gap-2">
-              <UploadCloud className="h-4 w-4 text-cyan-400" />
-              <span>перетащите фото или sidecar .json</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Search className="h-3.5 w-3.5 text-ink-muted" />
-              <input
-                type="text"
-                placeholder="Поиск по имени файла..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-surface-raised rounded px-2 py-0.5 text-xs text-ink-primary border border-line-default focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-          </div>
-
-          {/* Table Container */}
-          <div className="flex-1 overflow-y-auto">
-            <table className="w-full text-left font-mono text-xs border-collapse">
-              <thead className="sticky top-0 bg-surface-base border-b border-line-default text-ink-muted uppercase text-[11px]">
-                <tr>
-                  <th className="py-2 px-3">№</th>
-                  <th className="py-2 px-3">ID</th>
-                  <th className="py-2 px-3">дата из имени</th>
-                  <th className="py-2 px-3">эпоха</th>
-                  <th className="py-2 px-3">бин ракурса</th>
-                  <th className="py-2 px-3">q</th>
-                  <th className="py-2 px-3">yaw</th>
-                  <th className="py-2 px-3">sidecar</th>
-                  <th className="py-2 px-3">SHA</th>
-                  <th className="py-2 px-3">флаги</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line-default">
-                {pageRows.map((r, i) => {
-                  const isSelected = activeRow.id === r.id;
-                  return (
-                    <tr
-                      key={r.id}
-                      onClick={() => setSelectedPhoto(r.id)}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? "bg-cyan-soft text-ink-primary" : "hover:bg-surface-raised text-ink-secondary"
-                      }`}
-                    >
-                      <td className="py-2.5 px-3 text-ink-muted">{pageStart + i + 1}</td>
-                      <td className="py-2.5 px-3 font-bold text-cyan-300">{r.filename}</td>
-                      <td className="py-2.5 px-3">
-                        <span className="flex items-center gap-1">
-                          {r.timestamp}
-                          {r.exifMatch && <Check className="h-3.5 w-3.5 text-green-400 inline" aria-label="Дата без конфликта источников" />}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-ink-muted">{r.year ?? "н/д"}</td>
-                      <td className="py-2.5 px-3 text-cyan-400 font-bold">{poseLabel(r.poseCode)}</td>
-                      <td className="py-2.5 px-3">{r.qualityQ == null ? <span className="text-ink-muted">н/д</span> : (r.qualityQ / 100).toFixed(2)}</td>
-                      <td className="py-2.5 px-3">{r.yaw == null ? <span className="text-ink-muted">н/д</span> : r.yaw > 0 ? `+${r.yaw}°` : `${r.yaw}°`}</td>
-                      <td className="py-2.5 px-3">
-                        {r.hasSidecar ? (
-                          <Check className="h-3.5 w-3.5 text-green-400" />
-                        ) : (
-                          <span className="text-ink-muted">н/д</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        {r.shaMatch ? (
-                          <Check className="h-3.5 w-3.5 text-green-400" />
-                        ) : (
-                          <span className="text-ink-muted">н/д</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        {r.flagMessage ? (
-                          <span
-                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                              r.flagTone === "warn"
-                                ? "bg-amber-soft text-amber-300 border border-amber-500"
-                                : "bg-red-soft text-red-300 border border-red-500"
-                            }`}
-                          >
-                            {r.flagMessage}
-                          </span>
-                        ) : (
-                          <span className="text-ink-disabled">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Footer — реальная, а не декоративная */}
-          <div className="border-t border-line-default bg-surface-base px-4 py-2 flex items-center justify-between font-mono text-xs text-ink-muted">
-            <span>
-              {filteredRows.length === 0
-                ? "0 записей"
-                : `${(pageStart + 1).toLocaleString("ru-RU")}–${Math.min(pageStart + pageSize, filteredRows.length).toLocaleString("ru-RU")} из ${filteredRows.length.toLocaleString("ru-RU")}`}
-            </span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setPage(0)} disabled={safePage === 0} aria-label="Первая страница" className="hover:text-ink-primary px-1.5 py-0.5 rounded border border-line-default bg-surface-raised disabled:opacity-40">|&lt;&lt;</button>
-              <button onClick={() => setPage((v) => Math.max(0, v - 1))} disabled={safePage === 0} aria-label="Предыдущая страница" className="hover:text-ink-primary px-1.5 py-0.5 rounded border border-line-default bg-surface-raised disabled:opacity-40">&lt;</button>
-              <span className="text-cyan-300 font-bold">{safePage + 1}</span>
-              <span>из</span>
-              <span>{pageCount}</span>
-              <button onClick={() => setPage((v) => Math.min(pageCount - 1, v + 1))} disabled={safePage >= pageCount - 1} aria-label="Следующая страница" className="hover:text-ink-primary px-1.5 py-0.5 rounded border border-line-default bg-surface-raised disabled:opacity-40">&gt;</button>
-              <button onClick={() => setPage(pageCount - 1)} disabled={safePage >= pageCount - 1} aria-label="Последняя страница" className="hover:text-ink-primary px-1.5 py-0.5 rounded border border-line-default bg-surface-raised disabled:opacity-40">&gt;&gt;|</button>
-            </div>
-            <label className="flex items-center gap-2">
-              <span>на странице</span>
-              <select
-                aria-label="Записей на странице"
-                value={pageSize}
-                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
-                className="rounded bg-surface-raised px-2 py-0.5 text-cyan-300 border border-line-default"
-              >
-                {[25, 50, 100, 200].map((size) => <option key={size} value={size}>{size}</option>)}
-              </select>
-            </label>
-          </div>
-        </div>
-
-        {/* RIGHT AREA: SIDECAR INSPECTOR DRAWER (30%) - Matching 04-data-manager.png */}
-        <div className="w-[30%] bg-surface-base flex flex-col justify-between overflow-y-auto p-5 space-y-4">
-          {/* Drawer Header */}
-          <div className="flex items-center justify-between border-b border-line-default pb-2 font-mono text-xs">
-            <span className="font-bold text-cyan-300">{activeRow.filename}</span>
-            <button type="button" aria-label="Скрыть панель записи" onClick={() => setSelectedPhoto(null)} className="text-ink-muted hover:text-ink-primary transition">✕</button>
-          </div>
-
-          {/*
-            Реальный кадр из архива. Раньше здесь стояла надпись «АРХИВНОЕ
-            ПРЕВЬЮ» на градиенте — заглушка на месте данных, которые API отдаёт
-            (BUG-4). Отсутствие файла показывается честно через PhotoImage.
-          */}
-          <div className="h-44 rounded bg-surface-raised border border-line-default overflow-hidden flex flex-col items-center justify-center p-3">
-            <PhotoImage
-              photoId={activeRow.id}
-              alt={`Кадр ${activeRow.filename}`}
-              variant="contain"
-              className="max-h-full max-w-full"
+      <div className={styles.body}>
+        <div className={styles.main}>
+          {photos.length === 0 ? (
+            <EmptyState
+              title="Записей нет"
+              description="API вернул пустой список фотографий. Проверьте, что Stage 1 выполнен и каталог данных смонтирован."
             />
-          </div>
-          <div className="font-mono text-[10px] text-ink-muted -mt-2">
-            {activeRow.timestamp} · {activeRow.sourceUrl}
-          </div>
+          ) : (
+            <>
+              <p className={styles.counts}>
+                Всего в архиве: {photos.length.toLocaleString("ru-RU")} · после фильтров:{" "}
+                {filtered.length.toLocaleString("ru-RU")}
+              </p>
 
-          {/* SIDECAR METADATA TABLE */}
-          <div className="space-y-3">
-            <div className="font-mono text-xs font-bold text-ink-secondary uppercase">
-              SIDECAR ({activeRow.filename.replace(".jpg", ".json")})
-            </div>
+              <BatchBar
+                selected={selectedPhotos}
+                visibleColumns={visibleColumns}
+                onClearSelection={() => setSelectedIds(new Set())}
+              />
 
-            <div className="space-y-1.5 font-mono text-[11px] text-ink-secondary border-b border-line-default pb-3">
-              <div className="flex justify-between">
-                <span className="text-ink-muted">source_url</span>
-                <span className="text-cyan-400 truncate max-w-[160px]">{activeRow.sourceUrl}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">acquired_at</span>
-                <span className="text-ink-muted">недоступен в API</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">collector</span>
-                <span className="text-ink-muted">недоступен в API</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">claimed_date</span>
-                <span className="text-green-400 font-bold">{activeRow.timestamp}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">rights</span>
-                <span className="text-ink-muted">недоступно в API</span>
-              </div>
-            </div>
+              <DataTable
+                photos={filtered}
+                visibleColumns={visibleColumns}
+                sorting={sorting}
+                onSortingChange={setSorting}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                activeId={selectedPhoto}
+                onOpenDetail={setSelectedPhoto}
+                height={TABLE_HEIGHT}
+              />
+            </>
+          )}
 
-            {/* HASHES SECTION */}
-            <div className="space-y-2">
-              <div className="font-mono text-xs font-bold text-ink-secondary uppercase">ХЕШИ</div>
-              <div className="space-y-1 font-mono text-[11px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">image SHA-256</span>
-                  <span className="text-ink-muted font-bold flex items-center gap-1">
-                    {activeRow.sha256}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">sidecar SHA-256</span>
-                  <span className="text-ink-muted font-bold flex items-center gap-1">
-                    недоступен в API
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* FLAGS SECTION */}
-            <div className="space-y-2 pt-2 border-t border-line-default">
-              <div className="font-mono text-xs font-bold text-ink-secondary uppercase">ФЛАГИ</div>
-              <div>
-                {activeRow.flagMessage ? (
-                  <span className="rounded bg-amber-soft px-2 py-1 font-mono text-[10px] text-amber-300 border border-amber-500">
-                    {activeRow.flagMessage}
-                  </span>
-                ) : <span className="text-ink-muted font-mono text-[11px]">нет флагов</span>}
-              </div>
-            </div>
-          </div>
+          <IngestPanel />
+          <JobQueue />
         </div>
+
+        {detail && (
+          <DetailDrawer photo={detail} onClose={() => setSelectedPhoto(null)} />
+        )}
       </div>
     </div>
   );
-};
+}
