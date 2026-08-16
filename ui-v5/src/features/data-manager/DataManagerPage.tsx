@@ -5,6 +5,7 @@ import { poseLabel, sortPoseBins } from "../../shared/poseBins";
 import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
+import { useAnalysisStore } from "../../shared/state/analysisStore";
 import {
   UploadCloud,
   Search,
@@ -31,9 +32,21 @@ interface DataRow {
 }
 
 export const DataManagerPage: React.FC = () => {
-  const [selectedRow, setSelectedRow] = useState<DataRow | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filterPose, setFilterPose] = useState<string>("ALL");
+  /**
+   * Поиск, фильтр ракурса и выбранная запись берутся из общего стора: раньше
+   * страница дублировала их в собственных `useState`, и один и тот же «активный
+   * ракурс» на разных экранах означал разное (BUG-1).
+   */
+  const {
+    search: searchQuery,
+    setSearch: setSearchQuery,
+    activePose,
+    setActivePose,
+    multiPose,
+    setMultiPose,
+    selectedPhoto,
+    setSelectedPhoto,
+  } = useAnalysisStore();
   const [page, setPage] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(50);
 
@@ -67,7 +80,7 @@ export const DataManagerPage: React.FC = () => {
   });
 
   const filteredRows = rows.filter((r) => {
-    if (filterPose !== "ALL" && r.poseBin !== filterPose) return false;
+    if (!multiPose && r.poseBin !== activePose) return false;
     if (searchQuery && !r.filename.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
@@ -79,7 +92,7 @@ export const DataManagerPage: React.FC = () => {
 
   const poseOptions = sortPoseBins(Array.from(new Set(rows.map((row) => row.poseBin))));
 
-  const activeRow = selectedRow || rows[0];
+  const activeRow = rows.find((row) => row.id === selectedPhoto) ?? filteredRows[0] ?? rows[0];
 
   if (timelineQuery.isLoading) return <LoadingState text="Загрузка каталога данных…" />;
   if (timelineQuery.error) return <ErrorState title="Каталог данных недоступен" error={timelineQuery.error} onRetry={() => void timelineQuery.refetch()} />;
@@ -97,8 +110,13 @@ export const DataManagerPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <select
               aria-label="Фильтр по ракурсу"
-              value={filterPose}
-              onChange={(e) => { setFilterPose(e.target.value); setPage(0); }}
+              value={multiPose ? "ALL" : activePose}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (next === "ALL") setMultiPose(true);
+                else { setMultiPose(false); setActivePose(next); }
+                setPage(0);
+              }}
               className="rounded bg-[#141e27] px-2.5 py-1 font-mono text-xs text-slate-200 border border-[#1f2d3d]"
             >
               <option value="ALL">РАКУРС: ВСЕ</option>
@@ -111,7 +129,7 @@ export const DataManagerPage: React.FC = () => {
 
         <div className="flex items-center gap-4">
           <span className="rounded bg-[#141e27] px-3 py-1 font-mono text-xs text-slate-300 border border-[#1f2d3d]">
-            {rows.length.toLocaleString("ru-RU")} фото · <strong className="text-amber-400">Stage 2</strong> ·{" "}
+            {rows.length.toLocaleString("ru-RU")} фото · <strong className="text-amber-400">{stageLabel(stage)}</strong> ·{" "}
             <strong className="text-rose-400">{rows.filter((r) => r.flagMessage).length} флагов</strong>
           </span>
 
@@ -176,7 +194,7 @@ export const DataManagerPage: React.FC = () => {
                   return (
                     <tr
                       key={r.id}
-                      onClick={() => setSelectedRow(r)}
+                      onClick={() => setSelectedPhoto(r.id)}
                       className={`cursor-pointer transition-colors ${
                         isSelected ? "bg-cyan-950/50 text-white" : "hover:bg-[#101820] text-slate-300"
                       }`}

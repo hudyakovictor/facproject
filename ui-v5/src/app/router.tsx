@@ -1,21 +1,43 @@
+import { lazy, Suspense, type ComponentType } from "react";
 import { createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
-import DesignSystemPage from "../features/design-system/DesignSystemPage";
-import { OverviewPage } from "../features/overview/OverviewPage";
-import { TimelinePage } from "../features/timeline/TimelinePage";
-import { DataManagerPage } from "../features/data-manager/DataManagerPage";
-import { PhotoInspectorPage } from "../features/photo-inspector/PhotoInspectorPage";
-import { MorphingPage } from "../features/morphing/MorphingPage";
-import { PairAnalysisPage } from "../features/pair-analysis/PairAnalysisPage";
-import { ClusteringPage } from "../features/clustering/ClusteringPage";
-import { CalibrationPage } from "../features/calibration/CalibrationPage";
-import { HypothesisValidationPage } from "../features/hypotheses/HypothesisValidationPage";
-import { ReportsPage } from "../features/reports/ReportsPage";
-import { MonetizationPage } from "../features/monetization/MonetizationPage";
-import { AuditLogPage } from "../features/audit/AuditLogPage";
-import { ArticlesPage } from "../features/articles/ArticlesPage";
 import RootLayout from "./RootLayout";
+import { RouteErrorBoundary } from "../shared/ui/RouteErrorBoundary";
+import { LoadingState } from "../shared/ui/states";
+import { validateAnalysisSearch } from "../shared/state/urlState";
 
-const rootRoute = createRootRoute({ component: RootLayout });
+/**
+ * Маршруты рабочей станции.
+ *
+ * Экраны загружаются лениво (`React.lazy`): единая сборка давала один чанк на
+ * 642 kB, в который попадали и таймлайн со всеми расчётами, и витрина
+ * дизайн-системы, которая рядовому пользователю не нужна вовсе. Разделение
+ * убирает из первой загрузки код тринадцати неоткрытых разделов.
+ *
+ * Каждый экран обёрнут границей ошибок: исключение в разделе больше не гасит
+ * весь интерфейс — панель, статус-бар и навигация остаются на месте.
+ */
+function screen(name: string, load: () => Promise<{ default: ComponentType }>) {
+  const Lazy = lazy(load);
+  return function RouteScreen() {
+    return (
+      <RouteErrorBoundary routeName={name}>
+        <Suspense fallback={<LoadingState text={`Загрузка раздела «${name}»…`} />}>
+          <Lazy />
+        </Suspense>
+      </RouteErrorBoundary>
+    );
+  };
+}
+
+const rootRoute = createRootRoute({
+  component: RootLayout,
+  /**
+   * Состояние анализа живёт в строке запроса, чтобы ссылку можно было
+   * переслать коллеге и увидеть тот же экран (§4 ТЗ). Невалидный параметр
+   * отбрасывается, а не роняет навигацию.
+   */
+  validateSearch: validateAnalysisSearch,
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -28,85 +50,123 @@ const indexRoute = createRoute({
 const overviewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/overview",
-  component: OverviewPage,
+  component: screen("Обзор", () =>
+    import("../features/overview/OverviewPage").then((m) => ({ default: m.OverviewPage })),
+  ),
 });
 
 const timelineRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/timeline",
-  component: TimelinePage,
+  component: screen("Таймлайн", () =>
+    import("../features/timeline/TimelinePage").then((m) => ({ default: m.TimelinePage })),
+  ),
 });
 
 const dataManagerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/data-manager",
-  component: DataManagerPage,
+  component: screen("Данные", () =>
+    import("../features/data-manager/DataManagerPage").then((m) => ({
+      default: m.DataManagerPage,
+    })),
+  ),
 });
 
 const inspectorRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/inspector",
-  component: PhotoInspectorPage,
+  component: screen("Инспектор", () =>
+    import("../features/photo-inspector/PhotoInspectorPage").then((m) => ({
+      default: m.PhotoInspectorPage,
+    })),
+  ),
 });
 
 const morphingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/morphing",
-  component: MorphingPage,
+  component: screen("Морфинг", () =>
+    import("../features/morphing/MorphingPage").then((m) => ({ default: m.MorphingPage })),
+  ),
 });
 
 const pairAnalysisRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/pair-analysis",
-  component: PairAnalysisPage,
+  component: screen("Сравнение", () =>
+    import("../features/pair-analysis/PairAnalysisPage").then((m) => ({
+      default: m.PairAnalysisPage,
+    })),
+  ),
 });
 
 const clusteringRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/clustering",
-  component: ClusteringPage,
+  component: screen("Кластеры", () =>
+    import("../features/clustering/ClusteringPage").then((m) => ({ default: m.ClusteringPage })),
+  ),
 });
 
 const calibrationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/calibration",
-  component: CalibrationPage,
+  component: screen("Калибровка", () =>
+    import("../features/calibration/CalibrationPage").then((m) => ({
+      default: m.CalibrationPage,
+    })),
+  ),
 });
 
 const hypothesesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/hypotheses",
-  component: HypothesisValidationPage,
+  component: screen("Гипотезы", () =>
+    import("../features/hypotheses/HypothesisValidationPage").then((m) => ({
+      default: m.HypothesisValidationPage,
+    })),
+  ),
 });
 
 const reportsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/reports",
-  component: ReportsPage,
-});
-
-const monetizationRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/monetization",
-  component: MonetizationPage,
-});
-
-const auditRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/audit",
-  component: AuditLogPage,
+  component: screen("Отчёты", () =>
+    import("../features/reports/ReportsPage").then((m) => ({ default: m.ReportsPage })),
+  ),
 });
 
 const articlesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/articles",
-  component: ArticlesPage,
+  component: screen("Статьи", () =>
+    import("../features/articles/ArticlesPage").then((m) => ({ default: m.ArticlesPage })),
+  ),
+});
+
+const monetizationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/monetization",
+  component: screen("Монетизация", () =>
+    import("../features/monetization/MonetizationPage").then((m) => ({
+      default: m.MonetizationPage,
+    })),
+  ),
+});
+
+const auditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/audit",
+  component: screen("Аудит", () =>
+    import("../features/audit/AuditLogPage").then((m) => ({ default: m.AuditLogPage })),
+  ),
 });
 
 const designSystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/design-system",
-  component: DesignSystemPage,
+  component: screen("Дизайн-система", () => import("../features/design-system/DesignSystemPage")),
 });
 
 const routeTree = rootRoute.addChildren([

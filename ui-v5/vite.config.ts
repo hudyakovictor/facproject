@@ -17,5 +17,25 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: true,
+    rolldownOptions: {
+      output: {
+        /**
+         * Разделение вендорного кода.
+         *
+         * Экраны уже загружаются лениво через `React.lazy`, но библиотеки
+         * оставались в одном стартовом чанке. Разнесение по группам позволяет
+         * браузеру кешировать их независимо: обновление кода приложения не
+         * инвалидирует React и роутер.
+         */
+        advancedChunks: {
+          groups: [
+            { name: "vendor-react", test: /node_modules\/(react|react-dom|scheduler)\// },
+            { name: "vendor-router", test: /node_modules\/@tanstack\// },
+            { name: "vendor-radix", test: /node_modules\/@radix-ui\// },
+            { name: "vendor-validation", test: /node_modules\/(zod|zustand)\// },
+          ],
+        },
+      },
+    },
   },
 });

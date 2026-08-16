@@ -47,6 +47,7 @@ export function OverviewPage() {
 
     <StageBanner stage={stage} note={timeline.data?.note} />
     <DataContractBanner
+      photos={photos}
       totalPhotos={photos.length}
       completeCount={timeline.data?.ui_fields_complete_photo_count}
       violationsByField={timeline.data?.ui_fields_violations_by_field}

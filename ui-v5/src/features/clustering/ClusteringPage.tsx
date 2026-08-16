@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTimeline } from "../../shared/api/queries";
 import { type ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel, sortPoseBins } from "../../shared/poseBins";
@@ -6,17 +6,23 @@ import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 import { formatDate, formatYear } from "../../shared/time";
+import { useAnalysisStore } from "../../shared/state/analysisStore";
 
 const palette = ["#34d399", "#fbbf24", "#22d3ee", "#a78bfa", "#fb7185", "#60a5fa"];
 
 export const ClusteringPage: React.FC = () => {
-  const [includeAllPoses, setIncludeAllPoses] = useState(true);
-  const [selectedPose, setSelectedPose] = useState("all");
+  /** Ракурс общий для всей станции, а не локальный для экрана (BUG-1). */
+  const {
+    multiPose: includeAllPoses,
+    setMultiPose: setIncludeAllPoses,
+    activePose: selectedPose,
+    setActivePose: setSelectedPose,
+  } = useAnalysisStore();
   const query = useTimeline();
   const photos = useMemo(() => query.data?.photos ?? [], [query.data]);
   const stage = resolveStage(query.data);
   const poses = useMemo(() => sortPoseBins(Array.from(new Set(photos.map((p) => p.bucket)))), [photos]);
-  const visible = includeAllPoses || selectedPose === "all" ? photos : photos.filter((p) => p.bucket === selectedPose);
+  const visible = includeAllPoses ? photos : photos.filter((p) => p.bucket === selectedPose);
   /** Только кадры с известным временем: без этого Math.min даёт Infinity. */
   const timed = useMemo(
     () => visible
@@ -60,7 +66,7 @@ export const ClusteringPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-4 text-xs font-mono">
           <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeAllPoses} onChange={(e) => setIncludeAllPoses(e.target.checked)} className="accent-cyan-500 h-4 w-4" /> все ракурсы</label>
-          {!includeAllPoses && <select aria-label="Бин ракурса" value={selectedPose} onChange={(e) => setSelectedPose(e.target.value)} className="rounded bg-[#141e27] px-2.5 py-1 text-cyan-300 border border-[#1f2d3d]"><option value="all">все бины</option>{poses.map((pose) => <option key={pose} value={pose}>{poseLabel(pose)}</option>)}</select>}
+          {!includeAllPoses && <select aria-label="Бин ракурса" value={selectedPose} onChange={(e) => setSelectedPose(e.target.value)} className="rounded bg-[#141e27] px-2.5 py-1 text-cyan-300 border border-[#1f2d3d]">{poses.map((pose) => <option key={pose} value={pose}>{poseLabel(pose)}</option>)}</select>}
         </div>
       </div>
 
