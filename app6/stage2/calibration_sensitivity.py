@@ -37,16 +37,17 @@ def leave_one_dataset_sensitivity(records: list[Record], zone106: np.ndarray, zo
             "entries": [],
         }
     entries: list[dict[str, Any]] = []
+    # Build pairwise landmark comparisons once.  The old implementation
+    # rebuilt a full CalibrationModel for every holdout person, repeating the
+    # same expensive comparisons seven times.
+    base_model = CalibrationModel(records, zone106, zone134)
     for holdout in datasets:
-        subset = [r for r in records if r.dataset_id != holdout]
-        if not subset:
-            continue
         try:
-            model = CalibrationModel(subset, zone106, zone134)
+            references = base_model.references_excluding_dataset(holdout)
         except Exception as exc:
             entries.append({"holdout_dataset": holdout, "status": "failed", "error": str(exc)})
             continue
-        for pose, metrics in model.references.items():
+        for pose, metrics in references.items():
             for metric, ref in metrics.items():
                 if metric not in CORE_METRICS and not str(metric).startswith("zone::"):
                     continue

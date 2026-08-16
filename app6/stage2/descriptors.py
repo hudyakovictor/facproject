@@ -51,7 +51,7 @@ class DescriptorNoiseModel:
         for (_,pose),rs in groups.items():
             rs=sorted(rs,key=lambda r:r.date or str(r.sequence)); tpl=np.median(np.stack(templates[pose][:200]),axis=0)
             for off in (1,2,3,5,10,20,50):
-                for a,b in zip(rs,rs[off:]):
+                for a,b in zip(rs,rs[off:],strict=False):
                     if self._pd(a,b)<=2.5:
                         x=local_pair_descriptors(a,b,tpl)
                         if x["status"]=="measured": vals[pose].append(x["values"])

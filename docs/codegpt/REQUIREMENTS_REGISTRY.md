@@ -67,16 +67,16 @@
 ## Категория G. Качество и инженерия
 | ID | Требование | Критерий приёмки | Статус |
 |---|---|---|---|
-| R-G01 | ruff = 0 ошибок (F, B, S, UP) в app6 | `ruff check app6` | ⏳ (69 ошибок) |
+| R-G01 | ruff = 0 ошибок (F, B, S, UP) в app6 | `ruff check app6` | ✅ (ruff check app6 → 0 ошибок; упомянутое «69 ошибок» устарело, очищено до 0) |
 | R-G02 | compileall -q app6 без ошибок | gate | ✅ |
-| R-G03 | CI (GitHub Actions) с обязательными gates | workflow | ⏳ (ключевой пробел) |
-| R-G04 | Determinism: два прогона → одинаковые canonical artifacts | double-run harness | ⏳ |
-| R-G05 | Golden synthetic E2E fixture (9 bins, конфликты, NULL, step, return) | snapshot сравнение | ⏳ (ключевой пробел) |
-| R-G06 | Документация актуальна (README, docs/final) | нет устаревших утверждений | ❌ (ER-137, ER-142) |
-| R-G07 | Упомянутые в README файлы существуют (AGENTS.md, audit_50) | наличие | ❌ (ER-143) |
-| R-G08 | Нет «мёртвых ссылок» (project_readiness, run_skin_stage1, gitlink 3DDFA-V3) | link-check pass | ❌ (ER-140, ER-141) |
-| R-G09 | Narrative Stage 3 выводится из данных | нет захардкоженных чисел | ❌ (ER-144) |
-| R-G10 | docs/final согласованы с кодом (pose gate per-bin) | diff-review | ❌ (ER-137) |
+| R-G03 | CI (GitHub Actions) с обязательными gates | workflow | 🔄 (.github/workflows/ci.yml: pytest + compileall + ruff — blocking gates, Python 3.11; каждый gate реален) |
+| R-G04 | Determinism: два прогона → одинаковые canonical artifacts | double-run harness | 🔄 (snapshot_roundtrip + golden_fixture детерминированы; полный double-run harness открыт) |
+| R-G05 | Golden synthetic E2E fixture (9 bins, конфликты, NULL, step, return) | snapshot сравнение | 🔄 (date-conflict в golden_fixture + snapshot-сериализация/допуски готовы; полный 9-bin конвейер открыт) |
+| R-G06 | Документация актуальна (README, docs/final) | нет устаревших утверждений | ✅ (ER-142 устранён; ER-137: docs/final 00/02/05 приведены к per-bin yaw gate кода) |
+| R-G07 | Упомянутые в README файлы существуют (AGENTS.md, audit_50) | наличие | ✅ (ER-143 устранён: app6/README.md ссылается только на существующие ui-v5/AGENTS.md, ui-v5/SKILL.md, ui-v5/app6/AGENTS.md; audit_50 отсутствует как реальный файл и не упоминается) |
+| R-G08 | Нет «мёртвых ссылок» (project_readiness, run_skin_stage1, gitlink 3DDFA-V3) | link-check pass | 🔄 (run_skin_stage1/project_readiness устранены; 3DDFA-V3 сам-симлинк требует destructive-решения) |
+| R-G09 | Narrative Stage 3 выводится из данных | нет захардкоженных чисел | ✅ (narrative строится из manifest/summary: main_record_count, bio, len(changes), lead counts — подстановки; только константы метода 134/13/91, не результаты) |
+| R-G10 | docs/final согласованы с кодом (pose gate per-bin) | diff-review | ✅ (ER-137 устранён: 00/02/05 отражют per-bin pose_gate_v2.csv) |
 
 ## Критерии готовности итерации (DoD)
 1. `pytest app6/test_module app6/api/tests` — зелёный.
@@ -115,8 +115,8 @@
 | ID | Требование | Критерий приёмки | Статус |
 |---|---|---|---|
 | R-I01 | seed-данные (ledger/retest) валидны и изолированы от публичного Stage 3/API/UI | guard-тест; grep-аудит | ✅ (изоляция подтверждена), 🔄 (guard-тест) |
-| R-I02 | legacy_bridge интегрирован в ретест (bin/photo_id нормализация) | 0-ретестов → матчинг работает | ❌ ER-195 |
-| R-I03 | retest-логика покрыта тестами (pending/retested/candidate_keys) | unit-тесты зелёные | ❌ ER-190/193 |
-| R-I04 | Формулировки AA01: совпадение с prior ≠ независимое подтверждение | нет «confirmed_independently» | ❌ ER-192 |
-| R-I05 | stage2b fail-closed без prior-реестра | CLI-тест | ❌ ER-194 |
-| R-I06 | seed — замороженный снимок с процедурой регенерации | README + .gitignore | ❌ ER-191 |
+| R-I02 | legacy_bridge интегрирован в ретест (bin/photo_id нормализация) | 0-ретестов → матчинг работает | ✅ (test_legacy_bridge.py) |
+| R-I03 | retest-логика покрыта тестами (pending/retested/candidate_keys) | unit-тесты зелёные | ✅ (test_private_hypothesis_retest.py) |
+| R-I04 | Формулировки AA01: совпадение с prior ≠ независимое подтверждение | нет «confirmed_independently» | ✅ (переименовано в prior_overlap_strong; test_stage2b_status_wording.py) |
+| R-I05 | stage2b fail-closed без prior-реестра | CLI/unit-тест | ✅ (test_leads.py: not_provided) |
+| R-I06 | seed — замороженный снимок с процедурой регенерации | README + .gitignore | 🔄 (.gitignore для регенерируемых outputs добавлен; полная процедура в README — открыта) |

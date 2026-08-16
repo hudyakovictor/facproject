@@ -5,7 +5,7 @@
 - 9 неизменяемых yaw bins: left/right profile, deep, mid, light и frontal.
 - Primary coordinates: `ldm134_object_normalized` / `ldm106_object_normalized`.
 - Pair alignment: iteratively trimmed Kabsch, trim 15%, без scale.
-- Pair gate внутри одного bin: yaw gap ≤6°, pitch gap ≤2°, roll gap ≤5°.
+- Pair gate внутри одного bin: per-bin yaw gap из `pose_gate_v2.csv` (left_profile 2°, left_deep 8°, left_mid 4°, left_light 6°, frontal 12°, right_light 8°, right_mid 4°, right_deep 2°, right_profile через 10° подбин ≤2°); pitch/roll — производные оси.
 - Минимум общих точек: 30 для LDM134, 24 для LDM106.
 - Минимальная alignment quality: 0.5.
 - Рекомендуемый descriptor package: Procrustes/local shape + stable subset91.

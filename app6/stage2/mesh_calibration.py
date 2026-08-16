@@ -12,7 +12,7 @@ import numpy as np
 
 from .anchor_policy import stable_anchor_indices
 from .core import Record, robust_rigid_align, robust_reference
-from .mesh_dense import MESH_COUNT, _load_mesh, _subsample
+from .mesh_dense import _load_mesh, _subsample
 
 MESH_CALIBRATION_SCHEMA = "deeputin-stage2-mesh-calibration-v1.0"
 MESH_METRICS = (
@@ -104,7 +104,7 @@ class MeshNoiseModel:
             rs = sorted(rs, key=lambda r: r.date or str(r.sequence))
             local_pairs = 0
             for off in (1, 2, 3, 5, 10, 20, 50):
-                for a, b in zip(rs, rs[off:]):
+                for a, b in zip(rs, rs[off:], strict=False):
                     if local_pairs >= self.max_pairs_per_pose:
                         break
                     if _pose_distance(a, b) > 2.5:

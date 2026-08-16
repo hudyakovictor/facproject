@@ -23,11 +23,11 @@ motion/dense-mesh/texture каналы, multiple_testing FDR, persistence рез
 Calibration leave-one-dataset-out sensitivity и residual pose gate входят в runtime.
 """
 from __future__ import annotations
-import json,time,shutil
+import json,os,pickle,time,shutil
 import numpy as np
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime,timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from app6.stage1.utils import atomic_json,json_ready,digest_file,digest_json,write_csv
@@ -65,6 +65,7 @@ from .validation import validate_analysis_contract
 from .pair_planner import plan_pairs
 
 SCHEMA='deeputin-stage2-v1.4-robustness'
+CHECKPOINT_SCHEMA='deeputin-stage2-checkpoint-v1'
 # D-003 (2026-08-03): alignment_quality некоррелирован с остатком (Spearman
 # +0.096 на 212 кадрах vs −0.176 в атласе). Порог справочный, пары НЕ гейтит.
 MIN_ALIGNMENT_QUALITY=0.5
@@ -76,7 +77,20 @@ PRIMARY_CALIBRATION_METRICS={'ldm134_rmse','ldm134_p95','identity_only_ldm134_rm
 PRIMARY_POSE_LEAKAGE_METRICS={'ldm134_rmse','p95_point_z','identity_only_motion_rmse'}
 
 # 🔄 UTC-штамп для payload
-def utc():return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+def utc():return datetime.now(UTC).replace(microsecond=0).isoformat().replace('+00:00','Z')
+
+def _write_checkpoint(path:Path,payload:dict[str,Any])->None:
+ """Atomically persist the in-progress pair accumulators."""
+ tmp=path.with_name(f'{path.name}.tmp')
+ with tmp.open('wb') as f:
+  pickle.dump(payload,f,protocol=pickle.HIGHEST_PROTOCOL)
+  f.flush();os.fsync(f.fileno())
+ os.replace(tmp,path)
+
+def _read_checkpoint(path:Path)->dict[str,Any]:
+ with path.open('rb') as f:payload=pickle.load(f)
+ if not isinstance(payload,dict) or payload.get('schema')!=CHECKPOINT_SCHEMA:raise RuntimeError(f'invalid Stage 2 checkpoint: {path}')
+ return payload
 
 def _record_qc(record)->dict[str,Any]:
  """Load mandatory Stage 1 QC (geometry-based expression detection)."""
@@ -145,12 +159,13 @@ def _pair_qc_decision(a,b,qc_by_id:dict[str,dict[str,Any]],
 
 @dataclass(frozen=True)
 class Stage2Config:
- stage1_root:Path;calibration_root:Path;output_dir:Path;overwrite:bool=False;min_points106:int=24;min_points134:int=30;lead_archive:Path|None=None
+ stage1_root:Path;calibration_root:Path;output_dir:Path;overwrite:bool=False;min_points106:int=24;min_points134:int=30;lead_archive:Path|None=None;checkpoint_every:int=0;resume:bool=False
  # 🏭 FACTORY → сборка итогового payload прогона
  def payload(self):return {'schema':SCHEMA,'min106':self.min_points106,'min134':self.min_points134,'calibration':'equal-person-balanced-reference-v1','visibility_policy':'intersection_fail_closed_v1','cross_pose_policy':'reject_before_score_v1','noise_policy':'explicit_sigma_only_v1','chronology_policy':'adjacent_plus_anchor_plus_cusum_v1','lead_policy':'coverage_only_not_threshold_tuning','descriptor_families':list(DESCRIPTOR_NAMES)}
 
  def __post_init__(self):
   if self.min_points106 < 8 or self.min_points134 < 8:raise ValueError('min_points must be >= 8')
+  if self.checkpoint_every < 0:raise ValueError('checkpoint_every must be >= 0')
   output=Path(self.output_dir).resolve()
   for source,name in ((self.stage1_root,'stage1_root'),(self.calibration_root,'calibration_root')):
    source=Path(source).resolve()
@@ -177,7 +192,8 @@ class Stage2Engine:
     - compare_landmarks() — ядро сравнения
 
   APPLICABILITY:
-    - Использует chronology-aligned landmarks.
+    - Primary geometry использует raw object-normalized landmarks; chronology-aligned
+      arrays остаются диагностическим каналом и не подменяют primary comparison.
     - Фильтрует по alignment quality, expression и residual pose distance.
     - Пишет leave-one-dataset-out sensitivity калибровки в runtime-артефакты.
 
@@ -193,7 +209,9 @@ class Stage2Engine:
   log_status("run", "complete")
   assert_analysis_space(ANALYSIS_COORDINATE_SPACE)
   t=time.time();o=self.cfg.output_dir
-  if o.exists() and any(o.iterdir()) and not self.cfg.overwrite:raise FileExistsError(f'output exists: {o}')
+  checkpoint_path=o/'stage2_checkpoint.pkl'
+  if o.exists() and any(o.iterdir()) and not self.cfg.overwrite and not self.cfg.resume:raise FileExistsError(f'output exists: {o}')
+  if self.cfg.resume and not checkpoint_path.is_file():raise FileNotFoundError(f'Stage 2 checkpoint not found: {checkpoint_path}')
   # Load and construct every read-only dependency before destructive overwrite.
   main=load_main(self.cfg.stage1_root);cal=load_calibration(self.cfg.calibration_root);leads=load_leads(self.cfg.lead_archive)
   if not main:raise RuntimeError('no valid stage1 records')
@@ -238,7 +256,7 @@ class Stage2Engine:
   else:log_status('calibration_stability','complete')
   # Temporal neighbours are retained for later chronology diagnostics.
   temporal_context={}
-  for pose_bin,records in groups.items():
+  for _,records in groups.items():
    records_sorted=sorted(records,key=lambda r:(r.date or '9999',r.sequence))
    for i,r in enumerate(records_sorted):
     prev_rec=records_sorted[i-1] if i>0 else None;next_rec=records_sorted[i+1] if i<len(records_sorted)-1 else None
@@ -257,8 +275,17 @@ class Stage2Engine:
      continue
     specs.append((ptype,a,b,decision))
   rows=[];zones=[];details=[];quality_zone_rows=[];texture_zone_rows=[];mesh_rows=[];mesh_zones=[];anchor_policy_by_bin={};expr_gate_summary={'pairs':0,'accepted':0}
+  spec_ids=[f'{ptype}__{a.record_id}__{b.record_id}' for ptype,a,b,_ in specs]
+  checkpoint_signature={'schema':SCHEMA,'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'calibration_root':str(Path(self.cfg.calibration_root).resolve()),'main_record_ids':[r.record_id for r in main],'spec_ids':spec_ids,'config_hash':digest_json(self.cfg.payload())}
+  processed_pair_ids=set()
+  if self.cfg.resume:
+   checkpoint=_read_checkpoint(checkpoint_path)
+   if checkpoint.get('signature')!=checkpoint_signature:raise RuntimeError('Stage 2 checkpoint does not match current Stage 1, calibration, or analysis configuration')
+   rows=checkpoint['rows'];zones=checkpoint['zones'];details=checkpoint['details'];quality_zone_rows=checkpoint['quality_zone_rows'];texture_zone_rows=checkpoint['texture_zone_rows'];mesh_rows=checkpoint['mesh_rows'];mesh_zones=checkpoint['mesh_zones'];anchor_policy_by_bin=checkpoint['anchor_policy_by_bin'];expr_gate_summary=checkpoint['expr_gate_summary'];processed_pair_ids=set(checkpoint['processed_pair_ids'])
+   log_status('checkpoint_resume',f'{len(processed_pair_ids)}/{len(specs)} pairs restored')
   for n,(ptype,a,b,qc_decision) in enumerate(specs,1):
    pid=f'{ptype}__{a.record_id}__{b.record_id}'
+   if pid in processed_pair_ids:continue
    meta_a={'detection_confidence':detection_confidence.get(a.record_id),'skin_quality_score':skin_quality_score.get(a.record_id),'face_area_ratio':face_area_ratio.get(a.record_id)}
    meta_b={'detection_confidence':detection_confidence.get(b.record_id),'skin_quality_score':skin_quality_score.get(b.record_id),'face_area_ratio':face_area_ratio.get(b.record_id)}
    expr_gate=expression_gate({**meta_a,'jaw_open_detected':jaw_open_detected.get(a.record_id,False),'jaw_open_degree':jaw_open_degree.get(a.record_id),'smile_detected':smile_detected.get(a.record_id,False)},{**meta_b,'jaw_open_detected':jaw_open_detected.get(b.record_id,False),'jaw_open_degree':jaw_open_degree.get(b.record_id),'smile_detected':smile_detected.get(b.record_id,False)},era_a=(str(a.date)[:4] if a.date else None),era_b=(str(b.date)[:4] if b.date else None))
@@ -317,6 +344,10 @@ class Stage2Engine:
      k=f"zone::{z['zone']}::rmse";s=calibrated_score(float(z['rmse']),model.reference(a.pose_bin,k,stratum=stratum_arg),matched.get(k,[]));zr.update({'calibration_status':s['status'],'robust_z':s['robust_z'],'calibration_p95':s['calibration_p95']})
     zones.append(zr)
    details.append({'pair':row,'calibrated_metrics':scores,'zones':c.zones})
+   processed_pair_ids.add(pid)
+   if self.cfg.checkpoint_every and len(processed_pair_ids)%self.cfg.checkpoint_every==0:
+    _write_checkpoint(checkpoint_path,{'schema':CHECKPOINT_SCHEMA,'signature':checkpoint_signature,'processed_pair_ids':sorted(processed_pair_ids),'rows':rows,'zones':zones,'details':details,'quality_zone_rows':quality_zone_rows,'texture_zone_rows':texture_zone_rows,'mesh_rows':mesh_rows,'mesh_zones':mesh_zones,'anchor_policy_by_bin':anchor_policy_by_bin,'expr_gate_summary':expr_gate_summary})
+    log_status('checkpoint',f'{len(processed_pair_ids)}/{len(specs)} pairs persisted')
   self._persistence(rows)
   # 🚧 Патч 14: без временной оси (калибровка, единичная дата) временные
   # детекторы не запускаются вовсе, а в отчёт идёт явный skip-статус.
@@ -380,12 +411,13 @@ class Stage2Engine:
   _work_root=Path(__file__).resolve().parents[2]
   _reuse_report=model.reuse_report();_space_manifest=space_manifest()
   _run_manifest=build_manifest(_work_root,code_hash=digest_file(Path(__file__)),config_hash=digest_json(self.cfg.payload()),model_hash=digest_file(_work_root/'3ddfa_v3'/'assets'/'face_model.npy') or 'missing',reuse_report=_reuse_report,space_manifest=_space_manifest,anchor_policy=anchor_policy_by_bin)
-  manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.']}
+  manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'execution':{'checkpoint_every':self.cfg.checkpoint_every,'resumed':self.cfg.resume},'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.']}
   atomic_json(o/'technical_summary.json',build_technical_summary(rows,changes,manifest))
   atomic_json(o/'analysis_manifest.json',manifest)
   req=['analysis_manifest.json','technical_summary.json','calibration_noise_model.json','calibration_sensitivity.json','mesh_noise_model.json','point_noise_model.npz','descriptor_noise_model.npz','lead_registry.json','lead_coverage.csv','chronology_rate_model.json','alpha_chronology.json','alpha_chronology_events.csv','baseline_return.json','cumulative_drift.json','cross_bin_corroboration.json','event_aggregation.csv','pose_leakage_diagnostic.json','metric_catalog.json','zone_map.json','pair_metrics.csv','zone_metrics.csv','quality_zone_pair_coverage.csv','texture_pair_metrics.csv','texture_zone_metrics.csv','mesh_pair_metrics.csv','mesh_zone_metrics.csv','pair_details.json','evidence_packets.json','evidence_packets.jsonl','multiple_testing.json','change_points.json','manual_review_queue.csv','public_safety_report.json','degraded_modules.json','mesh_shape_summary.csv','texture_summary.json','status_summary.csv','gate_report.json','stage3_input_summary.json','artifact_index.json','evidence_chain_manifest.json']
   errors=validate_analysis_contract(o,required_files=req,rows=rows,changes=changes,evidence_packets=evidence_packets,public_safety={'status':postprocess_summary.get('public_safety_status')});atomic_json(o/'analysis_validation.json',{'schema':'stage2-validation-v1.1','status':'complete' if not errors else 'invalid','errors':errors})
   if errors:raise RuntimeError(str(errors))
+  checkpoint_path.unlink(missing_ok=True)
   return manifest
  @staticmethod
  def _persistence(rows):

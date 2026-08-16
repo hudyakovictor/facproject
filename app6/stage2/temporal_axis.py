@@ -7,7 +7,8 @@ alpha_chronology, motion, baseline_return) обязаны спрашивать �
 """
 from __future__ import annotations
 
-from typing import Any, Final, Sequence
+from collections.abc import Sequence
+from typing import Any, Final
 
 TEMPORAL_AXIS_SCHEMA: Final[str] = "deeputin-temporal-axis-v1.0"
 

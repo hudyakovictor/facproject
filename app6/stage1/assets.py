@@ -139,7 +139,6 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         confidence_01 = np.clip(confidence_f32 / 255.0, 0.0, 1.0)
     else:
         confidence_01 = np.clip(confidence_f32, 0.0, 1.0)
-    confidence_u8 = np.round(confidence_01 * 255.0).astype(np.uint8)
     valid_threshold = 0.50
     valid_mask = observed_bool & is_original_bool & (confidence_01 >= valid_threshold)
 

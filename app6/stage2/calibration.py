@@ -6,11 +6,11 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 
-from .core import Comparison, Record, compare_landmarks
+from .core import Record, compare_landmarks
 from .analysis_policy import pose_gap
 from .robustness import balanced_reference, cluster_bootstrap_ci
 
@@ -30,7 +30,13 @@ class CalibrationModel:
         for record in records:
             self.by_dataset_bin[(record.dataset_id, record.pose_bin)].append(record)
         self.datasets = sorted({r.dataset_id for r in records})
-        self.references: dict[str, dict[str, dict[str, float | int]]] = self._build_references()
+        # Keep the per-dataset observations.  LOPO sensitivity can then remove
+        # one calibration person from the aggregates without recomputing every
+        # landmark comparison from scratch.
+        self.values_by_pose_metric_dataset = self._collect_reference_values()
+        self.references: dict[str, dict[str, dict[str, float | int]]] = self._build_references(
+            self.values_by_pose_metric_dataset
+        )
 
     @staticmethod
     def _pose_distance(a: Record, b: Record) -> float:
@@ -38,7 +44,7 @@ class CalibrationModel:
         if not gap.accepted: return float("inf")
         return float(np.linalg.norm((a.angles - b.angles) / np.array([15.0, 20.0, 15.0])))
 
-    def _build_references(self) -> dict[str, dict[str, dict[str, float | int]]]:
+    def _collect_reference_values(self) -> dict[str, dict[str, dict[str, list[float]]]]:
         values: dict[str, dict[str, dict[str, list[float]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(list))
         )
@@ -46,7 +52,7 @@ class CalibrationModel:
             if len(group) < 2: continue
             group = sorted(group, key=lambda r: (float(r.angles[1]), float(r.angles[0]), r.sequence))
             for offset in (1, 2, 3, 5, 10, 20, 50):
-                for a, b in zip(group, group[offset:]):
+                for a, b in zip(group, group[offset:], strict=False):
                     if self._pose_distance(a, b) > 2.5: continue
                     comp = compare_landmarks(a, b, self.zone106, self.zone134)
                     if comp.status != "measured": continue
@@ -55,6 +61,12 @@ class CalibrationModel:
                     for zone in comp.zones:
                         if zone.get("status") == "measured":
                             values[pose_bin][f"zone::{zone['zone']}::rmse"][dataset].append(float(zone["rmse"]))
+        return values
+
+    @staticmethod
+    def _build_references(
+        values: dict[str, dict[str, dict[str, list[float]]]],
+    ) -> dict[str, dict[str, dict[str, float | int]]]:
         references: dict[str, dict[str, dict[str, float | int]]] = {}
         for pose, metrics in values.items():
             pose_refs: dict[str, dict[str, float | int]] = {}
@@ -70,7 +82,7 @@ class CalibrationModel:
                     ids.extend([dataset] * len(vals))
                 if len(set(ids)) >= 2:
                     # Filter to finite values and check cluster count
-                    finite_ids = [id_ for v, id_ in zip(obs, ids) if np.isfinite(v)]
+                    finite_ids = [id_ for v, id_ in zip(obs, ids, strict=True) if np.isfinite(v)]
                     if len(set(finite_ids)) >= 2:
                         ci = cluster_bootstrap_ci(obs, ids)
                         ref["ci_lo"] = ci["ci_lo"]
@@ -96,6 +108,24 @@ class CalibrationModel:
                 pose_refs[metric] = ref
             references[pose] = pose_refs
         return references
+
+    def references_excluding_dataset(
+        self, holdout_dataset: str,
+    ) -> dict[str, dict[str, dict[str, float | int]]]:
+        """Build LOPO references from cached observations.
+
+        The landmark comparisons are immutable for a given calibration bundle;
+        only the person-level aggregation changes when one dataset is held out.
+        """
+        filtered: dict[str, dict[str, dict[str, list[float]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(list))
+        )
+        for pose, metrics in self.values_by_pose_metric_dataset.items():
+            for metric, by_dataset in metrics.items():
+                for dataset, observations in by_dataset.items():
+                    if dataset != holdout_dataset:
+                        filtered[pose][metric][dataset].extend(observations)
+        return self._build_references(filtered)
 
     def _nearest(self, target: Record, dataset: str, exclude: str | None = None) -> Record | None:
         candidates = [r for r in self.by_dataset_bin.get((dataset, target.pose_bin), []) if r.record_id != exclude]

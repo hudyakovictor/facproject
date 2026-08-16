@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 
-from .geometry import classify_pose, compute_chronology_alignment, normalize_mesh, reprojection_stats, row_rotation_matrix, to_original_image
+from .geometry import classify_pose, compute_chronology_alignment, normalize_mesh, reprojection_stats, row_rotation_matrix
 from .status_logger import log_status
 
 

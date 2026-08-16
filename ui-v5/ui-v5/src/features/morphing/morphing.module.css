@@ -1,0 +1,311 @@
+/*
+ * Стили 3D-хронологии (§12).
+ *
+ * Холст занимает максимальную площадь (требование §12.2), настройки уходят в
+ * узкую боковую колонку. Предупреждение об интерполяции набрано так, чтобы его
+ * нельзя было принять за декоративную подпись: рамка, а не мелкий серый текст.
+ */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-base);
+}
+
+.headerMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.headerTitle {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--cyan-300);
+}
+
+.headerMeta {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inlineField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.inlineField select,
+.inlineField input {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: var(--text-2xs);
+  font-family: inherit;
+}
+
+/*
+ * Инвариант страницы. Он не в подсказке и не мелким шрифтом: пользователь
+ * должен видеть его, не наводя курсор.
+ */
+.invariant {
+  padding: var(--space-3);
+  border: 1px solid var(--amber-500);
+  border-radius: var(--radius-sm);
+  background: var(--amber-soft);
+  color: var(--amber-300);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+.workArea {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 1280px) {
+  .workArea {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+.canvasPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-base);
+  min-width: 0;
+}
+
+.canvasHost {
+  height: 520px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-canvas);
+  overflow: hidden;
+}
+
+.canvasCaption {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-base);
+  min-width: 0;
+}
+
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.panelTitle {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--cyan-300);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.sliderRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.sliderRow input[type="range"] {
+  flex: 1;
+  min-width: 6rem;
+  accent-color: var(--cyan-400);
+}
+
+.value {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.modeBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.modeButton {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  cursor: pointer;
+}
+
+.modeButton:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.modeButton[aria-pressed="true"] {
+  border-color: var(--border-focus);
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.2rem 0.4rem;
+  background: var(--surface-raised);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.statRow dd {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* --- скраббер ------------------------------------------------------------ */
+
+.scrubberRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.scrubber {
+  flex: 1;
+  min-width: 12rem;
+  accent-color: var(--cyan-400);
+}
+
+/* --- якоря --------------------------------------------------------------- */
+
+.anchorList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.anchorItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--text-2xs);
+  cursor: pointer;
+  text-align: left;
+}
+
+.anchorItem:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.anchorItem[data-current="true"] {
+  border-color: var(--cyan-400);
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+/* Исключённый якорь виден, но недоступен: штриховка, а не невидимость. */
+.anchorItem[data-excluded="true"] {
+  border-style: dashed;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.anchorDate {
+  font-family: var(--font-mono);
+}
+
+.anchorId {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.note {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.warn {
+  padding: var(--space-2);
+  border: 1px solid var(--amber-500);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+  color: var(--amber-300);
+  line-height: 1.5;
+}

@@ -1,0 +1,920 @@
+{
+  "schema_version": "skin-zone-atlas-v4.0",
+  "uv_orientation": "u=0 left; u=0.5 center; u=1 right; v=1 forehead; v=0 jaw",
+  "primary_policy": "one_label_per_triangle_inside_face_support",
+  "zone_count": 40,
+  "zones": [
+    {
+      "num": 1,
+      "zone_id": "Z01",
+      "name": "forehead_center",
+      "label_ru": "лоб центр",
+      "side": "midline",
+      "group": "forehead",
+      "seed_uv": [
+        0.5,
+        0.86
+      ],
+      "scale_uv": [
+        0.16,
+        0.095
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 2,
+      "zone_id": "Z02",
+      "name": "forehead_left",
+      "label_ru": "лоб левый",
+      "side": "left",
+      "group": "forehead",
+      "seed_uv": [
+        0.29,
+        0.86
+      ],
+      "scale_uv": [
+        0.15,
+        0.095
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "forehead_right",
+      "notes": ""
+    },
+    {
+      "num": 3,
+      "zone_id": "Z03",
+      "name": "forehead_right",
+      "label_ru": "лоб правый",
+      "side": "right",
+      "group": "forehead",
+      "seed_uv": [
+        0.71,
+        0.86
+      ],
+      "scale_uv": [
+        0.15,
+        0.095
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "forehead_left",
+      "notes": ""
+    },
+    {
+      "num": 4,
+      "zone_id": "Z04",
+      "name": "temple_left",
+      "label_ru": "висок левый",
+      "side": "left",
+      "group": "temple",
+      "seed_uv": [
+        0.11,
+        0.77
+      ],
+      "scale_uv": [
+        0.1,
+        0.15
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "temple_right",
+      "notes": ""
+    },
+    {
+      "num": 5,
+      "zone_id": "Z05",
+      "name": "temple_right",
+      "label_ru": "висок правый",
+      "side": "right",
+      "group": "temple",
+      "seed_uv": [
+        0.89,
+        0.77
+      ],
+      "scale_uv": [
+        0.1,
+        0.15
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "temple_left",
+      "notes": ""
+    },
+    {
+      "num": 6,
+      "zone_id": "Z06",
+      "name": "glabella",
+      "label_ru": "межбровье",
+      "side": "midline",
+      "group": "glabella",
+      "seed_uv": [
+        0.5,
+        0.715
+      ],
+      "scale_uv": [
+        0.065,
+        0.05
+      ],
+      "bonus": 0.03,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 7,
+      "zone_id": "Z07",
+      "name": "nasion",
+      "label_ru": "переносица",
+      "side": "midline",
+      "group": "nose",
+      "seed_uv": [
+        0.5,
+        0.655
+      ],
+      "scale_uv": [
+        0.05,
+        0.045
+      ],
+      "bonus": 0.03,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 8,
+      "zone_id": "Z08",
+      "name": "nose_dorsum",
+      "label_ru": "спинка носа",
+      "side": "midline",
+      "group": "nose",
+      "seed_uv": [
+        0.5,
+        0.575
+      ],
+      "scale_uv": [
+        0.05,
+        0.065
+      ],
+      "bonus": 0.02,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 9,
+      "zone_id": "Z09",
+      "name": "nose_tip",
+      "label_ru": "кончик носа",
+      "side": "midline",
+      "group": "nose",
+      "seed_uv": [
+        0.5,
+        0.505
+      ],
+      "scale_uv": [
+        0.055,
+        0.05
+      ],
+      "bonus": 0.03,
+      "small_ok": true,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 10,
+      "zone_id": "Z10",
+      "name": "ala_left",
+      "label_ru": "крыло носа левое",
+      "side": "left",
+      "group": "nose",
+      "seed_uv": [
+        0.425,
+        0.49
+      ],
+      "scale_uv": [
+        0.038,
+        0.04
+      ],
+      "bonus": 0.04,
+      "small_ok": true,
+      "excluded_by_segmentation": false,
+      "pair": "ala_right",
+      "notes": ""
+    },
+    {
+      "num": 11,
+      "zone_id": "Z11",
+      "name": "ala_right",
+      "label_ru": "крыло носа правое",
+      "side": "right",
+      "group": "nose",
+      "seed_uv": [
+        0.575,
+        0.49
+      ],
+      "scale_uv": [
+        0.038,
+        0.04
+      ],
+      "bonus": 0.04,
+      "small_ok": true,
+      "excluded_by_segmentation": false,
+      "pair": "ala_left",
+      "notes": ""
+    },
+    {
+      "num": 12,
+      "zone_id": "Z12",
+      "name": "columella",
+      "label_ru": "колумелла",
+      "side": "midline",
+      "group": "nose",
+      "seed_uv": [
+        0.5,
+        0.455
+      ],
+      "scale_uv": [
+        0.03,
+        0.03
+      ],
+      "bonus": 0.05,
+      "small_ok": true,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 13,
+      "zone_id": "Z13",
+      "name": "upper_eyelid_left",
+      "label_ru": "верхнее веко левое",
+      "side": "left",
+      "group": "eyelid",
+      "seed_uv": [
+        0.335,
+        0.7
+      ],
+      "scale_uv": [
+        0.07,
+        0.032
+      ],
+      "bonus": 0.02,
+      "small_ok": true,
+      "excluded_by_segmentation": true,
+      "pair": "upper_eyelid_right",
+      "notes": ""
+    },
+    {
+      "num": 14,
+      "zone_id": "Z14",
+      "name": "upper_eyelid_right",
+      "label_ru": "верхнее веко правое",
+      "side": "right",
+      "group": "eyelid",
+      "seed_uv": [
+        0.665,
+        0.7
+      ],
+      "scale_uv": [
+        0.07,
+        0.032
+      ],
+      "bonus": 0.02,
+      "small_ok": true,
+      "excluded_by_segmentation": true,
+      "pair": "upper_eyelid_left",
+      "notes": ""
+    },
+    {
+      "num": 15,
+      "zone_id": "Z15",
+      "name": "lower_eyelid_left",
+      "label_ru": "нижнее веко левое",
+      "side": "left",
+      "group": "eyelid",
+      "seed_uv": [
+        0.335,
+        0.655
+      ],
+      "scale_uv": [
+        0.06,
+        0.028
+      ],
+      "bonus": 0.02,
+      "small_ok": true,
+      "excluded_by_segmentation": true,
+      "pair": "lower_eyelid_right",
+      "notes": ""
+    },
+    {
+      "num": 16,
+      "zone_id": "Z16",
+      "name": "lower_eyelid_right",
+      "label_ru": "нижнее веко правое",
+      "side": "right",
+      "group": "eyelid",
+      "seed_uv": [
+        0.665,
+        0.655
+      ],
+      "scale_uv": [
+        0.06,
+        0.028
+      ],
+      "bonus": 0.02,
+      "small_ok": true,
+      "excluded_by_segmentation": true,
+      "pair": "lower_eyelid_left",
+      "notes": ""
+    },
+    {
+      "num": 17,
+      "zone_id": "Z17",
+      "name": "infraorbital_left",
+      "label_ru": "подглазничная левая",
+      "side": "left",
+      "group": "infraorbital",
+      "seed_uv": [
+        0.32,
+        0.605
+      ],
+      "scale_uv": [
+        0.07,
+        0.038
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "infraorbital_right",
+      "notes": ""
+    },
+    {
+      "num": 18,
+      "zone_id": "Z18",
+      "name": "infraorbital_right",
+      "label_ru": "подглазничная правая",
+      "side": "right",
+      "group": "infraorbital",
+      "seed_uv": [
+        0.68,
+        0.605
+      ],
+      "scale_uv": [
+        0.07,
+        0.038
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "infraorbital_left",
+      "notes": ""
+    },
+    {
+      "num": 19,
+      "zone_id": "Z19",
+      "name": "zygomatic_left",
+      "label_ru": "скуловая левая",
+      "side": "left",
+      "group": "zygomatic",
+      "seed_uv": [
+        0.21,
+        0.61
+      ],
+      "scale_uv": [
+        0.09,
+        0.08
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "zygomatic_right",
+      "notes": ""
+    },
+    {
+      "num": 20,
+      "zone_id": "Z20",
+      "name": "zygomatic_right",
+      "label_ru": "скуловая правая",
+      "side": "right",
+      "group": "zygomatic",
+      "seed_uv": [
+        0.79,
+        0.61
+      ],
+      "scale_uv": [
+        0.09,
+        0.08
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "zygomatic_left",
+      "notes": ""
+    },
+    {
+      "num": 21,
+      "zone_id": "Z21",
+      "name": "upper_cheek_left",
+      "label_ru": "верхняя щека левая",
+      "side": "left",
+      "group": "cheek",
+      "seed_uv": [
+        0.26,
+        0.51
+      ],
+      "scale_uv": [
+        0.1,
+        0.07
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "upper_cheek_right",
+      "notes": ""
+    },
+    {
+      "num": 22,
+      "zone_id": "Z22",
+      "name": "upper_cheek_right",
+      "label_ru": "верхняя щека правая",
+      "side": "right",
+      "group": "cheek",
+      "seed_uv": [
+        0.74,
+        0.51
+      ],
+      "scale_uv": [
+        0.1,
+        0.07
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "upper_cheek_left",
+      "notes": ""
+    },
+    {
+      "num": 23,
+      "zone_id": "Z23",
+      "name": "mid_cheek_left",
+      "label_ru": "средняя щека левая",
+      "side": "left",
+      "group": "cheek",
+      "seed_uv": [
+        0.21,
+        0.41
+      ],
+      "scale_uv": [
+        0.11,
+        0.08
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "mid_cheek_right",
+      "notes": ""
+    },
+    {
+      "num": 24,
+      "zone_id": "Z24",
+      "name": "mid_cheek_right",
+      "label_ru": "средняя щека правая",
+      "side": "right",
+      "group": "cheek",
+      "seed_uv": [
+        0.79,
+        0.41
+      ],
+      "scale_uv": [
+        0.11,
+        0.08
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "mid_cheek_left",
+      "notes": ""
+    },
+    {
+      "num": 25,
+      "zone_id": "Z25",
+      "name": "nasolabial_left",
+      "label_ru": "носогубная левая",
+      "side": "left",
+      "group": "nasolabial",
+      "seed_uv": [
+        0.385,
+        0.44
+      ],
+      "scale_uv": [
+        0.05,
+        0.07
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "nasolabial_right",
+      "notes": ""
+    },
+    {
+      "num": 26,
+      "zone_id": "Z26",
+      "name": "nasolabial_right",
+      "label_ru": "носогубная правая",
+      "side": "right",
+      "group": "nasolabial",
+      "seed_uv": [
+        0.615,
+        0.44
+      ],
+      "scale_uv": [
+        0.05,
+        0.07
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "nasolabial_left",
+      "notes": ""
+    },
+    {
+      "num": 27,
+      "zone_id": "Z27",
+      "name": "philtrum",
+      "label_ru": "область над губой",
+      "side": "midline",
+      "group": "perioral",
+      "seed_uv": [
+        0.5,
+        0.415
+      ],
+      "scale_uv": [
+        0.06,
+        0.032
+      ],
+      "bonus": 0.02,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 28,
+      "zone_id": "Z28",
+      "name": "upper_lip",
+      "label_ru": "верхняя губа",
+      "side": "midline",
+      "group": "lip",
+      "seed_uv": [
+        0.5,
+        0.378
+      ],
+      "scale_uv": [
+        0.07,
+        0.024
+      ],
+      "bonus": 0.02,
+      "small_ok": true,
+      "excluded_by_segmentation": true,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 29,
+      "zone_id": "Z29",
+      "name": "lower_lip",
+      "label_ru": "нижняя губа",
+      "side": "midline",
+      "group": "lip",
+      "seed_uv": [
+        0.5,
+        0.342
+      ],
+      "scale_uv": [
+        0.07,
+        0.024
+      ],
+      "bonus": 0.02,
+      "small_ok": true,
+      "excluded_by_segmentation": true,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 30,
+      "zone_id": "Z30",
+      "name": "mouth_corner_left",
+      "label_ru": "угол рта левый",
+      "side": "left",
+      "group": "perioral",
+      "seed_uv": [
+        0.375,
+        0.375
+      ],
+      "scale_uv": [
+        0.04,
+        0.04
+      ],
+      "bonus": 0.03,
+      "small_ok": true,
+      "excluded_by_segmentation": false,
+      "pair": "mouth_corner_right",
+      "notes": ""
+    },
+    {
+      "num": 31,
+      "zone_id": "Z31",
+      "name": "mouth_corner_right",
+      "label_ru": "угол рта правый",
+      "side": "right",
+      "group": "perioral",
+      "seed_uv": [
+        0.625,
+        0.375
+      ],
+      "scale_uv": [
+        0.04,
+        0.04
+      ],
+      "bonus": 0.03,
+      "small_ok": true,
+      "excluded_by_segmentation": false,
+      "pair": "mouth_corner_left",
+      "notes": ""
+    },
+    {
+      "num": 32,
+      "zone_id": "Z32",
+      "name": "below_lip",
+      "label_ru": "область под губой",
+      "side": "midline",
+      "group": "perioral",
+      "seed_uv": [
+        0.5,
+        0.305
+      ],
+      "scale_uv": [
+        0.08,
+        0.035
+      ],
+      "bonus": 0.02,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 33,
+      "zone_id": "Z33",
+      "name": "chin_center",
+      "label_ru": "подбородок центр",
+      "side": "midline",
+      "group": "chin",
+      "seed_uv": [
+        0.5,
+        0.215
+      ],
+      "scale_uv": [
+        0.1,
+        0.06
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    },
+    {
+      "num": 34,
+      "zone_id": "Z34",
+      "name": "chin_left",
+      "label_ru": "подбородок левый",
+      "side": "left",
+      "group": "chin",
+      "seed_uv": [
+        0.395,
+        0.205
+      ],
+      "scale_uv": [
+        0.07,
+        0.05
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "chin_right",
+      "notes": ""
+    },
+    {
+      "num": 35,
+      "zone_id": "Z35",
+      "name": "chin_right",
+      "label_ru": "подбородок правый",
+      "side": "right",
+      "group": "chin",
+      "seed_uv": [
+        0.605,
+        0.205
+      ],
+      "scale_uv": [
+        0.07,
+        0.05
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "chin_left",
+      "notes": ""
+    },
+    {
+      "num": 36,
+      "zone_id": "Z36",
+      "name": "jawline_left",
+      "label_ru": "линия челюсти левая",
+      "side": "left",
+      "group": "jaw",
+      "seed_uv": [
+        0.16,
+        0.31
+      ],
+      "scale_uv": [
+        0.1,
+        0.11
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "jawline_right",
+      "notes": ""
+    },
+    {
+      "num": 37,
+      "zone_id": "Z37",
+      "name": "jawline_right",
+      "label_ru": "линия челюсти правая",
+      "side": "right",
+      "group": "jaw",
+      "seed_uv": [
+        0.84,
+        0.31
+      ],
+      "scale_uv": [
+        0.1,
+        0.11
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "jawline_left",
+      "notes": ""
+    },
+    {
+      "num": 38,
+      "zone_id": "Z38",
+      "name": "lower_jaw_left",
+      "label_ru": "нижняя челюсть левая",
+      "side": "left",
+      "group": "jaw",
+      "seed_uv": [
+        0.3,
+        0.135
+      ],
+      "scale_uv": [
+        0.1,
+        0.07
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "lower_jaw_right",
+      "notes": ""
+    },
+    {
+      "num": 39,
+      "zone_id": "Z39",
+      "name": "lower_jaw_right",
+      "label_ru": "нижняя челюсть правая",
+      "side": "right",
+      "group": "jaw",
+      "seed_uv": [
+        0.7,
+        0.135
+      ],
+      "scale_uv": [
+        0.1,
+        0.07
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": "lower_jaw_left",
+      "notes": ""
+    },
+    {
+      "num": 40,
+      "zone_id": "Z40",
+      "name": "submental",
+      "label_ru": "подчелюстная область",
+      "side": "midline",
+      "group": "jaw",
+      "seed_uv": [
+        0.5,
+        0.075
+      ],
+      "scale_uv": [
+        0.15,
+        0.06
+      ],
+      "bonus": 0.0,
+      "small_ok": false,
+      "excluded_by_segmentation": false,
+      "pair": null,
+      "notes": ""
+    }
+  ],
+  "face_support_polygon": [
+    [
+      0.16,
+      0.99
+    ],
+    [
+      0.84,
+      0.99
+    ],
+    [
+      0.93,
+      0.86
+    ],
+    [
+      0.97,
+      0.6
+    ],
+    [
+      0.95,
+      0.3
+    ],
+    [
+      0.86,
+      0.09
+    ],
+    [
+      0.7,
+      0.005
+    ],
+    [
+      0.3,
+      0.005
+    ],
+    [
+      0.14,
+      0.09
+    ],
+    [
+      0.05,
+      0.3
+    ],
+    [
+      0.03,
+      0.6
+    ],
+    [
+      0.07,
+      0.86
+    ]
+  ],
+  "pose_bins": [
+    "left_profile",
+    "left_deep",
+    "left_mid",
+    "left_light",
+    "frontal",
+    "right_light",
+    "right_mid",
+    "right_deep",
+    "right_profile"
+  ],
+  "photo_mask_formula": "projected_zone AND skin_segmentation AND visibility AND safe_boundary AND quality_gate",
+  "analysis_space": "original photo pixels",
+  "segmentation_excluded_zones": [
+    "upper_eyelid_left",
+    "upper_eyelid_right",
+    "lower_eyelid_left",
+    "lower_eyelid_right",
+    "upper_lip",
+    "lower_lip"
+  ],
+  "atlas_hash": "e99ff2e3caf2fdb291898f52fe7dd2f6a8652def0be3f2dbe2895f0a0f8d8e2d"
+}

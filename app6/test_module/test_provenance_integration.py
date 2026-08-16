@@ -28,7 +28,7 @@ class ProvenanceIntegrationTests(unittest.TestCase):
   fields=['source_relative_path','source_digest'];rows=[{'source_relative_path':'b','source_digest':'b'*64},{'source_relative_path':'a','source_digest':'a'*64}]
   with tempfile.TemporaryDirectory() as td:
    paths=[Path(td)/'a.csv',Path(td)/'b.csv']
-   for path,data in zip(paths,(rows,list(reversed(rows)))):
+   for path,data in zip(paths,(rows,list(reversed(rows))),strict=True):
     with path.open('w',newline='',encoding='utf-8') as h:w=csv.DictWriter(h,fieldnames=fields);w.writeheader();w.writerows(data)
    self.assertEqual(compute_dataset_hash(paths[0]),compute_dataset_hash(paths[1]));self.assertEqual(len(compute_dataset_hash(paths[0])),64)
  def test_date_conflict_excludes_chronology(self):

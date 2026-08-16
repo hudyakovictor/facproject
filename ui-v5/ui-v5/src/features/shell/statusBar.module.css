@@ -1,0 +1,105 @@
+.bar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  min-height: var(--status-height);
+  padding: 0 var(--space-4);
+  border-top: var(--line-hairline) solid var(--border-default);
+  background: var(--surface-base);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.marker {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--amber-300);
+  white-space: nowrap;
+}
+
+.divider {
+  width: var(--line-hairline);
+  align-self: stretch;
+  background: var(--border-default);
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.ok {
+  color: var(--green-400);
+}
+
+.error {
+  color: var(--red-400);
+}
+
+.pending {
+  color: var(--cyan-400);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+.blindOff,
+.blindOn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.1rem var(--space-2);
+  border-radius: var(--radius-sm);
+  border: var(--line-hairline) solid var(--border-default);
+  background: transparent;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.blindOn {
+  border-color: var(--violet-400);
+  background: var(--violet-soft);
+  color: var(--violet-300);
+}
+
+.blindOff:hover,
+.blindOn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.blindOff:focus-visible,
+.blindOn:focus-visible {
+  outline: var(--line-strong) solid var(--border-focus);
+  outline-offset: 1px;
+}

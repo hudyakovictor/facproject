@@ -118,9 +118,10 @@ def generate_zones(uv_coords: np.ndarray) -> dict[str, list[int]]:
 
     # Report stats
     total_assigned = int(np.sum(assigned >= 0))
-    print(f"Total vertices: {n_vertices}")
-    print(f"Assigned to zones: {total_assigned} ({100*total_assigned/n_vertices:.1f}%)")
-    print(f"Unassigned: {n_vertices - total_assigned}")
+    if n_vertices > 0:
+        print(f"Total vertices: {n_vertices}")
+        print(f"Assigned to zones: {total_assigned} ({100*total_assigned/n_vertices:.1f}%)")
+        print(f"Unassigned: {n_vertices - total_assigned}")
     print()
     for name in ZONE_PRIORITY:
         count = len(zones.get(name, []))

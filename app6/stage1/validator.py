@@ -159,9 +159,8 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                             dynamic_npz_required[key] = (count, 2)
                         else:
                             dynamic_npz_required[key] = (count, 3)
-            # Update landmark index shapes if needed
-            for key in ("ldm106_vertex_indices",):
-                pass  # (106,) stays
+            # Update landmark index shapes if needed.
+            # NOTE: ldm106_vertex_indices stays (106,) — no shape change needed.
             for key, shape in dynamic_npz_required.items():
                 if key not in z:
                     raise ValidationError(f"NPZ missing {key}")

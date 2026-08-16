@@ -156,6 +156,137 @@ class CrossBinCorroborationTests(unittest.TestCase):
                          "corroborated_multiple_pose_bins")
         self.assertGreaterEqual(rows[0]["cross_bin_support_pose_count"], 2)
 
+    def test_reversed_support_interval_is_not_corroboration(self):
+        rows = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-03-01", "2020-02-10", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "not_corroborated")
+        self.assertEqual(rows[0]["cross_bin_support_count"], 0)
+
+    def test_reversed_primary_interval_is_not_corroborated(self):
+        rows = [
+            self._candidate("A", "frontal", "2020-03-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-01-01", "2020-02-10", src="src2"),
+        ]
+        rows[0].update({
+            "cross_bin_support_pose_bins": "stale",
+            "cross_bin_independent_source_count": 4,
+            "cross_bin_family_matched_count": 3,
+        })
+        apply_cross_bin_corroboration(rows)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "invalid_date_order")
+        self.assertEqual(rows[0]["cross_bin_support_count"], 0)
+        self.assertEqual(rows[0]["cross_bin_support_pose_bins"], "")
+        self.assertEqual(rows[0]["cross_bin_independent_source_count"], 0)
+        self.assertEqual(rows[0]["cross_bin_family_matched_count"], 0)
+
+    def test_unavailable_date_clears_stale_corroboration_fields(self):
+        row = self._candidate("A", "frontal", "2020-01-01", "invalid")
+        row.update({
+            "cross_bin_support_count": 2,
+            "cross_bin_support_pose_count": 2,
+            "cross_bin_support_pose_bins": "left|right",
+            "cross_bin_independent_source_count": 2,
+            "cross_bin_family_matched_count": 2,
+        })
+        apply_cross_bin_corroboration([row])
+        self.assertEqual(row["cross_bin_corroboration_status"], "date_unavailable")
+        self.assertEqual(row["cross_bin_support_count"], 0)
+        self.assertEqual(row["cross_bin_support_pose_count"], 0)
+        self.assertEqual(row["cross_bin_support_pose_bins"], "")
+        self.assertEqual(row["cross_bin_independent_source_count"], 0)
+        self.assertEqual(row["cross_bin_family_matched_count"], 0)
+
+    def test_support_at_window_boundary_is_included(self):
+        rows = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-01-15", "2020-03-17", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=45)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "corroborated_one_pose_bin")
+
+    def test_support_outside_window_is_excluded(self):
+        rows = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-01-15", "2020-03-18", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=45)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "not_corroborated")
+
+    def test_zero_day_window_requires_same_target_date(self):
+        same_day = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-02-01", "2020-02-01", src="src2"),
+        ]
+        apply_cross_bin_corroboration(same_day, window_days=0)
+        self.assertEqual(same_day[0]["cross_bin_corroboration_status"], "corroborated_one_pose_bin")
+
+        next_day = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-02-02", "2020-02-02", src="src2"),
+        ]
+        apply_cross_bin_corroboration(next_day, window_days=0)
+        self.assertEqual(next_day[0]["cross_bin_corroboration_status"], "not_corroborated")
+
+    def test_one_day_window_includes_next_target_date(self):
+        rows = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-02-01", "2020-02-02", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=1)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "corroborated_one_pose_bin")
+
+    def test_support_interval_at_twice_window_is_included(self):
+        rows = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-03-31"),
+            self._candidate("B", "left", "2020-01-01", "2020-03-31", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=45)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "corroborated_one_pose_bin")
+
+    def test_support_interval_over_twice_window_is_excluded(self):
+        rows = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-04-01"),
+            self._candidate("B", "left", "2020-01-01", "2020-04-01", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=45)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "not_corroborated")
+
+    def test_ninety_day_window_includes_distant_corroboration(self):
+        """ER-163: окно 90 дней должно включать события с большим разбросом дат."""
+        rows = [
+            self._candidate("A", "frontal", "2020-01-01", "2020-02-01"),
+            self._candidate("B", "left", "2020-01-15", "2020-04-29", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=90)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"],
+                         "corroborated_one_pose_bin")
+
+    def test_non_overlapping_intervals_not_corroborated(self):
+        """ER-163 N3b: интервалы должны пересекаться; одного соседства дат B недостаточно."""
+        rows = [
+            # primary: 2020-01-01 – 2020-02-01
+            self._candidate("A", "front", "2020-01-01", "2020-02-01"),
+            # support: 2020-06-01 – 2020-06-30 — не пересекается
+            self._candidate("B", "left", "2020-06-01", "2020-06-30", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=45)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"], "not_corroborated")
+
+    def test_overlapping_intervals_are_corroborated(self):
+        """ER-163 N3b: интервалы пересекаются — поддержка засчитывается."""
+        rows = [
+            # primary: 2020-01-01 – 2020-03-01 (~60 дней)
+            self._candidate("A", "front", "2020-01-01", "2020-03-01"),
+            # support: 2020-02-01 – 2020-02-10 — полностью внутри окна и пересекается
+            self._candidate("B", "left", "2020-02-01", "2020-02-10", src="src2"),
+        ]
+        apply_cross_bin_corroboration(rows, window_days=45)
+        self.assertEqual(rows[0]["cross_bin_corroboration_status"],
+                         "corroborated_one_pose_bin")
+
     def test_aggregate_reports_independence(self):
         rows = [
             {"pair_type": "adjacent", "date_b": "2020-02-01", "pose_bin": "frontal",

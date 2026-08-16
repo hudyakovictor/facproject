@@ -27,11 +27,9 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import os
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 # ── путь к проекту ──────────────────────────────────────────────────────
@@ -72,13 +70,9 @@ def assign_synthetic_dates(rows: list[dict[str, str]]) -> dict[str, str]:
     assigned: dict[str, str] = {}
     base = date.fromisoformat(BASE_DATE)
     pid = 1
-    for person, frames in sorted(by_person.items()):
+    for _, frames in sorted(by_person.items()):
         frames.sort(key=lambda x: int(x["frame_index"]))
-        for fi, frame in enumerate(frames):
-            # Каждой персоне — своя эпоха, внутри — порядковый день
-            d = base.replace(year=base.year + (pid - 1) // 10)
-            # но используем стабильный offset
-            pass
+        # Каждой персоне — своя эпоха, внутри — порядковый день.
         for fi, frame in enumerate(frames):
             d = base + timedelta(days=(pid * 1000) + fi)
             assigned[frame["record_id"]] = d.isoformat()
@@ -123,7 +117,7 @@ def run_stage1(input_dir: Path, output_dir: Path) -> None:
     print(f"\n{'='*70}")
     print(f"Запуск Stage 1: {' '.join(cmd)}")
     print(f"{'='*70}\n")
-    result = subprocess.run(cmd, cwd=ROOT)
+    result = subprocess.run(cmd, cwd=ROOT)  # noqa: S603 — фиксированный внутренний не-shell вызов, без untrusted input
     if result.returncode != 0:
         print(f"\n❌ Stage 1 завершился с кодом {result.returncode}")
         sys.exit(result.returncode)

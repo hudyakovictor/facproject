@@ -1,0 +1,901 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: var(--workspace-height, calc(100vh - var(--header-height) - var(--status-height)));
+  width: 100%;
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.banners {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--line-hairline) solid var(--border-default);
+}
+
+.grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/** Сетка «подпись дорожки | полотно». Полотно тянется, подпись фиксирована. */
+.row {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  border-bottom: var(--line-hairline) solid var(--border-subtle);
+}
+
+.rowLabel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  border-right: var(--line-hairline) solid var(--border-default);
+  background: var(--surface-canvas);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.rowLabel small {
+  font-size: 0.5625rem;
+  color: var(--text-disabled);
+}
+
+.canvasArea {
+  position: relative;
+  min-width: 0;
+  cursor: crosshair;
+}
+
+/** Слой фотографий: перекрестие и зум работают поверх него. */
+.photoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  padding-top: var(--space-4);
+  cursor: grab;
+  scrollbar-width: thin;
+}
+
+.thumb {
+  position: relative;
+  flex: 0 0 3.5rem;
+  width: 3.5rem;
+  overflow: hidden;
+  border-radius: 0;
+  border: var(--line-hairline) solid var(--border-default);
+  border-right: none;
+  background: var(--surface-raised);
+  padding: 0;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.thumb:last-child {
+  border-right: var(--line-hairline) solid var(--border-default);
+}
+
+.thumb:focus-visible {
+  outline: var(--line-strong) solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.thumbFinding {
+  border-color: var(--red-400);
+}
+
+.thumbA {
+  border-color: var(--cyan-400);
+  box-shadow: 0 0 0 2px var(--cyan-soft);
+}
+
+.thumbB {
+  border-color: var(--amber-400);
+  box-shadow: 0 0 0 2px var(--amber-soft);
+}
+
+.thumbSelected {
+  z-index: 20;
+  border-color: var(--border-focus);
+}
+
+.thumbPin {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 1;
+  padding: 0 3px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+}
+
+.thumbPinA {
+  color: var(--surface-canvas);
+  background: var(--cyan-400);
+}
+
+.thumbPinB {
+  color: var(--surface-canvas);
+  background: var(--amber-400);
+}
+
+.thumbDimmed {
+  opacity: 0.25;
+}
+
+.thumbCaption {
+  display: block;
+  padding: 1px 3px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pin {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  padding: 0 3px;
+  border-radius: var(--radius-xs);
+}
+
+.pinA {
+  color: var(--surface-canvas);
+  background: var(--cyan-400);
+}
+
+.pinB {
+  color: var(--surface-canvas);
+  background: var(--amber-400);
+}
+
+/** Мост A→B: показывает интервал между сопоставляемыми кадрами. */
+.bridge {
+  position: absolute;
+  top: 0;
+  height: 10px;
+  border: var(--line-hairline) solid var(--amber-400);
+  border-bottom: none;
+  pointer-events: none;
+}
+
+.bridgeLabel {
+  position: absolute;
+  top: -2px;
+  transform: translateX(-50%);
+  padding: 0 var(--space-1);
+  background: var(--surface-canvas);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--amber-300);
+  white-space: nowrap;
+}
+
+.event {
+  position: absolute;
+  width: 0.6rem;
+  height: 0.6rem;
+  transform: translateX(-50%) rotate(45deg);
+  border: var(--line-hairline) solid;
+  padding: 0;
+  cursor: pointer;
+}
+
+.eventChange {
+  top: 0.35rem;
+  border-color: var(--red-300);
+  background: var(--red-400);
+}
+
+.eventLimited {
+  top: 0.35rem;
+  border-color: var(--amber-300);
+  background: var(--amber-500);
+}
+
+.eventProvenance {
+  top: 0.35rem;
+  border-radius: var(--radius-full);
+  transform: translateX(-50%);
+  border-color: var(--violet-300);
+  background: var(--violet-400);
+}
+
+.ruler {
+  position: relative;
+  height: 100%;
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--line-hairline);
+  background: var(--border-subtle);
+}
+
+.tickMajor {
+  background: var(--border-default);
+}
+
+.tickLabel {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tickLabelMajor {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/** Минимапа: полный диапазон с окном текущего вьюпорта. */
+.minimap {
+  position: relative;
+  height: 100%;
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.minimapBar {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.minimapWindow {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border: var(--line-hairline) solid var(--cyan-400);
+  background: var(--cyan-soft);
+  pointer-events: none;
+}
+
+.coverageCell {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  background: var(--cyan-600);
+}
+
+.tooltip {
+  position: fixed;
+  z-index: var(--z-popover);
+  width: 17rem;
+  padding: var(--space-2);
+  border: var(--line-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+
+.tooltipHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.tooltipThumb {
+  width: 3rem;
+  height: 3rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: var(--line-hairline) solid var(--border-default);
+}
+
+.tooltipTitle {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.tooltipTitle strong {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltipGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+}
+
+.tooltipGrid > div {
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-subtle);
+}
+
+.tooltipGrid dt {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+}
+
+.tooltipGrid dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-primary);
+}
+
+.tooltipFindings {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.tooltipFindings li {
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+  border: var(--line-hairline) solid var(--red-500);
+  background: var(--red-soft);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--red-300);
+}
+
+.tooltipHint {
+  margin-top: var(--space-2);
+  padding-top: var(--space-1);
+  border-top: var(--line-hairline) solid var(--border-subtle);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+}
+
+.findingsPanel {
+  border-top: var(--line-hairline) solid var(--border-default);
+  background: var(--surface-base);
+  max-height: 11rem;
+  overflow-y: auto;
+}
+
+.findingsHead {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-base);
+  border-bottom: var(--line-hairline) solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.findingRow {
+  display: grid;
+  grid-template-columns: 6rem 7rem 1fr auto;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) var(--space-4);
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.findingRow:hover,
+.findingRow:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  outline: none;
+}
+
+/* ---- Меню верхней панели (§8.1, §8.10) ---- */
+
+.menuRoot {
+  position: relative;
+}
+
+.menuTrigger {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.menuTrigger:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.menuTrigger[aria-expanded="true"] {
+  border-color: var(--cyan-500);
+  color: var(--cyan-300);
+}
+
+.menuPanel {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 40;
+  width: 30rem;
+  max-height: 28rem;
+  overflow-y: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-popover);
+  padding: var(--space-3);
+}
+
+.menuNote,
+.menuFootnote {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.menuFootnote {
+  margin: var(--space-2) 0 0;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-2);
+}
+
+.menuGroup {
+  margin-bottom: var(--space-3);
+}
+
+.menuGroupTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.menuRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 0;
+}
+
+.menuLabel {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.menuLabel input:disabled + .menuSwatch + .menuName {
+  color: var(--text-disabled);
+}
+
+.menuSwatch {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: var(--radius-xs);
+}
+
+.menuName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuUnit {
+  color: var(--text-muted);
+}
+
+.menuBadgeCalibrated,
+.menuBadgeDiagnostic,
+.menuBadgeLimited {
+  flex: none;
+  border-radius: var(--radius-xs);
+  padding: 0 4px;
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+
+.menuBadgeCalibrated {
+  border: 1px solid var(--green-500);
+  background: var(--green-soft);
+  color: var(--green-300);
+}
+
+.menuBadgeDiagnostic {
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+}
+
+.menuBadgeLimited {
+  margin-left: var(--space-1);
+  border: 1px solid var(--amber-500);
+  background: var(--amber-soft);
+  color: var(--amber-300);
+}
+
+.menuCount,
+.menuCountEmpty {
+  flex: none;
+  width: 4.5rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+.menuCount {
+  color: var(--text-secondary);
+}
+
+.menuCountEmpty {
+  color: var(--text-disabled);
+}
+
+.menuOrder {
+  display: flex;
+  gap: 2px;
+}
+
+.menuOrder button,
+.menuSolo {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 0 4px;
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.menuOrder button:disabled,
+.menuSolo:disabled {
+  color: var(--text-disabled);
+}
+
+.menuOrder button:not(:disabled):hover,
+.menuSolo:not(:disabled):hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.menuMultiRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.menuAction {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-base);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+
+.menuAction:not(:disabled):hover {
+  border-color: var(--cyan-500);
+  color: var(--cyan-300);
+}
+
+.menuAction:disabled {
+  color: var(--text-disabled);
+}
+
+.poseTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-2xs);
+}
+
+.poseTable th,
+.poseTable td {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 3px var(--space-1);
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.poseTable thead th {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.poseTable tbody th {
+  text-align: left;
+  font-weight: 400;
+}
+
+.poseRowActive {
+  background: var(--cyan-soft);
+}
+
+.poseSelect {
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+}
+
+.poseSelect:disabled {
+  color: var(--text-disabled);
+}
+
+.poseSelect:not(:disabled):hover {
+  color: var(--cyan-300);
+}
+
+/* ---- Мультиракурсные полосы (§8.9) ---- */
+
+.lanes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.lanesNote {
+  margin: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.lane {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.laneActive {
+  background: var(--cyan-soft);
+}
+
+.laneHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 2px var(--space-3);
+}
+
+.laneTitle {
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.laneTitle:hover {
+  color: var(--cyan-300);
+}
+
+.laneCount {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.laneBody {
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+.laneTrack {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.laneTrackLabel {
+  width: 9rem;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.laneCanvas {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.lanePhotoRow {
+  position: relative;
+  height: 18px;
+  margin-left: calc(9rem + var(--space-2));
+}
+
+.laneThumb {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  padding: 0 3px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 16px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.laneThumb:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  z-index: 2;
+}
+
+.laneThumbA {
+  border-color: var(--cyan-500);
+  color: var(--cyan-300);
+}
+
+.laneThumbB {
+  border-color: var(--violet-400);
+  color: var(--violet-300);
+}
+
+.laneThumbFinding {
+  border-color: var(--red-500);
+  color: var(--red-300);
+}
+
+.laneThumbCaption {
+  pointer-events: none;
+}
+
+/* ---- Фильтры вида (§9.1, §9.4) ---- */
+
+.menuViewOnly {
+  margin: 0 0 var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  background: var(--surface-base);
+  padding: 2px var(--space-2);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.menuWarn {
+  margin: 0 0 var(--space-2);
+  border-left: 2px solid var(--amber-400);
+  padding-left: var(--space-2);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--amber-300);
+}
+
+.filterRow {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.filterName {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+
+.filterRow input[type="range"] {
+  width: 100%;
+  accent-color: var(--cyan-400);
+}
+
+.histogram {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 40px;
+  margin-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.histBarKept,
+.histBarCut {
+  flex: 1;
+  min-height: 1px;
+  border-radius: 1px 1px 0 0;
+}
+
+.histBarKept {
+  background: var(--cyan-400);
+}
+
+.histBarCut {
+  background: var(--border-strong);
+}
+
+/* ---- Единая вертикаль через дорожки (§8.4) ---- */
+
+.trackStack {
+  position: relative;
+  cursor: grab;
+  user-select: none;
+}
+
+.trackStack:active {
+  cursor: grabbing;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 0;
+  border-left: 1px dashed var(--cyan-400);
+  pointer-events: none;
+}
+
+.playheadLabel {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  border-radius: 0 0 var(--radius-xs) 0;
+  background: var(--surface-overlay);
+  padding: 0 3px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--cyan-300);
+  white-space: nowrap;
+}

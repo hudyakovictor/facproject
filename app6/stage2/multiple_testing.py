@@ -8,7 +8,11 @@ from app6.stage1.status_logger import log_status
 from math import erfc, exp, isfinite, lgamma, log, log1p, sqrt
 from typing import Any
 
-MT_SCHEMA = "deeputin-stage2-multiple-testing-v1.1"
+import numpy as np
+
+from app6.stage2.fdr_control import benjamini_hochberg
+
+MT_SCHEMA = "deeputin-stage2-multiple-testing-v1.2"
 DEFAULT_FDR_LEVEL = 0.05
 
 
@@ -48,24 +52,23 @@ def _p_from_p95_z(z: float, m: int) -> float:
 
 def _bh_qvalues(items: list[tuple[int, float]],
                 *, m_override: int | None = None) -> dict[int, float]:
+    """Thin wrapper around fdr_control.benjamini_hochberg — single canonical BH."""
     if not items:
         return {}
     ordered = sorted(items, key=lambda x: x[1])
-    m = len(ordered)
-    q = [1.0] * m
-    prev = 1.0
-    for rank in range(m, 0, -1):
-        idx, p = ordered[rank - 1]
-        val = min(prev, p * m / rank)
-        q[rank - 1] = val
-        prev = val
-    # Правка (патч 8): число пар завышено из-за зависимости внутри фото.
-    # Ранжирование ведётся по всем m тестам, но BH-фактор делится на
-    # эффективное число независимых наблюдений n_eff, а не на m.
+    idx_list = [i for i, _ in ordered]
+    p_values = np.array([p for _, p in ordered], dtype=np.float64)
+    adjusted, _ = benjamini_hochberg(p_values, fdr_level=1.0)  # raw q-values
+    # Apply m_override scaling for dependence-inflation (patch 8)
+    m = len(items)
     scale = 1.0
     if m_override is not None:
         scale = max(1.0, m / float(max(1, int(m_override))))
-    return {ordered[i][0]: max(0.0, min(1.0, q[i] * scale)) for i in range(m)}
+    # Scale and emit in original order
+    result: dict[int, float] = {}
+    for order_idx, orig_idx in enumerate(idx_list):
+        result[orig_idx] = max(0.0, min(1.0, float(adjusted[order_idx]) * scale))
+    return result
 
 
 def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z",

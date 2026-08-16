@@ -36,12 +36,12 @@ def pose_motion_support(pose_bin: str) -> str:
 def aligned_point_motion(a:Record,b:Record,count:int,identity_only:bool=False)->dict[str,np.ndarray|int|str]:
     """🎯 CRITICAL → Вычисление движения точек между двумя фото.
 
-    Использует chronology-aligned ландмарки (полная pose коррекция).
-    Kabsch alignment применяется для точного выравнивания.
+    Использует raw object-normalized landmarks из канонического loader.
+    Pairwise Kabsch alignment применяется для точного выравнивания.
 
     🔗 DEPENDS ON:
       - engine.run() — вызывается для каждой пары
-      - Record.ldm134 — ДОЛЖЕН быть chronology-aligned
+      - Record.ldm134 — raw object-normalized coordinates
 
     APPLICABILITY:
       - Отклоняет разные pose bins и чрезмерный residual pose delta.
@@ -104,7 +104,7 @@ class PointNoiseModel:
             rs=sorted(rs,key=lambda r:r.date or str(r.sequence))
             for r in rs:templates[(pose,106)].append(r.ldm106);templates[(pose,134)].append(r.ldm134)
             for off in (1,2,3,5,10,20,50):
-                for a,b in zip(rs,rs[off:]):
+                for a,b in zip(rs,rs[off:],strict=False):
                     if self._pose_distance(a,b)>2.5:continue
                     for count in (106,134):
                         m=aligned_point_motion(a,b,count)

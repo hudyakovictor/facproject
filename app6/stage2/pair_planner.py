@@ -9,7 +9,7 @@ def plan_pairs(records:list[Any], *, rolling_step:int=5, max_long_gap:int=24):
         key=(a.record_id,b.record_id)
         if a is b or key in seen:return
         seen.add(key);planned.append((kind,a,b))
-    for a,b in zip(rs,rs[1:]):add("adjacent",a,b)
+    for a,b in zip(rs,rs[1:],strict=False):add("adjacent",a,b)
     if rs:
         for b in rs[2:]:add("baseline",rs[0],b)
     for anchor in range(rolling_step,len(rs),rolling_step):
