@@ -11,6 +11,8 @@ import { BlockedState, EmptyState } from "../../shared/ui/states";
 import { describeError } from "../../shared/ui/errorDetail";
 import { useAnalysisStore } from "../../shared/state/analysisStore";
 import { ABCanvas } from "./ABCanvas";
+import { LandmarkOverlay } from "./LandmarkOverlay";
+import { PairZones } from "./PairZones";
 import { MetricsPanel } from "./MetricsPanel";
 import { RangeSelector, type RangeValue } from "./RangeSelector";
 import { ReviewerWorkspace } from "./ReviewerWorkspace";
@@ -104,7 +106,7 @@ export function PairAnalysisPage() {
 
   /**
    * Порог для A-relative подсветки берётся из калибровки пары, а не
-   * назначается интерфейсом. Без калибровочного значения уровень остаётся
+   * назначается интерф��йсом. Без калибровочного значения уровень остаётся
    * «не измерено»: раскрасить плитки по произвольной шкале значило бы
    * выдумать меру.
    */
@@ -296,6 +298,18 @@ export function PairAnalysisPage() {
             <div className={styles.columns}>
               <div className="flex flex-col gap-4">
                 <ABCanvas
+                  photoA={pairA}
+                  photoB={pairB}
+                  labelA={photoA?.date ?? pairFacts?.dateA ?? pairA}
+                  labelB={photoB?.date ?? pairFacts?.dateB ?? pairB}
+                />
+                <LandmarkOverlay
+                  photoA={pairA}
+                  photoB={pairB}
+                  labelA={photoA?.date ?? pairFacts?.dateA ?? pairA}
+                  labelB={photoB?.date ?? pairFacts?.dateB ?? pairB}
+                />
+                <PairZones
                   photoA={pairA}
                   photoB={pairB}
                   labelA={photoA?.date ?? pairFacts?.dateA ?? pairA}

@@ -71,22 +71,77 @@ export function parseMeshBinary(buffer: ArrayBuffer): MeshPayload {
   };
 }
 
+function flattenXYZ(points: number[][]): Float32Array {
+  const out = new Float32Array(points.length * 3);
+  for (let i = 0; i < points.length; i += 1) {
+    const point = points[i] ?? [];
+    out[i * 3] = point[0] ?? 0;
+    out[i * 3 + 1] = point[1] ?? 0;
+    out[i * 3 + 2] = point[2] ?? 0;
+  }
+  return out;
+}
+
+function flattenTriangles(faces: number[][]): Uint32Array {
+  const out = new Uint32Array(faces.length * 3);
+  for (let i = 0; i < faces.length; i += 1) {
+    const face = faces[i] ?? [];
+    out[i * 3] = face[0] ?? 0;
+    out[i * 3 + 1] = face[1] ?? 0;
+    out[i * 3 + 2] = face[2] ?? 0;
+  }
+  return out;
+}
+
+/** Живой контракт: POST /api/v1/compare/full_mesh, JSON с вершинами A/B. */
 export async function fetchMeshPair(photoA: string, photoB: string): Promise<MeshPayload> {
-  const search = new URLSearchParams({ photo_a: photoA, photo_b: photoB });
-  const response = await fetch(`/api/v1/compare/full_mesh/binary?${search.toString()}`);
+  const response = await fetch("/api/v1/compare/full_mesh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ photo_a: photoA, photo_b: photoB }),
+  });
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
     try {
       const body = (await response.json()) as { detail?: string };
       if (body.detail) detail = body.detail;
     } catch {
-      // Тело не JSON — оставляем код статуса.
+      // тело не JSON
     }
     const error = new Error(detail) as Error & { status?: number };
     error.status = response.status;
     throw error;
   }
-  return parseMeshBinary(await response.arrayBuffer());
+  const payload = (await response.json()) as {
+    schema?: string;
+    photo_a?: { id?: string } | string;
+    photo_b?: { id?: string } | string;
+    vertex_count?: number;
+    triangle_count?: number;
+    vertices_a?: number[][];
+    vertices_b_aligned?: number[][];
+    residuals?: number[];
+    triangles?: number[][];
+    residual_stats?: { min: number; max: number; median: number; p95: number };
+  };
+  const verticesA = flattenXYZ(payload.vertices_a ?? []);
+  const verticesB = flattenXYZ(payload.vertices_b_aligned ?? []);
+  const residuals = Float32Array.from(payload.residuals ?? []);
+  const triangles = flattenTriangles(payload.triangles ?? []);
+  const idOf = (value: { id?: string } | string | undefined, fallback: string) =>
+    typeof value === "string" ? value : value?.id ?? fallback;
+  return {
+    schema: payload.schema ?? "compare-full-mesh",
+    photoA: idOf(payload.photo_a, photoA),
+    photoB: idOf(payload.photo_b, photoB),
+    vertexCount: payload.vertex_count ?? verticesA.length / 3,
+    triangleCount: payload.triangle_count ?? triangles.length / 3,
+    verticesA,
+    verticesB,
+    residuals,
+    triangles,
+    stats: payload.residual_stats ?? { min: 0, max: 0, median: 0, p95: 0 },
+  };
 }
 
 /**

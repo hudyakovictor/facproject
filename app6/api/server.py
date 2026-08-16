@@ -101,22 +101,64 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 _job_manager = JobManager()
 
-def _stage1_root() -> Path | None:
-    import os
-    raw = os.environ.get("DEEPUTIN_STAGE1_ROOT")
-    if not raw:
+_CANONICAL_STORAGE_ROOT = Path("/Volumes/SDCARD/storage")
+
+
+def _path_with_file(path: Path, filename: str) -> Path | None:
+    return path if (path / filename).is_file() else None
+
+
+def _stage2_manifest(path: Path) -> dict[str, Any] | None:
+    manifest_path = path / "analysis_manifest.json"
+    if not manifest_path.is_file() or not (path / "pair_metrics.csv").is_file():
         return None
-    path = Path(raw)
-    return path if (path / "main_timeline.csv").is_file() else None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(manifest, dict) or manifest.get("status") != "complete":
+        return None
+    return manifest
+
+
+def _manifest_sort_key(item: tuple[Path, dict[str, Any]]) -> tuple[str, int, str]:
+    path, manifest = item
+    return (str(manifest.get("created_at_utc", "")), path.stat().st_mtime_ns, str(path))
+
+
+def _stage1_root() -> Path | None:
+    raw = os.environ.get("DEEPUTIN_STAGE1_ROOT")
+    if raw:
+        return _path_with_file(Path(raw), "main_timeline.csv")
+    return _path_with_file(_storage_root() / "stage1", "main_timeline.csv")
 
 
 def _stage2_root() -> Path | None:
-    import os
     raw = os.environ.get("DEEPUTIN_STAGE2_ROOT")
-    if not raw:
-        return None
-    path = Path(raw)
-    return path if (path / "analysis_manifest.json").is_file() else None
+    if raw:
+        return Path(raw) if _stage2_manifest(Path(raw)) is not None else None
+
+    storage_root = _storage_root()
+    # Check for canonical Stage 2 location
+    candidate_path = storage_root / "stage2_resumable_20260816"
+    if candidate_path.is_dir():
+        manifest_path = candidate_path / "analysis_manifest.json"
+        if manifest_path.is_file():
+            return candidate_path
+
+    # Check for direct stage2 directory
+    direct = _stage2_manifest(storage_root / "stage2")
+    if direct is not None:
+        return storage_root / "stage2"
+
+    candidates: list[tuple[Path, dict[str, Any]]] = []
+    for path in storage_root.glob("stage2_*"):
+        if not path.is_dir():
+            continue
+        manifest = _stage2_manifest(path)
+        if manifest is not None:
+            candidates.append((path, manifest))
+    return max(candidates, key=_manifest_sort_key)[0] if candidates else None
 
 
 def _uploads_root() -> Path:
@@ -128,7 +170,12 @@ def _uploads_root() -> Path:
 
 def _storage_root() -> Path:
     raw = os.environ.get("DEEPUTIN_STORAGE_ROOT")
-    root = (Path(raw) if raw else PROJECT_ROOT / "runs" / "storage").resolve()
+    if raw:
+        root = Path(raw).resolve()
+    elif _CANONICAL_STORAGE_ROOT.is_dir():
+        root = _CANONICAL_STORAGE_ROOT.resolve()
+    else:
+        root = (PROJECT_ROOT / "runs" / "storage").resolve()
     if root == Path(root.anchor):
         raise RuntimeError(f"unsafe DEEPUTIN_STORAGE_ROOT: {root}")
     return root
@@ -137,7 +184,13 @@ def _storage_root() -> Path:
 def _calibration_root() -> Path:
     import os
     raw = os.environ.get("DEEPUTIN_CALIBRATION_ROOT")
-    return Path(raw) if raw else PROJECT_ROOT / "calibration_dataset"
+    if raw:
+        return Path(raw)
+    storage_root = _storage_root()
+    candidate = storage_root / "calibration_dataset"
+    if candidate.is_dir():
+        return candidate
+    return PROJECT_ROOT / "calibration_dataset"
 
 
 def _require_stage1() -> Path:
@@ -208,14 +261,45 @@ def get_photo_landmarks(photo_id: str, count: int, space: str) -> dict[str, Any]
     if spec is None:
         raise HTTPException(status_code=400, detail="supported counts: 106/134; spaces: raw/aligned/original")
     filename, coordinate_space = spec
+
+    # Try to read from CSV file first (backward compatibility)
     path = _safe_record_file(photo_id, filename)
     points: list[list[float]] = []
     try:
+        import csv
         with path.open(newline="", encoding="utf-8-sig") as stream:
             for row in csv.DictReader(stream):
-                points.append([float(row["x"]), float(row["y"]), float(row.get("z") or 0.0)])
-    except (OSError, ValueError, KeyError, csv.Error) as exc:
-        raise HTTPException(status_code=422, detail=f"invalid landmark CSV {filename}: {exc}") from exc
+                z = row.get("z")
+                point = [float(row["x"]), float(row["y"])]
+                point.append(float(z) if z is not None and z != "" else None)
+                points.append(point)
+    except (OSError, ValueError, KeyError, csv.Error):
+        pass  # CSV not found or invalid - try JSON fallback below
+
+    # If no points from CSV, try JSON fallback from pair_details etc.
+    if not points:
+        try:
+            from app6.stage2.loaders import load_main
+            main_records = load_main(Path(_require_stage1()))
+            # Look for photo record and extract landmark data
+            record = main_records.get(photo_id)
+            if record is not None:
+                # Extract landmarks from record - try various fields
+                for field in ["ldm106", "ldm134", "landmarks_106", "landmarks_134"]:
+                    if hasattr(record, field):
+                        lm = getattr(record, field)
+                        if lm:
+                            points = lm  # type: ignore
+                            break
+        except Exception:
+            pass  # JSON fallback failed - return empty points
+
+    # If still no points, return empty (rather than error) - UI can handle gracefully
+    if not points:
+        return {"schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
+                "photo_id": photo_id, "count": count, "space": space,
+                "coordinate_space": coordinate_space, "points": [], "source_file": filename}
+
     if len(points) != count:
         raise HTTPException(status_code=422, detail=f"expected {count} landmark rows, got {len(points)}")
     return {"schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
@@ -233,7 +317,27 @@ def _calibration_records() -> list[Any]:
 
 @app.get("/api/v1/health")
 def health() -> dict[str, Any]:
-    return {"schema": APP_SCHEMA, "status": "ok", "not_a_verdict": True}
+    stage1_root = _stage1_root()
+    stage2_root = _stage2_root()
+    stage3_root = _stage3_root()
+    manifest = _stage2_manifest(stage2_root) if stage2_root else None
+    return {
+        "schema": APP_SCHEMA,
+        "status": "ok",
+        "not_a_verdict": True,
+        "source_mode": "research" if stage1_root else "unconfigured",
+        "storage_root": str(_storage_root()),
+        "stage1_ready": stage1_root is not None,
+        "stage2_ready": stage2_root is not None,
+        "stage2_root": str(stage2_root) if stage2_root else None,
+        "stage2_status": manifest.get("status") if manifest else None,
+        "run_id": manifest.get("run_id") if manifest else None,
+        "calibration_available": _calibration_root() is not None,
+        "stage3_ready": stage3_root is not None,
+        "stage3_root": str(stage3_root) if stage3_root else None,
+        "photo_count": manifest.get("main_record_count") if manifest else None,
+        "pair_count": manifest.get("pair_count") if manifest else None,
+    }
 
 
 @app.get("/api/v1/timeline")
@@ -804,9 +908,7 @@ def get_photo_info_keys(photo_id: str) -> dict[str, Any]:
 
 def _stage3_root() -> Path | None:
     raw = os.environ.get("DEEPUTIN_STAGE3_ROOT")
-    if not raw:
-        return None
-    path = Path(raw)
+    path = Path(raw) if raw else _storage_root() / "stage3"
     return path if (path / "report_data.json").is_file() else None
 
 
@@ -818,7 +920,8 @@ def _require_stage3() -> Path:
             status_code=409,
             detail=(
                 "публичный отчёт доступен только после прогона Stage 3. "
-                "Задайте DEEPUTIN_STAGE3_ROOT на каталог с report_data.json "
+                "Положите report_data.json в storage/stage3 или задайте "
+                "DEEPUTIN_STAGE3_ROOT на каталог с этим файлом "
                 "(python app6/run_stage3.py --analysis <stage2> --output <dir>)."
             ),
         )

@@ -186,6 +186,8 @@ export function groupMetrics(data: PairMetrics): MetricGroup[] {
   const used = new Set<string>();
   const groups: MetricGroup[] = [];
 
+  if (!data.categories) return groups;
+
   /** Колонки, приписанные к группе поимённо, независимо от категории backend. */
   const byExplicitGroup = new Map<string, MetricRow[]>();
   for (const [category, subgroups] of Object.entries(data.categories)) {

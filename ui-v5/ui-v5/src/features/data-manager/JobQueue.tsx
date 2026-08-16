@@ -103,10 +103,10 @@ export function JobQueue() {
           return (
             <li key={job.id} className={styles.jobItem}>
               <div className={styles.jobRow}>
-                <span className={`${styles.jobStatus} ${statusClass(job.status)}`}>
-                  {STATUS_LABEL[job.status] ?? job.status}
+                <span className={`${styles.jobStatus} ${statusClass(job.status ?? "")}`}>
+                  {job.status ? STATUS_LABEL[job.status] ?? job.status : "—"}
                 </span>
-                <span className={styles.jobKind}>{job.kind}</span>
+                <span className={styles.jobKind}>{job.kind ?? ""}</span>
                 <span className={styles.jobProgress}>
                   {/* Процент показывается только когда известен размер работы. */}
                   {total > 0 ? `${done} из ${total}${percent === null ? "" : ` · ${percent}%`}` : "объём неизвестен"}

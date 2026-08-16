@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .photo_fields import merge_photo_fields, scan_stage1_records
 from .ui_fields import ERA_BOUNDS, UI_FIELDS_SCHEMA, era_for, validate_ui_row
 
 STAGE1_TIMELINE_SCHEMA = "deeputin-api-stage1-inventory-v1.0"
@@ -30,15 +31,20 @@ def _date_to_ms(value: str | None) -> int | None:
         parsed = date.fromisoformat(str(value)[:10])
     except (TypeError, ValueError):
         return None
-    return int(datetime(parsed.year, parsed.month, parsed.day, tzinfo=UTC).timestamp() * 1000)
+    return int(datetime(parsed.year, parsed.month, parsed.day, tzinfo=timezone.utc).timestamp() * 1000)
 
 
 def build_stage1_inventory(stage1_root: Path) -> dict[str, Any]:
     timeline_path = stage1_root / "main_timeline.csv"
-    if not timeline_path.is_file():
-        raise FileNotFoundError(f"main_timeline.csv отсутствует в {stage1_root}")
-    with timeline_path.open(newline="", encoding="utf-8") as handle:
-        source_rows = list(csv.DictReader(handle))
+    if timeline_path.is_file():
+        with timeline_path.open(newline="", encoding="utf-8") as handle:
+            source_rows = list(csv.DictReader(handle))
+    else:
+        source_rows = scan_stage1_records(stage1_root)
+        if not source_rows:
+            raise FileNotFoundError(
+                f"нет ни main_timeline.csv, ни папок info.json в {stage1_root}"
+            )
     source_rows.sort(key=lambda row: (str(row.get("date") or ""), str(row.get("photo_id") or "")))
     dated = [str(row["date"]) for row in source_rows if row.get("date")]
     first, last = (dated[0], dated[-1]) if dated else ("", "")
@@ -70,6 +76,7 @@ def build_stage1_inventory(stage1_root: Path) -> dict[str, Any]:
             "measurementStatus": "not_compared", "dateProvenanceStatus": source.get("date_provenance_status") or "unknown",
             "dateProvenanceLimited": False, "exifAnomaly": (source.get("date_provenance_status") == "conflict"),
         }
+        merge_photo_fields(row, stage1_root, source.get("photo_id"))
         row["uiContractViolations"] = validate_ui_row(row)
         row["uiFieldsSchema"] = UI_FIELDS_SCHEMA
         for field in row["uiContractViolations"]:

@@ -223,6 +223,18 @@ def load_stage1_info(stage1_root: Path, photo_id: str) -> dict[str, Any]:
     info = json.loads(info_path.read_text(encoding="utf-8"))
     categories = categorize_stage1_info(info)
     leaf_count = _count_leaves(info)
+    # `files` is part of the per-photo Stage 1 contract.  The UI needs a
+    # flat, explicit list to enable only layers that really exist; previously
+    # the endpoint returned the categorized payload but dropped this list,
+    # making the inspector report every image/mesh as unavailable.
+    files = info.get("files")
+    artifacts = sorted(
+        {
+            str(name)
+            for name in (files.values() if isinstance(files, dict) else [])
+            if isinstance(name, str) and name
+        }
+    )
     return {
         "schema": PAIR_METRICS_SCHEMA,
         "not_a_verdict": True,
@@ -231,6 +243,7 @@ def load_stage1_info(stage1_root: Path, photo_id: str) -> dict[str, Any]:
         "leaf_count": leaf_count,
         "category_titles": CATEGORY_TITLES,
         "categories": categories,
+        "artifacts": artifacts,
     }
 
 

@@ -145,7 +145,7 @@ export function MetricsMenu({ photos, visible, onChange }: MetricsMenuProps) {
                         className={count === 0 ? styles.menuCountEmpty : styles.menuCount}
                         title={`${metric.space}`}
                       >
-                        {count === 0 ? "нет данных" : `${count}`}
+                        {`${count}/${photos.length}`}
                       </span>
 
                       {checked ? (

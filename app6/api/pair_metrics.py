@@ -23,7 +23,8 @@ from pathlib import Path
 from typing import Any
 
 from .key_catalog import (
-    ARTIFACT_PLACEMENT, CATEGORY_TITLES, categorize_manifest, categorize_pair_columns, coerce,
+    ARTIFACT_EXTENSIONS, ARTIFACT_PLACEMENT, CATEGORY_TITLES, categorize_manifest,
+    categorize_pair_columns, coerce,
 )
 
 PAIR_METRICS_SCHEMA = "deeputin-api-pair-metrics-v1.0"
@@ -150,10 +151,12 @@ def list_stage2_artifacts(stage2_root: Path) -> list[dict[str, Any]]:
     """
     out: list[dict[str, Any]] = []
     for name, (category, purpose) in sorted(ARTIFACT_PLACEMENT.items()):
-        path = stage2_root / f"{name}.json"
+        extension = ARTIFACT_EXTENSIONS.get(name, "json")
+        path = stage2_root / f"{name}.{extension}"
         present = path.is_file()
         out.append({
             "name": name,
+            "format": extension,
             "category": category,
             "purpose": purpose,
             "present": present,
@@ -175,17 +178,31 @@ def load_stage2_artifact(stage2_root: Path, name: str) -> dict[str, Any]:
     """
     if name not in ARTIFACT_PLACEMENT:
         raise KeyError(f"unknown Stage 2 artifact: {name}")
-    path = stage2_root / f"{name}.json"
+    extension = ARTIFACT_EXTENSIONS.get(name, "json")
+    path = stage2_root / f"{name}.{extension}"
     if not path.is_file():
-        raise FileNotFoundError(f"artifact not produced by this run: {name}.json")
+        raise FileNotFoundError(f"artifact not produced by this run: {name}.{extension}")
 
     size = path.stat().st_size
     truncated = size > _MAX_ARTIFACT_BYTES
     payload: Any
+    row_count: int | None = None
     if truncated:
         # Крупный артефакт не отдаём целиком: интерфейсу нужна структура и
         # начало, а не десятки мегабайт. Факт усечения указывается явно.
         payload = None
+    elif extension == "csv":
+        with path.open(newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            rows = []
+            total_rows = 0
+            for row in reader:
+                total_rows += 1
+                if len(rows) < 1000:
+                    rows.append({key: coerce(value) for key, value in row.items()})
+            payload = rows
+            row_count = total_rows
+            truncated = truncated or total_rows > len(rows)
     else:
         payload = json.loads(path.read_text(encoding="utf-8"))
 
@@ -194,10 +211,12 @@ def load_stage2_artifact(stage2_root: Path, name: str) -> dict[str, Any]:
         "schema": PAIR_METRICS_SCHEMA,
         "not_a_verdict": True,
         "name": name,
+        "format": extension,
         "category": category,
         "purpose": purpose,
         "size_bytes": size,
         "truncated": truncated,
+        "row_count": row_count,
         "payload": payload,
     }
 

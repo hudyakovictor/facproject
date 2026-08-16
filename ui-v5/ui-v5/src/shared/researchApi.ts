@@ -53,6 +53,30 @@ export interface ResearchPhoto {
   dateProvenanceLimited?: boolean;
   bayesianProjectionAvailable?: boolean;
 
+  /** Измерения из Stage 1 info.json — уже извлечены, UI только показывает. */
+  canonicalYaw?: number | null;
+  poseConfidence?: number | null;
+  detectionConfidence?: number | null;
+  alignmentQuality?: number | null;
+  expressionMagnitude?: number | null;
+  jawOpenDegree?: number | null;
+  jawOpenRatio?: number | null;
+  jawOpenDetected?: boolean;
+  smileDetected?: boolean;
+  visibleLdm106?: number | null;
+  visibleLdm134?: number | null;
+  faceAreaRatio?: number | null;
+  correctionMagnitude?: number | null;
+  residualYaw?: number | null;
+  residualPitch?: number | null;
+  residualRoll?: number | null;
+  skinAuthenticity?: number | null;
+  uvCoverage?: number | null;
+  laplacianVariance?: number | null;
+  tenengradMean?: number | null;
+  noiseResidual?: number | null;
+  skinMaskCoverage?: number | null;
+
   /**
    * Сигналы честности контракта: какие обязательные поля отсутствуют именно у
    * этой записи. Источник — `validate_ui_row` в `app6/api/ui_fields.py`.
@@ -95,6 +119,14 @@ export interface RunSummary {
     evidence_state_counts?: Record<string, number>;
     [key: string]: unknown;
   } | null;
+  artifacts?: Array<{
+    name: string;
+    format?: "json" | "csv" | string;
+    category?: string;
+    purpose?: string;
+    present?: boolean;
+    size_bytes?: number | null;
+  }>;
 }
 
 export interface CalibrationHealth {

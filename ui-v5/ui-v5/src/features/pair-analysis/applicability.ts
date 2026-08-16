@@ -36,6 +36,7 @@ export interface Applicability {
 /** Плоский доступ к колонке независимо от того, в какой она категории. */
 export function flattenMetrics(data: PairMetrics): Map<string, MetricValue> {
   const flat = new Map<string, MetricValue>();
+  if (!data.categories) return flat;
   for (const groups of Object.values(data.categories)) {
     for (const columns of Object.values(groups)) {
       for (const [column, value] of Object.entries(columns)) {

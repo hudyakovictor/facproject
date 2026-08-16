@@ -17,6 +17,7 @@ import type { ResearchPhoto } from "../../shared/researchApi";
 export interface FilterSettings {
   qualityThreshold: number;
   poseAngleThreshold: number;
+  mouthThreshold: number;
   findingsMode: boolean;
   search: string;
   activePose: string;
@@ -28,7 +29,7 @@ export interface ExclusionReason {
   /** Короткая запись вида `quality 0.31 < 0.50`. */
   text: string;
   /** Какой регулятор её снимает. */
-  control: "quality" | "pose" | "poseBin" | "search";
+  control: "quality" | "pose" | "mouth" | "poseBin" | "search";
 }
 
 /**
@@ -47,6 +48,27 @@ export function exclusionReasons(
     reasons.push({
       text: `quality ${photo.quality.toFixed(2)} < ${settings.qualityThreshold.toFixed(2)}`,
       control: "quality",
+    });
+  }
+
+  // Поля остаточного угла независимы: отсутствие одного из них не должно
+  // превращать весь максимум в NaN и скрывать остальные валидные измерения.
+  const residualValues = [photo.residualYaw, photo.residualPitch, photo.residualRoll]
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+    .map((value) => Math.abs(value));
+  const residual = residualValues.length > 0 ? Math.max(...residualValues) : null;
+  if (residual !== null && residual > settings.poseAngleThreshold) {
+    reasons.push({
+      text: `остаточный угол ${residual.toFixed(1)}° > ±${settings.poseAngleThreshold}°`,
+      control: "pose",
+    });
+  }
+
+  const mouth = photo.jawOpenRatio;
+  if (typeof mouth === "number" && mouth > settings.mouthThreshold) {
+    reasons.push({
+      text: `рот ${mouth.toFixed(2)} > ${settings.mouthThreshold.toFixed(2)}`,
+      control: "mouth",
     });
   }
 

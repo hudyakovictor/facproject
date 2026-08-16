@@ -258,7 +258,7 @@ export function compactFacts(data: PhotoInfoKeys): CompactFact[] {
     warn: hardStop === true,
   });
 
-  const completeness = artifactCompleteness(data.artifacts);
+  const completeness = artifactCompleteness(data.artifacts ?? []);
   facts.push({
     key: "artifacts",
     label: "Полнота артефактов",
@@ -315,7 +315,7 @@ export function limitations(data: PhotoInfoKeys): string[] {
   if (typeof dup === "string" && dup !== "") {
     notes.push(`Кадр помечен как близкий дубликат ${dup}: считать его независимым наблюдением нельзя.`);
   }
-  const completeness = artifactCompleteness(data.artifacts);
+  const completeness = artifactCompleteness(data.artifacts ?? []);
   if (completeness.missing.length > 0) {
     notes.push(
       `Не все артефакты Stage 1 созданы (нет ${completeness.missing.length} из ${EXPECTED_ARTIFACTS.length}). Часть вкладок останется пустой.`,

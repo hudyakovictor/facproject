@@ -323,4 +323,39 @@ ARTIFACT_PLACEMENT: dict[str, tuple[str, str]] = {
     "metric_catalog": ("I", "Каталог метрик (источник подписей)"),
     "calibration_noise_model": ("A", "Модель углового шума"),
     "analysis_manifest": ("I", "Манифест прогона"),
+    "pair_metrics": ("I", "Полная таблица метрик пар"),
+    "artifact_index": ("G", "Индекс артефактов"),
+    "degraded_modules": ("I", "Деградировавшие модули"),
+    "evidence_chain_manifest": ("A", "Манифест цепочки доказательств"),
+    "gate_report": ("A", "Отчёт контрольных гейтов"),
+    "public_safety_report": ("A", "Отчёт публичной безопасности"),
+    "stage3_input_summary": ("F", "Входная сводка Stage 3"),
+    "texture_summary": ("E", "Сводка текстурного канала"),
+    "alpha_chronology_events": ("F", "События alpha-хронологии"),
+    "event_aggregation": ("F", "Агрегация событий"),
+    "lead_coverage": ("F", "Покрытие лидов"),
+    "manual_review_queue": ("A", "Очередь ручной проверки"),
+    "mesh_pair_metrics": ("B", "Метрики пар mesh-канала"),
+    "mesh_shape_summary": ("B", "Сводка формы mesh"),
+    "mesh_zone_metrics": ("B", "Метрики зон mesh"),
+    "quality_zone_pair_coverage": ("C", "Покрытие зон качества"),
+    "skipped_pairs": ("C", "Пропущенные пары"),
+    "status_summary": ("I", "Сводка статусов"),
+    "texture_pair_metrics": ("E", "Метрики пар текстурного канала"),
+    "texture_zone_metrics": ("E", "Метрики зон текстуры"),
+    "zone_metrics": ("B", "Метрики анатомических зон"),
+}
+
+# Расширение хранится отдельно от назначения: старый контракт `name →
+# (category, purpose)` остаётся совместимым с потребителями каталога.
+ARTIFACT_EXTENSIONS: dict[str, str] = {
+    name: "csv"
+    for name in (
+        "alpha_chronology_events", "event_aggregation", "lead_coverage",
+        "pair_metrics",
+        "manual_review_queue", "mesh_pair_metrics", "mesh_shape_summary",
+        "mesh_zone_metrics", "quality_zone_pair_coverage", "skipped_pairs",
+        "status_summary", "texture_pair_metrics", "texture_zone_metrics",
+        "zone_metrics",
+    )
 }

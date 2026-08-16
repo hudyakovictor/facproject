@@ -51,6 +51,15 @@ export function PhotoInspectorPage() {
     activePose,
     assignToPair,
   } = useAnalysisStore();
+
+  // Инспектор также используется как автономная панель (например, в
+  // resilience-тестах и при встраивании в рабочую станцию), поэтому он не
+  // должен падать без RouterProvider. В штатном маршруте id читается из
+  // адреса, а состояние стора остаётся fallback для открытий из таймлайна.
+  const routePhotoId =
+    typeof window === "undefined"
+      ? undefined
+      : decodeURIComponent(window.location.pathname.match(/\/photos\/([^/]+)/)?.[1] ?? "") || undefined;
   /**
    * Подтверждение копирования — счётчик, а не флаг: он растёт при каждом
    * нажатии и перезапускает CSS-анимацию, которая сама убирает надпись.
@@ -71,9 +80,10 @@ export function PhotoInspectorPage() {
   }, [photos, activePose]);
 
   const current = useMemo(() => {
-    const byId = photos.find((photo) => photo.id === selectedId);
+    const wanted = routePhotoId || selectedId;
+    const byId = wanted ? photos.find((photo) => photo.id === wanted) : undefined;
     return byId ?? scope[0] ?? photos[0] ?? null;
-  }, [photos, scope, selectedId]);
+  }, [photos, scope, selectedId, routePhotoId]);
 
   const index = current ? scope.findIndex((photo) => photo.id === current.id) : -1;
 
@@ -229,7 +239,7 @@ function InspectorBody({ photoId }: { photoId: string }) {
             <section className={styles.panel} aria-label="Компактные факты">
               <div className={styles.panelHeader}>
                 <span className={styles.panelTitle}>КОМПАКТНЫЕ ФАКТЫ</span>
-                <Badge tone="neutral">{data.artifacts.length} артефактов</Badge>
+                <Badge tone="neutral">{data.artifacts?.length ?? 0} артефактов</Badge>
               </div>
               <div className={styles.factGrid}>
                 {facts.map((fact) => (
@@ -245,7 +255,7 @@ function InspectorBody({ photoId }: { photoId: string }) {
             </section>
 
             <div className={styles.splitGrid}>
-              <SplitView photoId={photoId} artifacts={data.artifacts} />
+              <SplitView photoId={photoId} artifacts={data.artifacts ?? []} />
               {/* Правая область §10.2: реконструкция кадра, если mesh.obj создан. */}
               <section className={styles.panel} aria-label="Трёхмерная модель кадра">
                 <div className={styles.panelHeader}>

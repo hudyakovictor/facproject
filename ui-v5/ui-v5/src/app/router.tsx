@@ -43,16 +43,16 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   beforeLoad: () => {
-    throw redirect({ to: "/overview" });
+    throw redirect({ to: "/timeline" });
   },
 });
 
 const overviewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/overview",
-  component: screen("Обзор", () =>
-    import("../features/overview/OverviewPage").then((m) => ({ default: m.OverviewPage })),
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: "/timeline" });
+  },
 });
 
 const timelineRoute = createRoute({
@@ -83,6 +83,16 @@ const inspectorRoute = createRoute({
   ),
 });
 
+const photoRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/photos/$photoId",
+  component: screen("Фото", () =>
+    import("../features/photo-inspector/PhotoInspectorPage").then((m) => ({
+      default: m.PhotoInspectorPage,
+    })),
+  ),
+});
+
 const morphingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/morphing",
@@ -104,7 +114,7 @@ const pairAnalysisRoute = createRoute({
 const clusteringRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/clustering",
-  component: screen("Кластеры", () =>
+  component: screen("Распределение во времени", () =>
     import("../features/clustering/ClusteringPage").then((m) => ({ default: m.ClusteringPage })),
   ),
 });
@@ -183,6 +193,7 @@ const routeTree = rootRoute.addChildren([
   timelineRoute,
   dataManagerRoute,
   inspectorRoute,
+  photoRoute,
   morphingRoute,
   pairAnalysisRoute,
   clusteringRoute,
