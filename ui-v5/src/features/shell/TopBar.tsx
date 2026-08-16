@@ -3,24 +3,15 @@ import * as Popover from "@radix-ui/react-popover";
 import * as Slider from "@radix-ui/react-slider";
 import {
   Activity,
-  AlertTriangle,
-  ArrowLeftRight,
-  Boxes,
   ChevronDown,
-  Database,
   Eye,
-  Filter,
   Flag,
-  Gauge,
-  Layers3,
-  Moon,
-  Search,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { countFindings } from "../../shared/findings";
 import { researchTimeline } from "../../shared/researchApi";
 
 interface TopBarProps {
@@ -49,8 +40,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [findingsMenuOpen, setFindingsMenuOpen] = useState(false);
   const timelineQuery = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
   const photos = timelineQuery.data?.photos ?? [];
-  const findingKeys = new Set(["coherent_jump_candidate", "geometric_mismatch", "change_point", "rapid_rate"]);
-  const findingCount = photos.filter((photo) => photo.flags.length > 0 || Object.entries(photo.stage2StatusCounts).some(([key, count]) => count > 0 && findingKeys.has(key))).length;
+  const findingCount = countFindings(photos);
   const metricCount = ["quality", "yaw", "pitch", "roll"].filter((key) => photos.some((photo) => photo[key as keyof typeof photo] != null)).length;
   const metricRows = [
     ["Quality", "quality"],
@@ -238,8 +228,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <div className="text-[10px] font-mono uppercase text-slate-400 mb-1.5">Маркеры аномалий</div>
                 <div className="space-y-1.5 text-xs text-slate-300">
                   <div className="flex items-center justify-between"><span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-rose-500" />Flags / review</span><span className="font-mono text-rose-400">{photos.filter((photo) => photo.flags.length > 0).length}</span></div>
-                  <div className="flex items-center justify-between"><span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-amber-500" />Coherent jump</span><span className="font-mono text-amber-400">{photos.filter((photo) => (photo.stage2StatusCounts.coherent_jump_candidate ?? 0) > 0).length}</span></div>
-                  <div className="flex items-center justify-between"><span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-purple-500" />Geometry mismatch</span><span className="font-mono text-purple-400">{photos.filter((photo) => (photo.stage2StatusCounts.geometric_mismatch ?? 0) > 0).length}</span></div>
+                  <div className="flex items-center justify-between"><span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-amber-500" />Coherent jump</span><span className="font-mono text-amber-400">{photos.filter((photo) => (photo.stage2StatusCounts?.coherent_jump_candidate ?? 0) > 0).length}</span></div>
+                  <div className="flex items-center justify-between"><span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-purple-500" />Geometry mismatch</span><span className="font-mono text-purple-400">{photos.filter((photo) => (photo.stage2StatusCounts?.geometric_mismatch ?? 0) > 0).length}</span></div>
                 </div>
               </div>
             )}

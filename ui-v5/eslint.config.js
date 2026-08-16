@@ -9,6 +9,13 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Node-скрипты сборки и аудита исполняются вне браузера.
+    files: ["scripts/**/*.{js,mjs}", "*.config.{js,ts}"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2022,

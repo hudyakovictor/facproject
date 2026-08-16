@@ -11,7 +11,6 @@ import {
   Trash2,
   Download,
   Search,
-  Bug,
 } from "lucide-react";
 
 export const ConsoleLogDrawer: React.FC = () => {
@@ -86,15 +85,7 @@ export const ConsoleLogDrawer: React.FC = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  };
-
-  const handleTestError = () => {
-    consoleLogger.addLog(
-      "ERROR",
-      "UI_VALIDATION",
-      "Имитация сетевого сбоя: таймаут ответа от /api/v1/photos/DEEPUTIN_2010_1025_006/mesh",
-      "Failed to fetch resource from server. Check CORS or uvicorn port 8000."
-    );
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -163,18 +154,10 @@ export const ConsoleLogDrawer: React.FC = () => {
                   placeholder="Фильтр лога..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Поиск по журналу"
                   className="bg-transparent text-white text-[11px] focus:outline-none w-28"
                 />
               </div>
-
-              <button
-                onClick={handleTestError}
-                className="flex items-center gap-1 rounded bg-rose-950 px-2 py-1 text-[11px] text-rose-300 border border-rose-800 hover:bg-rose-900 transition"
-                title="Сгенерировать тестовую ошибку"
-              >
-                <Bug className="h-3 w-3" />
-                <span>+Тест ошибки</span>
-              </button>
 
               <button
                 onClick={handleExportJson}

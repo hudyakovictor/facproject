@@ -1,12 +1,34 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { researchTimeline, runSummary } from "../../shared/researchApi";
+import { normalizeStage, stageLabel } from "../../shared/stage";
+import { StageBanner } from "../../shared/ui/StageBanner";
+import { ErrorState, LoadingState } from "../../shared/ui/states";
+import { sortPhotosByTime } from "../../shared/time";
+
+/** Пары «ключ: значение» вместо JSON.stringify в разметке. */
+const CountList: React.FC<{ counts?: Record<string, number> | null }> = ({ counts }) => {
+  const entries = Object.entries(counts ?? {});
+  if (entries.length === 0) return <span className="text-slate-500">н/д</span>;
+  return (
+    <ul className="mt-1 flex flex-wrap gap-1.5">
+      {entries.map(([key, value]) => (
+        <li key={key} className="rounded bg-[#101820] px-2 py-0.5 font-mono text-[11px]">
+          <span className="text-slate-500">{key}: </span>
+          <span className="text-slate-200">{value.toLocaleString("ru-RU")}</span>
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 export const HypothesisValidationPage: React.FC = () => {
   const timeline = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
   const summary = useQuery({ queryKey: ["run-summary"], queryFn: runSummary });
-  if (timeline.isLoading || summary.isLoading) return <div className="p-8 text-slate-300">Загрузка реальных результатов…</div>;
-  const photos = timeline.data?.photos ?? [];
+  const photos = sortPhotosByTime(timeline.data?.photos ?? []).dated;
   const technical = summary.data?.technical_summary;
-  return <div className="flex flex-col h-[calc(100vh-49px)] w-full bg-[#080d12] text-[#e2e8f0] overflow-y-auto p-6 space-y-5"><header className="rounded-lg border border-amber-800/70 bg-[#0b1117] p-5"><div className="font-mono text-sm font-bold text-amber-300">ВАЛИДАЦИЯ ГИПОТЕЗ · ЧЕСТНЫЙ СТАТУС API</div><p className="text-xs text-slate-300 mt-2">В текущем backend-контракте нет рассчитанных карточек H0/H1/H2, SNR, similarity или confidence. Поэтому старые демонстрационные гипотезы удалены из экрана и не заменяются синтетическими.</p></header><section className="grid grid-cols-2 md:grid-cols-4 gap-3">{[["Записей Stage 2",photos.length],["Change-point",technical?.change_point_count],["Источник",summary.data?.source_mode],["Вердикт",summary.data?.not_a_verdict ? "не verdict" : "н/д"]].map(([k,v])=><div key={String(k)} className="rounded-lg border border-[#1f2d3d] bg-[#0b1117] p-4"><div className="text-xs text-slate-500">{k}</div><div className="mt-2 text-lg font-mono text-cyan-300">{v ?? "н/д"}</div></div>)}</section><section className="rounded-lg border border-[#1f2d3d] bg-[#0b1117] p-5"><h2 className="font-mono text-xs text-cyan-300">ДОСТУПНЫЕ ФАКТЫ ВМЕСТО ВЫДУМАННЫХ ГИПОТЕЗ</h2><div className="mt-3 grid md:grid-cols-2 gap-3 text-xs text-slate-300"><div>Диапазон: {photos[0]?.date ?? "н/д"} — {photos.at(-1)?.date ?? "н/д"}</div><div>Статусы: {technical?.status_counts ? JSON.stringify(technical.status_counts) : "н/д"}</div><div>Evidence: {technical?.evidence_state_counts ? JSON.stringify(technical.evidence_state_counts) : "н/д"}</div><div>Поля анализа: качество, ракурс, флаги, статус измерений и пары.</div></div><div className="mt-5 rounded border border-amber-800/60 bg-amber-950/20 p-3 text-xs text-amber-200">Чтобы показывать H0/H1/H2, backend должен вернуть их расчёт и схему доказательств. До этого экран намеренно не делает научных выводов.</div></section></div>;
+  const stage = normalizeStage(timeline.data?.analysis_stage);
+  if (timeline.isLoading || summary.isLoading) return <LoadingState text="Загрузка результатов запуска…" />;
+  if (timeline.error || summary.error) return <ErrorState title="Данные запуска недоступны" error={timeline.error ?? summary.error} onRetry={() => { void timeline.refetch(); void summary.refetch(); }} />;
+  return <div className="flex flex-col h-[calc(100vh-49px)] w-full bg-[#080d12] text-[#e2e8f0] overflow-y-auto p-6 space-y-5"><StageBanner stage={stage} note={timeline.data?.note} /><header className="rounded-lg border border-amber-800/70 bg-[#0b1117] p-5"><div className="font-mono text-sm font-bold text-amber-300">ВАЛИДАЦИЯ ГИПОТЕЗ · {stageLabel(stage)}</div><p className="text-xs text-slate-300 mt-2">В текущем backend-контракте нет рассчитанных карточек H0/H1/H2, SNR, similarity или confidence. Поэтому старые демонстрационные гипотезы удалены из экрана и не заменяются синтетическими.</p></header><section className="grid grid-cols-2 md:grid-cols-4 gap-3">{[["Записей",photos.length],["Change-point",technical?.change_point_count],["Источник",summary.data?.source_mode],["Вердикт",summary.data?.not_a_verdict ? "не verdict" : "н/д"]].map(([k,v])=><div key={String(k)} className="rounded-lg border border-[#1f2d3d] bg-[#0b1117] p-4"><div className="text-xs text-slate-500">{k}</div><div className="mt-2 text-lg font-mono text-cyan-300">{v ?? "н/д"}</div></div>)}</section><section className="rounded-lg border border-[#1f2d3d] bg-[#0b1117] p-5"><h2 className="font-mono text-xs text-cyan-300">ДОСТУПНЫЕ ФАКТЫ ВМЕСТО ВЫДУМАННЫХ ГИПОТЕЗ</h2><div className="mt-3 grid md:grid-cols-2 gap-3 text-xs text-slate-300"><div>Диапазон: {photos[0]?.date ?? "н/д"} — {photos.at(-1)?.date ?? "н/д"}</div><div>Статусы:<CountList counts={technical?.status_counts} /></div><div>Evidence:<CountList counts={technical?.evidence_state_counts} /></div><div>Поля анализа: качество, ракурс, флаги, статус измерений и пары.</div></div><div className="mt-5 rounded border border-amber-800/60 bg-amber-950/20 p-3 text-xs text-amber-200">Чтобы показывать H0/H1/H2, backend должен вернуть их расчёт и схему доказательств. До этого экран намеренно не делает научных выводов.</div></section></div>;
 };
