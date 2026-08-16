@@ -189,7 +189,18 @@ describe("пустые данные не приводят к пустому эк
     mockApi(body([]));
     const { container } = renderPage(<MorphingPage />);
     const text = await settled(container);
-    expect(text).toMatch(/Нет датированных кадров/);
+    // Пустой ответ — это «нет кадров», а не сбой загрузки.
+    expect(text).toMatch(/Нет кадров/);
+    expect(text).not.toMatch(/ошибка|не удалось/i);
+  });
+
+  test("морфинг не интерполирует по одному якорю", async () => {
+    // Один датированный кадр: отрезка для интерполяции не существует, и
+    // страница обязана сказать это, а не показать неподвижную модель.
+    mockApi(body([photo({ date: "2010-01-01", t: 2010 })]));
+    const { container } = renderPage(<MorphingPage />);
+    const text = await settled(container);
+    expect(text).toMatch(/Недостаточно якорей/);
   });
 
   test("инспектор не называет пустые данные ошибкой", async () => {

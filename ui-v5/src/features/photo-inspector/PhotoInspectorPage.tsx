@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, Link2 } from "lucide-react";
 import { usePhotoInfoKeys, useTimeline } from "../../shared/api/queries";
 import { poseLabel } from "../../shared/poseBins";
@@ -6,6 +6,7 @@ import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { QueryState } from "../../shared/ui/QueryState";
 import { Badge, Button, IconButton } from "../../shared/ui/primitives";
+import { LoadingState } from "../../shared/ui/states";
 import { describeError } from "../../shared/ui/errorDetail";
 import { useAnalysisStore } from "../../shared/state/analysisStore";
 import { consoleLogger } from "../../shared/logger";
@@ -27,6 +28,15 @@ import styles from "./inspector.module.css";
  * 🚨 WARNING: страница не выносит суждений о личности. Качество, аутентичность
  * кожи и репроекция — входные данные сравнения пар, а не его результат.
  */
+
+/**
+ * Three.js весит около 900 КБ и нужен только для правой панели. Статический
+ * импорт заставлял бы ждать его загрузки, чтобы увидеть факты о кадре, поэтому
+ * панель подгружается отдельным чанком по требованию.
+ */
+const FaceMesh3D = lazy(() =>
+  import("../../shared/ui/FaceMesh3D").then((module) => ({ default: module.FaceMesh3D })),
+);
 
 function poseBinOf(photo: { bucket?: string | null }): string {
   return photo.bucket ?? "unknown";
@@ -236,8 +246,18 @@ function InspectorBody({ photoId }: { photoId: string }) {
 
             <div className={styles.splitGrid}>
               <SplitView photoId={photoId} artifacts={data.artifacts} />
-              <InspectorTabs data={data} />
+              {/* Правая область §10.2: реконструкция кадра, если mesh.obj создан. */}
+              <section className={styles.panel} aria-label="Трёхмерная модель кадра">
+                <div className={styles.panelHeader}>
+                  <span className={styles.panelTitle}>МОДЕЛЬ КАДРА</span>
+                </div>
+                <Suspense fallback={<LoadingState text="Загрузка трёхмерного просмотра…" />}>
+                  <FaceMesh3D photoId={photoId} />
+                </Suspense>
+              </section>
             </div>
+
+            <InspectorTabs data={data} />
 
             <ManualQA photoId={photoId} />
           </>
