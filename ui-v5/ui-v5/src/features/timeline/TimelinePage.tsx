@@ -4,6 +4,7 @@ import {
   ArrowLeftRight,
   Check,
   Filter,
+  Hand,
   Maximize2,
   Minus,
   Plus,
@@ -44,10 +45,15 @@ import {
 } from "./viewport";
 import { PoseLanes } from "./PoseLanes";
 import { ExportMenu } from "./ExportMenu";
+import { FiltersMenu } from "./FiltersMenu";
+import { MetricsMenu } from "./MetricsMenu";
+import { ANOMALY_LANES, collectAnomalies } from "./anomalies";
+import { exclusionReasons } from "./filters";
 import styles from "./timeline.module.css";
 
 const pct = (v: number | null | undefined) => (v == null ? "н/д" : `${Math.round(v * 100)}%`);
 const metric = (v: number | null | undefined) => (v == null ? "н/д" : v.toFixed(1));
+const scalar = (v: number | null | undefined) => (v == null ? "н/д" : v.toFixed(2));
 
 /**
  * Дорожки метрик. Нормализация переводит величину в [0,1] для вертикальной
@@ -93,7 +99,9 @@ function trackFor(
   const digits = Math.abs(hi) >= 100 ? 0 : Math.abs(hi) >= 10 ? 1 : 2;
   return {
     key: descriptor.id,
-    label: `${METRIC_GROUP_LABELS[descriptor.group].toUpperCase()} · ${descriptor.label.toUpperCase()}`,
+    label: descriptor.id === "quality"
+      ? "КАЧЕСТВО"
+      : `${METRIC_GROUP_LABELS[descriptor.group].toUpperCase()} · ${descriptor.label.toUpperCase()}`,
     range: `${lo.toFixed(digits)} · ${((lo + hi) / 2).toFixed(digits)} · ${hi.toFixed(digits)}${descriptor.unit ?? ""}`,
     color: METRIC_COLORS[descriptor.id] ?? "var(--text-muted)",
     value: descriptor.valueOf,
@@ -106,25 +114,37 @@ const TRACK_HEIGHT = 68;
 const DENSITY_BUCKETS = 160;
 const THUMB_SLOT = 62;
 /** Ширина колонки подписей: должна совпадать с grid-template-columns в .row. */
-const LABEL_COLUMN = "8.5rem";
+const LABEL_COLUMN_PX = 136;
+const ANOMALY_GLYPHS: Record<string, string> = {
+  persistent_change: "◆",
+  return: "↩",
+  change_point: "╳",
+  rapid_rate: "↗",
+  same_day: "▦",
+  provenance: "⌁",
+  review: "!",
+};
 
 export function TimelinePage() {
   const query = useTimeline();
   const areaRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; viewport: Viewport } | null>(null);
   const [areaWidth, setAreaWidth] = useState(1000);
-  const [hover, setHover] = useState<{ time: number } | null>(null);
+  const [hover, setHover] = useState<{ time: number; x: number } | null>(null);
 
   const {
     activePose,
     setActivePose,
     qualityThreshold,
+    mouthThreshold,
+    poseAngleThreshold,
     search,
     setSearch,
     findingsMode,
     multiPose,
     setMultiPose,
     visibleMetrics,
+    setVisibleMetrics,
     selectedPhoto: selected,
     setSelectedPhoto: setSelected,
     pairA: aId,
@@ -170,6 +190,9 @@ export function TimelinePage() {
    * рендер при каждом изменении данных.
    */
   const [userViewport, setUserViewport] = useState<Viewport | null>(null);
+  const [handTool, setHandTool] = useState(false);
+  const spaceHeld = useRef(false);
+  const brushRef = useRef<{ start: number } | null>(null);
   const viewport = useMemo(
     () => (bounds ? (userViewport ? clampViewport(userViewport, bounds) : fitViewport(bounds)) : null),
     [bounds, userViewport],
@@ -186,20 +209,21 @@ export function TimelinePage() {
     return () => observer.disconnect();
   }, []);
 
+  const filterSettings = useMemo(
+    () => ({
+      qualityThreshold,
+      poseAngleThreshold,
+      mouthThreshold,
+      findingsMode,
+      search,
+      activePose,
+      multiPose,
+    }),
+    [qualityThreshold, poseAngleThreshold, mouthThreshold, findingsMode, search, activePose, multiPose],
+  );
   const filtered = useMemo(
-    () =>
-      dated.filter((photo) => {
-        const poseOk =
-          multiPose || photo.bucket.toLowerCase() === activePose.toLowerCase();
-        const q = search.trim().toLowerCase();
-        const text = [photo.id, photo.date, photo.bucket, photo.era, photo.fuzzy, ...photo.flags]
-          .join(" ")
-          .toLowerCase();
-        // null-качество не отбрасывается порогом: отсутствие оценки — не ноль.
-        const qualityOk = photo.quality == null || photo.quality >= qualityThreshold;
-        return poseOk && qualityOk && (!q || text.includes(q));
-      }),
-    [dated, multiPose, activePose, search, qualityThreshold],
+    () => dated.filter((photo) => exclusionReasons(photo, filterSettings).length === 0),
+    [dated, filterSettings],
   );
 
   /** §8.8: находки приглушают остальное, а не удаляют его из выборки. */
@@ -226,13 +250,17 @@ export function TimelinePage() {
         .map((d) => trackFor(d, filtered)),
     [visibleMetrics, filtered],
   );
+  const timelineTracks = useMemo(
+    () => visibleTracks.filter((track) => !["yaw", "pitch", "roll", "residualYaw"].includes(track.key)),
+    [visibleTracks],
+  );
 
   const representatives = useMemo(
     () =>
       viewport
         ? pickRepresentatives(filtered, times, {
             viewport,
-            width: areaWidth,
+            width: Math.max(areaWidth - LABEL_COLUMN_PX, 320),
             slotWidth: THUMB_SLOT,
             pinned: [aId, bId, selected],
           })
@@ -241,6 +269,14 @@ export function TimelinePage() {
   );
 
   const findings = useMemo(() => filtered.filter(isFinding), [filtered]);
+  /**
+   * Зафиксированные аномалии Stage 2 — отдельный слой над метриками:
+   * читаем уже посчитанные chronology_anomalies, ничего не считаем заново.
+   */
+  const anomalies = useMemo(
+    () => collectAnomalies(query.data, dated, times),
+    [query.data, dated, times],
+  );
 
   /**
    * Плотность для минимапы. Раньше здесь рисовался отдельный элемент на каждый
@@ -282,51 +318,61 @@ export function TimelinePage() {
   }, [filtered, times, viewport]);
 
   const selectedPhoto = dated.find((photo) => photo.id === selected) ?? null;
-  const aPhoto = null;
-  const bPhoto = null;
-  const bridgeEnabled = Boolean(viewport && aPhoto && bPhoto);
 
   const [pairRejection, setPairRejection] = useState<string | null>(null);
   const bucketOf = useCallback(
     (id: string) => dated.find((item) => item.id === id)?.bucket,
     [dated],
   );
-  const selectPhoto = (photo: ResearchPhoto) => {
+  const selectPhoto = (photo: ResearchPhoto, asPair = false) => {
     setSelected(photo.id);
-    setPairRejection(assignToPair(photo.id, photo.bucket, bucketOf));
+    if (asPair) setPairRejection(assignToPair(photo.id, photo.bucket, bucketOf));
   };
   const resetPair = () => {
     clearPair();
     setPairRejection(null);
   };
 
-  /** Зум привязан к курсору: точка под ним остаётся на месте (§8.6). */
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    if (!viewport || !bounds) return;
-    event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const localX = event.clientX - rect.left;
-
-    // Горизонтальная прокрутка/Shift двигают шкалу, обычное колесо изменяет масштаб.
-    if (event.deltaX !== 0 || event.shiftKey) {
-      setViewport(panBy(viewport, bounds, (event.deltaX !== 0 ? event.deltaX : event.deltaY) / rect.width));
-    } else {
-      const anchor = xToTime(viewport, localX, rect.width);
-      setViewport(zoomAt(viewport, bounds, anchor, event.deltaY > 0 ? 1.15 : 0.87));
-    }
-  };
+  /** Зум привязан к курсору. Слушатель не passive — иначе preventDefault молчит. */
+  useEffect(() => {
+    const area = areaRef.current;
+    if (!area) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!viewport || !bounds) return;
+      event.preventDefault();
+      const body = area.querySelector<HTMLElement>("[data-timeline-body]");
+      const rect = (body ?? area).getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      if (event.deltaX !== 0 || event.shiftKey) {
+        setViewport(panBy(viewport, bounds, (event.deltaX !== 0 ? event.deltaX : event.deltaY) / rect.width));
+      } else {
+        const anchor = xToTime(viewport, localX, rect.width);
+        setViewport(zoomAt(viewport, bounds, anchor, event.deltaY > 0 ? 1.15 : 0.87));
+      }
+    };
+    area.addEventListener("wheel", onWheel, { passive: false });
+    return () => area.removeEventListener("wheel", onWheel);
+  }, [viewport, bounds, setViewport]);
 
   const handleMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!viewport) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    setHover({
-      time: xToTime(viewport, event.clientX - rect.left, rect.width),
-    });
+    const area = event.currentTarget;
+    const body = area.querySelector<HTMLElement>("[data-timeline-body]");
+    const rect = (body ?? area).getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    const areaRect = area.getBoundingClientRect();
+    const stackX = Math.max(0, Math.min(areaRect.width, event.clientX - areaRect.left));
+    setHover({ time: xToTime(viewport, x, rect.width), x: stackX });
   };
 
-  /** После зума таймлайн перемещается drag левой кнопкой мыши. */
+  const canPan = (event: React.PointerEvent<HTMLDivElement>) =>
+    event.button === 1 || event.altKey || handTool || spaceHeld.current;
+
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || !viewport) return;
+    if (!viewport) return;
+    if (!canPan(event) && event.button !== 0) return;
+    if (!canPan(event)) return;
+    event.preventDefault();
     dragRef.current = { x: event.clientX, viewport };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -335,7 +381,8 @@ export function TimelinePage() {
     handleMove(event);
     const drag = dragRef.current;
     if (!drag || !bounds) return;
-    const rect = event.currentTarget.getBoundingClientRect();
+    const body = event.currentTarget.querySelector<HTMLElement>("[data-timeline-body]");
+    const rect = (body ?? event.currentTarget).getBoundingClientRect();
     setViewport(panBy(drag.viewport, bounds, -(event.clientX - drag.x) / Math.max(rect.width, 1)));
   };
 
@@ -346,32 +393,56 @@ export function TimelinePage() {
     }
   };
 
-  // Клавиатура (§8.6): масштаб и перемещение без мыши.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (!viewport || !bounds) return;
       const target = event.target as HTMLElement | null;
       if (target && /input|textarea|select/i.test(target.tagName)) return;
-
+      if (event.code === "Space") {
+        spaceHeld.current = event.type === "keydown";
+        if (event.type === "keydown") event.preventDefault();
+      }
+      if (event.type !== "keydown" || !viewport || !bounds) return;
       const center = (viewport.start + viewport.end) / 2;
       if (event.key === "+" || event.key === "=") setViewport(zoomAt(viewport, bounds, center, 0.8));
       else if (event.key === "-") setViewport(zoomAt(viewport, bounds, center, 1.25));
       else if (event.key === "ArrowLeft") setViewport(panBy(viewport, bounds, -0.15));
       else if (event.key === "ArrowRight") setViewport(panBy(viewport, bounds, 0.15));
       else if (event.key === "0") setViewport(fitViewport(bounds));
+      else if (event.key === "h" || event.key === "H") setHandTool((value) => !value);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKey);
+    };
   }, [viewport, bounds, setViewport]);
 
-  /** Перетаскивание окна по минимапе (brush, §8.6). */
-  const onMinimap = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!bounds || !viewport) return;
+  const onMinimapDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!bounds) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = (event.clientX - rect.left) / rect.width;
-    const center = bounds.min + ratio * (bounds.max - bounds.min);
-    const span = viewport.end - viewport.start;
-    setViewport(clampViewport({ start: center - span / 2, end: center + span / 2 }, bounds));
+    brushRef.current = { start: bounds.min + ratio * (bounds.max - bounds.min) };
+  };
+  const onMinimapMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!bounds || !brushRef.current || event.buttons !== 1) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - rect.left) / rect.width;
+    const end = bounds.min + ratio * (bounds.max - bounds.min);
+    const start = Math.min(brushRef.current.start, end);
+    const stop = Math.max(brushRef.current.start, end);
+    if (stop - start < 86_400_000) return;
+    setViewport(clampViewport({ start, end: stop }, bounds));
+  };
+  const onMinimapUp = () => {
+    brushRef.current = null;
+  };
+  const jumpEra = (startIso: string, endIso: string) => {
+    if (!bounds) return;
+    const start = Date.parse(startIso);
+    const end = Date.parse(endIso);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+    setViewport(clampViewport({ start, end: end + 86_400_000 }, bounds));
   };
 
   const focusPhoto = (photo: ResearchPhoto) => {
@@ -436,6 +507,27 @@ export function TimelinePage() {
           />
         </label>
 
+        <MetricsMenu photos={dated} visible={visibleMetrics} onChange={setVisibleMetrics} />
+        <FiltersMenu photos={dated} />
+        <button
+          type="button"
+          onClick={() => setHandTool((value) => !value)}
+          aria-pressed={handTool}
+          title="Рука: перетаскивание шкалы. Пробел — временно."
+          className={`rounded-sm border p-1 ${handTool ? "border-cyan-500 text-cyan-300" : "border-line-default text-ink-secondary"}`}
+        >
+          <Hand className="h-3.5 w-3.5" />
+        </button>
+        {Object.entries(query.data?.era_meta ?? {}).slice(0, 6).map(([id, era]) => (
+          <button
+            key={id}
+            type="button"
+            className="rounded-sm border border-line-default px-1.5 py-1 font-mono text-2xs text-ink-muted"
+            onClick={() => jumpEra(era.start, era.end)}
+          >
+            {era.label}
+          </button>
+        ))}
         <ExportMenu
           photos={inViewport}
           metrics={visibleMetrics}
@@ -505,10 +597,7 @@ export function TimelinePage() {
       <div className={styles.grid}>
         {/* Линейка: шаг подстраивается под масштаб (§8.2). */}
         <div className={styles.row}>
-          <div className={styles.rowLabel}>
-            <span>ПЕРИОД</span>
-            <small>{new Date(viewport.start).getUTCFullYear()}—{new Date(viewport.end).getUTCFullYear()}</small>
-          </div>
+          <div className={styles.rowLabel} aria-hidden="true" />
           <div className="relative h-8">
             <div className={styles.ruler}>
               {ticks.map((tick) => (
@@ -528,12 +617,13 @@ export function TimelinePage() {
         <div
           ref={areaRef}
           className={styles.trackStack}
-          onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
-          onMouseLeave={() => setHover(null)}
+          onMouseLeave={() => {
+            setHover(null);
+          }}
         >
           {/*
             Единая вертикаль через все дорожки (§8.4). Перекрестие внутри
@@ -544,7 +634,7 @@ export function TimelinePage() {
             <div
               className={styles.playhead}
               style={{
-                left: `calc(${LABEL_COLUMN} + (100% - ${LABEL_COLUMN}) * ${timeToRatio(viewport, hover.time)})`,
+                left: `${hover.x}px`,
               }}
               aria-hidden="true"
             >
@@ -558,7 +648,7 @@ export function TimelinePage() {
               photos={inViewport}
               times={times}
               viewport={viewport}
-              tracks={visibleTracks}
+              tracks={timelineTracks}
               width={areaWidth}
               activePose={activePose}
               pairA={aId}
@@ -575,13 +665,12 @@ export function TimelinePage() {
             />
           ) : null}
 
-          {!multiPose && visibleTracks.map((track) => (
+          {!multiPose && timelineTracks.map((track) => (
             <div key={track.key} className={styles.row}>
               <div className={styles.rowLabel}>
                 <span>{track.label}</span>
-                <small>{track.range}</small>
               </div>
-              <div className={styles.canvasArea}>
+              <div className={styles.canvasArea} data-timeline-body>
                 <TrackCanvas
                   track={track}
                   photos={inViewport}
@@ -590,12 +679,14 @@ export function TimelinePage() {
                   height={TRACK_HEIGHT}
                   dimmed={dimmed}
                   hoverTime={hover?.time ?? null}
+                  selectedId={selected}
+                  onPick={selectPhoto}
                 />
               </div>
             </div>
           ))}
 
-          {!multiPose && visibleTracks.length === 0 && (
+          {!multiPose && timelineTracks.length === 0 && (
             <div className={styles.row}>
               <div className={styles.rowLabel}>
                 <span>МЕТРИКИ</span>
@@ -606,46 +697,24 @@ export function TimelinePage() {
             </div>
           )}
 
-          {/* Строка фотографий: один кадр — одна координата X. */}
+          {/* Плотная горизонтальная лента миниатюр без подписей и служебных накладок. */}
           <div className={styles.row} hidden={multiPose}>
             <div className={styles.rowLabel}>
-              <span>PHOTO ROW</span>
-              <small>лучший кадр на бакет</small>
+              <span>ФОТО</span>
             </div>
-            <div className={styles.photoRow} style={{ height: 104 }}>
-              {bridgeEnabled && (
-                <div
-                  className={styles.bridge}
-                >
-                  <span className={styles.bridgeLabel}>
-                    {/* мост
-                    ).toLocaleString("ru-RU")}{" "}
-                    дн. */}
-                  </span>
-                </div>
-              )}
-
+            <div className={styles.photoRow} data-timeline-body>
               {representatives.map((photo) => {
-                const state =
-                  photo.id === aId
-                    ? styles.thumbA
-                    : photo.id === bId
-                      ? styles.thumbB
-                      : isFinding(photo)
-                        ? styles.thumbFinding
-                        : "";
+                const ratio = timeToRatio(viewport, times.get(photo.id) ?? 0);
                 return (
                   <button
                     key={photo.id}
                     type="button"
-                    onClick={() => selectPhoto(photo)}
+                    onClick={(event) => selectPhoto(photo, event.shiftKey)}
+                    style={{ left: `${ratio * 100}%` }}
                     aria-label={`Кадр ${labelOf(photo)}`}
-                    className={`${styles.thumb} ${state} ${photo.id === selected ? styles.thumbSelected : ""} ${dimmed(photo) ? styles.thumbDimmed : ""}`}
+                    className={`${styles.thumb} ${photo.id === selected ? styles.thumbSelected : ""} ${dimmed(photo) ? styles.thumbDimmed : ""}`}
                   >
-                    {photo.id === aId && <span className={`${styles.thumbPin} ${styles.thumbPinA}`}>A</span>}
-                    {photo.id === bId && <span className={`${styles.thumbPin} ${styles.thumbPinB}`}>B</span>}
-                    <PhotoImage photoId={photo.id} alt="" className="aspect-square w-full" />
-                    <span className={styles.thumbCaption}>{labelOf(photo)}</span>
+                    <PhotoImage photoId={photo.id} alt="" loading="eager" className="block h-full w-full object-cover" />
                   </button>
                 );
               })}
@@ -653,32 +722,40 @@ export function TimelinePage() {
             </div>
           </div>
 
-          {/* Три дорожки событий вместо одной строки ромбов (§8.2). */}
-          {(
-            [
-              ["ИЗМЕНЕНИЯ", (p: ResearchPhoto) => (p.stage2StatusCounts?.coherent_jump_candidate ?? 0) > 0, styles.eventChange],
-              ["ОГРАНИЧЕНИЯ", (p: ResearchPhoto) => substantiveFlags(p).length > 0, styles.eventLimited],
-              ["ПРОВЕНАНС", (p: ResearchPhoto) => p.dateProvenanceStatus === "conflict" || p.exifAnomaly === true, styles.eventProvenance],
-            ] as const
-          ).map(([label, predicate, cls]) => {
-            const events = inViewport.filter(predicate);
+          {/*
+            Слой аномалий: дорожки строятся из chronology_anomalies и флагов
+            кадров, а не из пересчёта на клиенте (§8.2).
+          */}
+          {ANOMALY_LANES.map(({ kind, title }) => {
+            const events = anomalies.filter((event) => {
+              if (event.kind !== kind) return false;
+              if (event.time == null || !viewport) return false;
+              const ratio = timeToRatio(viewport, event.time);
+              return ratio >= 0 && ratio <= 1;
+            });
             return (
-              <div key={label} className={styles.row}>
+              <div key={kind} className={styles.row}>
                 <div className={styles.rowLabel}>
-                  <span>{label}</span>
-                  <small>{events.length}</small>
+                  <span>{title}</span>
                 </div>
                 <div className="relative h-6">
-                  {events.map((photo) => (
+                  {events.map((event) => (
                     <button
-                      key={photo.id}
+                      key={event.id}
                       type="button"
-                      onClick={() => selectPhoto(photo)}
-                      aria-label={`${label}: ${photo.date ?? photo.id}`}
-                      title={substantiveFlags(photo).join(", ") || photo.fuzzy || label}
-                      className={`${styles.event} ${cls}`}
-                      style={{ left: `${timeToRatio(viewport, times.get(photo.id) ?? 0) * 100}%` }}
-                    />
+                      onClick={(mouse) => {
+                        const photo = event.photoId
+                          ? dated.find((item) => item.id === event.photoId)
+                          : null;
+                        if (photo) selectPhoto(photo, mouse.shiftKey);
+                      }}
+                      aria-label={event.label}
+                      title={event.label}
+                      className={`${styles.event} ${styles[`event_${kind}`] ?? styles.eventChange} ${events.length > 80 ? styles.eventDense : ""}`}
+                      style={{ left: `${timeToRatio(viewport, event.time ?? 0) * 100}%` }}
+                    >
+                      <span aria-hidden="true">{ANOMALY_GLYPHS[kind] ?? "•"}</span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -689,14 +766,15 @@ export function TimelinePage() {
         {/* Минимапа: полный диапазон и окно текущего вида. */}
         <div className={styles.row}>
           <div className={styles.rowLabel}>
-            <span>ОБЗОР</span>
-            <small>перетащите окно</small>
+            <span>МАСШТАБ</span>
           </div>
           <div
             className={styles.minimap}
             style={{ height: 40 }}
-            onMouseDown={onMinimap}
-            onMouseMove={(event) => event.buttons === 1 && onMinimap(event)}
+            onMouseDown={onMinimapDown}
+            onMouseMove={onMinimapMove}
+            onMouseUp={onMinimapUp}
+            onMouseLeave={onMinimapUp}
             role="presentation"
           >
             {density.map((cell) => (
@@ -721,6 +799,15 @@ export function TimelinePage() {
               }}
             />
           </div>
+        </div>
+
+        <div className={styles.timelineLegend} aria-label="Легенда таймлайна">
+          <span className={styles.legendTitle}>ЛЕГЕНДА</span>
+          <span><i className={`${styles.legendSwatch} ${styles.legendFinding}`} /> приоритет проверки</span>
+          <span><i className={`${styles.legendSwatch} ${styles.legendDate}`} /> датировка / EXIF</span>
+          <span><i className={`${styles.legendSwatch} ${styles.legendLimited}`} /> ограниченные данные</span>
+          <span><i className={`${styles.legendSwatch} ${styles.legendSelected}`} /> выбранный кадр</span>
+          <span className={styles.legendNote}>цвет не является выводом о личности</span>
         </div>
       </div>
 
@@ -758,7 +845,9 @@ export function TimelinePage() {
       )}
 
       {selectedPhoto && (
-        <aside className="fixed right-4 top-20 z-30 w-[min(430px,calc(100vw-2rem))] rounded-md border border-cyan-600 bg-surface-base p-4 shadow-popover">
+        <>
+          <div className="fixed inset-0 z-30 bg-black/50" onClick={() => setSelected(null)} aria-hidden="true" />
+          <aside className="fixed left-1/2 top-1/2 z-40 max-h-[calc(100vh-2rem)] w-[min(760px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-cyan-600 bg-surface-base p-5 shadow-popover">
           <div className="flex items-start justify-between">
             <div>
               <div className="font-mono text-xs font-bold text-cyan-300">
@@ -787,12 +876,17 @@ export function TimelinePage() {
             {(
               [
                 ["quality", pct(selectedPhoto.quality)],
-                ["yaw", metric(selectedPhoto.yaw)],
-                ["pitch", metric(selectedPhoto.pitch)],
-                ["roll", metric(selectedPhoto.roll)],
+                ["align", pct(selectedPhoto.alignmentQuality)],
+                ["ракурс", poseLabel(selectedPhoto.bucket)],
+                ["кожа", pct(selectedPhoto.skinQuality)],
+                ["рот", metric(selectedPhoto.jawOpenDegree)],
+                ["выражение", selectedPhoto.expressionMagnitude == null ? "н/д" : selectedPhoto.expressionMagnitude.toFixed(1)],
+                ["pose conf.", pct(selectedPhoto.poseConfidence)],
+                ["bone", scalar(selectedPhoto.boneScore)],
                 ["evidence", selectedPhoto.evidenceState ?? "н/д"],
-                ["measurement", selectedPhoto.measurementStatus],
-                ["pairs", selectedPhoto.stage2PairCount ?? "н/д"],
+                ["status", selectedPhoto.measurementStatus || "н/д"],
+                ["LDM106", selectedPhoto.visibleLdm106 ?? "н/д"],
+                ["UV", pct(selectedPhoto.uvCoverage)],
                 ["provenance", selectedPhoto.dateProvenanceStatus ?? "н/д"],
               ] as [string, string | number][]
             ).map(([key, value]) => (
@@ -815,7 +909,7 @@ export function TimelinePage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => selectPhoto(selectedPhoto)}
+              onClick={() => selectPhoto(selectedPhoto, true)}
               className="rounded-sm border border-cyan-600 px-2 py-1 text-xs text-cyan-300"
             >
               {aId === selectedPhoto.id ? (
@@ -847,9 +941,17 @@ export function TimelinePage() {
             >
               Сбросить пару
             </button>
+            <a
+              href={`/photos/${encodeURIComponent(selectedPhoto.id)}`}
+              className="rounded-sm border border-cyan-600 px-2 py-1 text-xs text-cyan-300"
+            >
+              Страница фото
+            </a>
           </div>
-        </aside>
+          </aside>
+        </>
       )}
+
     </main>
   );
 }

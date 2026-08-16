@@ -196,7 +196,10 @@ function TextureTab({ data }: { data: PhotoInfoKeys }) {
   const info = data.info as Record<string, unknown>;
   const texture = data.texture as Record<string, unknown>;
   const zones = useSkinZones(data.photo_id);
-  const measured = (zones.data?.zones ?? []).filter((zone) => zone.status === "available");
+  // Словарь статусов задаёт backend (`ZONE_STATUSES`): active | excluded | no_data.
+  // Раньше здесь сравнивалось с несуществующим "available", поэтому
+  // счётчик всегда показывал 0 из N.
+  const measured = (zones.data?.zones ?? []).filter((zone) => zone.status === "active");
 
   return (
     <>
@@ -238,30 +241,60 @@ function TextureTab({ data }: { data: PhotoInfoKeys }) {
       {zones.data && (
         <>
           <p className={styles.rowHint}>
-            Измерено {measured.length} из {zones.data.zone_count}. Остальные закрыты
-            ракурсом или исключены сегментацией — это не нулевые значения.
+            Измерено {measured.length} из {zones.data.zone_count} · исключено{" "}
+            {zones.data.excluded_zone_count} · без данных {zones.data.no_data_zone_count}.
+            Неизмеренная зона — это не нулевое значение.
           </p>
           <ul className={styles.zoneList}>
-            {zones.data.zones.map((zone) => (
-              <li
-                key={zone.zone_id}
-                className={styles.zoneItem}
-                data-status={zone.status}
-                title={`${zone.zone_id} · ${zone.name} · ${zone.group}`}
-              >
-                <span className={styles.zoneName}>{zone.label_ru || zone.name}</span>
-                <span className={styles.zoneValue}>
-                  {zone.status === "available"
-                    ? text(zone.metrics.lbp_entropy)
-                    : "закрыта"}
-                </span>
-              </li>
-            ))}
+            {zones.data.zones.map((zone) => {
+              const value =
+                zone.texture_score ?? zone.quality ?? zone.visible_fraction ?? null;
+              return (
+                <li
+                  key={zone.zone_id ?? zone.name ?? ""}
+                  className={styles.zoneItem}
+                  data-status={zone.status}
+                  title={[
+                    zone.zone_id ?? "без zone_id в атласе",
+                    zone.name ?? "",
+                    zone.group ?? "группа н/д",
+                    zone.exclusion_reasons?.length
+                      ? `причины: ${zone.exclusion_reasons.join(", ")}`
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                >
+                  <span className={styles.zoneName}>{zone.label_ru ?? zone.name ?? ""}</span>
+                  <span className={styles.zoneValue}>
+                    {zone.status === "active"
+                      ? text(value)
+                      : zone.status === "excluded"
+                        ? "исключена"
+                        : "нет данных"}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
           <p className={styles.rowHint}>
-            Показана энтропия LBP. Диагностики FFT, альбедо и бликов отдаются тем же
-            эндпоинтом по зонам; отсутствующие значения остаются пустыми.
+            Показан texture_score из `quality.json` (если его нет — quality или
+            visible_fraction из `skin_zone_quality.json`). Остальные каналы
+            (laplacian_var, tenengrad_mean, доли бликов и теней) приходят тем же
+            эндпоинтом и видны в подсказке к зоне.
           </p>
+          {zones.data.available_sources && (
+            <p className={styles.rowHint}>
+              Источники на диске: skin_zone_quality{" "}
+              {zones.data.available_sources.skin_zone_quality ? "есть" : "нет"} ·
+              per_zone_quality{" "}
+              {zones.data.available_sources.per_zone_quality ? "есть" : "нет"} · wrinkle_zones{" "}
+              {zones.data.available_sources.wrinkle_zones ? "есть" : "нет"}
+              {zones.data.available_sources.wrinkle_note
+                ? ` · ${zones.data.available_sources.wrinkle_note}`
+                : ""}
+            </p>
+          )}
         </>
       )}
     </>
@@ -359,7 +392,7 @@ function formatBytes(size: number | null): string {
 }
 
 function ArtifactsTab({ data }: { data: PhotoInfoKeys }) {
-  const completeness = artifactCompleteness(data.artifacts);
+  const completeness = artifactCompleteness(data.artifacts ?? []);
   const files = pick(data.info as Record<string, unknown>, "files") as
     | Record<string, unknown>
     | undefined;

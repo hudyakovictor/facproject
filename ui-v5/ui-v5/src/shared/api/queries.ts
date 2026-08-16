@@ -11,6 +11,9 @@ import {
   PairMetricsSchema,
   PhotoInfoKeysSchema,
   PhotoInventorySchema,
+  ReportSectionSchema,
+  ReportSummarySchema,
+  RunArtifactSchema,
   SkinZonesSchema,
   UploadResultSchema,
   ZoneCatalogSchema,
@@ -38,6 +41,10 @@ export const queryKeys = {
     ["landmarks", photoId, count, space] as const,
   pairMetrics: (photoA: string, photoB: string) => ["pair-metrics", photoA, photoB] as const,
   pairList: (poseBin: string | null) => ["pair-list", poseBin] as const,
+  reportSummary: ["report-summary"] as const,
+  reportSection: (name: string, offset: number, limit: number) =>
+    ["report-section", name, offset, limit] as const,
+  runArtifact: (name: string) => ["run-artifact", name] as const,
 };
 
 /** Ошибки контракта и 4xx повторять бессмысленно — причина не в сети. */
@@ -244,6 +251,54 @@ export function useLandmarks(
       ),
     retry: retryPolicy,
     enabled: Boolean(photoId) && (options.enabled ?? true),
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Отчёт Stage 3
+// ---------------------------------------------------------------------------
+
+/**
+ * Обзор отчёта Stage 3.
+ *
+ * 409 от backend означает «прогон Stage 3 не выполнялся» — это штатное
+ * состояние стенда, а не сбой сети, поэтому запрос не повторяется.
+ */
+export function useReportSummary() {
+  return useQuery({
+    queryKey: queryKeys.reportSummary,
+    queryFn: () => getValidated("/api/v1/report/summary", ReportSummarySchema),
+    retry: retryPolicy,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * Одна секция отчёта. Крупные секции отдаются страницами, поэтому
+ * `offset`/`limit` входят в ключ кеша: две страницы — это два разных ответа.
+ */
+export function useReportSection(name: string | null, offset = 0, limit = 100) {
+  return useQuery({
+    queryKey: queryKeys.reportSection(name ?? "", offset, limit),
+    queryFn: () =>
+      getValidated(
+        `/api/v1/report/sections/${encodeURIComponent(name ?? "")}?offset=${offset}&limit=${limit}`,
+        ReportSectionSchema,
+      ),
+    retry: retryPolicy,
+    enabled: Boolean(name),
+    staleTime: Infinity,
+  });
+}
+
+export function useRunArtifact(name: string | null) {
+  return useQuery({
+    queryKey: queryKeys.runArtifact(name ?? ""),
+    queryFn: () =>
+      getValidated(`/api/v1/run/artifacts/${encodeURIComponent(name ?? "")}`, RunArtifactSchema),
+    retry: retryPolicy,
+    enabled: Boolean(name),
     staleTime: Infinity,
   });
 }

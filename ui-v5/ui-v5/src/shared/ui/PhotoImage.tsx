@@ -16,11 +16,13 @@ export function PhotoImage({
   alt,
   className,
   variant = "cover",
+  loading = "lazy",
 }: {
   photoId: string;
   alt: string;
   className?: string;
   variant?: "cover" | "contain";
+  loading?: "lazy" | "eager";
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -42,7 +44,7 @@ export function PhotoImage({
     <img
       src={`/api/v1/photos/${encodeURIComponent(photoId)}/image`}
       alt={alt}
-      loading="lazy"
+      loading={loading}
       decoding="async"
       onError={() => setFailed(true)}
       className={`${variant === "cover" ? styles.cover : styles.contain} ${className ?? ""}`}

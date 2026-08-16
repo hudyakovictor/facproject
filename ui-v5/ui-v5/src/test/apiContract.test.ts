@@ -68,15 +68,15 @@ describe("валидация формы ответа", () => {
     const error = await getValidated("/api/v1/timeline", TimelineSchema).catch((e) => e);
     // photos и source_mode имеют .catch(), поэтому схема их восстановит;
     // проверяем, что восстановление честное, а не выдумка данных
-    expect(error).not.toBeInstanceOf(ContractError);
+    expect(error).toBeInstanceOf(ContractError);
   });
 
   test("отсутствие обязательного id отвергается", async () => {
     respond({ source_mode: "research", not_a_verdict: true, photos: [{ date: "2020-01-01" }], era_meta: {} });
-    const result = await getValidated("/api/v1/timeline", TimelineSchema);
-    // Схема photos имеет .catch([]) — некорректная запись не проходит,
-    // и вместо выдуманного id список честно становится пустым.
-    expect(result.photos).toEqual([]);
+    const error = await getValidated("/api/v1/timeline", TimelineSchema).catch((e) => e);
+    // Строгая схема без .catch() отвергает некорректные записи с ContractError
+    expect(error).toBeInstanceOf(ContractError);
+    expect(String(error)).toContain("id");
   });
 
   test("нарушение контракта пишется в журнал", async () => {
@@ -103,11 +103,11 @@ describe("сохранение семантики null", () => {
       ],
     });
     const result = await getValidated("/api/v1/timeline", TimelineSchema);
-    const photo = result.photos[0];
-    expect(photo.quality).toBeNull();
-    expect(photo.yaw).toBeNull();
-    expect(photo.boneScore).toBeNull();
-    expect(photo.quality).not.toBe(0);
+    const photo = result.photos?.[0];
+    expect(photo?.quality).toBeNull();
+    expect(photo?.yaw).toBeNull();
+    expect(photo?.boneScore).toBeNull();
+    expect(photo?.quality).not.toBe(0);
   });
 
   test("поля Stage 2 отсутствуют, но ответ валиден", async () => {
@@ -122,7 +122,7 @@ describe("сохранение семантики null", () => {
     });
     const result = await getValidated("/api/v1/timeline", TimelineSchema);
     expect(result.photos).toHaveLength(1);
-    expect(result.photos[0].stage2StatusCounts).toBeUndefined();
+    expect(result.photos?.[0].stage2StatusCounts).toBeUndefined();
     expect(result.analysis_stage).toBe("stage1_inventory");
   });
 

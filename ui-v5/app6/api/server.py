@@ -130,7 +130,17 @@ def _main_record(photo_id: str) -> Any:
     return record
 
 
-_UI_ARTIFACTS = {"face_mask.png": "image/png", "texture.json": "application/json", "info.json": "application/json"}
+_UI_ARTIFACTS = {
+    "original.jpg": "image/jpeg",
+    "thumb.jpg": "image/jpeg",
+    "face_crop.jpg": "image/jpeg",
+    "face_mask.png": "image/png",
+    "uv_texture.png": "image/png",
+    "texture.json": "application/json",
+    "info.json": "application/json",
+    "mesh.obj": "text/plain",
+    "mesh.mtl": "text/plain",
+}
 _LANDMARK_FILES = {
     (106, "raw"): ("ldm106_raw.csv", "raw_object_normalized"),
     (106, "aligned"): ("ldm106_chronology.csv", "chronology_aligned"),
@@ -142,7 +152,23 @@ _LANDMARK_FILES = {
 
 
 def _safe_record_file(photo_id: str, filename: str) -> Path:
-    root = Path(str(_main_record(photo_id).record_dir)).resolve()
+    # Stage 1 artifacts already live under the configured per-photo root.
+    # Resolving through `_main_record()` forces a full timeline inventory scan
+    # for every image request and can leave the inspector canvas blank while
+    # the request waits.  Keep the same traversal protection, but resolve the
+    # requested file directly from the configured Stage 1 root.
+    stage1_root = _stage1_root()
+    if stage1_root is None:
+        raise HTTPException(status_code=409, detail="no Stage 1 output configured (DEEPUTIN_STAGE1_ROOT)")
+    root = stage1_root.resolve()
+    photo_root = (root / photo_id).resolve()
+    try:
+        photo_root.relative_to(root)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid photo_id") from None
+    if not photo_root.is_dir():
+        raise HTTPException(status_code=404, detail=f"no Stage 1 output for {photo_id}")
+    root = photo_root
     path = (root / filename).resolve()
     if root not in path.parents:
         raise HTTPException(status_code=400, detail="invalid artifact path")

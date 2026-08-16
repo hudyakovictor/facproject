@@ -12,6 +12,7 @@ const photo = (over: Partial<ResearchPhoto> = {}): ResearchPhoto => ({
 const base = {
   qualityThreshold: 0.5,
   poseAngleThreshold: 6,
+  mouthThreshold: 0.35,
   findingsMode: false,
   search: "",
   activePose: "frontal",
@@ -45,6 +46,16 @@ describe("причины исключения (§9.5)", () => {
 
   test("подходящий кадр не имеет причин исключения", () => {
     expect(exclusionReasons(photo({ quality: 0.9 }), base)).toEqual([]);
+  });
+
+  test("остаточный угол сверх допуска отбрасывает кадр", () => {
+    const [reason] = exclusionReasons(photo({ quality: 0.9, residualYaw: 12 }), base);
+    expect(reason.control).toBe("pose");
+  });
+
+  test("открытый рот сверх порога отбрасывает кадр", () => {
+    const [reason] = exclusionReasons(photo({ quality: 0.9, jawOpenRatio: 0.5 }), base);
+    expect(reason.control).toBe("mouth");
   });
 });
 

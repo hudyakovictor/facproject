@@ -29,7 +29,13 @@ export type MetricKey = string;
 /** Идентификаторы всех известных метрик — для проверки значений из URL. */
 export const METRIC_KEYS: readonly string[] = METRIC_CATALOG.map((metric) => metric.id);
 
-export const DEFAULT_VISIBLE_METRICS: MetricKey[] = ["quality", "yaw", "pitch", "roll"];
+/** Дорожки, которые Stage 1 реально заполняет в info.json. */
+export const DEFAULT_VISIBLE_METRICS: MetricKey[] = [
+  "quality",
+  "alignmentQuality",
+  "yaw",
+  "pitch",
+];
 
 export interface AnalysisState {
   /** Активный бин ракурса. Инвариант 1: сравнение идёт внутри одного бина. */

@@ -13,29 +13,28 @@ import { z } from "zod";
  */
 
 /** Число или явное отсутствие. `null` здесь семантически значим: это не ноль. */
-const nullableNumber = z.number().finite().nullable().catch(null);
-const nullableString = z.string().nullable().catch(null);
+const nullableNumber = z.number().finite().nullable();
+const nullableString = z.string().nullable();
 
 /**
- * Поля, общие для обеих стадий. `.catch()` не маскирует ошибки: он переводит
- * непредвиденное значение в честное «нет данных», а несоответствие фиксируется
- * отдельно в `collectContractIssues`.
+ * Поля, общие для обеих стадий. Поля могут быть null/undefined если данных нет.
+ * Ошибки валидации не маскируются — они возвращаются как 422 от сервера.
  */
 const basePhoto = z.object({
   id: z.string(),
-  date: nullableString,
-  t: nullableNumber,
-  bucket: z.string().catch("unknown"),
-  era: z.string().catch("unknown"),
+  date: nullableString.optional(),
+  t: nullableNumber.optional(),
+  bucket: z.string(),
+  era: z.string().optional(),
   quality: nullableNumber,
   yaw: nullableNumber,
   pitch: nullableNumber,
   roll: nullableNumber,
-  fuzzy: z.string().catch(""),
-  measurementStatus: z.string().catch("unknown"),
-  flags: z.array(z.string()).catch([]),
-  sourceMode: z.string().catch("research"),
-  analysisStage: z.string().catch("stage1_inventory"),
+  fuzzy: z.string().optional(),
+  measurementStatus: z.string().optional(),
+  flags: z.array(z.string()).optional(),
+  sourceMode: z.string().optional().default("research"),
+  analysisStage: z.string().optional().default("stage1_inventory"),
   dateProvenanceStatus: nullableString.optional(),
 
   qualityBasis: nullableString.optional(),
@@ -64,6 +63,28 @@ const basePhoto = z.object({
   exifAnomaly: z.boolean().optional(),
   dateProvenanceLimited: z.boolean().optional(),
   bayesianProjectionAvailable: z.boolean().optional(),
+  canonicalYaw: nullableNumber.optional(),
+  poseConfidence: nullableNumber.optional(),
+  detectionConfidence: nullableNumber.optional(),
+  alignmentQuality: nullableNumber.optional(),
+  expressionMagnitude: nullableNumber.optional(),
+  jawOpenDegree: nullableNumber.optional(),
+  jawOpenRatio: nullableNumber.optional(),
+  jawOpenDetected: z.boolean().optional(),
+  smileDetected: z.boolean().optional(),
+  visibleLdm106: nullableNumber.optional(),
+  visibleLdm134: nullableNumber.optional(),
+  faceAreaRatio: nullableNumber.optional(),
+  correctionMagnitude: nullableNumber.optional(),
+  residualYaw: nullableNumber.optional(),
+  residualPitch: nullableNumber.optional(),
+  residualRoll: nullableNumber.optional(),
+  skinAuthenticity: nullableNumber.optional(),
+  uvCoverage: nullableNumber.optional(),
+  laplacianVariance: nullableNumber.optional(),
+  tenengradMean: nullableNumber.optional(),
+  noiseResidual: nullableNumber.optional(),
+  skinMaskCoverage: nullableNumber.optional(),
 
   uiContractViolations: z.array(z.string()).optional(),
   uiFieldsSchema: z.string().optional(),
@@ -89,11 +110,11 @@ export const EraMetaSchema = z.record(
 export const TimelineSchema = z
   .object({
     schema: z.string().optional(),
-    source_mode: z.string().catch("research"),
-    not_a_verdict: z.boolean().catch(true),
+    source_mode: z.string().optional().default("research"),
+    not_a_verdict: z.boolean().optional().default(true),
     note: z.string().optional(),
-    photos: z.array(PhotoSchema).catch([]),
-    era_meta: EraMetaSchema.catch({}),
+    photos: z.array(PhotoSchema).optional(),
+    era_meta: EraMetaSchema.optional(),
     chronology_anomalies: z.record(z.string(), z.unknown()).optional(),
     analysis_manifest: z.record(z.string(), z.unknown()).optional(),
     analysis_stage: z.string().optional(),
@@ -106,16 +127,9 @@ export const TimelineSchema = z
 
 export const RunSummarySchema = z
   .object({
-    source_mode: z.string().catch("research"),
-    not_a_verdict: z.boolean().catch(true),
+    source_mode: z.string().optional().default("research"),
+    not_a_verdict: z.boolean().optional().default(true),
     categories: z.record(z.string(), z.unknown()).optional(),
-    /**
-     * Эти поля приходят из локального Stage 2 как сохранённые JSON-артефакты.
-     * В зависимости от версии прогона каталог бывает объектом или массивом,
-     * список артефактов — массивом, а заголовки категорий — вложенными
-     * объектами `{ru, en}`. Не сужаем их до старой формы и не теряем реальные
-     * данные из-за ложной ошибки API-контракта.
-     */
     metric_catalog: z
       .union([z.record(z.string(), z.unknown()), z.array(z.record(z.string(), z.unknown()))])
       .optional(),
@@ -142,11 +156,11 @@ export const RunSummarySchema = z
 
 export const CalibrationHealthSchema = z
   .object({
-    schema: z.string().catch(""),
-    not_a_verdict: z.boolean().catch(true),
-    total_records: z.number().catch(0),
-    total_persons: z.number().catch(0),
-    confidence_counts: z.record(z.string(), z.number()).catch({}),
+    schema: z.string().optional(),
+    not_a_verdict: z.boolean().optional().default(true),
+    total_records: z.number().optional(),
+    total_persons: z.number().optional(),
+    confidence_counts: z.record(z.string(), z.number()).optional(),
     buckets: z
       .record(
         z.string(),
@@ -159,9 +173,9 @@ export const CalibrationHealthSchema = z
         }),
       )
       .catch({}),
-    unreliable_buckets: z.array(z.string()).catch([]),
-    recommendations: z.array(z.string()).catch([]),
-    source: z.string().catch("н/д"),
+    unreliable_buckets: z.array(z.string()).optional(),
+    recommendations: z.array(z.string()).optional(),
+    source: z.string().optional(),
   })
   .loose();
 
@@ -189,13 +203,12 @@ export const JobSchema = z
     schema: z.string().optional(),
     id: z.string(),
     kind: z.string(),
-    status: z.enum(["queued", "running", "complete", "blocked", "failed", "cancelled"]).catch("queued"),
+    status: z.enum(["queued", "running", "complete", "blocked", "failed", "cancelled"]).optional(),
     created_at: z.string().optional(),
     started_at: z.string().nullable().optional(),
     finished_at: z.string().nullable().optional(),
     progress: z
-      .object({ done: z.number().catch(0), total: z.number().catch(0) })
-      .catch({ done: 0, total: 0 }),
+      .object({ done: z.number().optional(), total: z.number().optional() }),
     logs: z.array(z.string()).catch([]),
     result: z.record(z.string(), z.unknown()).nullable().optional(),
     error: z.string().nullable().optional(),
@@ -203,7 +216,7 @@ export const JobSchema = z
   .loose();
 
 export const JobListSchema = z
-  .object({ schema: z.string().optional(), jobs: z.array(JobSchema).catch([]) })
+  .object({ schema: z.string().optional(), jobs: z.array(JobSchema) })
   .loose();
 
 export const JobSubmitSchema = z
@@ -218,22 +231,22 @@ export const JobCancelSchema = z
 export const PhotoInventorySchema = z
   .object({
     schema: z.string().optional(),
-    source_mode: z.string().catch("research"),
-    manifest: z.record(z.string(), z.unknown()).catch({}),
-    count: z.number().catch(0),
-    offset: z.number().catch(0),
-    limit: z.number().catch(0),
+    source_mode: z.string().optional().default("research"),
+    manifest: z.record(z.string(), z.unknown()).optional(),
+    count: z.number().optional(),
+    offset: z.number().optional(),
+    limit: z.number().optional(),
     photos: z
       .array(
         z
           .object({
             id: z.string(),
-            date: z.string().nullable().catch(null),
-            bucket: z.string().catch("unknown"),
+            date: z.string().nullable().optional(),
+            bucket: z.string().optional(),
           })
           .loose(),
       )
-      .catch([]),
+      .optional(),
   })
   .loose();
 
@@ -245,7 +258,6 @@ export const UploadResultSchema = z
     path: z.string().optional(),
   })
   .loose();
-
 export const DeleteResultSchema = z
   .object({ schema: z.string().optional(), deleted: z.string() })
   .loose();
@@ -271,30 +283,47 @@ export const PhotoInfoKeysSchema = z
   .object({
     schema: z.string().optional(),
     photo_id: z.string(),
-    info: z.record(z.string(), z.unknown()).catch({}),
-    validation: z.record(z.string(), z.unknown()).catch({}),
-    texture: z.record(z.string(), z.unknown()).catch({}),
-    artifacts: z.array(z.string()).catch([]),
+    info: z.record(z.string(), z.unknown()).optional(),
+    validation: z.record(z.string(), z.unknown()).optional(),
+    texture: z.record(z.string(), z.unknown()).optional(),
+    artifacts: z.array(z.string()).optional(),
   })
   .loose();
 
 /**
  * Зоны кожи кадра (`/api/v1/photos/{id}/skin_zones`).
  *
- * `status` отличает измеренную зону от закрытой ракурсом или исключённой
+ * `status` отличает измеренную зону от закрытой ракурс��м или исключённой
  * сегментацией. Без этого различия пустая зона неотличима от нулевого
  * значения — а это ровно та подмена, которую запрещает `app6/AGENTS.md`.
  */
 export const SkinZoneSchema = z
   .object({
-    zone_id: z.string(),
-    name: z.string().catch(""),
-    label_ru: z.string().catch(""),
-    group: z.string().catch(""),
-    side: z.string().catch(""),
-    status: z.string().catch("unknown"),
-    pixel_count: z.number().nullable().catch(null),
-    metrics: z.record(z.string(), z.number().nullable()).catch({}),
+    // Зона, которой нет в атласе, приходит без zone_id — это нормальный
+    // случай, а не повреждённый ответ, поэтому поле nullable.
+    zone_id: z.string().nullable().optional(),
+    name: z.string().optional(),
+    label_ru: z.string().optional(),
+    group: z.string().nullable().optional(),
+    side: z.string().nullable().optional(),
+    /** `active` | `excluded` | `no_data` — словарь задан backend (ZONE_STATUSES). */
+    status: z.string().optional(),
+    exclusion_reasons: z.array(z.string()).optional(),
+    // --- skin_zone_quality.json ---
+    visible_fraction: z.number().nullable().optional(),
+    skin_pixels: z.number().nullable().optional(),
+    quality: z.number().nullable().optional(),
+    // --- quality.json → per_zone_quality ---
+    texture_score: z.number().nullable().optional(),
+    texture_usable: z.boolean().nullable().optional(),
+    quality_class: z.string().nullable().optional(),
+    laplacian_var: z.number().nullable().optional(),
+    tenengrad_mean: z.number().nullable().optional(),
+    highlight_fraction: z.number().nullable().optional(),
+    shadow_fraction: z.number().nullable().optional(),
+    skin_fraction: z.number().nullable().optional(),
+    texture_pixels: z.number().nullable().optional(),
+    roi_source: z.string().nullable().optional(),
   })
   .loose();
 
@@ -302,8 +331,24 @@ export const SkinZonesSchema = z
   .object({
     schema: z.string().optional(),
     photo_id: z.string(),
-    zone_count: z.number().catch(0),
+    pose_bin: z.string().nullable().optional(),
+    skin_mask_coverage: z.number().nullable().optional(),
+    zone_count: z.number().optional(),
+    active_zone_count: z.number().optional(),
+    excluded_zone_count: z.number().optional(),
+    no_data_zone_count: z.number().optional(),
     zones: z.array(SkinZoneSchema).catch([]),
+    /** Честный перечень того, какие артефакты Stage 1 реально нашлись. */
+    available_sources: z
+      .object({
+        skin_zone_quality: z.boolean().optional(),
+        per_zone_quality: z.boolean().optional(),
+        wrinkle_zones: z.boolean().optional(),
+        wrinkle_note: z.string().optional(),
+      })
+      .loose()
+      .nullable()
+      .catch(null),
   })
   .loose();
 
@@ -312,7 +357,7 @@ export const ZoneCatalogSchema = z
   .object({
     schema: z.string().optional(),
     schema_version: z.string().optional(),
-    zone_count: z.number().catch(0),
+    zone_count: z.number().optional(),
     primary_policy: z.string().nullable().optional(),
     photo_mask_formula: z.string().nullable().optional(),
     zones: z
@@ -345,10 +390,10 @@ export const LandmarksSchema = z
   .object({
     schema: z.string().optional(),
     photo_id: z.string(),
-    count: z.number().catch(0),
-    space: z.string().catch(""),
-    columns: z.array(z.string()).catch([]),
-    points: z.array(z.array(z.number())).catch([]),
+    count: z.number().optional(),
+    space: z.string().optional(),
+    columns: z.array(z.string()).optional(),
+    points: z.array(z.array(z.number())).optional(),
   })
   .loose();
 
@@ -357,6 +402,79 @@ export type SkinZone = z.infer<typeof SkinZoneSchema>;
 export type SkinZones = z.infer<typeof SkinZonesSchema>;
 export type ZoneCatalog = z.infer<typeof ZoneCatalogSchema>;
 export type Landmarks = z.infer<typeof LandmarksSchema>;
+
+// ---------------------------------------------------------------------------
+// Отчёт Stage 3
+// ---------------------------------------------------------------------------
+
+/**
+ * Секции отчёта описываются самим backend: `present` и `size` — это
+ * факт наличия данных, а не обещание фронтенда. Перечисля��ь имена
+ * секций константой в UI нельзя: список задаёт Stage 3.
+ */
+export const ReportSectionListItemSchema = z
+  .object({
+    name: z.string(),
+    title: z.string().optional(),
+    present: z.boolean().optional(),
+    size: z.number().nullable().optional(),
+    paged: z.boolean().optional(),
+  })
+  .loose();
+
+export const ReportSummarySchema = z
+  .object({
+    schema: z.string().optional(),
+    not_a_verdict: z.boolean().optional(),
+    source_mode: z.string().optional().default("research"),
+    report_schema_version: z.string().nullable().optional(),
+    stage2_schema_version: z.string().nullable().optional(),
+    created_at_utc: z.string().nullable().optional(),
+    summary: z.record(z.string(), z.unknown()).optional(),
+    narrative: z.array(z.unknown()).optional(),
+    methodology: z.record(z.string(), z.unknown()).optional(),
+    validation: z.unknown().nullable().optional(),
+    sections: z.array(ReportSectionListItemSchema).optional(),
+    status_semantics: z.record(z.string(), z.string()).optional(),
+    withheld_column_prefixes: z.array(z.string()).optional(),
+    withheld_note: z.string().nullable().optional(),
+  })
+  .loose();
+
+export const ReportSectionSchema = z
+  .object({
+    schema: z.string().optional(),
+    not_a_verdict: z.boolean().optional(),
+    name: z.string(),
+    title: z.string(),
+    present: z.boolean().optional(),
+    total: z.number().nullable().optional(),
+    offset: z.number().nullable().optional(),
+    returned: z.number().nullable().optional(),
+    paged: z.boolean().optional(),
+    payload: z.unknown(),
+  })
+  .loose();
+
+export const RunArtifactSchema = z
+  .object({
+    schema: z.string().optional(),
+    not_a_verdict: z.boolean().optional(),
+    name: z.string(),
+    format: z.string().optional(),
+    category: z.string().optional(),
+    purpose: z.string().optional(),
+    size_bytes: z.number().nullable().optional(),
+    truncated: z.boolean().optional(),
+    row_count: z.number().nullable().optional(),
+    payload: z.unknown().nullable(),
+  })
+  .loose();
+
+export type ReportSectionListItem = z.infer<typeof ReportSectionListItemSchema>;
+export type ReportSummary = z.infer<typeof ReportSummarySchema>;
+export type ReportSection = z.infer<typeof ReportSectionSchema>;
+export type RunArtifact = z.infer<typeof RunArtifactSchema>;
 
 // ---------------------------------------------------------------------------
 // Парное сравнение (§11)
@@ -384,19 +502,19 @@ export const PairMetricsSchema = z
   .object({
     schema: z.string().optional(),
     not_a_verdict: z.boolean().optional(),
-    source_mode: z.string().catch("research"),
+    source_mode: z.string().optional().default("research"),
     photo_a: z.string(),
     photo_b: z.string(),
     /** Stage 2 хранит хронологический порядок; пользователь мог выбрать обратный. */
-    reversed_order: z.boolean().catch(false),
-    column_count: z.number().catch(0),
-    available_count: z.number().catch(0),
+reversed_order: z.boolean().optional(),
+    column_count: z.number().optional(),
+    available_count: z.number().optional(),
     category_titles: z
       .record(z.string(), z.object({ ru: z.string(), en: z.string() }).loose())
-      .catch({}),
+      .optional(),
     categories: z
       .record(z.string(), z.record(z.string(), z.record(z.string(), MetricValueSchema)))
-      .catch({}),
+      .optional(),
   })
   .loose();
 
@@ -404,7 +522,7 @@ export const PairMetricsSchema = z
 export const PairListSchema = z
   .object({
     schema: z.string().optional(),
-    count: z.number().catch(0),
+    count: z.number().optional(),
     pairs: z
       .array(
         z
@@ -412,16 +530,16 @@ export const PairListSchema = z
             pair_id: z.string(),
             photo_a: z.string(),
             photo_b: z.string(),
-            pose_bin: z.string().nullable().catch(null),
-            date_a: z.string().nullable().catch(null),
-            date_b: z.string().nullable().catch(null),
-            status: z.string().nullable().catch(null),
-            evidence_state: z.string().nullable().catch(null),
-            pair_type: z.string().nullable().catch(null),
+            pose_bin: z.string().nullable().optional(),
+            date_a: z.string().nullable().optional(),
+            date_b: z.string().nullable().optional(),
+            status: z.string().nullable().optional(),
+            evidence_state: z.string().nullable().optional(),
+            pair_type: z.string().nullable().optional(),
           })
           .loose(),
       )
-      .catch([]),
+      .optional(),
   })
   .loose();
 

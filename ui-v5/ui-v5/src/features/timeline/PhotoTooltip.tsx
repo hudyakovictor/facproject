@@ -18,6 +18,7 @@ import styles from "./timeline.module.css";
 
 const pct = (v: number | null | undefined) => (v == null ? "н/д" : `${Math.round(v * 100)}%`);
 const deg = (v: number | null | undefined) => (v == null ? "н/д" : `${v.toFixed(1)}°`);
+const number = (v: number | null | undefined) => (v == null ? "н/д" : v.toFixed(2));
 
 export function PhotoTooltip({
   photo,
@@ -74,8 +75,36 @@ export function PhotoTooltip({
           <dd>{deg(photo.roll)}</dd>
         </div>
         <div>
-          <dt>boneScore</dt>
-          <dd>{photo.boneScore == null ? "н/д" : photo.boneScore.toFixed(2)}</dd>
+          <dt>align</dt>
+          <dd>{pct(photo.alignmentQuality)}</dd>
+        </div>
+        <div>
+          <dt>pose conf.</dt>
+          <dd>{pct(photo.poseConfidence)}</dd>
+        </div>
+        <div>
+          <dt>evidence</dt>
+          <dd>{photo.evidenceState ?? "н/д"}</dd>
+        </div>
+        <div>
+          <dt>кожа</dt>
+          <dd>{pct(photo.skinQuality)}</dd>
+        </div>
+        <div>
+          <dt>рот</dt>
+          <dd>{deg(photo.jawOpenDegree)}</dd>
+        </div>
+        <div>
+          <dt>выражение</dt>
+          <dd>{photo.expressionMagnitude == null ? "н/д" : photo.expressionMagnitude.toFixed(1)}</dd>
+        </div>
+        <div>
+          <dt>bone</dt>
+          <dd>{number(photo.boneScore)}</dd>
+        </div>
+        <div>
+          <dt>p0 / p1 / p2</dt>
+          <dd>{[photo.p0, photo.p1, photo.p2].map(number).join(" / ")}</dd>
         </div>
         <div>
           <dt>provenance</dt>
@@ -92,13 +121,13 @@ export function PhotoTooltip({
       )}
 
       <div className={styles.tooltipHint}>
-        Клик — назначить A/B ·{" "}
+        Клик — выбрать · Shift+клик — в пару A/B ·{" "}
         {/*
           Ссылка несёт идентификатор кадра: без него инспектор открывался
           пустым, и кадр приходилось искать заново.
         */}
-        <Link to="/inspector" search={(prev) => ({ ...prev, photo: photo.id })}>
-          инспектор
+        <Link to="/photos/$photoId" params={{ photoId: photo.id }}>
+          страница фото
         </Link>
         {" · "}
         <Link to="/pair-analysis" search={(prev) => ({ ...prev, photo: photo.id })}>

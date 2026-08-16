@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ResearchPhoto } from "../../shared/researchApi";
 import { consoleLogger } from "../../shared/logger";
@@ -37,7 +37,7 @@ export function SidecarEditor({ photo }: SidecarEditorProps) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isValid },
   } = useForm<SidecarValues>({
     resolver: zodResolver(sidecarSchema),
@@ -54,7 +54,7 @@ export function SidecarEditor({ photo }: SidecarEditorProps) {
     },
   });
 
-  const claimed = watch("claimed_date");
+  const claimed = useWatch({ control, name: "claimed_date" });
   const delta = claimedDateDelta(claimed?.trim() || undefined, photo.date);
 
   const download = (values: SidecarValues) => {

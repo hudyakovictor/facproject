@@ -19,7 +19,8 @@
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: linear-gradient(180deg, var(--surface-raised), var(--surface-canvas));
   border-bottom: var(--line-hairline) solid var(--border-default);
 }
 
@@ -63,28 +64,26 @@
 
 /** Слой фотографий: перекрестие и зум работают поверх него. */
 .photoRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  position: relative;
   min-width: 0;
-  padding-top: var(--space-4);
-  cursor: grab;
-  scrollbar-width: thin;
+  height: 4.25rem;
+  padding: 0;
+  overflow: hidden;
+  overflow-y: hidden;
 }
 
 .thumb {
-  position: relative;
-  flex: 0 0 3.5rem;
-  width: 3.5rem;
+  position: absolute;
+  top: 0;
+  width: 4.25rem;
+  height: 4.25rem;
   overflow: hidden;
   border-radius: 0;
   border: var(--line-hairline) solid var(--border-default);
-  border-right: none;
   background: var(--surface-raised);
   padding: 0;
   cursor: pointer;
+  transform: translateX(-50%);
   transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
@@ -116,41 +115,8 @@
   border-color: var(--border-focus);
 }
 
-.thumbPin {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  z-index: 1;
-  padding: 0 3px;
-  border-radius: var(--radius-xs);
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  font-weight: 700;
-}
-
-.thumbPinA {
-  color: var(--surface-canvas);
-  background: var(--cyan-400);
-}
-
-.thumbPinB {
-  color: var(--surface-canvas);
-  background: var(--amber-400);
-}
-
 .thumbDimmed {
   opacity: 0.25;
-}
-
-.thumbCaption {
-  display: block;
-  padding: 1px 3px;
-  font-family: var(--font-mono);
-  font-size: 0.5rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .pin {
@@ -198,12 +164,21 @@
 
 .event {
   position: absolute;
-  width: 0.6rem;
-  height: 0.6rem;
-  transform: translateX(-50%) rotate(45deg);
-  border: var(--line-hairline) solid;
+  display: grid;
+  place-items: center;
+  width: 0.7rem;
+  height: 0.7rem;
+  transform: translateX(-50%);
+  border: 1px solid;
+  border-radius: 999px;
   padding: 0;
   cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--surface-canvas);
+  box-shadow: 0 0 0 1px var(--surface-canvas);
 }
 
 .eventChange {
@@ -221,9 +196,82 @@
 .eventProvenance {
   top: 0.35rem;
   border-radius: var(--radius-full);
-  transform: translateX(-50%);
   border-color: var(--violet-300);
   background: var(--violet-400);
+}
+
+/* Дорожки зафиксированных аномалий Stage 2. */
+.event_persistent_change {
+  top: 0.35rem;
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+  border-color: var(--red-300);
+  background: var(--red-400);
+}
+
+.event_persistent_change span {
+  transform: rotate(-45deg);
+}
+
+.event_return {
+  top: 0.35rem;
+  border-radius: var(--radius-full);
+  border-color: var(--cyan-300);
+  background: var(--cyan-400);
+}
+
+.event_change_point {
+  top: 0.35rem;
+  border-radius: 2px;
+  border-color: var(--amber-300);
+  background: var(--amber-500);
+}
+
+.event_rapid_rate {
+  top: 0.35rem;
+  border-radius: 2px 999px 2px 999px;
+  border-color: var(--amber-300);
+  background: var(--amber-400);
+}
+
+.event_same_day {
+  top: 0.35rem;
+  border-radius: var(--radius-full);
+  border-color: var(--violet-300);
+  background: var(--violet-400);
+}
+
+.event_provenance {
+  top: 0.35rem;
+  border-radius: var(--radius-full);
+  border-color: var(--violet-300);
+  background: var(--violet-400);
+}
+
+.event_review {
+  top: 0.35rem;
+  border-radius: 2px;
+  border-color: var(--red-300);
+  background: var(--red-500);
+}
+
+.event_review span {
+  font-size: 0.55rem;
+}
+
+/* При высокой плотности оставляем каждый факт, но превращаем его в читаемый тик,
+   чтобы соседние кнопки не слипались в визуальную «гусеницу». */
+.eventDense {
+  width: 2px;
+  height: 0.8rem;
+  border: 0;
+  border-radius: 1px;
+  box-shadow: none;
+  transform: translateX(-50%) !important;
+}
+
+.eventDense span {
+  display: none;
 }
 
 .ruler {
@@ -288,6 +336,108 @@
   bottom: 0;
   transform: translateX(-50%);
   background: var(--cyan-600);
+}
+
+.coverageRow {
+  height: 1.35rem;
+  position: relative;
+  min-width: 0;
+  border-top: var(--line-hairline) solid var(--border-subtle);
+}
+
+.coverageCell {
+  height: 100%;
+  min-width: 2px;
+  opacity: 0.8;
+}
+
+.coverageEmpty {
+  background: var(--border-default);
+  opacity: 0.35;
+}
+
+.coverageLimited {
+  background: var(--amber-500);
+}
+
+.coverageComplete {
+  background: var(--cyan-500);
+}
+
+.timelineLegend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--line-hairline) solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+.legendTitle {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.legendSwatch {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.25rem;
+  border-radius: 1px;
+  vertical-align: -1px;
+}
+
+.legendFinding {
+  background: var(--red-400);
+}
+
+.legendDate {
+  background: var(--amber-400);
+}
+
+.legendLimited {
+  background: var(--text-muted);
+}
+
+.legendSelected {
+  border: 1px solid var(--border-focus);
+  background: var(--cyan-soft);
+}
+
+.legendNote {
+  margin-left: auto;
+  color: var(--amber-300);
+}
+
+.pipelineStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-4) var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.pipelineChip {
+  padding: 2px 6px;
+  border: var(--line-hairline) solid var(--border-default);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+}
+
+.pipelineChipAccent {
+  border-color: var(--cyan-600);
+  color: var(--cyan-300);
+}
+
+.pipelineChipWarning {
+  border-color: var(--amber-600);
+  color: var(--amber-300);
 }
 
 .tooltip {

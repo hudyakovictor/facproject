@@ -21,11 +21,22 @@ export const token = (name: string) => `var(${name})`;
  */
 export const METRIC_COLORS: Record<string, string> = {
   yaw: token("--cyan-400"),
-  quality: token("--green-400"),
   pitch: token("--violet-400"),
   roll: token("--amber-400"),
-  boneScore: token("--blue-400"),
+  residualYaw: token("--cyan-300"),
+  quality: token("--green-400"),
+  alignmentQuality: token("--green-300"),
   confidence: token("--cyan-300"),
+  poseConfidence: token("--blue-400"),
+  skinQuality: token("--amber-300"),
+  skinAuthenticity: token("--violet-300"),
+  uvCoverage: token("--blue-300"),
+  expressionMagnitude: token("--red-300"),
+  jawOpenDegree: token("--amber-400"),
+  faceAreaRatio: token("--green-400"),
+  visibleLdm106: token("--cyan-400"),
+  correctionMagnitude: token("--violet-400"),
+  boneScore: token("--blue-400"),
 };
 
 /**
