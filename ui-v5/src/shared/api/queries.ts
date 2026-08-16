@@ -6,8 +6,12 @@ import {
   JobCancelSchema,
   JobListSchema,
   JobSubmitSchema,
+  LandmarksSchema,
+  PhotoInfoKeysSchema,
   PhotoInventorySchema,
+  SkinZonesSchema,
   UploadResultSchema,
+  ZoneCatalogSchema,
 } from "./schemas";
 
 /**
@@ -25,6 +29,11 @@ export const queryKeys = {
   jobs: ["jobs"] as const,
   photoInventory: (offset: number, limit: number, poseBin: string | null) =>
     ["photo-inventory", offset, limit, poseBin] as const,
+  photoInfoKeys: (photoId: string) => ["photo-info-keys", photoId] as const,
+  skinZones: (photoId: string) => ["skin-zones", photoId] as const,
+  zoneCatalog: ["zone-catalog"] as const,
+  landmarks: (photoId: string, count: number, space: string) =>
+    ["landmarks", photoId, count, space] as const,
 };
 
 /** Ошибки контракта и 4xx повторять бессмысленно — причина не в сети. */
@@ -161,5 +170,76 @@ export function useDeletePhotoDerivatives() {
         method: "DELETE",
       }),
     onSuccess: () => void client.invalidateQueries({ queryKey: queryKeys.timeline }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Инспектор кадра (§10)
+// ---------------------------------------------------------------------------
+
+/**
+ * Полный `info.json` кадра. Данные неизменны после извлечения Stage 1, поэтому
+ * перезапрашивать их при возврате на вкладку незачем.
+ */
+export function usePhotoInfoKeys(photoId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.photoInfoKeys(photoId ?? ""),
+    queryFn: () =>
+      getValidated(
+        `/api/v1/photos/${encodeURIComponent(photoId ?? "")}/info_keys`,
+        PhotoInfoKeysSchema,
+      ),
+    retry: retryPolicy,
+    enabled: Boolean(photoId),
+    staleTime: Infinity,
+  });
+}
+
+/** Измерения по 40 зонам кожи для конкретного кадра. */
+export function useSkinZones(photoId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.skinZones(photoId ?? ""),
+    queryFn: () =>
+      getValidated(
+        `/api/v1/photos/${encodeURIComponent(photoId ?? "")}/skin_zones`,
+        SkinZonesSchema,
+      ),
+    retry: retryPolicy,
+    enabled: Boolean(photoId),
+    staleTime: Infinity,
+  });
+}
+
+/** Атлас зон: один на весь архив, грузится один раз. */
+export function useZoneCatalog(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: queryKeys.zoneCatalog,
+    queryFn: () => getValidated("/api/v1/zones/catalog", ZoneCatalogSchema),
+    retry: retryPolicy,
+    enabled: options.enabled ?? true,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * Ландмарки в конкретном пространстве. Пространство — часть ключа кеша:
+ * `original` и `chronology` это разные числа, а не разный вид одних и тех же.
+ */
+export function useLandmarks(
+  photoId: string | null,
+  count: number,
+  space: string,
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: queryKeys.landmarks(photoId ?? "", count, space),
+    queryFn: () =>
+      getValidated(
+        `/api/v1/photos/${encodeURIComponent(photoId ?? "")}/landmarks/${count}/${space}`,
+        LandmarksSchema,
+      ),
+    retry: retryPolicy,
+    enabled: Boolean(photoId) && (options.enabled ?? true),
+    staleTime: Infinity,
   });
 }

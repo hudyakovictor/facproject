@@ -241,3 +241,108 @@ export const DeleteResultSchema = z
 
 export type Job = z.infer<typeof JobSchema>;
 export type PhotoInventory = z.infer<typeof PhotoInventorySchema>;
+
+// ---------------------------------------------------------------------------
+// Инспектор кадра (§10)
+// ---------------------------------------------------------------------------
+
+/**
+ * Полный `info.json` кадра (`/api/v1/photos/{id}/info_keys`).
+ *
+ * Stage 1 сохраняет около 156 листовых ключей на кадр: параметры декодирования,
+ * провенанс даты, позу, репроекцию, качество кожи, перечень файлов. Интерфейс
+ * до сих пор использовал восемь из них. Схема намеренно не перечисляет ключи
+ * поимённо: список зависит от версии пайплайна, и жёсткий перечень превратил бы
+ * появление нового ключа в ошибку контракта. Разбор по категориям — в
+ * `infoKeys.ts`, там же живут русские заголовки.
+ */
+export const PhotoInfoKeysSchema = z
+  .object({
+    schema: z.string().optional(),
+    photo_id: z.string(),
+    info: z.record(z.string(), z.unknown()).catch({}),
+    validation: z.record(z.string(), z.unknown()).catch({}),
+    texture: z.record(z.string(), z.unknown()).catch({}),
+    artifacts: z.array(z.string()).catch([]),
+  })
+  .loose();
+
+/**
+ * Зоны кожи кадра (`/api/v1/photos/{id}/skin_zones`).
+ *
+ * `status` отличает измеренную зону от закрытой ракурсом или исключённой
+ * сегментацией. Без этого различия пустая зона неотличима от нулевого
+ * значения — а это ровно та подмена, которую запрещает `app6/AGENTS.md`.
+ */
+export const SkinZoneSchema = z
+  .object({
+    zone_id: z.string(),
+    name: z.string().catch(""),
+    label_ru: z.string().catch(""),
+    group: z.string().catch(""),
+    side: z.string().catch(""),
+    status: z.string().catch("unknown"),
+    pixel_count: z.number().nullable().catch(null),
+    metrics: z.record(z.string(), z.number().nullable()).catch({}),
+  })
+  .loose();
+
+export const SkinZonesSchema = z
+  .object({
+    schema: z.string().optional(),
+    photo_id: z.string(),
+    zone_count: z.number().catch(0),
+    zones: z.array(SkinZoneSchema).catch([]),
+  })
+  .loose();
+
+/** Атлас зон кожи (`/api/v1/zones/catalog`) — 40 зон с русскими названиями. */
+export const ZoneCatalogSchema = z
+  .object({
+    schema: z.string().optional(),
+    schema_version: z.string().optional(),
+    zone_count: z.number().catch(0),
+    primary_policy: z.string().nullable().optional(),
+    photo_mask_formula: z.string().nullable().optional(),
+    zones: z
+      .array(
+        z
+          .object({
+            zone_id: z.string(),
+            name: z.string().catch(""),
+            label_ru: z.string().catch(""),
+            group: z.string().catch(""),
+            side: z.string().catch(""),
+            seed_uv: z.array(z.number()).catch([]),
+            scale_uv: z.array(z.number()).catch([]),
+          })
+          .loose(),
+      )
+      .catch([]),
+  })
+  .loose();
+
+/**
+ * Ландмарки кадра (`/api/v1/photos/{id}/landmarks/{count}/{space}`).
+ *
+ * `space` существенен: `original` — пиксели исходного кадра, `raw` — объект с
+ * выражением, `aligned` — нормировка по RMS с каноническим yaw, `chronology` —
+ * полная коррекция позы. Наложить `chronology` на исходное изображение нельзя,
+ * поэтому пространство показывается пользователю, а не выбирается молча.
+ */
+export const LandmarksSchema = z
+  .object({
+    schema: z.string().optional(),
+    photo_id: z.string(),
+    count: z.number().catch(0),
+    space: z.string().catch(""),
+    columns: z.array(z.string()).catch([]),
+    points: z.array(z.array(z.number())).catch([]),
+  })
+  .loose();
+
+export type PhotoInfoKeys = z.infer<typeof PhotoInfoKeysSchema>;
+export type SkinZone = z.infer<typeof SkinZoneSchema>;
+export type SkinZones = z.infer<typeof SkinZonesSchema>;
+export type ZoneCatalog = z.infer<typeof ZoneCatalogSchema>;
+export type Landmarks = z.infer<typeof LandmarksSchema>;

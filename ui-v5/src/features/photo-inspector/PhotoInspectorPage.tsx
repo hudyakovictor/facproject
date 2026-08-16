@@ -1,47 +1,248 @@
-import React, { useMemo } from "react";
-import { useTimeline } from "../../shared/api/queries";
-import { ShieldCheck } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, ExternalLink, Link2 } from "lucide-react";
+import { usePhotoInfoKeys, useTimeline } from "../../shared/api/queries";
 import { poseLabel } from "../../shared/poseBins";
-import { substantiveFlags } from "../../shared/findings";
 import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { QueryState } from "../../shared/ui/QueryState";
-import { PhotoImage } from "../../shared/ui/PhotoImage";
+import { Badge, Button, IconButton } from "../../shared/ui/primitives";
+import { describeError } from "../../shared/ui/errorDetail";
 import { useAnalysisStore } from "../../shared/state/analysisStore";
+import { consoleLogger } from "../../shared/logger";
+import { compactFacts } from "./compactFacts";
+import { InspectorTabs } from "./InspectorTabs";
+import { ManualQA } from "./ManualQA";
+import { SplitView } from "./SplitView";
+import styles from "./inspector.module.css";
 
-const value = (v: unknown) => v === null || v === undefined || v === "" ? "н/д" : String(v);
+/**
+ * Инспектор фотографии (§10).
+ *
+ * Раньше страница показывала восемь полей из `/timeline` и два одинаковых
+ * превью одного и того же кадра — левое было подписано «исходный кадр Stage 2»,
+ * правое «превью реального кадра». Теперь кадр читается из
+ * `/api/v1/photos/{id}/info_keys`: около 156 ключей Stage 1, артефакты,
+ * валидация и зоны кожи.
+ *
+ * 🚨 WARNING: страница не выносит суждений о личности. Качество, аутентичность
+ * кожи и репроекция — входные данные сравнения пар, а не его результат.
+ */
 
-export const PhotoInspectorPage: React.FC = () => {
-  const query = useTimeline();
-  const photos = useMemo(() => query.data?.photos ?? [], [query.data]);
-  /** Кадр берётся из общего стора: выбор на таймлайне или в палитре ⌘K
-   *  открывает здесь ту же запись. */
-  const { selectedPhoto: selectedId, setSelectedPhoto: setSelectedId } = useAnalysisStore();
-  const selected = useMemo(() => photos.find((p) => p.id === (selectedId ?? photos[0]?.id)) ?? null, [photos, selectedId]);
+function poseBinOf(photo: { bucket?: string | null }): string {
+  return photo.bucket ?? "unknown";
+}
 
-  const stage = resolveStage(query.data);
+export function PhotoInspectorPage() {
+  const timeline = useTimeline();
+  const photos = useMemo(() => timeline.data?.photos ?? [], [timeline.data]);
+  const {
+    selectedPhoto: selectedId,
+    setSelectedPhoto: setSelectedId,
+    activePose,
+    assignToPair,
+  } = useAnalysisStore();
+  /**
+   * Подтверждение копирования — счётчик, а не флаг: он растёт при каждом
+   * нажатии и перезапускает CSS-анимацию, которая сама убирает надпись.
+   * Таймер на это не нужен, а надпись на кнопке не прыгает.
+   */
+  const [copyCount, setCopyCount] = useState(0);
+  const [pairRejection, setPairRejection] = useState<string | null>(null);
+
+  /**
+   * Соседние кадры считаются в пределах активного ракурса (§10.1): «следующий»
+   * при включённом фильтре по бину должен вести к следующему кадру того же
+   * бина, иначе кнопка выбрасывает пользователя из его выборки.
+   */
+  const scope = useMemo(() => {
+    if (!activePose || activePose === "all") return photos;
+    const filtered = photos.filter((photo) => poseBinOf(photo) === activePose);
+    return filtered.length > 0 ? filtered : photos;
+  }, [photos, activePose]);
+
+  const current = useMemo(() => {
+    const byId = photos.find((photo) => photo.id === selectedId);
+    return byId ?? scope[0] ?? photos[0] ?? null;
+  }, [photos, scope, selectedId]);
+
+  const index = current ? scope.findIndex((photo) => photo.id === current.id) : -1;
+
+  const step = useCallback(
+    (delta: number) => {
+      if (index < 0) return;
+      const next = scope[index + delta];
+      if (next) setSelectedId(next.id);
+    },
+    [index, scope, setSelectedId],
+  );
+
+  const copyPermalink = useCallback(() => {
+    if (!current) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("photo", current.id);
+    void navigator.clipboard
+      ?.writeText(url.toString())
+      .then(() => setCopyCount((count) => count + 1))
+      .catch((error: unknown) => {
+        consoleLogger.addLog(
+          "WARN",
+          "inspector",
+          "Ссылку скопировать не удалось",
+          describeError(error).message,
+        );
+      });
+  }, [current]);
+
   return (
     <QueryState
-      query={query}
+      query={timeline}
       loadingText="Загрузка записей фотографий…"
       errorTitle="Инспектор недоступен"
-      isEmpty={(data) => data.photos.length === 0 || selected === null}
+      isEmpty={(data) => data.photos.length === 0}
       emptyTitle="Записей нет"
       emptyDescription="API вернул пустой список фотографий, показывать в инспекторе нечего."
     >
-      {() => selected && (<div className="flex flex-col h-workspace w-full bg-surface-canvas text-ink-primary overflow-y-auto p-6 space-y-5">
-    <StageBanner stage={stage} note={query.data?.note} />
-    <header className="rounded-lg border border-line-default bg-surface-base p-4 flex flex-wrap gap-4 items-center justify-between">
-      <div><div className="font-mono text-sm font-bold text-cyan-300">ИНСПЕКТОР ФОТОГРАФИИ: {selected.id}</div><div className="text-xs text-ink-muted">{stageLabel(stage)} · {value(selected.date)} · источник: {selected.sourceMode}</div></div>
-      <div className="flex gap-2 text-xs font-mono"><span className="rounded border border-line-default px-2 py-1">Ракурс: {poseLabel(selected.bucket)}</span><span className="rounded border border-line-default px-2 py-1">Q: {value(selected.quality)}</span><span className="rounded border border-green-500 bg-green-soft px-2 py-1 text-green-300"><ShieldCheck className="inline h-3 w-3" /> доказательство: {value(selected.evidenceState)}</span></div>
-    </header>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      <section className="rounded-lg border border-line-default bg-surface-base p-4"><div className="flex justify-between mb-3 font-mono text-xs text-ink-secondary"><span>ИСХОДНЫЙ КАДР STAGE 2</span><select aria-label="Выбор фотографии" value={selected.id} onChange={(e) => setSelectedId(e.target.value)} className="bg-surface-raised border border-line-default rounded px-2 py-1 max-w-[60%]">{photos.slice(0, 500).map((p) => <option key={p.id} value={p.id}>{p.date ?? p.id} · {p.id}</option>)}</select></div><div className="h-[380px] bg-surface-raised rounded border border-line-default flex items-center justify-center"><PhotoImage photoId={selected.id} alt={`Кадр ${selected.id}`} variant="contain" className="max-h-full max-w-full" /></div></section>
-      <section className="rounded-lg border border-line-default bg-surface-base p-4"><div className="mb-3 font-mono text-xs text-cyan-300">ПРЕВЬЮ РЕАЛЬНОГО КАДРА</div><div className="h-[380px] rounded border border-line-default bg-surface-raised flex items-center justify-center"><PhotoImage photoId={selected.id} alt={`Реальный кадр ${selected.id}`} variant="contain" className="max-h-full max-w-full" /></div><p className="mt-2 text-xs text-amber-300">Mesh-артефакт отсутствует в API. Синтетическая 3D-модель не показывается.</p></section>
-    </div>
-    <section className="rounded-lg border border-line-default bg-surface-base p-4"><h2 className="font-mono text-xs font-bold text-cyan-300 mb-3">ФАКТЫ ИЗ API, БЕЗ ПРОИЗВОДНЫХ ЗАГЛУШЕК</h2><div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">{[["Дата", selected.date],["Yaw", selected.yaw], ["Pitch", selected.pitch], ["Roll", selected.roll], ["Качество", selected.quality], ["Измерения", selected.measurementStatus], ["Пар Stage 2", selected.stage2PairCount ?? null], ["Флаги", substantiveFlags(selected).length ? substantiveFlags(selected).join(", ") : "нет"]].map(([k,v]) => <div key={String(k)} className="rounded bg-surface-raised p-3"><div className="text-ink-muted">{k}</div><div className="text-ink-primary mt-1">{value(v)}</div></div>)}</div></section>
-  </div>)}
+      {() =>
+        current ? (
+          <div className="flex h-workspace w-full flex-col gap-4 overflow-y-auto bg-surface-canvas p-6 text-ink-primary">
+            <StageBanner stage={resolveStage(timeline.data)} note={timeline.data?.note} />
+
+            <header className={styles.header}>
+              <div className={styles.headerMain}>
+                <span className={styles.headerId}>{current.id}</span>
+                <span className={styles.headerMeta}>
+                  {stageLabel(resolveStage(timeline.data))} · {current.date ?? "дата н/д"} ·
+                  ракурс: {poseLabel(poseBinOf(current))} · кадр {index + 1} из {scope.length}
+                  {activePose && activePose !== "all" ? " в активном ракурсе" : ""}
+                </span>
+              </div>
+
+              <div className={styles.headerActions}>
+                <IconButton
+                  label="Предыдущий кадр"
+                  onClick={() => step(-1)}
+                  disabled={index <= 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </IconButton>
+                <IconButton
+                  label="Следующий кадр"
+                  onClick={() => step(1)}
+                  disabled={index < 0 || index >= scope.length - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </IconButton>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setPairRejection(
+                      assignToPair(current.id, poseBinOf(current), (id) =>
+                        photos.find((photo) => photo.id === id)?.bucket,
+                      ),
+                    )
+                  }
+                >
+                  В пару
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    window.open(
+                      `/api/v1/photos/${encodeURIComponent(current.id)}/image`,
+                      "_blank",
+                      "noopener",
+                    )
+                  }
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Исходник
+                </Button>
+                <Button size="sm" variant="ghost" onClick={copyPermalink}>
+                  <Link2 className="h-3.5 w-3.5" /> Ссылка
+                </Button>
+                {copyCount > 0 && (
+                  <span key={copyCount} className={styles.copyToast} role="status">
+                    Скопировано
+                  </span>
+                )}
+              </div>
+            </header>
+
+            {pairRejection && (
+              <p className="text-2xs text-amber-300" role="status">
+                {pairRejection}
+              </p>
+            )}
+
+            <label className="flex items-center gap-2 text-2xs text-ink-muted">
+              Кадр
+              <select
+                aria-label="Выбор фотографии"
+                value={current.id}
+                onChange={(event) => setSelectedId(event.target.value)}
+                className="max-w-md rounded border border-line-default bg-surface-raised px-2 py-1 font-mono text-xs text-ink-primary"
+              >
+                {scope.slice(0, 500).map((photo) => (
+                  <option key={photo.id} value={photo.id}>
+                    {photo.date ?? "н/д"} · {photo.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <InspectorBody photoId={current.id} />
+          </div>
+        ) : null
+      }
     </QueryState>
   );
-};
+}
 
+/**
+ * Тело инспектора зависит от второго запроса — полного `info.json`. Он вынесен
+ * в отдельный компонент, чтобы смена кадра не перерисовывала шапку и список.
+ */
+function InspectorBody({ photoId }: { photoId: string }) {
+  const details = usePhotoInfoKeys(photoId);
+
+  return (
+    <QueryState
+      query={details}
+      loadingText="Загрузка параметров кадра…"
+      errorTitle="Параметры кадра недоступны"
+    >
+      {(data) => {
+        const facts = compactFacts(data);
+        return (
+          <>
+            <section className={styles.panel} aria-label="Компактные факты">
+              <div className={styles.panelHeader}>
+                <span className={styles.panelTitle}>КОМПАКТНЫЕ ФАКТЫ</span>
+                <Badge tone="neutral">{data.artifacts.length} артефактов</Badge>
+              </div>
+              <div className={styles.factGrid}>
+                {facts.map((fact) => (
+                  <div key={fact.key} className={styles.factCard} data-warn={fact.warn ?? false}>
+                    <div className={styles.factLabel}>{fact.label}</div>
+                    <div className={styles.factValue} data-null={fact.value === null}>
+                      {fact.value ?? "н/д"}
+                    </div>
+                    {fact.hint && <div className={styles.factHint}>{fact.hint}</div>}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <div className={styles.splitGrid}>
+              <SplitView photoId={photoId} artifacts={data.artifacts} />
+              <InspectorTabs data={data} />
+            </div>
+
+            <ManualQA photoId={photoId} />
+          </>
+        );
+      }}
+    </QueryState>
+  );
+}
