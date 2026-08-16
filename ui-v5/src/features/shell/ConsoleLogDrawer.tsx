@@ -46,28 +46,28 @@ export const ConsoleLogDrawer: React.FC = () => {
     switch (severity) {
       case "ERROR":
         return (
-          <span className="inline-flex items-center gap-1 rounded bg-rose-950 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-800">
+          <span className="inline-flex items-center gap-1 rounded bg-red-soft px-1.5 py-0.5 text-[10px] font-bold text-red-300 border border-red-500">
             <AlertCircle className="h-3 w-3" />
             ERROR
           </span>
         );
       case "WARN":
         return (
-          <span className="inline-flex items-center gap-1 rounded bg-amber-950 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-800">
+          <span className="inline-flex items-center gap-1 rounded bg-amber-soft px-1.5 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500">
             <AlertTriangle className="h-3 w-3" />
             WARN
           </span>
         );
       case "SECURITY":
         return (
-          <span className="inline-flex items-center gap-1 rounded bg-emerald-950 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-800">
+          <span className="inline-flex items-center gap-1 rounded bg-green-soft px-1.5 py-0.5 text-[10px] font-bold text-green-300 border border-green-500">
             <ShieldCheck className="h-3 w-3" />
             SECURITY
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 rounded bg-cyan-950 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300 border border-cyan-800">
+          <span className="inline-flex items-center gap-1 rounded bg-cyan-soft px-1.5 py-0.5 text-[10px] font-bold text-cyan-300 border border-cyan-600">
             <Info className="h-3 w-3" />
             INFO
           </span>
@@ -92,9 +92,9 @@ export const ConsoleLogDrawer: React.FC = () => {
     <div className="fixed bottom-0 left-0 right-0 z-50 font-mono text-xs select-none">
       {/* EXPANDED LOG PANEL */}
       {isOpen && (
-        <div className="h-64 bg-[#0b1117] border-t-2 border-cyan-700/80 shadow-2xl flex flex-col text-[#e2e8f0]">
+        <div className="h-64 bg-surface-base border-t-2 border-cyan-600 shadow-2xl flex flex-col text-ink-primary">
           {/* Top Panel Controls */}
-          <div className="flex items-center justify-between border-b border-[#1f2d3d] px-4 py-2 bg-[#080d12]">
+          <div className="flex items-center justify-between border-b border-line-default px-4 py-2 bg-surface-canvas">
             <div className="flex items-center gap-2">
               <span className="font-bold text-cyan-300 uppercase flex items-center gap-1.5">
                 <Terminal className="h-4 w-4 text-cyan-400" />
@@ -106,8 +106,8 @@ export const ConsoleLogDrawer: React.FC = () => {
                   onClick={() => setFilterSeverity("ALL")}
                   className={`px-2 py-0.5 rounded transition ${
                     filterSeverity === "ALL"
-                      ? "bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold"
-                      : "bg-[#141e27] text-slate-400"
+                      ? "bg-cyan-soft text-cyan-300 border border-cyan-600 font-bold"
+                      : "bg-surface-overlay text-ink-muted"
                   }`}
                 >
                   Все ({entries.length})
@@ -116,8 +116,8 @@ export const ConsoleLogDrawer: React.FC = () => {
                   onClick={() => setFilterSeverity("ERROR")}
                   className={`px-2 py-0.5 rounded transition ${
                     filterSeverity === "ERROR"
-                      ? "bg-rose-950 text-rose-300 border border-rose-800 font-bold"
-                      : "bg-[#141e27] text-slate-400"
+                      ? "bg-red-soft text-red-300 border border-red-500 font-bold"
+                      : "bg-surface-overlay text-ink-muted"
                   }`}
                 >
                   Ошибки ({errorCount})
@@ -126,8 +126,8 @@ export const ConsoleLogDrawer: React.FC = () => {
                   onClick={() => setFilterSeverity("WARN")}
                   className={`px-2 py-0.5 rounded transition ${
                     filterSeverity === "WARN"
-                      ? "bg-amber-950 text-amber-300 border border-amber-800 font-bold"
-                      : "bg-[#141e27] text-slate-400"
+                      ? "bg-amber-soft text-amber-300 border border-amber-500 font-bold"
+                      : "bg-surface-overlay text-ink-muted"
                   }`}
                 >
                   Предупреждения ({warnCount})
@@ -136,8 +136,8 @@ export const ConsoleLogDrawer: React.FC = () => {
                   onClick={() => setFilterSeverity("SECURITY")}
                   className={`px-2 py-0.5 rounded transition ${
                     filterSeverity === "SECURITY"
-                      ? "bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold"
-                      : "bg-[#141e27] text-slate-400"
+                      ? "bg-green-soft text-green-300 border border-green-500 font-bold"
+                      : "bg-surface-overlay text-ink-muted"
                   }`}
                 >
                   Провенанс ({securityCount})
@@ -147,21 +147,21 @@ export const ConsoleLogDrawer: React.FC = () => {
 
             <div className="flex items-center gap-2">
               {/* Search filter input */}
-              <div className="flex items-center gap-1 bg-[#101820] rounded px-2 py-0.5 border border-[#1f2d3d]">
-                <Search className="h-3 w-3 text-slate-400" />
+              <div className="flex items-center gap-1 bg-surface-raised rounded px-2 py-0.5 border border-line-default">
+                <Search className="h-3 w-3 text-ink-muted" />
                 <input
                   type="text"
                   placeholder="Фильтр лога..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Поиск по журналу"
-                  className="bg-transparent text-white text-[11px] focus:outline-none w-28"
+                  className="bg-transparent text-ink-primary text-[11px] focus:outline-none w-28"
                 />
               </div>
 
               <button
                 onClick={handleExportJson}
-                className="flex items-center gap-1 rounded bg-[#101820] px-2 py-1 text-[11px] text-cyan-300 border border-cyan-800 hover:bg-[#18232d] transition"
+                className="flex items-center gap-1 rounded bg-surface-raised px-2 py-1 text-[11px] text-cyan-300 border border-cyan-600 hover:bg-surface-subtle transition"
                 title="Экспортировать дамп"
               >
                 <Download className="h-3 w-3" />
@@ -170,7 +170,7 @@ export const ConsoleLogDrawer: React.FC = () => {
 
               <button
                 onClick={() => consoleLogger.clear()}
-                className="flex items-center gap-1 rounded bg-[#101820] px-2 py-1 text-[11px] text-slate-400 border border-[#1f2d3d] hover:text-white transition"
+                className="flex items-center gap-1 rounded bg-surface-raised px-2 py-1 text-[11px] text-ink-muted border border-line-default hover:text-ink-primary transition"
                 title="Очистить консоль"
               >
                 <Trash2 className="h-3 w-3" />
@@ -179,7 +179,7 @@ export const ConsoleLogDrawer: React.FC = () => {
 
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded text-slate-400 hover:text-white transition"
+                className="p-1 rounded text-ink-muted hover:text-ink-primary transition"
               >
                 <ChevronDown className="h-4 w-4" />
               </button>
@@ -187,27 +187,27 @@ export const ConsoleLogDrawer: React.FC = () => {
           </div>
 
           {/* Log Entries Table Area */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1.5 bg-[#080d12]">
+          <div className="flex-1 overflow-y-auto p-3 space-y-1.5 bg-surface-canvas">
             {filteredEntries.length === 0 ? (
-              <div className="text-center text-slate-500 py-8">
+              <div className="text-center text-ink-muted py-8">
                 Нет логов, соответствующих выбранному фильтру.
               </div>
             ) : (
               filteredEntries.map((e) => (
                 <div
                   key={e.id}
-                  className="flex items-start justify-between gap-3 rounded bg-[#0b1117] p-2 border border-[#1f2d3d] hover:border-slate-600 transition"
+                  className="flex items-start justify-between gap-3 rounded bg-surface-base p-2 border border-line-default hover:border-line-strong transition"
                 >
                   <div className="flex items-start gap-2.5">
-                    <span className="text-slate-500 whitespace-nowrap">{e.timestamp}</span>
+                    <span className="text-ink-muted whitespace-nowrap">{e.timestamp}</span>
                     {getSeverityBadge(e.severity)}
-                    <span className="rounded bg-[#141e27] px-1.5 py-0.5 text-[10px] text-cyan-300 font-bold whitespace-nowrap border border-[#1f2d3d]">
+                    <span className="rounded bg-surface-overlay px-1.5 py-0.5 text-[10px] text-cyan-300 font-bold whitespace-nowrap border border-line-default">
                       [{e.source}]
                     </span>
                     <div>
-                      <span className="text-white font-bold">{e.message}</span>
+                      <span className="text-ink-primary font-bold">{e.message}</span>
                       {e.details && (
-                        <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                        <div className="text-[11px] text-ink-muted mt-0.5 font-mono">
                           └─ {e.details}
                         </div>
                       )}
@@ -223,12 +223,12 @@ export const ConsoleLogDrawer: React.FC = () => {
       {/* COLLAPSED BOTTOM BAR (Always visible clickable footer) */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-9 w-full bg-[#080d12] border-t border-[#1f2d3d] px-4 flex items-center justify-between cursor-pointer hover:bg-[#0b1117] transition ${
-          errorCount > 0 ? "bg-rose-950/40 border-rose-800" : ""
+        className={`h-9 w-full bg-surface-canvas border-t border-line-default px-4 flex items-center justify-between cursor-pointer hover:bg-surface-base transition ${
+          errorCount > 0 ? "bg-red-soft border-red-500" : ""
         }`}
       >
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 font-bold text-slate-300">
+          <span className="flex items-center gap-1.5 font-bold text-ink-secondary">
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             <Terminal className="h-4 w-4 text-cyan-400" />
             <span>КОНСОЛЬ ОШИБОК И ЛОГОВ</span>
@@ -238,23 +238,23 @@ export const ConsoleLogDrawer: React.FC = () => {
             <span
               className={`rounded px-2 py-0.5 font-bold ${
                 errorCount > 0
-                  ? "bg-rose-950 text-rose-300 border border-rose-700 animate-pulse"
-                  : "bg-[#141e27] text-slate-400"
+                  ? "bg-red-soft text-red-300 border border-red-500 animate-pulse"
+                  : "bg-surface-overlay text-ink-muted"
               }`}
             >
               Ошибок: {errorCount}
             </span>
-            <span className="rounded bg-[#141e27] px-2 py-0.5 text-amber-300 font-bold border border-[#1f2d3d]">
+            <span className="rounded bg-surface-overlay px-2 py-0.5 text-amber-300 font-bold border border-line-default">
               Предупреждений: {warnCount}
             </span>
-            <span className="rounded bg-[#141e27] px-2 py-0.5 text-cyan-300 border border-[#1f2d3d]">
+            <span className="rounded bg-surface-overlay px-2 py-0.5 text-cyan-300 border border-line-default">
               Инфо/Провенанс: {infoCount + securityCount}
             </span>
           </span>
         </div>
 
-        <div className="flex items-center gap-3 text-slate-400 text-[11px]">
-          <span className="text-emerald-400">STAGE 1 INTEGRITY: OK</span>
+        <div className="flex items-center gap-3 text-ink-muted text-[11px]">
+          <span className="text-green-400">STAGE 1 INTEGRITY: OK</span>
           <span>|</span>
           <span>Нажмите для {isOpen ? "сворачивания" : "раскрытия"} консоли</span>
         </div>

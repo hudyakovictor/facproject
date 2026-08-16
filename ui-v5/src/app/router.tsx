@@ -163,6 +163,14 @@ const auditRoute = createRoute({
   ),
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: screen("Настройки", () =>
+    import("../features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+  ),
+});
+
 const designSystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/design-system",
@@ -184,6 +192,7 @@ const routeTree = rootRoute.addChildren([
   articlesRoute,
   monetizationRoute,
   auditRoute,
+  settingsRoute,
   designSystemRoute,
 ]);
 

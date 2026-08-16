@@ -7,11 +7,13 @@
     "dev": "vite --host 0.0.0.0 --port 4175",
     "lint": "eslint .",
     "mock-audit": "node scripts/mock-audit.mjs",
+    "design-gate": "node scripts/design-gate.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:e2e": "playwright test",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 4175"
+    "preview": "vite preview --host 0.0.0.0 --port 4175",
+    "verify": "npm run typecheck && npm run lint && npm run design-gate && npm run mock-audit && vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "5.7.1",

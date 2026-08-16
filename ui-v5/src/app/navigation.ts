@@ -21,6 +21,7 @@ export const NAV_ROUTES = [
   { to: "/articles", label: "Статьи", full: "Материалы" },
   { to: "/monetization", label: "Монетизация", full: "Монетизация" },
   { to: "/audit", label: "Аудит", full: "Провенанс и аудит" },
+  { to: "/settings", label: "Настройки", full: "Настройки рабочего места" },
   { to: "/design-system", label: "UI-v5", full: "Дизайн-система" },
 ] as const;
 

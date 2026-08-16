@@ -33,7 +33,19 @@ export class ContractError extends Error {
   }
 }
 
-const REQUEST_TIMEOUT_MS = 30_000;
+export const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * Базовый адрес API.
+ *
+ * Запросы идут по относительным путям, а `/api` проксируется dev-сервером и
+ * production-фронтом. Абсолютный адрес из браузера ломал бы работу за прокси
+ * и в превью. Функция нужна только для показа адреса в настройках.
+ */
+export function getApiBase(): string {
+  if (typeof window === "undefined") return "/api";
+  return `${window.location.origin}/api`;
+}
 
 function extractDetail(body: string): string {
   try {

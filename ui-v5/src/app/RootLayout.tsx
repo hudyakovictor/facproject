@@ -16,7 +16,7 @@ export default function RootLayout() {
   useUrlSync();
 
   return (
-    <div className="min-h-screen w-full bg-[#080d12] text-[#e2e8f0] font-sans antialiased flex flex-col">
+    <div className="min-h-screen w-full bg-surface-canvas text-ink-primary font-sans antialiased flex flex-col">
       <RouteErrorBoundary routeName="верхняя панель">
         <TopBar />
       </RouteErrorBoundary>

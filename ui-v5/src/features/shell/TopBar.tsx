@@ -29,7 +29,7 @@ const METRIC_ROWS: Array<[MetricKey, string, string]> = [
 ];
 
 const TRIGGER =
-  "flex items-center gap-1.5 rounded bg-[#101820] px-2.5 py-1 text-[#cbd5e1] hover:bg-[#18232d] border border-[#1f2d3d]";
+  "flex items-center gap-1.5 rounded bg-surface-raised px-2.5 py-1 text-ink-secondary hover:bg-surface-subtle border border-line-default";
 
 /**
  * Верхняя панель рабочей станции.
@@ -78,7 +78,7 @@ export function TopBar() {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#1f2d3d] bg-[#080d12]/95 backdrop-blur px-4 py-2 text-[#e2e8f0]">
+    <header className="sticky top-0 z-50 w-full border-b border-line-default bg-surface-canvas backdrop-blur px-4 py-2 text-ink-primary">
       <div className="flex items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 font-mono font-bold tracking-wider text-cyan-400">
@@ -89,7 +89,7 @@ export function TopBar() {
             Метка стадии выводится из ответа API. Раньше здесь была строковая
             константа «STAGE 2», которая подписывала так и инвентарь Stage 1.
           */}
-          <span className="rounded bg-[#141e27] px-2 py-0.5 font-mono text-[11px] text-cyan-300 border border-[#1f2d3d]">
+          <span className="rounded bg-surface-overlay px-2 py-0.5 font-mono text-[11px] text-cyan-300 border border-line-default">
             {timelineQuery.isLoading
               ? "RUN: загрузка"
               : `${stageLabel(stage)} · ${photos.length.toLocaleString("ru-RU")} фото`}
@@ -111,8 +111,8 @@ export function TopBar() {
               <ChevronDown className="h-3 w-3 opacity-70" />
             </button>
             {poseMenuOpen && (
-              <div className="absolute left-0 mt-1 w-72 rounded-md border border-[#1f2d3d] bg-[#0b1117] p-1 shadow-2xl z-50">
-                <div className="px-2 py-1 text-[10px] font-mono uppercase text-slate-400">
+              <div className="absolute left-0 mt-1 w-72 rounded-md border border-line-default bg-surface-base p-1 shadow-2xl z-50">
+                <div className="px-2 py-1 text-[10px] font-mono uppercase text-ink-muted">
                   Выбор 1 из 9 ракурсных корзин
                 </div>
                 {POSE_BINS.map((bin) => {
@@ -128,13 +128,13 @@ export function TopBar() {
                       }}
                       className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs ${
                         !multiPose && activePose === bin.id
-                          ? "bg-cyan-950/80 text-cyan-300"
-                          : "hover:bg-[#141e27] text-slate-300"
+                          ? "bg-cyan-soft text-cyan-300"
+                          : "hover:bg-surface-overlay text-ink-secondary"
                       }`}
                     >
                       <span>{bin.fullLabel}</span>
                       <span
-                        className={`font-mono text-[10px] ${count ? "text-slate-400" : "text-slate-600"}`}
+                        className={`font-mono text-[10px] ${count ? "text-ink-muted" : "text-ink-disabled"}`}
                       >
                         {count}
                       </span>
@@ -142,7 +142,7 @@ export function TopBar() {
                   );
                 })}
                 {unknownBins.length > 0 && (
-                  <div className="mt-1 border-t border-[#1f2d3d] pt-1 px-2 py-1 text-[10px] text-amber-300">
+                  <div className="mt-1 border-t border-line-default pt-1 px-2 py-1 text-[10px] text-amber-300">
                     Вне справочника: {unknownBins.join(", ")}
                   </div>
                 )}
@@ -152,14 +152,14 @@ export function TopBar() {
                     setMultiPose(true);
                     setPoseMenuOpen(false);
                   }}
-                  className={`mt-1 flex w-full items-center gap-1.5 rounded border-t border-[#1f2d3d] px-2 py-1.5 text-left text-xs ${
-                    multiPose ? "bg-cyan-950/80 text-cyan-300" : "hover:bg-[#141e27] text-slate-300"
+                  className={`mt-1 flex w-full items-center gap-1.5 rounded border-t border-line-default px-2 py-1.5 text-left text-xs ${
+                    multiPose ? "bg-cyan-soft text-cyan-300" : "hover:bg-surface-overlay text-ink-secondary"
                   }`}
                 >
                   <Layers className="h-3 w-3" />
                   Показать все бины
                 </button>
-                <div className="px-2 pb-1 pt-1 text-[10px] text-slate-500">
+                <div className="px-2 pb-1 pt-1 text-[10px] text-ink-muted">
                   Сравнение пары A/B остаётся внутри одного бина.
                 </div>
               </div>
@@ -181,8 +181,8 @@ export function TopBar() {
               <ChevronDown className="h-3 w-3 opacity-70" />
             </button>
             {metricsMenuOpen && (
-              <div className="absolute left-0 mt-1 w-72 rounded-md border border-[#1f2d3d] bg-[#0b1117] p-2 shadow-2xl z-50">
-                <div className="text-[10px] font-mono uppercase text-slate-400 mb-1">
+              <div className="absolute left-0 mt-1 w-72 rounded-md border border-line-default bg-surface-base p-2 shadow-2xl z-50">
+                <div className="text-[10px] font-mono uppercase text-ink-muted mb-1">
                   Дорожки и доступность в ответе API
                 </div>
                 {METRIC_ROWS.map(([key, label, field]) => {
@@ -193,7 +193,7 @@ export function TopBar() {
                   return (
                     <label
                       key={key}
-                      className="flex cursor-pointer items-center justify-between gap-2 rounded px-1 py-1 text-xs hover:bg-[#141e27]"
+                      className="flex cursor-pointer items-center justify-between gap-2 rounded px-1 py-1 text-xs hover:bg-surface-overlay"
                     >
                       <span className="flex items-center gap-2">
                         <input
@@ -203,19 +203,19 @@ export function TopBar() {
                           onChange={() => toggleMetric(key)}
                           className="accent-cyan-500"
                         />
-                        <span className={available ? "text-slate-300" : "text-slate-500"}>
+                        <span className={available ? "text-ink-secondary" : "text-ink-muted"}>
                           {label}
                         </span>
                       </span>
                       <span
-                        className={`font-mono ${available ? "text-emerald-400" : "text-amber-400"}`}
+                        className={`font-mono ${available ? "text-green-400" : "text-amber-400"}`}
                       >
                         {available}/{photos.length}
                       </span>
                     </label>
                   );
                 })}
-                <div className="mt-2 border-t border-[#1f2d3d] pt-2 text-[10px] text-amber-300">
+                <div className="mt-2 border-t border-line-default pt-2 text-[10px] text-amber-300">
                   Недоступные поля не заменяются демонстрационными значениями.
                 </div>
               </div>
@@ -227,7 +227,7 @@ export function TopBar() {
             <Popover.Trigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1.5 rounded bg-[#101820] px-2.5 py-1 text-[#cbd5e1] hover:bg-[#18232d] border border-cyan-800/80"
+                className="flex items-center gap-1.5 rounded bg-surface-raised px-2.5 py-1 text-ink-secondary hover:bg-surface-subtle border border-cyan-600"
               >
                 <SlidersHorizontal className="h-3.5 w-3.5 text-cyan-400" />
                 <span>Фильтры и пороги</span>
@@ -235,20 +235,20 @@ export function TopBar() {
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content
-                className="w-80 rounded-lg border border-[#1f2d3d] bg-[#0b1117]/95 p-4 shadow-2xl backdrop-blur z-50 text-slate-200"
+                className="w-80 rounded-lg border border-line-default bg-surface-base p-4 shadow-2xl backdrop-blur z-50 text-ink-primary"
                 sideOffset={8}
               >
-                <div className="flex items-center justify-between border-b border-[#1f2d3d] pb-2 mb-3">
+                <div className="flex items-center justify-between border-b border-line-default pb-2 mb-3">
                   <span className="font-mono text-xs font-bold text-cyan-300 uppercase">
                     Пороги отображения
                   </span>
-                  <span className="text-[10px] text-slate-400">применяются ко всем экранам</span>
+                  <span className="text-[10px] text-ink-muted">применяются ко всем экранам</span>
                 </div>
 
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Минимальное качество (Q):</span>
+                      <span className="text-ink-secondary">Минимальное качество (Q):</span>
                       <span className="font-mono text-cyan-400">
                         {Math.round(qualityThreshold * 100)}%
                       </span>
@@ -262,16 +262,16 @@ export function TopBar() {
                       step={0.05}
                       aria-label="Минимальное качество"
                     >
-                      <Slider.Track className="relative h-1.5 w-full grow rounded-full bg-[#1f2d3d]">
+                      <Slider.Track className="relative h-1.5 w-full grow rounded-full bg-line-default">
                         <Slider.Range className="absolute h-full rounded-full bg-cyan-500" />
                       </Slider.Track>
-                      <Slider.Thumb className="block h-4 w-4 rounded-full bg-cyan-300 shadow-md hover:bg-white focus:outline-none" />
+                      <Slider.Thumb className="block h-4 w-4 rounded-full bg-cyan-300 shadow-md hover:bg-surface-raised focus:outline-none" />
                     </Slider.Root>
                   </div>
 
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Порог активности рта:</span>
+                      <span className="text-ink-secondary">Порог активности рта:</span>
                       <span className="font-mono text-amber-400">{mouthThreshold.toFixed(2)}</span>
                     </div>
                     <Slider.Root
@@ -283,17 +283,17 @@ export function TopBar() {
                       step={5}
                       aria-label="Порог активности рта"
                     >
-                      <Slider.Track className="relative h-1.5 w-full grow rounded-full bg-[#1f2d3d]">
+                      <Slider.Track className="relative h-1.5 w-full grow rounded-full bg-line-default">
                         <Slider.Range className="absolute h-full rounded-full bg-amber-500" />
                       </Slider.Track>
-                      <Slider.Thumb className="block h-4 w-4 rounded-full bg-amber-300 shadow-md hover:bg-white focus:outline-none" />
+                      <Slider.Thumb className="block h-4 w-4 rounded-full bg-amber-300 shadow-md hover:bg-surface-raised focus:outline-none" />
                     </Slider.Root>
                   </div>
 
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Допуск угла Yaw/Pitch:</span>
-                      <span className="font-mono text-emerald-400">≤ {poseAngleThreshold}°</span>
+                      <span className="text-ink-secondary">Допуск угла Yaw/Pitch:</span>
+                      <span className="font-mono text-green-400">≤ {poseAngleThreshold}°</span>
                     </div>
                     <Slider.Root
                       className="relative flex h-5 w-full select-none items-center"
@@ -304,10 +304,10 @@ export function TopBar() {
                       step={1}
                       aria-label="Допуск угла"
                     >
-                      <Slider.Track className="relative h-1.5 w-full grow rounded-full bg-[#1f2d3d]">
-                        <Slider.Range className="absolute h-full rounded-full bg-emerald-500" />
+                      <Slider.Track className="relative h-1.5 w-full grow rounded-full bg-line-default">
+                        <Slider.Range className="absolute h-full rounded-full bg-green-500" />
                       </Slider.Track>
-                      <Slider.Thumb className="block h-4 w-4 rounded-full bg-emerald-300 shadow-md hover:bg-white focus:outline-none" />
+                      <Slider.Thumb className="block h-4 w-4 rounded-full bg-green-300 shadow-md hover:bg-surface-raised focus:outline-none" />
                     </Slider.Root>
                   </div>
                 </div>
@@ -321,24 +321,24 @@ export function TopBar() {
               type="button"
               onClick={() => setFindingsMenuOpen(!findingsMenuOpen)}
               aria-expanded={findingsMenuOpen}
-              className={`${TRIGGER} ${findingsMode ? "border-rose-700 bg-rose-950/50" : ""}`}
+              className={`${TRIGGER} ${findingsMode ? "border-red-500 bg-red-soft" : ""}`}
             >
-              <Flag className="h-3.5 w-3.5 text-rose-400" />
+              <Flag className="h-3.5 w-3.5 text-red-400" />
               <span>Находки {findingCount} ⚑</span>
               <ChevronDown className="h-3 w-3 opacity-70" />
             </button>
             {findingsMenuOpen && (
-              <div className="absolute right-0 mt-1 w-72 rounded-md border border-[#1f2d3d] bg-[#0b1117] p-2 shadow-2xl z-50">
-                <div className="text-[10px] font-mono uppercase text-slate-400 mb-1.5">
+              <div className="absolute right-0 mt-1 w-72 rounded-md border border-line-default bg-surface-base p-2 shadow-2xl z-50">
+                <div className="text-[10px] font-mono uppercase text-ink-muted mb-1.5">
                   Маркеры, требующие проверки
                 </div>
-                <div className="space-y-1.5 text-xs text-slate-300">
+                <div className="space-y-1.5 text-xs text-ink-secondary">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
+                      <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
                       Кадров с находками
                     </span>
-                    <span className="font-mono text-rose-400">
+                    <span className="font-mono text-red-400">
                       {photos.filter(isFinding).length}
                     </span>
                   </div>
@@ -357,10 +357,10 @@ export function TopBar() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-2 w-2 rounded-full bg-purple-500" />
+                      <span className="inline-block h-2 w-2 rounded-full bg-violet-400" />
                       Geometry mismatch
                     </span>
-                    <span className="font-mono text-purple-400">
+                    <span className="font-mono text-violet-400">
                       {
                         photos.filter(
                           (photo) => (photo.stage2StatusCounts?.geometric_mismatch ?? 0) > 0,
@@ -369,16 +369,16 @@ export function TopBar() {
                     </span>
                   </div>
                 </div>
-                <label className="mt-2 flex cursor-pointer items-center gap-2 border-t border-[#1f2d3d] pt-2 text-xs text-slate-300">
+                <label className="mt-2 flex cursor-pointer items-center gap-2 border-t border-line-default pt-2 text-xs text-ink-secondary">
                   <input
                     type="checkbox"
                     checked={findingsMode}
                     onChange={(event) => setFindingsMode(event.target.checked)}
-                    className="accent-rose-500"
+                    className="accent-red-500"
                   />
                   Режим находок: приглушать остальные кадры
                 </label>
-                <div className="pt-1 text-[10px] text-slate-500">
+                <div className="pt-1 text-[10px] text-ink-muted">
                   Маркер означает приоритет проверки, а не вывод о личности.
                 </div>
               </div>
@@ -391,8 +391,8 @@ export function TopBar() {
             <Link
               key={route.to}
               to={route.to}
-              className="rounded px-2 py-1 text-slate-300 hover:bg-[#141e27] hover:text-white transition whitespace-nowrap"
-              activeProps={{ className: "bg-cyan-950 text-cyan-300 border border-cyan-800" }}
+              className="rounded px-2 py-1 text-ink-secondary hover:bg-surface-overlay hover:text-ink-primary transition whitespace-nowrap"
+              activeProps={{ className: "bg-cyan-soft text-cyan-300 border border-cyan-600" }}
             >
               {route.label}
             </Link>
