@@ -1,4 +1,5 @@
 import type { TimelinePhoto } from '../../types/timeline';
+import { photoFaceCropUrl } from '../../api/timelineApi';
 
 /**
  * Photo detail card component.
@@ -53,7 +54,7 @@ export function PhotoDetailCard({ photo, onClose, onAssignPair, onClearPair, pai
           <div className="detail-main">
             <div className="detail-photo-section">
               <div className="detail-photo-placeholder">
-                <span className="detail-photo-id">{photo.id.slice(0, 20)}...</span>
+                <img className="detail-photo-image" src={photoFaceCropUrl(photo.id)} alt={photo.id} />
               </div>
               <div className="detail-date">
                 <span className="detail-date-label">Дата</span>

@@ -197,7 +197,6 @@ export interface FilterState {
   visualAgeRange: [number, number];
   shapeDifferenceRange: [number, number];
   activeAnomalyKinds: Set<AnomalyKind>;
-  searchQuery: string;
   activePoseBin: string | null;
   showFindingsOnly: boolean;
 }

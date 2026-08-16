@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import type { TimelinePhoto, Viewport, TrackDescriptor } from '../../types/timeline';
-import { timeToX } from '../viewport';
+import { photosInColumns, timeOf, timeToX } from '../viewport';
 import { Tooltip } from './Tooltip';
 import { useTrackData } from '../useTrackData';
 
@@ -88,6 +88,19 @@ export function TimelineCanvas({
 
     const points = trackData.points;
 
+    const columns = photosInColumns(photos, viewport);
+    ctx.strokeStyle = 'var(--border-subtle)';
+    ctx.globalAlpha = 0.28;
+    ctx.lineWidth = 1;
+    for (let index = 0; index < columns.length; index += 1) {
+      const x = timeToX(viewport, timeOf(columns[index]!) ?? viewport.start, width);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
     // Draw line
     if (points.length > 1) {
       ctx.strokeStyle = color;
@@ -97,24 +110,10 @@ export function TimelineCanvas({
       ctx.globalAlpha = 0.7;
       ctx.beginPath();
 
-      let lineOpen = false;
-      for (let i = 0; i < points.length; i++) {
-        const point = points[i]!;
-        if (i > 0 && !lineOpen) {
-          ctx.moveTo(point.x, point.y);
-          lineOpen = true;
-        } else if (i > 0) {
-          const prev = points[i - 1]!;
-          const gap = point.x - prev.x;
-          if (gap > width / 50) {
-            ctx.moveTo(point.x, point.y);
-          } else {
-            ctx.lineTo(point.x, point.y);
-          }
-        } else {
-          ctx.moveTo(point.x, point.y);
-          lineOpen = true;
-        }
+      for (const [index, point] of points.entries()) {
+        const y = Math.max(2, Math.min(height - 2, point.y));
+        if (index === 0) ctx.moveTo(point.x, y);
+        else ctx.lineTo(point.x, y);
       }
       ctx.stroke();
       ctx.globalAlpha = 1;

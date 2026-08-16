@@ -1,5 +1,6 @@
 import type { TimelinePhoto, Viewport } from '../../types/timeline';
-import { timeToRatio } from '../viewport';
+import { photosInColumns, timeOf, timeToX } from '../viewport';
+import { photoThumbnailUrl } from '../../api/timelineApi';
 
 /**
  * Photo track component.
@@ -27,48 +28,13 @@ export function PhotoTrack({
   pairBId,
   onPhotoClick,
 }: PhotoTrackProps) {
-  const slotWidth = 50;
-  const slotCount = Math.max(1, Math.floor(width / slotWidth));
-  
-  // Pick representatives for each slot
-  const representatives = new Map<number, TimelinePhoto>();
-  
-  for (const photo of photos) {
-    const time = photo.t;
-    if (time == null) continue;
-    
-    const ratio = timeToRatio(viewport, time);
-    if (ratio < 0 || ratio > 1) continue;
-    
-    const slot = Math.min(slotCount - 1, Math.floor(ratio * slotCount));
-    const existing = representatives.get(slot);
-    
-    if (!existing || (photo.quality ?? 0) > (existing.quality ?? 0)) {
-      representatives.set(slot, photo);
-    }
-  }
-
-  // Always include pinned photos
-  const pinnedIds = [pairAId, pairBId, selectedPhotoId].filter(Boolean) as string[];
-  for (const photo of photos) {
-    if (pinnedIds.includes(photo.id)) {
-      const time = photo.t;
-      if (time == null) continue;
-      const ratio = timeToRatio(viewport, time);
-      if (ratio < 0 || ratio > 1) continue;
-      const slot = Math.min(slotCount - 1, Math.floor(ratio * slotCount));
-      representatives.set(slot, photo);
-    }
-  }
-
-  const sortedPhotos = [...representatives.values()].sort((a, b) => (a.t ?? 0) - (b.t ?? 0));
+  const sortedPhotos = photosInColumns(photos, viewport);
+  const spacing = sortedPhotos.length > 1 ? width / sortedPhotos.length : width;
+  const thumbnailSize = Math.min(100, Math.max(50, spacing * 0.82));
 
   return (
     <div className="photo-track" style={{ height }}>
       {sortedPhotos.map((photo) => {
-        const time = photo.t ?? 0;
-        const ratio = timeToRatio(viewport, time);
-        const left = ratio * 100;
         const isSelected = photo.id === selectedPhotoId;
         const isPairA = photo.id === pairAId;
         const isPairB = photo.id === pairBId;
@@ -86,13 +52,20 @@ export function PhotoTrack({
           <button
             key={photo.id}
             className={className}
-            style={{ left: `${left}%` }}
+            style={{
+              left: `${timeToX(viewport, timeOf(photo) ?? viewport.start, width) - thumbnailSize / 2}px`,
+              width: `${thumbnailSize}px`,
+              height: `${thumbnailSize}px`,
+            }}
             onClick={(e) => onPhotoClick(photo, e.shiftKey)}
             title={`${photo.date ?? 'н/д'} · ${photo.bucket} · q:${(photo.quality ?? 0).toFixed(2)}`}
           >
-            <span className="photo-thumb-label">
-              {photo.date?.slice(0, 10) ?? 'н/д'}
-            </span>
+            <img
+              className="photo-thumb-image"
+              src={photoThumbnailUrl(photo.id)}
+              alt=""
+              loading="lazy"
+            />
             {isPairA && <span className="photo-thumb-pin pin-a">A</span>}
             {isPairB && <span className="photo-thumb-pin pin-b">B</span>}
           </button>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTimelineStore } from '../../timeline/store';
 import { TRACK_DEFINITIONS } from '../../timeline/tracks';
 import { zoomAt, panBy } from '../../timeline/viewport';
@@ -7,9 +7,7 @@ import { TimelineCanvas } from '../../timeline/components/TimelineCanvas';
 import { TimelineRuler } from '../../timeline/components/TimelineRuler';
 import { PhotoTrack } from '../../timeline/components/PhotoTrack';
 import { AnomalyTrack } from '../../timeline/components/AnomalyTrack';
-import { TrackLabel } from '../../timeline/components/TrackLabel';
 import { TimelineToolbar } from '../../timeline/components/TimelineToolbar';
-import { TimelineMinimap } from '../../timeline/components/TimelineMinimap';
 import { PhotoDetailCard } from '../../timeline/components/PhotoDetailCard';
 import { FilterPanel } from '../../timeline/components/FilterPanel';
 import { BiologicalImpossibilityTrack } from '../../timeline/components/BiologicalImpossibilityTrack';
@@ -17,8 +15,7 @@ import { useUrlSync } from '../../timeline/useUrlSync';
 import { ModelViewer3D } from '../../timeline/components/ModelViewer3D';
 import { FilterPresets } from '../../timeline/components/FilterPresets';
 import { HelpOverlay } from '../../timeline/components/HelpOverlay';
-import { DataLogger } from '../../timeline/components/DataLogger';
-import type { TimelinePhoto, AnomalyEvent, TimelineResponse } from '../../types/timeline';
+import type { TimelinePhoto, AnomalyEvent } from '../../types/timeline';
 import './timeline.css';
 
 /**
@@ -27,19 +24,19 @@ import './timeline.css';
  * Iteration 2: Enhanced with tooltips, detail card, filters, keyboard nav.
  */
 
-const LABEL_COLUMN_WIDTH = 180;
-
 export function TimelinePage() {
   const store = useTimelineStore();
-  const [areaWidth, setAreaWidth] = useState(1200);
+  const [areaWidth, setAreaWidth] = useState(() =>
+    typeof window === 'undefined' ? 1200 : Math.max(1, window.innerWidth - 8),
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const trackAreaRef = useRef<HTMLDivElement>(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [show3DView, setShow3DView] = useState(true);
   const [showPresets, setShowPresets] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [timelineData, setTimelineData] = useState<TimelineResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const panDragRef = useRef<{ x: number } | null>(null);
   
   // URL state synchronization
   useUrlSync();
@@ -50,7 +47,6 @@ export function TimelinePage() {
     fetchTimeline()
       .then(data => {
         if (cancelled) return;
-        setTimelineData(data);
         const photos = transformApiResponse(data);
         store.setPhotos(photos);
      
@@ -147,22 +143,6 @@ export function TimelinePage() {
         return false;
       }
       
-      // Search filter
-      if (store.searchQuery) {
-        const query = store.searchQuery.toLowerCase();
-        const haystack = [
-          photo.id,
-          photo.date ?? '',
-          photo.bucket,
-          photo.era,
-          photo.fuzzy,
-          ...photo.flags,
-        ].join(' ').toLowerCase();
-        if (!haystack.includes(query)) {
-          return false;
-        }
-      }
-      
       // Findings mode
       if (store.findingsMode) {
         const hasFinding = photo.flags.some((f) => 
@@ -174,28 +154,37 @@ export function TimelinePage() {
       return true;
     });
   }, [store.photos, store.qualityThreshold, store.poseAngleThreshold, store.mouthThreshold, 
-      store.searchQuery, store.findingsMode, store.skinAuthenticityThreshold, 
+      store.findingsMode, store.skinAuthenticityThreshold,
       store.siliconeProbThreshold, store.shapeDifferenceThreshold, store.activePoseBin, 
       store.showMultiPose]);
 
   // Get visible tracks
   const visibleTracks = useMemo(() => {
-    return TRACK_DEFINITIONS.filter((t) => t.visible);
+    return TRACK_DEFINITIONS.filter((track) => track.visible);
   }, []);
 
-  // Resize observer
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  // Resize the single shared timeline scene, not the page shell.
+  useLayoutEffect(() => {
+    const scene = trackAreaRef.current;
+    if (!scene) return;
 
     const updateSize = () => {
-      setAreaWidth(container.clientWidth - LABEL_COLUMN_WIDTH);
+      const nextWidth = scene.clientWidth;
+      if (nextWidth > 0) setAreaWidth(nextWidth);
     };
     updateSize();
+    const frame = window.requestAnimationFrame(updateSize);
+    const settle = window.setTimeout(updateSize, 250);
 
     const observer = new ResizeObserver(updateSize);
-    observer.observe(container);
-    return () => observer.disconnect();
+    observer.observe(scene);
+    window.addEventListener('resize', updateSize);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+      observer.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
   }, []);
 
   // Wheel zoom
@@ -208,7 +197,7 @@ export function TimelinePage() {
       e.preventDefault();
 
       const rect = container.getBoundingClientRect();
-      const localX = e.clientX - rect.left - LABEL_COLUMN_WIDTH;
+      const localX = Math.max(0, Math.min(areaWidth, e.clientX - rect.left));
       const anchorTime = store.viewport.start + (localX / areaWidth) * (store.viewport.end - store.viewport.start);
 
       if (e.deltaX !== 0 || e.shiftKey) {
@@ -220,6 +209,41 @@ export function TimelinePage() {
 
     container.addEventListener('wheel', onWheel, { passive: false });
     return () => container.removeEventListener('wheel', onWheel);
+  }, [store.viewport, store.bounds, areaWidth]);
+
+  // Click-drag over the timeline moves the visible time range horizontally.
+  useEffect(() => {
+    const area = trackAreaRef.current;
+    if (!area) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('button, input, a, [draggable="true"]')) return;
+      panDragRef.current = { x: event.clientX };
+      area.setPointerCapture(event.pointerId);
+      area.classList.add('is-panning');
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!panDragRef.current || !store.viewport || !store.bounds) return;
+      const dx = event.clientX - panDragRef.current.x;
+      panDragRef.current.x = event.clientX;
+      store.setUserViewport(panBy(store.viewport, store.bounds, -dx / Math.max(areaWidth, 1)));
+    };
+    const stop = () => {
+      panDragRef.current = null;
+      area.classList.remove('is-panning');
+    };
+
+    area.addEventListener('pointerdown', onPointerDown);
+    area.addEventListener('pointermove', onPointerMove);
+    area.addEventListener('pointerup', stop);
+    area.addEventListener('pointercancel', stop);
+    return () => {
+      area.removeEventListener('pointerdown', onPointerDown);
+      area.removeEventListener('pointermove', onPointerMove);
+      area.removeEventListener('pointerup', stop);
+      area.removeEventListener('pointercancel', stop);
+    };
   }, [store.viewport, store.bounds, areaWidth]);
 
   // Keyboard shortcuts
@@ -354,10 +378,6 @@ export function TimelinePage() {
     }
   }, []);
 
-  const handleMinimapBrush = useCallback((start: number, end: number) => {
-    store.setUserViewport({ start, end });
-  }, []);
-
   const handleExportCSV = useCallback(() => {
     const headers = ['id', 'date', 'bucket', 'quality', 'skin_authenticity', 'silicone_prob', 
                      'bone_score', 'symmetry', 'ldm_shape_difference', 'yaw', 'pitch', 'roll'];
@@ -401,19 +421,10 @@ export function TimelinePage() {
   return (
     <div className="timeline-page" ref={containerRef}>
       <TimelineToolbar
-        viewport={store.viewport}
-        bounds={store.bounds}
-        photoCount={store.photos.length}
-        filteredCount={filteredPhotos.length}
         qualityThreshold={store.qualityThreshold}
         findingsMode={store.findingsMode}
-        searchQuery={store.searchQuery}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onFitView={handleFitView}
         onQualityChange={store.setQualityThreshold}
         onFindingsToggle={() => store.setFindingsMode(!store.findingsMode)}
-        onSearchChange={store.setSearchQuery}
         onToggleFilters={() => setShowFilterPanel(!showFilterPanel)}
         onExportCSV={handleExportCSV}
         onToggle3D={() => setShow3DView(!show3DView)}
@@ -422,23 +433,10 @@ export function TimelinePage() {
       />
 
       <div className={`timeline-content ${show3DView ? 'with-3d' : ''}`}>
-        {/* Ruler row */}
-        <div className="timeline-row">
-          <div className="timeline-row-label" style={{ width: LABEL_COLUMN_WIDTH }}>
-            <span>ВРЕМЯ</span>
-          </div>
-          <div className="timeline-row-content">
-            <TimelineRuler viewport={store.viewport!} />
-          </div>
-        </div>
-
         {/* Metric tracks */}
         <div className="timeline-tracks" ref={trackAreaRef}>
           {visibleTracks.map((track) => (
             <div key={track.id} className="timeline-row" style={{ height: track.height }}>
-              <div className="timeline-row-label" style={{ width: LABEL_COLUMN_WIDTH }}>
-                <TrackLabel track={track} height={track.height} />
-              </div>
               <div className="timeline-row-content">
                 <TimelineCanvas
                   track={track}
@@ -455,16 +453,13 @@ export function TimelinePage() {
           ))}
 
           {/* Photo track */}
-          <div className="timeline-row" style={{ height: 60 }}>
-            <div className="timeline-row-label" style={{ width: LABEL_COLUMN_WIDTH }}>
-              <span>ФОТО</span>
-            </div>
+          <div className="timeline-row" style={{ height: 108 }}>
             <div className="timeline-row-content">
               <PhotoTrack
                 photos={filteredPhotos}
                 viewport={store.viewport!}
                 width={areaWidth}
-                height={60}
+                height={108}
                 selectedPhotoId={store.selectedPhotoId}
                 pairAId={store.pairAId}
                 pairBId={store.pairBId}
@@ -475,9 +470,6 @@ export function TimelinePage() {
 
           {/* Anomaly track */}
           <div className="timeline-row" style={{ height: 40 }}>
-            <div className="timeline-row-label" style={{ width: LABEL_COLUMN_WIDTH }}>
-              <span>АНОМАЛИИ</span>
-            </div>
             <div className="timeline-row-content">
               <AnomalyTrack
                 anomalies={store.anomalies}
@@ -491,9 +483,6 @@ export function TimelinePage() {
 
           {/* Biological Impossibility track */}
           <div className="timeline-row" style={{ height: 70 }}>
-            <div className="timeline-row-label" style={{ width: LABEL_COLUMN_WIDTH }}>
-              <span>БИОЛОГИЯ</span>
-            </div>
             <div className="timeline-row-content">
               <BiologicalImpossibilityTrack
                 photos={filteredPhotos}
@@ -506,19 +495,10 @@ export function TimelinePage() {
           </div>
         </div>
 
-        {/* Minimap row */}
-        <div className="timeline-row">
-          <div className="timeline-row-label" style={{ width: LABEL_COLUMN_WIDTH }}>
-            <span>МАСШТАБ</span>
-          </div>
+        {/* Годы — единственный нижний элемент таймлайна. */}
+        <div className="timeline-row timeline-ruler-row">
           <div className="timeline-row-content">
-            <TimelineMinimap
-              photos={store.photos}
-              viewport={store.viewport}
-              bounds={store.bounds}
-              width={areaWidth}
-              onBrush={handleMinimapBrush}
-            />
+            <TimelineRuler viewport={store.viewport!} />
           </div>
         </div>
       </div>
@@ -537,39 +517,6 @@ export function TimelinePage() {
           />
         </div>
       )}
-
-      {/* Legend */}
-      <div className="timeline-legend">
-        <span className="legend-title">ЛЕГЕНДА</span>
-        <span className="legend-item">
-          <span className="legend-swatch" style={{ backgroundColor: 'var(--metric-quality)' }} />
-          Качество
-        </span>
-        <span className="legend-item">
-          <span className="legend-swatch" style={{ backgroundColor: 'var(--metric-texture)' }} />
-          Текстура кожи
-        </span>
-        <span className="legend-item">
-          <span className="legend-swatch" style={{ backgroundColor: 'var(--metric-geometry)' }} />
-          Геометрия
-        </span>
-        <span className="legend-item">
-          <span className="legend-swatch" style={{ backgroundColor: 'var(--metric-anomaly)' }} />
-          Различие формы (LDM)
-        </span>
-        <span className="legend-item">
-          <span className="legend-swatch" style={{ backgroundColor: 'var(--color-synthetic)' }} />
-          Аномалия
-        </span>
-        <span className="legend-note">Цвет не является выводом о личности</span>
-        <span className="legend-shortcuts">
-          <kbd>←</kbd><kbd>→</kbd> навигация · 
-          <kbd>Tab</kbd> находки · 
-          <kbd>+/-</kbd> зум · 
-          <kbd>F</kbd> фильтры · 
-          <kbd>?</kbd> <button className="legend-help-btn" onClick={() => setShowHelp(true)}>справка</button>
-        </span>
-      </div>
 
       {/* Photo Detail Card */}
       {selectedPhoto && (
@@ -604,8 +551,6 @@ export function TimelinePage() {
         />
       )}
 
-      {/* Data Logger */}
-      <DataLogger data={timelineData} photos={store.photos} />
     </div>
   );
 }

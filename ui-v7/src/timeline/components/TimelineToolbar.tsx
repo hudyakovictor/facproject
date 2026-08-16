@@ -1,25 +1,12 @@
-import type { Viewport, TimeBounds } from '../../types/timeline';
-import { zoomLevel } from '../viewport';
-
 /**
- * Timeline toolbar component.
- * Contains controls for zoom, filters, and view options.
+ * Compact timeline menu bar.
  */
 
 interface TimelineToolbarProps {
-  viewport: Viewport;
-  bounds: TimeBounds;
-  photoCount: number;
-  filteredCount: number;
   qualityThreshold: number;
   findingsMode: boolean;
-  searchQuery: string;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onFitView: () => void;
   onQualityChange: (value: number) => void;
   onFindingsToggle: () => void;
-  onSearchChange: (value: string) => void;
   onToggleFilters: () => void;
   onExportCSV: () => void;
   onToggle3D: () => void;
@@ -28,46 +15,18 @@ interface TimelineToolbarProps {
 }
 
 export function TimelineToolbar({
-  viewport,
-  bounds,
-  photoCount,
-  filteredCount,
   qualityThreshold,
   findingsMode,
-  searchQuery,
-  onZoomIn,
-  onZoomOut,
-  onFitView,
   onQualityChange,
   onFindingsToggle,
-  onSearchChange,
   onToggleFilters,
   onExportCSV,
   onToggle3D,
   show3D,
   onShowPresets,
 }: TimelineToolbarProps) {
-  const zoom = zoomLevel(viewport, bounds);
-
   return (
     <div className="timeline-toolbar">
-      <div className="toolbar-section">
-        <span className="toolbar-title">ТАЙМЛАЙН</span>
-        <span className="toolbar-subtitle">
-          {photoCount} кадров · {filteredCount} в выборке
-        </span>
-      </div>
-
-      <div className="toolbar-section">
-        <input
-          type="text"
-          className="toolbar-search"
-          placeholder="Поиск по ID, дате, флагам..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
-
       <div className="toolbar-section">
         <button
           className={`toolbar-btn ${findingsMode ? 'active' : ''}`}
@@ -112,12 +71,6 @@ export function TimelineToolbar({
         </label>
       </div>
 
-      <div className="toolbar-section toolbar-zoom">
-        <button className="toolbar-btn" onClick={onZoomOut} title="Отдалить">−</button>
-        <button className="toolbar-btn" onClick={onFitView} title="Вписать">⊡</button>
-        <button className="toolbar-btn" onClick={onZoomIn} title="Приблизить">+</button>
-        <span className="toolbar-zoom-level">×{zoom.toFixed(1)}</span>
-      </div>
     </div>
   );
 }
