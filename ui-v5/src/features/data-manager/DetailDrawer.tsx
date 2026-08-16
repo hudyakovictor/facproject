@@ -6,6 +6,7 @@ import { PhotoImage } from "../../shared/ui/PhotoImage";
 import { poseFullLabel } from "../../shared/poseBins";
 import { substantiveFlags } from "../../shared/findings";
 import { missingFields } from "../../shared/api/contract";
+import { SidecarEditor } from "./SidecarEditor";
 import styles from "./dataManager.module.css";
 
 /**
@@ -126,6 +127,8 @@ export function DetailDrawer({ photo, onClose }: DetailDrawerProps) {
             </p>
           </section>
         )}
+
+        <SidecarEditor photo={photo} />
 
         <div className={styles.drawerActions}>
           <Link

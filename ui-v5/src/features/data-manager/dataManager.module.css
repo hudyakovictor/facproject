@@ -688,3 +688,65 @@
 .drawerLink:hover {
   border-color: var(--cyan-500);
 }
+
+/* ---- Редактор sidecar (§7.3) ---- */
+
+.sidecar {
+  margin-top: var(--space-3);
+  border-top: var(--line-hairline) solid var(--border-subtle);
+  padding-top: var(--space-2);
+}
+
+.sidecarField {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.sidecarLabel {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.sidecarField input,
+.sidecarField textarea {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-base);
+  padding: 3px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-primary);
+}
+
+.sidecarField input:focus-visible,
+.sidecarField textarea:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -1px;
+}
+
+.sidecarHint {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--text-disabled);
+}
+
+.sidecarError {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-2xs);
+  color: var(--red-300);
+}
+
+.sidecarConflict {
+  margin: 0 0 var(--space-2);
+  border-left: 2px solid var(--amber-400);
+  padding-left: var(--space-2);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--amber-300);
+}
