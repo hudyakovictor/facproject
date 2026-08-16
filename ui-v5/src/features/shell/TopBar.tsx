@@ -10,9 +10,8 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline } from "../../shared/api/queries";
 import { countFindings } from "../../shared/findings";
-import { researchTimeline } from "../../shared/researchApi";
 
 interface TopBarProps {
   activePose: string;
@@ -38,7 +37,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [poseMenuOpen, setPoseMenuOpen] = useState(false);
   const [metricsMenuOpen, setMetricsMenuOpen] = useState(false);
   const [findingsMenuOpen, setFindingsMenuOpen] = useState(false);
-  const timelineQuery = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const timelineQuery = useTimeline();
   const photos = timelineQuery.data?.photos ?? [];
   const findingCount = countFindings(photos);
   const metricCount = ["quality", "yaw", "pitch", "roll"].filter((key) => photos.some((photo) => photo[key as keyof typeof photo] != null)).length;

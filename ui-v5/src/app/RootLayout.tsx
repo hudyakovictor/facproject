@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Outlet } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline } from "../shared/api/queries";
 import { TopBar } from "../features/shell/TopBar";
 import { ConsoleLogDrawer } from "../features/shell/ConsoleLogDrawer";
 import { NotAVerdictBar } from "../shared/ui/NotAVerdictBar";
-import { researchTimeline } from "../shared/researchApi";
 import { countFindings } from "../shared/findings";
 import { normalizeStage, stageLabel } from "../shared/stage";
 
@@ -19,7 +18,7 @@ export default function RootLayout() {
   const [mouthThreshold, setMouthThreshold] = useState<number>(0.35);
   const [poseAngleThreshold, setPoseAngleThreshold] = useState<number>(6);
 
-  const timeline = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const timeline = useTimeline();
   const photos = timeline.data?.photos ?? [];
   const stage = normalizeStage(timeline.data?.analysis_stage);
 

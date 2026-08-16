@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline } from "../../shared/api/queries";
 import { Activity, ArrowLeftRight, Check, Filter, RefreshCw, Search, X } from "lucide-react";
-import { researchTimeline, type ResearchPhoto } from "../../shared/researchApi";
+import { type ResearchPhoto } from "../../shared/researchApi";
 import { countFindings, isFinding, substantiveFlags } from "../../shared/findings";
 import { poseLabel } from "../../shared/poseBins";
 import { normalizeStage, stageLabel } from "../../shared/stage";
@@ -29,7 +29,7 @@ const TRACKS: Track[] = [
 ];
 
 export function TimelinePage({ activePose = "frontal", qualityThreshold = 0 }: { activePose?: string; qualityThreshold?: number; mouthThreshold?: number }) {
-  const query = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const query = useTimeline();
   const viewportRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [findingMode, setFindingMode] = useState(false);

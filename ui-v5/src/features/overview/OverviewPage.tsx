@@ -1,23 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline, useRunSummary } from "../../shared/api/queries";
 import { Activity, AlertTriangle, Database, ShieldCheck, type LucideIcon } from "lucide-react";
-import { researchTimeline, runSummary } from "../../shared/researchApi";
 import { poseFullLabel, sortPoseBins } from "../../shared/poseBins";
 import { countFindings } from "../../shared/findings";
 import { normalizeStage, stageDescription, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
+import { describeError } from "../../shared/ui/errorDetail";
 import { DataContractBanner } from "../../shared/ui/DataContractBanner";
 
 
 export function OverviewPage() {
-  const timeline = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
-  const summary = useQuery({ queryKey: ["run-summary"], queryFn: runSummary });
+  const timeline = useTimeline();
+  const summary = useRunSummary();
   const photos = timeline.data?.photos ?? [];
   const poses = sortPoseBins([...new Set(photos.map((photo) => photo.bucket))]);
   const flagged = countFindings(photos);
   const stage = normalizeStage(timeline.data?.analysis_stage);
-  const changePoints = summary.data?.technical_summary?.change_point_count ?? "—";
+  const changePoints = summary.data?.technical_summary?.change_point_count ?? "н/д";
   const loading = timeline.isLoading || summary.isLoading;
-  const error = timeline.error || summary.error;
+  const error = timeline.error ?? summary.error;
+  const errorDetail = error ? describeError(error) : null;
 
   return <div className="flex flex-col h-[calc(100vh-49px)] w-full bg-[#080d12] text-[#e2e8f0] overflow-y-auto p-6 space-y-6">
     <section className="rounded-lg border border-cyan-800/60 bg-[#0b1117] p-5">
@@ -28,7 +29,7 @@ export function OverviewPage() {
         </div>
         <div className={`rounded px-3 py-2 font-mono text-xs ${error ? "bg-rose-950 text-rose-300" : "bg-emerald-950 text-emerald-300"}`}>{loading ? "ЗАГРУЗКА…" : error ? "ОШИБКА API" : "SOURCE_MODE: RESEARCH"}</div>
       </div>
-      {error && <div className="mt-4 rounded border border-rose-800 bg-rose-950/40 p-3 font-mono text-xs text-rose-300">{String(error)}</div>}
+      {errorDetail && <div className="mt-4 rounded border border-rose-800 bg-rose-950/40 p-3 font-mono text-xs text-rose-300">{errorDetail.status ? `HTTP ${errorDetail.status} · ` : ""}{errorDetail.message}</div>}
     </section>
 
     <section className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono">

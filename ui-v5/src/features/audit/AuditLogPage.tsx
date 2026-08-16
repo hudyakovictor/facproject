@@ -1,11 +1,10 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline, useRunSummary } from "../../shared/api/queries";
 import { Lock, AlertTriangle } from "lucide-react";
-import { researchTimeline, runSummary } from "../../shared/researchApi";
 
 export const AuditLogPage: React.FC = () => {
-  const t = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
-  const s = useQuery({ queryKey: ["run-summary"], queryFn: runSummary });
+  const t = useTimeline();
+  const s = useRunSummary();
   const photos = t.data?.photos ?? [];
   return <div className="flex flex-col h-[calc(100vh-49px)] w-full bg-[#080d12] text-[#e2e8f0] overflow-y-auto p-6 space-y-5"><header className="rounded-lg border border-cyan-800/70 bg-[#0b1117] p-5"><div className="flex items-center gap-2 font-mono text-sm font-bold text-cyan-300"><Lock className="h-5 w-5"/> ПРОВЕНАНС И СТАТУС ИССЛЕДОВАТЕЛЬСКОГО ЗАПУСКА</div><p className="text-xs text-slate-300 mt-2">Это read-only представление фактов API. Клиент не заявляет проверку хешей, которых нет в контракте.</p></header><section className="grid grid-cols-2 md:grid-cols-4 gap-3">{[["Фото Stage 2",photos.length],["Источник",s.data?.source_mode],["Стадия",photos[0]?.analysisStage],["Проверка",s.data?.not_a_verdict ? "не verdict" : "н/д"]].map(([k,v])=><div key={String(k)} className="rounded-lg border border-[#1f2d3d] bg-[#0b1117] p-4"><div className="text-xs text-slate-500">{k}</div><div className="mt-2 text-lg font-mono text-cyan-300">{v ?? "н/д"}</div></div>)}</section><section className="rounded-lg border border-[#1f2d3d] bg-[#0b1117] p-5"><h2 className="font-mono text-xs text-cyan-300 mb-3">ПРОВЕРЯЕМЫЕ ПОЛЯ</h2><div className="grid md:grid-cols-2 gap-2 text-sm text-slate-300">{["photo_id", "date", "pose_bin", "quality", "flags", "measurement_status", "evidence_state", "stage2_pair_count"].map(x=><div key={x} className="rounded bg-[#101820] p-3 font-mono text-xs">{x} <span className="text-emerald-300">· из timeline API</span></div>)}</div></section><div className="rounded border border-amber-800/60 bg-amber-950/20 p-4 text-xs text-amber-200"><AlertTriangle className="inline h-4 w-4 mr-1"/>История действий пользователя и SHA-256-регистр не подключены к backend; старые синтетические записи удалены.</div></div>;
 };

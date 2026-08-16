@@ -1,12 +1,11 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCalibrationHealth } from "../../shared/api/queries";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
-import { calibrationHealth } from "../../shared/researchApi";
 import { poseLabel } from "../../shared/poseBins";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 
 export const CalibrationPage: React.FC = () => {
-  const q = useQuery({ queryKey: ["calibration-health"], queryFn: calibrationHealth });
+  const q = useCalibrationHealth();
   if (q.isLoading) return <LoadingState text="Загрузка состояния калибровки…" />;
   if (q.isError) return <ErrorState title="Калибровка недоступна" error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <EmptyState title="Калибровочный индекс пуст" description="Endpoint ответил, но не вернул данных о калибровочном пуле." />;

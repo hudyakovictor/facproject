@@ -1,11 +1,10 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline, useRunSummary } from "../../shared/api/queries";
 import { BookOpen, AlertTriangle } from "lucide-react";
-import { researchTimeline, runSummary } from "../../shared/researchApi";
 
 export const ArticlesPage: React.FC = () => {
-  const timeline = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
-  const summary = useQuery({ queryKey: ["run-summary"], queryFn: runSummary });
+  const timeline = useTimeline();
+  const summary = useRunSummary();
   const photos = timeline.data?.photos ?? [];
   const years = photos.map(p => p.date?.slice(0, 4)).filter(Boolean);
   const first = years[0] ?? "н/д";

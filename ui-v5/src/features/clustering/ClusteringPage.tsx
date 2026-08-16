@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { researchTimeline, type ResearchPhoto } from "../../shared/researchApi";
+import { useTimeline } from "../../shared/api/queries";
+import { type ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel, sortPoseBins } from "../../shared/poseBins";
 import { normalizeStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
@@ -12,7 +12,7 @@ const palette = ["#34d399", "#fbbf24", "#22d3ee", "#a78bfa", "#fb7185", "#60a5fa
 export const ClusteringPage: React.FC = () => {
   const [includeAllPoses, setIncludeAllPoses] = useState(true);
   const [selectedPose, setSelectedPose] = useState("all");
-  const query = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const query = useTimeline();
   const photos = useMemo(() => query.data?.photos ?? [], [query.data]);
   const stage = normalizeStage(query.data?.analysis_stage);
   const poses = useMemo(() => sortPoseBins(Array.from(new Set(photos.map((p) => p.bucket)))), [photos]);

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline } from "../../shared/api/queries";
 import { Play, Pause } from "lucide-react";
-import { researchTimeline } from "../../shared/researchApi";
 import { poseLabel } from "../../shared/poseBins";
 import { normalizeStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
@@ -9,7 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 import { sortPhotosByTime } from "../../shared/time";
 
 export const MorphingPage: React.FC = () => {
-  const q = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const q = useTimeline();
   const photos = useMemo(() => sortPhotosByTime(q.data?.photos ?? []).dated, [q.data]);
   const stage = normalizeStage(q.data?.analysis_stage);
   const [index, setIndex] = useState(0); const [playing, setPlaying] = useState(false);

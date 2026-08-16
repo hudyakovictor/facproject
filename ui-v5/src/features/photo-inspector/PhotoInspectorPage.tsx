@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useTimeline } from "../../shared/api/queries";
 import { ShieldCheck } from "lucide-react";
-import { researchTimeline } from "../../shared/researchApi";
 import { poseLabel } from "../../shared/poseBins";
 import { substantiveFlags } from "../../shared/findings";
 import { normalizeStage, stageLabel } from "../../shared/stage";
@@ -12,7 +11,7 @@ const imageUrl = (id: string) => `/api/v1/photos/${encodeURIComponent(id)}/image
 const value = (v: unknown) => v === null || v === undefined || v === "" ? "н/д" : String(v);
 
 export const PhotoInspectorPage: React.FC = () => {
-  const query = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const query = useTimeline();
   const photos = useMemo(() => query.data?.photos ?? [], [query.data]);
   const [selectedId, setSelectedId] = useState<string>();
   const selected = useMemo(() => photos.find((p) => p.id === (selectedId ?? photos[0]?.id)) ?? null, [photos, selectedId]);

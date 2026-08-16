@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { researchTimeline, type ResearchPhoto } from "../../shared/researchApi";
+import { useTimeline } from "../../shared/api/queries";
+import { type ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel } from "../../shared/poseBins";
 import { normalizeStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 const imageUrl = (id: string) => `/api/v1/photos/${encodeURIComponent(id)}/image`;
 const show = (v: unknown) => v === null || v === undefined || v === "" ? "н/д" : String(v);
 export const PairAnalysisPage: React.FC = () => {
-  const q = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const q = useTimeline();
   const photos = useMemo(() => q.data?.photos ?? [], [q.data]);
   const [aId, setAId] = useState<string>(); const [bId, setBId] = useState<string>();
   const a = useMemo(() => photos.find(p => p.id === (aId ?? photos[0]?.id)), [photos, aId]);

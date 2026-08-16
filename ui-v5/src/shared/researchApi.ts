@@ -107,81 +107,19 @@ export interface CalibrationHealth {
   source: string;
 }
 
-import { consoleLogger } from "./logger";
+import { getValidated, ApiError, ContractError } from "./api/client";
+import { CalibrationHealthSchema, RunSummarySchema, TimelineSchema } from "./api/schemas";
 
-/**
- * Ошибка обращения к API с сохранённым контекстом.
- *
- * Раньше запрос падал обычным `Error` со склеенной строкой, и экраны показывали
- * либо «не удалось загрузить», либо — что хуже — текст про нехватку данных.
- * Теперь код ответа, endpoint и `detail` от FastAPI доступны интерфейсу и
- * попадают в журнал.
- */
-export class ApiError extends Error {
-  readonly status: number;
-  readonly endpoint: string;
-  readonly detail: string;
-
-  constructor(status: number, endpoint: string, detail: string) {
-    super(`API ${status} ${endpoint}: ${detail}`);
-    this.name = "ApiError";
-    this.status = status;
-    this.endpoint = endpoint;
-    this.detail = detail;
-  }
-}
-
-/** Таймаут одного запроса. Без него зависший backend оставляет вечный спиннер. */
-const REQUEST_TIMEOUT_MS = 30_000;
-
-function extractDetail(body: string): string {
-  try {
-    const parsed = JSON.parse(body) as { detail?: unknown };
-    if (typeof parsed.detail === "string") return parsed.detail;
-    if (parsed.detail != null) return JSON.stringify(parsed.detail);
-  } catch {
-    /* тело не JSON — вернём как есть */
-  }
-  return body.slice(0, 400) || "Ответ без описания причины.";
-}
-
-async function get<T>(path: string): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  try {
-    const response = await fetch(path, {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      const detail = extractDetail(await response.text());
-      consoleLogger.addLog("ERROR", "API", `${response.status} ${path}`, detail);
-      throw new ApiError(response.status, path, detail);
-    }
-    return (await response.json()) as T;
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    const aborted = error instanceof DOMException && error.name === "AbortError";
-    const message = aborted
-      ? `Превышено время ожидания ${REQUEST_TIMEOUT_MS / 1000} с`
-      : error instanceof Error
-        ? error.message
-        : String(error);
-    consoleLogger.addLog("ERROR", "API", `Сбой запроса ${path}`, message);
-    throw new ApiError(0, path, message);
-  } finally {
-    clearTimeout(timer);
-  }
-}
+export { ApiError, ContractError };
 
 export function researchTimeline(): Promise<ResearchTimeline> {
-  return get<ResearchTimeline>("/api/v1/timeline");
+  return getValidated("/api/v1/timeline", TimelineSchema) as Promise<ResearchTimeline>;
 }
 
 export function runSummary(): Promise<RunSummary> {
-  return get<RunSummary>("/api/v1/run/summary");
+  return getValidated("/api/v1/run/summary", RunSummarySchema) as Promise<RunSummary>;
 }
 
 export function calibrationHealth(): Promise<CalibrationHealth> {
-  return get<CalibrationHealth>("/api/v1/calibration/health");
+  return getValidated("/api/v1/calibration/health", CalibrationHealthSchema) as Promise<CalibrationHealth>;
 }

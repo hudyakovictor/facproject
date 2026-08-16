@@ -1,6 +1,5 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { researchTimeline, runSummary } from "../../shared/researchApi";
+import { useTimeline, useRunSummary } from "../../shared/api/queries";
 import { normalizeStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { ErrorState, LoadingState } from "../../shared/ui/states";
@@ -23,8 +22,8 @@ const CountList: React.FC<{ counts?: Record<string, number> | null }> = ({ count
 };
 
 export const HypothesisValidationPage: React.FC = () => {
-  const timeline = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
-  const summary = useQuery({ queryKey: ["run-summary"], queryFn: runSummary });
+  const timeline = useTimeline();
+  const summary = useRunSummary();
   const photos = sortPhotosByTime(timeline.data?.photos ?? []).dated;
   const technical = summary.data?.technical_summary;
   const stage = normalizeStage(timeline.data?.analysis_stage);

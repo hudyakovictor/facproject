@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { researchTimeline, type ResearchPhoto } from "../../shared/researchApi";
+import { useTimeline } from "../../shared/api/queries";
+import { type ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel, sortPoseBins } from "../../shared/poseBins";
 import { normalizeStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
@@ -37,7 +37,7 @@ export const DataManagerPage: React.FC = () => {
   const [page, setPage] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(50);
 
-  const timelineQuery = useQuery({ queryKey: ["research-timeline"], queryFn: researchTimeline });
+  const timelineQuery = useTimeline();
   const stage = normalizeStage(timelineQuery.data?.analysis_stage);
   const rows: DataRow[] = (timelineQuery.data?.photos ?? []).map((p: ResearchPhoto) => {
     const isConflict = p.dateProvenanceStatus === "conflict";
