@@ -22,7 +22,12 @@ import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 import { PhotoImage } from "../../shared/ui/PhotoImage";
 import { METRIC_COLORS } from "../../shared/ui/tokenColors";
 import { frameLabel, frameTitle } from "../../shared/blind";
-import { useAnalysisStore, type MetricKey } from "../../shared/state/analysisStore";
+import { useAnalysisStore } from "../../shared/state/analysisStore";
+import {
+  METRIC_GROUP_LABELS,
+  metricById,
+  type MetricDescriptor,
+} from "../../shared/metrics";
 import { TrackCanvas, type TrackSpec } from "./TrackCanvas";
 import { PhotoTooltip } from "./PhotoTooltip";
 import { pickRepresentatives } from "./representative";
@@ -39,6 +44,11 @@ import {
   zoomLevel,
   type Viewport,
 } from "./viewport";
+import { PoseMenu } from "./PoseMenu";
+import { PoseLanes } from "./PoseLanes";
+import { MetricsMenu } from "./MetricsMenu";
+import { FiltersMenu } from "./FiltersMenu";
+import { ExportMenu } from "./ExportMenu";
 import styles from "./timeline.module.css";
 
 const pct = (v: number | null | undefined) => (v == null ? "н/д" : `${Math.round(v * 100)}%`);
@@ -48,56 +58,53 @@ const metric = (v: number | null | undefined) => (v == null ? "н/д" : v.toFixe
  * Дорожки метрик. Нормализация переводит величину в [0,1] для вертикальной
  * оси; сама величина при этом не изменяется и в подсказке показывается как есть.
  */
-const ALL_TRACKS: Record<MetricKey, TrackSpec> = {
-  yaw: {
-    key: "yaw",
-    label: "POSE · YAW",
-    range: "−90° · 0° · +90°",
-    color: METRIC_COLORS.yaw,
-    value: (p) => p.yaw,
-    normalize: (v) => (v + 90) / 180,
-  },
-  quality: {
-    key: "quality",
-    label: "QUALITY · Q",
-    range: "0 · 0.5 · 1",
-    color: METRIC_COLORS.quality,
-    value: (p) => p.quality,
-    normalize: (v) => v,
-  },
-  pitch: {
-    key: "pitch",
-    label: "POSE · PITCH",
-    range: "−45° · 0° · +45°",
-    color: METRIC_COLORS.pitch,
-    value: (p) => p.pitch,
-    normalize: (v) => (v + 45) / 90,
-  },
-  roll: {
-    key: "roll",
-    label: "POSE · ROLL",
-    range: "−45° · 0° · +45°",
-    color: METRIC_COLORS.roll,
-    value: (p) => p.roll,
-    normalize: (v) => (v + 45) / 90,
-  },
-  boneScore: {
-    key: "boneScore",
-    label: "GEOMETRY · BONE",
-    range: "0 · 0.5 · 1",
-    color: METRIC_COLORS.boneScore,
-    value: (p) => p.boneScore ?? null,
-    normalize: (v) => v,
-  },
-  confidence: {
-    key: "confidence",
-    label: "CONFIDENCE",
-    range: "0 · 0.5 · 1",
-    color: METRIC_COLORS.confidence,
-    value: (p) => p.confidence ?? null,
-    normalize: (v) => v,
-  },
-};
+/**
+ * Дорожка строится по описанию метрики из каталога: подпись, единица и статус
+ * берутся оттуда же, откуда их читает меню, поэтому легенда дорожки не может
+ * разойтись с легендой в списке метрик.
+ *
+ * Нормализация переводит величину в [0,1] для вертикальной оси; сама величина
+ * не изменяется и в подсказке показывается как есть. Для метрик без
+ * объявленного диапазона он считается по видимым данным — иначе дорожка
+ * z-оценок с размахом в доли сигмы выглядела бы прямой линией.
+ */
+function trackFor(
+  descriptor: MetricDescriptor,
+  photos: readonly ResearchPhoto[],
+): TrackSpec {
+  let lo: number;
+  let hi: number;
+  if (descriptor.domain) {
+    [lo, hi] = descriptor.domain;
+  } else {
+    lo = Number.POSITIVE_INFINITY;
+    hi = Number.NEGATIVE_INFINITY;
+    for (const photo of photos) {
+      const value = descriptor.valueOf(photo);
+      if (value === null) continue;
+      if (value < lo) lo = value;
+      if (value > hi) hi = value;
+    }
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
+      lo = 0;
+      hi = 1;
+    }
+    if (lo === hi) {
+      lo -= 0.5;
+      hi += 0.5;
+    }
+  }
+  const span = hi - lo || 1;
+  const digits = Math.abs(hi) >= 100 ? 0 : Math.abs(hi) >= 10 ? 1 : 2;
+  return {
+    key: descriptor.id,
+    label: `${METRIC_GROUP_LABELS[descriptor.group].toUpperCase()} · ${descriptor.label.toUpperCase()}`,
+    range: `${lo.toFixed(digits)} · ${((lo + hi) / 2).toFixed(digits)} · ${hi.toFixed(digits)}${descriptor.unit ?? ""}`,
+    color: METRIC_COLORS[descriptor.id] ?? "var(--text-muted)",
+    value: descriptor.valueOf,
+    normalize: (v) => (v - lo) / span,
+  };
+}
 
 const TRACK_HEIGHT = 68;
 /** Столбцов плотности на минимапе: достаточно для формы распределения. */
@@ -112,6 +119,7 @@ export function TimelinePage() {
 
   const {
     activePose,
+    setActivePose,
     qualityThreshold,
     search,
     setSearch,
@@ -120,6 +128,7 @@ export function TimelinePage() {
     multiPose,
     setMultiPose,
     visibleMetrics,
+    setVisibleMetrics,
     selectedPhoto: selected,
     setSelectedPhoto: setSelected,
     pairA: aId,
@@ -214,8 +223,12 @@ export function TimelinePage() {
   );
 
   const visibleTracks = useMemo(
-    () => visibleMetrics.map((key) => ALL_TRACKS[key]).filter(Boolean),
-    [visibleMetrics],
+    () =>
+      visibleMetrics
+        .map((key) => metricById(key))
+        .filter((d): d is MetricDescriptor => Boolean(d))
+        .map((d) => trackFor(d, filtered)),
+    [visibleMetrics, filtered],
   );
 
   const representatives = useMemo(
@@ -433,13 +446,27 @@ export function TimelinePage() {
           Находки · {countFindings(filtered)}
         </button>
 
-        <button
-          type="button"
-          onClick={() => setMultiPose(!multiPose)}
-          className={`rounded-sm border px-2 py-1 text-xs ${multiPose ? "border-cyan-500 bg-cyan-soft text-cyan-300" : "border-line-default text-ink-secondary"}`}
-        >
-          {multiPose ? "Все ракурсы" : "Один ракурс"}
-        </button>
+        <PoseMenu
+          photos={dated}
+          activePose={activePose}
+          onSelect={setActivePose}
+          multiPose={multiPose}
+          onMultiPose={setMultiPose}
+        />
+
+        <MetricsMenu photos={filtered} visible={visibleMetrics} onChange={setVisibleMetrics} />
+
+        <FiltersMenu photos={dated} />
+
+        <ExportMenu
+          photos={inViewport}
+          metrics={visibleMetrics}
+          viewport={viewport}
+          pose={activePose}
+          multiPose={multiPose}
+          schema={query.data?.schema ?? null}
+          sourceMode={query.data?.source_mode ?? null}
+        />
 
         <div className="flex items-center gap-1">
           <button
@@ -533,7 +560,29 @@ export function TimelinePage() {
           onMouseMove={handleMove}
           onMouseLeave={() => setHover(null)}
         >
-          {visibleTracks.map((track) => (
+          {multiPose ? (
+            <PoseLanes
+              photos={inViewport}
+              times={times}
+              viewport={viewport}
+              tracks={visibleTracks}
+              width={areaWidth}
+              activePose={activePose}
+              pairA={aId}
+              pairB={bId}
+              selected={selected}
+              dimmed={dimmed}
+              hoverTime={hover?.time ?? null}
+              onSelect={selectPhoto}
+              labelOf={labelOf}
+              onFocusPose={(pose) => {
+                setActivePose(pose);
+                setMultiPose(false);
+              }}
+            />
+          ) : null}
+
+          {!multiPose && visibleTracks.map((track) => (
             <div key={track.key} className={styles.row}>
               <div className={styles.rowLabel}>
                 <span>{track.label}</span>
@@ -553,7 +602,7 @@ export function TimelinePage() {
             </div>
           ))}
 
-          {visibleTracks.length === 0 && (
+          {!multiPose && visibleTracks.length === 0 && (
             <div className={styles.row}>
               <div className={styles.rowLabel}>
                 <span>МЕТРИКИ</span>
@@ -565,7 +614,7 @@ export function TimelinePage() {
           )}
 
           {/* Строка фотографий: один кадр — одна координата X. */}
-          <div className={styles.row}>
+          <div className={styles.row} hidden={multiPose}>
             <div className={styles.rowLabel}>
               <span>PHOTO ROW</span>
               <small>лучший кадр на бакет</small>

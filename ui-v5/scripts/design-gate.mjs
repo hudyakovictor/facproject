@@ -12,6 +12,7 @@ import { readFileSync, globSync } from "node:fs";
 
 const files = globSync("src/**/*.tsx").filter((f) => !f.endsWith(".test.tsx"));
 
+
 /** Витрина дизайн-системы вправе показывать значения токенов буквально. */
 const HEX_EXEMPT = new Set(["src/features/design-system/DesignSystemPage.tsx"]);
 
@@ -42,6 +43,53 @@ for (const file of files) {
   if (!HEX_EXEMPT.has(file)) {
     record(file, "хардкод-цвет вместо токена", source.match(ARBITRARY_HEX) ?? []);
   }
+}
+
+/**
+ * Ссылка на несуществующую CSS-переменную.
+ *
+ * Опечатка вроде `var(--violet-500)` при отсутствующем токене не ломает ни
+ * сборку, ни типы: свойство просто не применяется, и граница становится
+ * прозрачной. Такую ошибку невозможно заметить в отзыве кода и легко
+ * пропустить на экране, поэтому её ищет гейт.
+ *
+ * Значение с запасным вариантом — `var(--x, fallback)` — законно: оно
+ * рассчитано на то, что переменная задана не всегда.
+ */
+const tokenSources = ["src/styles/tokens.css", "src/styles/global.css"];
+const defined = new Set();
+for (const file of tokenSources) {
+  for (const match of readFileSync(file, "utf8").matchAll(/(--[a-z0-9-]+)\s*:/g)) {
+    defined.add(match[1]);
+  }
+}
+
+// Переменные, которые задаются инлайн из TSX (style={{ "--quality": ... }}).
+const inlineDefined = new Set();
+for (const file of files) {
+  for (const match of readFileSync(file, "utf8").matchAll(/"(--[a-z0-9-]+)"\s*:/g)) {
+    inlineDefined.add(match[1]);
+  }
+}
+
+const varFiles = [...globSync("src/**/*.css"), ...files];
+for (const file of varFiles) {
+  if (tokenSources.includes(file)) continue;
+  const source = readFileSync(file, "utf8");
+  // Переменная может объявляться локально в том же файле (например, чтобы
+  // модификатор класса менял цвет кольца) или задаваться инлайн через style.
+  const local = new Set(
+    [...source.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((match) => match[1]),
+  );
+  const unknown = [];
+  for (const match of source.matchAll(/var\((--[a-z0-9-]+)\s*(,?)/g)) {
+    if (local.has(match[1]) || inlineDefined.has(match[1])) continue;
+    // `--x` внутри resolveToken() подставляется во время выполнения.
+    if (match[1] === "--x") continue;
+    if (match[2] === ",") continue;
+    if (!defined.has(match[1])) unknown.push(match[1]);
+  }
+  record(file, "неизвестная CSS-переменная", unknown);
 }
 
 if (violations.length === 0) {

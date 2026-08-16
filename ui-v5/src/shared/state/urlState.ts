@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { MetricKey } from "./analysisStore";
+import { METRIC_KEYS, type MetricKey } from "./analysisStore";
 
 /**
  * Кодирование состояния анализа в URL.
@@ -12,7 +12,6 @@ import type { MetricKey } from "./analysisStore";
  * повреждённые значения не роняют навигацию, а отбрасываются.
  */
 
-const METRIC_KEYS = ["quality", "yaw", "pitch", "roll", "boneScore", "confidence"] as const;
 
 const boolish = z
   .union([z.boolean(), z.literal("1"), z.literal("0"), z.literal("true"), z.literal("false")])

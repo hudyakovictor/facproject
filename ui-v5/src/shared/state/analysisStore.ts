@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { POSE_BIN_IDS } from "../poseBins";
+import { METRIC_CATALOG } from "../metrics";
 
 /**
  * Общее состояние анализа для всей рабочей станции.
@@ -15,8 +16,18 @@ import { POSE_BIN_IDS } from "../poseBins";
  * импортировался ни разу.
  */
 
-/** Метрики, которые могут отображаться дорожками таймлайна. */
-export type MetricKey = "quality" | "yaw" | "pitch" | "roll" | "boneScore" | "confidence";
+/**
+ * Метрики, которые могут отображаться дорожками таймлайна.
+ *
+ * Список величин ведётся в `shared/metrics.ts` вместе с единицами измерения и
+ * статусом калибровки. Дублировать его здесь union-типом значило бы завести
+ * второй источник истины: добавленная в каталог метрика молча не появлялась бы
+ * в меню, а удалённая оставалась бы валидной в URL.
+ */
+export type MetricKey = string;
+
+/** Идентификаторы всех известных метрик — для проверки значений из URL. */
+export const METRIC_KEYS: readonly string[] = METRIC_CATALOG.map((metric) => metric.id);
 
 export const DEFAULT_VISIBLE_METRICS: MetricKey[] = ["quality", "yaw", "pitch", "roll"];
 

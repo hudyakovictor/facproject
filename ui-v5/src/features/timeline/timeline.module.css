@@ -394,3 +394,440 @@
   color: var(--text-primary);
   outline: none;
 }
+
+/* ---- Меню верхней панели (§8.1, §8.10) ---- */
+
+.menuRoot {
+  position: relative;
+}
+
+.menuTrigger {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.menuTrigger:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.menuTrigger[aria-expanded="true"] {
+  border-color: var(--cyan-500);
+  color: var(--cyan-300);
+}
+
+.menuPanel {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 40;
+  width: 30rem;
+  max-height: 28rem;
+  overflow-y: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-popover);
+  padding: var(--space-3);
+}
+
+.menuNote,
+.menuFootnote {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.menuFootnote {
+  margin: var(--space-2) 0 0;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-2);
+}
+
+.menuGroup {
+  margin-bottom: var(--space-3);
+}
+
+.menuGroupTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.menuRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 0;
+}
+
+.menuLabel {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.menuLabel input:disabled + .menuSwatch + .menuName {
+  color: var(--text-disabled);
+}
+
+.menuSwatch {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: var(--radius-xs);
+}
+
+.menuName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuUnit {
+  color: var(--text-muted);
+}
+
+.menuBadgeCalibrated,
+.menuBadgeDiagnostic,
+.menuBadgeLimited {
+  flex: none;
+  border-radius: var(--radius-xs);
+  padding: 0 4px;
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+
+.menuBadgeCalibrated {
+  border: 1px solid var(--green-500);
+  background: var(--green-soft);
+  color: var(--green-300);
+}
+
+.menuBadgeDiagnostic {
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+}
+
+.menuBadgeLimited {
+  margin-left: var(--space-1);
+  border: 1px solid var(--amber-500);
+  background: var(--amber-soft);
+  color: var(--amber-300);
+}
+
+.menuCount,
+.menuCountEmpty {
+  flex: none;
+  width: 4.5rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+.menuCount {
+  color: var(--text-secondary);
+}
+
+.menuCountEmpty {
+  color: var(--text-disabled);
+}
+
+.menuOrder {
+  display: flex;
+  gap: 2px;
+}
+
+.menuOrder button,
+.menuSolo {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 0 4px;
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.menuOrder button:disabled,
+.menuSolo:disabled {
+  color: var(--text-disabled);
+}
+
+.menuOrder button:not(:disabled):hover,
+.menuSolo:not(:disabled):hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.menuMultiRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.menuAction {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-base);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+
+.menuAction:not(:disabled):hover {
+  border-color: var(--cyan-500);
+  color: var(--cyan-300);
+}
+
+.menuAction:disabled {
+  color: var(--text-disabled);
+}
+
+.poseTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-2xs);
+}
+
+.poseTable th,
+.poseTable td {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 3px var(--space-1);
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.poseTable thead th {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.poseTable tbody th {
+  text-align: left;
+  font-weight: 400;
+}
+
+.poseRowActive {
+  background: var(--cyan-soft);
+}
+
+.poseSelect {
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+}
+
+.poseSelect:disabled {
+  color: var(--text-disabled);
+}
+
+.poseSelect:not(:disabled):hover {
+  color: var(--cyan-300);
+}
+
+/* ---- Мультиракурсные полосы (§8.9) ---- */
+
+.lanes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.lanesNote {
+  margin: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.lane {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.laneActive {
+  background: var(--cyan-soft);
+}
+
+.laneHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 2px var(--space-3);
+}
+
+.laneTitle {
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.laneTitle:hover {
+  color: var(--cyan-300);
+}
+
+.laneCount {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.laneBody {
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+.laneTrack {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.laneTrackLabel {
+  width: 9rem;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.laneCanvas {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.lanePhotoRow {
+  position: relative;
+  height: 18px;
+  margin-left: calc(9rem + var(--space-2));
+}
+
+.laneThumb {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  padding: 0 3px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 16px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.laneThumb:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  z-index: 2;
+}
+
+.laneThumbA {
+  border-color: var(--cyan-500);
+  color: var(--cyan-300);
+}
+
+.laneThumbB {
+  border-color: var(--violet-400);
+  color: var(--violet-300);
+}
+
+.laneThumbFinding {
+  border-color: var(--red-500);
+  color: var(--red-300);
+}
+
+.laneThumbCaption {
+  pointer-events: none;
+}
+
+/* ---- Фильтры вида (§9.1, §9.4) ---- */
+
+.menuViewOnly {
+  margin: 0 0 var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  background: var(--surface-base);
+  padding: 2px var(--space-2);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.menuWarn {
+  margin: 0 0 var(--space-2);
+  border-left: 2px solid var(--amber-400);
+  padding-left: var(--space-2);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  color: var(--amber-300);
+}
+
+.filterRow {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.filterName {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+
+.filterRow input[type="range"] {
+  width: 100%;
+  accent-color: var(--cyan-400);
+}
+
+.histogram {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 40px;
+  margin-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.histBarKept,
+.histBarCut {
+  flex: 1;
+  min-height: 1px;
+  border-radius: 1px 1px 0 0;
+}
+
+.histBarKept {
+  background: var(--cyan-400);
+}
+
+.histBarCut {
+  background: var(--border-strong);
+}
