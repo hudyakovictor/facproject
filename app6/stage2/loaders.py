@@ -1,14 +1,17 @@
 """🎯 CRITICAL → Загрузка записей Stage 1 (npz+csv+sidecar) в Record-структуры.
-🚪 API: load_main(), load_calibration(), load_calibration_from_sidecar()
+🚪 API: load_main(), load_calibration(), load_calibration_from_sidecar(), calibration_bin_coverage()
 🔗 DEPENDS ON: stage1.validator контракты (6 CSV + npz keys)
 🚨 WARNING: _missing_alpha() мягко помечает записи без α-каналов.
 """
 from __future__ import annotations
 from app6.stage1.status_logger import log_status
+from app6.stage1.config import POSE_BINS
 
 import csv
 import json
 from pathlib import Path
+from typing import Any, Final
+from zipfile import BadZipFile
 
 import numpy as np
 
@@ -16,7 +19,7 @@ from .core import Record
 from .date_provenance import resolve_date
 from .analysis_policy import ANALYSIS_COORDINATE_SPACE
 from .quality_integration import load_quality_zone_summary
-from .robustness import validate_landmarks, validate_serialized_record
+from .robustness import validate_landmarks
 
 
 def _rows(path: Path) -> list[dict[str, str]]:
@@ -48,7 +51,7 @@ def load_main(stage1_root: Path) -> list[Record]:
       - stage1 output — структура папок photo_id/
 
     APPLICABILITY:
-      - Требует chronology-aligned landmarks; legacy-space fallback запрещён.
+      - Требует raw object-normalized landmarks; legacy-space fallback запрещён.
       - Source group сохраняется для диагностики и corroboration.
 
     💡 NOTE:
@@ -57,7 +60,7 @@ def load_main(stage1_root: Path) -> list[Record]:
       - Загружает alignment quality для фильтрации пар
 
     🚨 WARNING:
-      - Если reconstruction.npz не содержит chronology arrays — fallback к старым данным!
+      - Если reconstruction.npz не содержит raw object-normalized arrays — запись отклоняется без fallback.
       - При отсутствии info.json — запись пропускается
     """
     log_status("load_main", "complete")
@@ -93,24 +96,35 @@ def load_main(stage1_root: Path) -> list[Record]:
             dataset_role="evidence",
         )
         capture_event = str(Path(relative_source).with_suffix("")) if relative_source else None
-        with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
-            idx106 = z["ldm106_vertex_indices"].astype(np.int64); idx134 = z["ldm134_vertex_indices"].astype(np.int64)
-            # Production policy: raw object-normalized coordinates + pairwise robust Kabsch.
-            # DCRD/SGT showed chronology-aligned coordinates amplify pose residuals.
-            ldm106_data = _required_npz_array(z, "ldm106_object_normalized", (106, 3)).astype(np.float32)
-            ldm134_data = _required_npz_array(z, "ldm134_object_normalized", (134, 3)).astype(np.float32)
-            out.append(Record(
+        reconstruction_path = directory / "reconstruction.npz"
+        try:
+            with np.load(reconstruction_path, allow_pickle=False) as z:
+                idx106 = z["ldm106_vertex_indices"].astype(np.int64); idx134 = z["ldm134_vertex_indices"].astype(np.int64)
+                # Production policy: raw object-normalized coordinates + pairwise robust Kabsch.
+                # DCRD/SGT showed chronology-aligned coordinates amplify pose residuals.
+                ldm106_data = _required_npz_array(z, "ldm106_object_normalized", (106, 3)).astype(np.float32)
+                ldm134_data = _required_npz_array(z, "ldm134_object_normalized", (134, 3)).astype(np.float32)
+                angles=z["angle_deg_pitch_yaw_roll"].astype(np.float32)
+                visible106=z["ldm106_visible"].astype(bool);visible134=z["ldm134_visible"].astype(bool)
+                alpha_id=z["alpha_id"].astype(np.float32);alpha_exp=z["alpha_exp"].astype(np.float32)
+                identity_only106=(z["ldm106_identity_only"] if "ldm106_identity_only" in z else z["vertices_identity_only"][idx106]).astype(np.float32)
+                identity_only134=(z["ldm134_identity_only"] if "ldm134_identity_only" in z else z["vertices_identity_only"][idx134]).astype(np.float32)
+        except (OSError, ValueError, KeyError, EOFError, BadZipFile) as exc:
+            raise ValueError(
+                f"invalid Stage 1 artifact for {row['photo_id']} at {reconstruction_path}: {exc}"
+            ) from exc
+        out.append(Record(
                 record_id=row["photo_id"], dataset_id="main", date=row["date"], sequence=int(row["same_date_sequence"]),
-                pose_bin=row["pose_bin"], angles=z["angle_deg_pitch_yaw_roll"].astype(np.float32),
+                pose_bin=row["pose_bin"], angles=angles,
                 ldm106=ldm106_data,
                 ldm134=ldm134_data,
-                visible106=z["ldm106_visible"].astype(bool), visible134=z["ldm134_visible"].astype(bool),
-                alpha_id=z["alpha_id"].astype(np.float32), alpha_exp=z["alpha_exp"].astype(np.float32),
+                visible106=visible106, visible134=visible134,
+                alpha_id=alpha_id, alpha_exp=alpha_exp,
                 dataset_role="evidence",
                 date_precision=resolved["date_precision"],
                 capture_event=capture_event,
-                identity_only106=(z["ldm106_identity_only"] if "ldm106_identity_only" in z else z["vertices_identity_only"][idx106]).astype(np.float32),
-                identity_only134=(z["ldm134_identity_only"] if "ldm134_identity_only" in z else z["vertices_identity_only"][idx134]).astype(np.float32),
+                identity_only106=identity_only106,
+                identity_only134=identity_only134,
                 quality_status=str(gtq.get("status") or info.get("skin_quality_status") or "unknown"),
                 quality_texture_score=float(gtq.get("score", info.get("skin_quality_score", 0.0)) or 0.0),
                 forehead_wrinkle_supported=bool(qsum.get("supported_forehead_wrinkle_pose_v1", False)),
@@ -123,7 +137,7 @@ def load_main(stage1_root: Path) -> list[Record]:
                 date_provenance_status=str(resolved.get("date_provenance_status") or "unknown"),
                 exif_date=(info.get("date_provenance") or {}).get("exif_date"),date_delta_days=(info.get("date_provenance") or {}).get("delta_days"),source_claimed_date=(info.get("date_provenance") or {}).get("source_claimed_date"),source_claimed_delta_days=(info.get("date_provenance") or {}).get("source_claimed_delta_days"),date_conflict_sources=list((info.get("date_provenance") or {}).get("conflict_sources") or []),
                 source_provenance=dict(info.get("source_provenance") or {}),perceptual_dhash=info.get("perceptual_dhash"),near_duplicate_of=info.get("near_duplicate_of"),
-            ))
+                ))
     return sorted(out, key=lambda r: (r.date or "9999", r.sequence, r.record_id))
 
 
@@ -310,3 +324,57 @@ def load_calibration(calibration_root: Path) -> list[Record]:
         " --output /Volumes/SDCARD/storage/calibration_stage1, затем постройте "
         "all_calibration_index.csv командой app6/build_calibration_index.py."
     )
+
+
+CALIBRATION_BIN_COVERAGE_SCHEMA: Final[str] = "deeputin-calibration-bin-coverage-v1.0"
+
+#: Канонические 9 ракурсов (D-001). Пайплайн работает только с этими бинами;
+#: неизвестное имя ракурса в записи не является одним из них.
+CALIBRATION_POSE_BINS = tuple(name for name, *_ in POSE_BINS)
+
+
+def calibration_bin_coverage(records: list[Any]) -> dict[str, Any]:
+    """Явный отчёт о покрытии калибровки по 9 поз-ракурсам (ER-174).
+
+    Адаптер ``load_calibration`` молча возвращает только те ракурсы, что есть в
+    архиве, поэтому пустой бин не виден потребителю и выглядит как «нет 9/9
+    покрытия» без объяснения. Эта функция возвращает явный 9/9 отчёт: для
+    каждого из 9 канонических ракурсов считает число кадров и независимых
+    персон, а пустые ракурсы возвращает явно как ``missing``.
+
+    Независимая персона группируется по ``dataset_id`` (устанавливается из
+    ``all_calibration_index.csv``), с запасом на ``source_group`` для sidecar.
+    Записи с неизвестным именем ракурса не относятся ни к одному каноническому
+    бину и не засчитываются в покрытие.
+
+    Returns:
+        Отчёт: ``schema``, ``covered_bins``, ``missing_bins``,
+        ``coverage_ratio`` (0..1), ``total_records`` и ``buckets`` — по одному
+        словарю на каждый из 9 канонических ракурсов.
+    """
+    buckets: dict[str, dict[str, Any]] = {}
+    for pose in CALIBRATION_POSE_BINS:
+        pose_records = [r for r in records if r.pose_bin == pose]
+        persons: set[str] = set()
+        for r in pose_records:
+            identity = r.dataset_id or r.source_group
+            if identity:
+                persons.add(identity)
+        buckets[pose] = {
+            "pose_bin": pose,
+            "frame_count": len(pose_records),
+            "person_count": len(persons),
+            "missing": not pose_records,
+        }
+    missing_bins = [pose for pose, bucket in buckets.items() if bucket["missing"]]
+    covered_bins = [pose for pose in CALIBRATION_POSE_BINS if not buckets[pose]["missing"]]
+    ratio = (len(canonical) - len(missing_bins)) / len(canonical) if (canonical := CALIBRATION_POSE_BINS) else 0.0
+    return {
+        "schema": CALIBRATION_BIN_COVERAGE_SCHEMA,
+        "not_a_verdict": True,
+        "total_records": len(records),
+        "covered_bins": covered_bins,
+        "missing_bins": missing_bins,
+        "coverage_ratio": round(ratio, 4),
+        "buckets": buckets,
+    }

@@ -13,10 +13,9 @@ detection_confidence. run() дополнительно: content digest-деду�
 from __future__ import annotations
 
 import json
-import shutil
 import time
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +31,7 @@ from .geometry import pack_mask, to_original_image
 from .status_logger import log_status, status_warning
 from .masks import build_mask_bundle
 from .naming import PhotoName, make_nonchronological_photo_name, make_photo_id, parse_photo_name
-from .reconstruction import ReconstructionBundle, ReconstructionEngine
+from .reconstruction import ReconstructionEngine
 from .storage import atomic_photo_directory, clean_incomplete, write_failure
 from .utils import atomic_json, runtime_versions, digest_file, digest_json, digest_paths, write_csv
 from .validator import is_resumable, validate_photo
@@ -42,7 +41,7 @@ from .authenticity import build_texture_package
 
 
 def _utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def discover_input_photos(input_dir: Path, require_filename_date: bool = True) -> list[Path]:

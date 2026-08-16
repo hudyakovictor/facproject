@@ -11,7 +11,7 @@ import shutil
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
+from collections.abc import Iterator
 
 from .utils import atomic_json
 

@@ -103,7 +103,7 @@ Stage 1 (Извлечение):
   ⚠️ Нет фильтрации по expression magnitude
 
 Stage 2 (Анализ):
-  ✅ Landmark comparison (core.py) — ИСПРАВЛЕНО: использует chronology-aligned
+  ✅ Landmark comparison (core.py) — primary: raw object-normalized; chronology-aligned diagnostic only
   ✅ Calibration model (calibration.py)
   ✅ Alignment quality filter — ИСПРАВЛЕНО: пары с quality < 0.5 пропускаются
   ⚠️ Chronology rate flags — работает, но без учёта alignment quality
@@ -118,7 +118,6 @@ Stage 3 (Отчёт):
 ================================================================================
 
 - run_stage1.py          — 🚪 Запуск Stage 1 (извлечение данных)
-- run_skin_stage1.py     — 🚪 Пересборка skin package без повторного 3DDFA
 - run_stage2.py          — 🚪 Запуск Stage 2 (анализ)
 - run_stage3.py          — 🚪 Запуск Stage 3 (отчёт)
 - run_calibration.py     — 🚪 Калибровочный пайплайн (устаревший, использовать run_stage1.py)

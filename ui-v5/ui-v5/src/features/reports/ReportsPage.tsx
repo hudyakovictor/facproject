@@ -1,0 +1,23 @@
+import React from "react";
+import { useTimeline, useRunSummary } from "../../shared/api/queries";
+import { FileText, AlertTriangle } from "lucide-react";
+import { resolveStage, stageLabel } from "../../shared/stage";
+import { StageBanner } from "../../shared/ui/StageBanner";
+import { ErrorState, LoadingState } from "../../shared/ui/states";
+import { sortPhotosByTime } from "../../shared/time";
+
+export const ReportsPage: React.FC = () => {
+  const timeline = useTimeline();
+  const summary = useRunSummary();
+  const photos = sortPhotosByTime(timeline.data?.photos ?? []).dated;
+  const technical = summary.data?.technical_summary;
+  const stage = resolveStage(timeline.data);
+  if (timeline.isLoading || summary.isLoading) return <LoadingState text="Загрузка сведений о запуске…" />;
+  if (timeline.error || summary.error) return <ErrorState title="Сведения о запуске недоступны" error={timeline.error ?? summary.error} onRetry={() => { void timeline.refetch(); void summary.refetch(); }} />;
+  return <div className="flex flex-col h-workspace w-full bg-surface-canvas text-ink-primary overflow-y-auto p-6 space-y-5">
+    <StageBanner stage={stage} note={timeline.data?.note} />
+    <header className="rounded-lg border border-cyan-600 bg-surface-base p-5"><div className="flex items-center gap-2 font-mono text-sm font-bold text-cyan-300"><FileText className="h-5 w-5"/> ОТЧЁТ ПО ЗАПУСКУ · {stageLabel(stage)}</div><p className="text-xs text-ink-secondary mt-2">Экран показывает только сведения, которые возвращает локальный API. Публичный Stage 3-отчёт пока не сформирован.</p></header>
+    <section className="grid grid-cols-2 md:grid-cols-4 gap-3">{[["Фото",photos.length],["Change-point",technical?.change_point_count], ["Источник",summary.data?.source_mode], ["Статус",summary.data?.not_a_verdict ? "не verdict" : "н/д"]].map(([k,v])=><div key={String(k)} className="rounded-lg border border-line-default bg-surface-base p-4"><div className="text-xs text-ink-muted">{k}</div><div className="mt-2 text-lg font-mono text-cyan-300">{v ?? "н/д"}</div></div>)}</section>
+    <section className="rounded-lg border border-line-default bg-surface-base p-5"><h2 className="font-mono text-xs text-cyan-300">ФАКТЫ И ОГРАНИЧЕНИЯ</h2><div className="mt-3 space-y-2 text-sm text-ink-secondary"><p>Диапазон наблюдений: {photos[0]?.date ?? "н/д"} — {photos.at(-1)?.date ?? "н/д"}.</p><p>Доступны: идентификатор, дата, ракурс, качество, флаги, статус измерения и связи Stage 2.</p><p className="text-amber-300"><AlertTriangle className="inline h-4 w-4 mr-1"/>Криптографические хеши, SNR, verdict и экспорт публикационного bundle этим API не подтверждены и не отображаются.</p></div></section>
+  </div>;
+};

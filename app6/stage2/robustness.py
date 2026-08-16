@@ -87,7 +87,7 @@ def ensure_same_pose(pose_a, pose_b):
 def balanced_person_threshold(values_by_person, quantile=0.95):
     """Equal-person threshold so prolific sessions cannot dominate calibration."""
     per=[]
-    for person, values in values_by_person.items():
+    for _, values in values_by_person.items():
         x=np.asarray(values,float); x=x[np.isfinite(x)]
         if len(x)<2: continue
         per.append(float(np.quantile(x,quantile)))
@@ -113,7 +113,7 @@ def balanced_reference(values_by_person, min_persons: int = MIN_REFERENCE_PERSON
     """
     summaries=[]
     total=0
-    for person, values in values_by_person.items():
+    for _, values in values_by_person.items():
         x=np.asarray(values,float); x=x[np.isfinite(x)]
         if len(x)<2: continue
         total += len(x)

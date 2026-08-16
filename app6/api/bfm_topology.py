@@ -47,7 +47,7 @@ _ALLOWED_KEYS: tuple[str, ...] = (
 )
 
 _lock = threading.Lock()
-_cached_model: "BFMModel | None" = None
+_cached_model: BFMModel | None = None
 
 
 @dataclass(frozen=True)

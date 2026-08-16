@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from .ui_fields import ERA_BOUNDS, UI_FIELDS_SCHEMA, era_for, normalized_t, validate_ui_row
+from .ui_fields import ERA_BOUNDS, UI_FIELDS_SCHEMA, era_for, validate_ui_row
 
 STAGE1_TIMELINE_SCHEMA = "deeputin-api-stage1-inventory-v1.0"
 
@@ -30,7 +30,7 @@ def _date_to_ms(value: str | None) -> int | None:
         parsed = date.fromisoformat(str(value)[:10])
     except (TypeError, ValueError):
         return None
-    return int(datetime(parsed.year, parsed.month, parsed.day, tzinfo=timezone.utc).timestamp() * 1000)
+    return int(datetime(parsed.year, parsed.month, parsed.day, tzinfo=UTC).timestamp() * 1000)
 
 
 def build_stage1_inventory(stage1_root: Path) -> dict[str, Any]:

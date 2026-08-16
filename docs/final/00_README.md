@@ -24,7 +24,7 @@
 ## Что входит в пакет патчей
 
 - raw object-normalized координаты как primary geometry channel;
-- axis-specific pose-gap gate: yaw ≤6°, pitch ≤2°, roll ≤5°;
+- axis-specific pose-gap gate: per-bin yaw из `pose_gate_v2.csv` (0–12°; profile — внутри 10° подбина ≤2°), pitch/roll производные через sensitivity;
 - NaN-safe utility и детерминированный subset из ровно 91 точки;
 - FDR 0.05 и передача фактического числа откалиброванных точек;
 - абсолютный порог для A→B→A, устраняющий ложное срабатывание на NULL;

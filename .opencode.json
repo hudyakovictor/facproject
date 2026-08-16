@@ -1,0 +1,24 @@
+{
+  "providers": {
+    "openai": {
+      "apiKey": "sk-hv9H4DxG5NSiuu9ITqmp2bb6fRlfvy3KV2IcHRpUi5NAxQq2tpgEZa0er6BE78mX",
+      "baseURL": "https://api.openai.com/v1",
+      "disabled": false
+    }
+  },
+  "agents": {
+    "coder": {
+      "model": "gpt-4.1-mini",
+      "maxTokens": 12000
+    },
+    "task": {
+      "model": "gpt-4.1-mini",
+      "maxTokens": 8000
+    },
+    "title": {
+      "model": "gpt-4.1-mini",
+      "maxTokens": 120
+    }
+  },
+  "autoCompact": true
+}

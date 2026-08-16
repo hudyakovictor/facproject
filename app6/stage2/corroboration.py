@@ -43,9 +43,22 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
         if d is None:
             row["cross_bin_corroboration_status"] = "date_unavailable"
             row["cross_bin_support_count"] = 0
+            row["cross_bin_support_pose_count"] = 0
+            row["cross_bin_support_pose_bins"] = ""
+            row["cross_bin_independent_source_count"] = 0
+            row["cross_bin_family_matched_count"] = 0
             continue
         fam_row = {f for f in str(row.get("descriptor_top_families") or "").replace(",", "|").split("|") if f}
         a1 = _date(row.get("date_a"))
+        interval_valid = a1 is not None and a1 <= d
+        if not interval_valid:
+            row["cross_bin_corroboration_status"] = "invalid_date_order"
+            row["cross_bin_support_count"] = 0
+            row["cross_bin_support_pose_count"] = 0
+            row["cross_bin_support_pose_bins"] = ""
+            row["cross_bin_independent_source_count"] = 0
+            row["cross_bin_family_matched_count"] = 0
+            continue
         supports = []
         family_matched = 0
         for other in adjacent:
@@ -57,11 +70,11 @@ def apply_cross_bin_corroboration(rows: list[dict[str, Any]], *, window_days: in
             # 🔧 FIX (аудит N3a): поддержка должна сама быть короткоинтервальной парой —
             # изменение, размазанное на годы, не подтверждает событие с конкретной датой.
             oa = _date(other.get("date_a"))
-            if oa is None or (od - oa).days > 2 * int(window_days):
+            if oa is None or oa > od or (od - oa).days > 2 * int(window_days):
                 continue
             # 🔧 FIX (аудит N3b): интервалы изменения должны пересекаться (± окно);
             # близости только даты B недостаточно.
-            if a1 is not None and (min(d, od) - max(a1, oa)).days < -int(window_days):
+            if (min(d, od) - max(a1, oa)).days < -int(window_days):
                 continue
             if str(other.get("status")) not in CANDIDATE_STATES:
                 continue

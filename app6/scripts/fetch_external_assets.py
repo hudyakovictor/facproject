@@ -34,7 +34,7 @@ def main():
         q=o/n
         if not q.exists() or a.force:
             tmp=q.with_suffix(q.suffix+'.partial');print('download',n,flush=True)
-            urllib.request.urlretrieve(ASSETS[n],tmp)
+            urllib.request.urlretrieve(ASSETS[n], tmp)  # noqa: S310 — фиксированные канонические URL + обязательная проверка content digest (approved sha256)
             got=sha(tmp)
             if got.lower()!=expected[n].lower():
                 tmp.unlink(missing_ok=True);raise SystemExit(f'content digest mismatch for {n}: {got}')

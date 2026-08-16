@@ -1,0 +1,39 @@
+name: CI
+
+# GitHub Actions pipeline (CD-107, ER-181/ER-182).
+# - Backend pytest + compileall + ruff — blocking gates, Python 3.11.
+# - ruff check app6 → 0 ошибок (R-G01 закрыт), поэтому ruff — жёсткий gate.
+# - Никакие secrets/пути в workflow не используются и не логируются (ER-182).
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  backend:
+    name: backend (pytest + ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python-version: ["3.11"]   # ER-181: матрица зафиксирована на 3.11
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+      - name: Install backend dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Compile check
+        run: python -m compileall -q app6
+      - name: Run backend tests (blocking gate)
+        run: python -m pytest -q app6/test_module app6/api/tests
+      - name: Lint (blocking gate; ruff=0 достигнут)
+        run: python -m ruff check app6

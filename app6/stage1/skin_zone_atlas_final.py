@@ -29,7 +29,6 @@ Design principles (same as v3, extended):
 UV convention: u=0 left of image, u=1 right; v=1 forehead/top, v=0 jaw/bottom.
 """
 
-import colorsys
 import json
 import logging
 from dataclasses import asdict, dataclass
@@ -40,18 +39,7 @@ import cv2
 import numpy as np
 
 logger = logging.getLogger(__name__)
-import logging
-from dataclasses import asdict, dataclass
-from hashlib import blake2b
-from pathlib import Path
-import logging
-from dataclasses import asdict, dataclass
-from hashlib import blake2b
-from pathlib import Path
 from typing import Literal
-
-import cv2
-import numpy as np
 
 ATLAS_VERSION = "skin-zone-atlas-v4.0"
 UV_ORIENTATION = "u=0 left; u=0.5 center; u=1 right; v=1 forehead; v=0 jaw"

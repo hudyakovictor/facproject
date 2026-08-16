@@ -25,14 +25,8 @@ for f in "$CALIB_INPUT"/*.jpg; do
   ln -sf "$f" "$tmpdir/$base"
 
   if python3 app6/run_stage1.py --input "$tmpdir" --output "$STAGE1_DIR" --overwrite 2>&1 | grep -q "success="; then
-    # Skin pipeline on all new photos (skip already done)
-    if python3 app6/run_skin_stage1.py --stage1 "$STAGE1_DIR" 2>&1 | grep -q "complete"; then
-      echo "  OK"
-      ok=$((ok+1))
-    else
-      echo "  SKIN FAIL"
-      fail=$((fail+1))
-    fi
+    echo "  OK"
+    ok=$((ok+1))
   else
     echo "  STAGE1 FAIL"
     fail=$((fail+1))

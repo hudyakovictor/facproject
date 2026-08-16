@@ -1,8 +1,8 @@
 """
 🎯 CRITICAL → Ядро Stage 2: сравнение ландмарков и калиброванные оценки.
 
-compare_landmarks(a, b) — парное сравнение по хронологически выровненным ландмаркам
-(ldm*_chronology из reconstruction.npz, патч 02), residual по зонам.
+compare_landmarks(a, b) — парное сравнение raw object-normalized landmarks
+из reconstruction.npz с pairwise robust Kabsch, residual по зонам.
 build_coordinate_zone_map — карта зон для фолдинга. robust_reference/calibrated_score —
 медианный референс + z-подобный score относительно калибровки;
 zone_weighted_score (#16) — взвешивание по зоновой значимости с pose-confidence.
@@ -156,7 +156,7 @@ def robust_rigid_align(
     rotation = np.eye(3, dtype=np.float32)
     translation = np.zeros(3, dtype=np.float32)
     trim_fraction = float(np.clip(trim_fraction, 0.0, 0.4))
-    for iterations in range(1, max_iterations + 1):
+    for _ in range(1, max_iterations + 1):
         _, rotation, translation = _rigid_align(src[keep], dst[keep])
         all_aligned = src @ rotation + translation
         residual = np.linalg.norm(all_aligned[ids] - dst[ids], axis=1)
@@ -234,7 +234,7 @@ def compare_landmarks(
 
     🔗 DEPENDS ON:
       - engine.run() — вызывается для каждой пары
-      - Record.ldm134 — ДОЛЖЕН быть chronology-aligned (полная pose коррекция)
+      - Record.ldm134 — raw object-normalized coordinates from the canonical loader
       - Record.visible134 — маска видимых точек
 
     APPLICABILITY:
@@ -248,7 +248,7 @@ def compare_landmarks(
       - Zones — координатная сетка (3x3), не анатомические!
 
     🚨 WARNING:
-      - Если Record.ldm134 НЕ chronology-aligned — результаты недостоверны!
+      - Если Record.ldm134 не raw object-normalized — результаты недостоверны!
       - При insufficient visibility (< 30 common points) — статус "insufficient_visibility"
     """
     log_status("compare_landmarks", "complete")

@@ -15,10 +15,10 @@ When closed, STATUS_AUDIT.py is automatically updated.
 
 Future: Isolated test module will auto-validate functions.
 """
+from __future__ import annotations
 import logging
 import sys
 import os
-from typing import Optional
 
 # Configure logging - show all statuses
 logging.basicConfig(
@@ -111,7 +111,7 @@ def _update_audit_status(func_name: str, new_status: str, audit_path: str):
     if not os.path.exists(audit_path):
         return
 
-    with open(audit_path, 'r') as f:
+    with open(audit_path) as f:
         content = f.read()
 
     # Find and update the function status

@@ -7,12 +7,22 @@ boneScore, p0, p1, p2. Stage 1 не производит ни boneScore, ни p0
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date as _date
-from typing import Any, Final, Sequence
+from typing import Any, Final
 
 import numpy as np
 
 UI_FIELDS_SCHEMA: Final[str] = "deeputin-ui-fields-v1.0"
+UI_FIELD_CONTRACTS: Final[dict[str, dict[str, Any]]] = {
+    "boneScore": {
+        "role": "derived_display_only",
+        "evidence_metric": False,
+        "source_metric": "p95_point_z",
+        "transform": "1/(1+max(z,0)/3)",
+        "not_a_verdict": True,
+    },
+}
 
 #: Границы эпох. Совпадают с осью «до/после» в отчётах.
 ERA_BOUNDS: Final[tuple[tuple[str, int, int], ...]] = (
@@ -53,7 +63,7 @@ def normalized_t(iso_date: str | None, first: str, last: str) -> float | None:
 
 
 def bone_score(pair_metrics: dict[str, Any]) -> float | None:
-    """Костный скор в [0,1]: 1 — геометрия неотличима от эталона бина.
+    """Derived display-only скор в [0,1]; не evidence-метрика и не вердикт.
 
     Строится из калиброванного z по стабильным точкам, а не из сырого RMSE:
     сырой RMSE несопоставим между бинами (профили шумнее фронта на ~40%).

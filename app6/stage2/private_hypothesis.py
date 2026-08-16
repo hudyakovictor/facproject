@@ -8,9 +8,9 @@ import csv
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 SCHEMA = "deeputin-private-hypothesis-retest-v1.0"
 
@@ -58,7 +58,7 @@ HYPOTHESIS_FAMILIES: tuple[dict[str, str], ...] = (
 
 
 def _utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _digest(path: Path) -> str:

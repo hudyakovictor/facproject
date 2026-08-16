@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +37,7 @@ UNCLASSIFIED_EVIDENCE_STATES=KNOWN_EVIDENCE_STATES-(SIGNIFICANT_STATES|WEAK_STAT
 
 # 🔄 UTC-штамп
 def utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 @dataclass(frozen=True)
@@ -46,11 +46,14 @@ class Stage2BConfig:
     output_dir: Path
     prior_root: Path | None = None
     overwrite: bool = False
+    project_root: Path | None = None
 
     def __post_init__(self) -> None:
         source=Path(self.stage2_root).resolve();output=Path(self.output_dir).resolve()
         if output == source or source in output.parents:
             raise ValueError("output_dir must not equal or be inside stage2_root")
+        if self.project_root is not None:
+            object.__setattr__(self,"project_root",Path(self.project_root).resolve())
 
     # 🏭 FACTORY → payload пост-отчётов
     def payload(self) -> dict[str, Any]:
@@ -58,6 +61,7 @@ class Stage2BConfig:
             "schema": SCHEMA,
             "policy": "private corroboration only; never modifies blind Stage2 measurements",
             "prior_root": str(self.prior_root) if self.prior_root else None,
+            "project_root": str(self.project_root) if self.project_root else None,
         }
 
 
@@ -115,7 +119,9 @@ class Stage2BEngine:
             regions = sorted({r for _, x in matched for r in x.get("regions", [])})
             events = sorted({r for _, x in matched for r in x.get("events", [])})
             if state in SIGNIFICANT_STATES and priority >= 4:
-                status = "confirmed_independently"
+                # AA01 (ER-192): совпадение с prior-лидами НЕ является независимым
+                # подтверждением. Статус явно описывает overlap с prior leads.
+                status = "prior_overlap_strong"
             elif state in SIGNIFICANT_STATES or state in WEAK_STATES:
                 status = "partially_supported"
             elif state in NO_SUPPORT_STATES:

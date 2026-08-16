@@ -6,7 +6,7 @@
 
 ## Pair selection
 
-Тот же axis gate, что в основном анализе: yaw ≤6°, pitch ≤2°, roll ≤5°. Visibility intersection; quality ≥0.5. Не смешивать raw и chronology coordinates. Pair offsets должны покрывать соседние и более дальние кадры без доминирования длинной серии.
+Тот же axis gate, что в основном анализе: per-bin yaw из `pose_gate_v2.csv` с производными осями pitch/roll. Visibility intersection; quality ≥0.5. Не смешивать raw и chronology coordinates. Pair offsets должны покрывать соседние и более дальние кадры без доминирования длинной серии.
 
 ## Contamination hardening
 

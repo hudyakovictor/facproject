@@ -59,6 +59,8 @@ runs/
 results/
 assets/
 patch/
+storage_light/
+patcj/
 
 # Sync ui-v5 screenshots with GitHub
 !ui-v5/
@@ -78,4 +80,16 @@ coverage/
 app6/AUDIT_50_REPORT.json
 app6/AUDIT_50_REPORT.md
 # Symlink to 3ddfav3/assets (absolute path, not portable)
+
+# Private-layer regenerable outputs (ER-191/R-I06): результаты ретеста приватных
+# гипотез регенерируются Stage2B/private_hypothesis в runs/ и НЕ должны
+# коммититься. Эталонный seed-снимок остаётся замороженным в
+# app6/private_hypothesis_seed/; новые outputs — только в runs/ или явно в gitignore.
+**/legacy_hypothesis_ledger.jsonl
+**/hypothesis_retest_results.jsonl
+**/private_hypothesis_manifest.json
+**/hypothesis_coverage.json
+**/stage2b_manifest.json
+**/corroboration_results.csv
+**/private_summary.json
 

@@ -12,7 +12,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Final, Iterable
+from collections.abc import Iterable
+from typing import Any, Final
 
 from app6.stage1.utils import digest_json, digest_paths
 

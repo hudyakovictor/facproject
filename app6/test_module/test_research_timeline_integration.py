@@ -1,5 +1,4 @@
 import csv
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,6 +43,12 @@ class ResearchTimelineIntegrationTests(unittest.TestCase):
                 ])
 
             payload = build_research_timeline(stage2, stage1)
+            bone_contract = payload["ui_field_contracts"]["boneScore"]
+            self.assertEqual(bone_contract["role"], "derived_display_only")
+            self.assertFalse(bone_contract["evidence_metric"])
+            self.assertEqual(bone_contract["source_metric"], "p95_point_z")
+            self.assertEqual(bone_contract["transform"], "1/(1+max(z,0)/3)")
+            self.assertTrue(bone_contract["not_a_verdict"])
             photos = {row["id"]: row for row in payload["photos"]}
             self.assertEqual(photos["a"]["yaw"], 1.0)
             self.assertEqual(photos["a"]["pitch"], 2.0)

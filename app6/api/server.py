@@ -19,6 +19,7 @@ import json
 import os
 import shutil
 import uuid
+import warnings
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
 
 from app6.stage1.naming import make_photo_id, parse_photo_name
@@ -55,6 +57,34 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MAX_UPLOAD_BYTES = int(float(os.environ.get("DEEPUTIN_MAX_UPLOAD_MB", "32")) * 1024 * 1024)
 #: Размер блока потокового чтения тела запроса.
 UPLOAD_CHUNK_BYTES = 1024 * 1024
+_IMAGE_SIGNATURES = {
+    ".jpg": (b"\xff\xd8\xff",),
+    ".jpeg": (b"\xff\xd8\xff",),
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+}
+
+
+def _upload_signature_matches(path: Path, suffix: str) -> bool:
+    signatures = _IMAGE_SIGNATURES.get(suffix.lower(), ())
+    if not signatures:
+        return False
+    longest = max(map(len, signatures))
+    with path.open("rb") as stream:
+        prefix = stream.read(longest)
+    return any(prefix.startswith(signature) for signature in signatures)
+
+
+def _upload_image_decodes(path: Path) -> bool:
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(path) as image:
+                image.verify()
+            with Image.open(path) as image:
+                image.load()
+        return True
+    except (OSError, UnidentifiedImageError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        return False
 
 app = FastAPI(title="DEEPUTIN Forensic Workstation API", version="1.0.0")
 app.add_middleware(
@@ -90,11 +120,18 @@ def _stage2_root() -> Path | None:
 
 
 def _uploads_root() -> Path:
-    import os
     raw = os.environ.get("DEEPUTIN_UPLOADS_ROOT")
-    path = Path(raw) if raw else Path("/Volumes/SDCARD/storage") / "api_uploads"
+    path = Path(raw) if raw else _storage_root() / "api_uploads"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def _storage_root() -> Path:
+    raw = os.environ.get("DEEPUTIN_STORAGE_ROOT")
+    root = (Path(raw) if raw else PROJECT_ROOT / "runs" / "storage").resolve()
+    if root == Path(root.anchor):
+        raise RuntimeError(f"unsafe DEEPUTIN_STORAGE_ROOT: {root}")
+    return root
 
 
 def _calibration_root() -> Path:
@@ -155,7 +192,7 @@ def _safe_record_file(photo_id: str, filename: str) -> Path:
 def get_photo_artifact(photo_id: str, name: str):
     media_type = _UI_ARTIFACTS.get(name)
     if media_type is None:
-        raise HTTPException(status_code=404, detail="artifact is not allowlisted")
+        raise HTTPException(status_code=400, detail="artifact is not allowlisted")
     path = _safe_record_file(photo_id, name)
     if media_type == "application/json":
         try:
@@ -169,7 +206,7 @@ def get_photo_artifact(photo_id: str, name: str):
 def get_photo_landmarks(photo_id: str, count: int, space: str) -> dict[str, Any]:
     spec = _LANDMARK_FILES.get((count, space))
     if spec is None:
-        raise HTTPException(status_code=404, detail="supported counts: 106/134; spaces: raw/aligned/original")
+        raise HTTPException(status_code=400, detail="supported counts: 106/134; spaces: raw/aligned/original")
     filename, coordinate_space = spec
     path = _safe_record_file(photo_id, filename)
     points: list[list[float]] = []
@@ -403,6 +440,16 @@ async def upload_photo(file: UploadFile = File(...)) -> dict[str, Any]:
             status_code=413,
             detail=f"file too large: {declared} bytes > limit {MAX_UPLOAD_BYTES} bytes",
         )
+    required_space = declared if declared is not None else MAX_UPLOAD_BYTES
+    try:
+        free_space = shutil.disk_usage(uploads_dir).free
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"failed to inspect upload storage: {exc}") from exc
+    if free_space < required_space:
+        raise HTTPException(
+            status_code=507,
+            detail=f"insufficient upload storage: {free_space} bytes free, {required_space} required",
+        )
 
     temp_path = uploads_dir / f"_incoming_{uuid.uuid4().hex}{suffix}"
     received = 0
@@ -421,6 +468,8 @@ async def upload_photo(file: UploadFile = File(...)) -> dict[str, Any]:
                         detail=f"file too large: exceeds limit {MAX_UPLOAD_BYTES} bytes",
                     )
                 handle.write(chunk)
+            handle.flush()
+            os.fsync(handle.fileno())
     except HTTPException:
         raise
     except OSError as exc:
@@ -430,6 +479,17 @@ async def upload_photo(file: UploadFile = File(...)) -> dict[str, Any]:
     if received == 0:
         temp_path.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail="empty file")
+    try:
+        signature_valid = _upload_signature_matches(temp_path, suffix)
+    except OSError as exc:
+        temp_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"failed to validate upload: {exc}") from exc
+    if not signature_valid:
+        temp_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=f"file content does not match {suffix} image format")
+    if not _upload_image_decodes(temp_path):
+        temp_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="image decode validation failed")
     try:
         parsed = parse_photo_name(Path(file.filename or "upload.jpg"))
     except ValueError as exc:
@@ -843,9 +903,11 @@ class JobRequest(BaseModel):
 
 
 def _require_removable_output(path: Path) -> Path:
-    """Не позволять API записывать извлечение вне выделенного съёмного диска."""
-    storage_root = Path("/Volumes/SDCARD/storage").resolve()
+    """Не позволять API записывать извлечение вне выделенного storage root."""
+    storage_root = _storage_root()
     resolved = path.resolve()
+    if resolved == storage_root:
+        raise HTTPException(status_code=400, detail="output_dir must be a child of storage root")
     try:
         resolved.relative_to(storage_root)
     except ValueError as exc:
@@ -860,7 +922,7 @@ def _require_removable_output(path: Path) -> Path:
 def submit_job(request: JobRequest) -> dict[str, Any]:
     if request.kind == "extract":
         input_dir = Path(request.input_dir) if request.input_dir else _uploads_root() / "main"
-        output_dir = _require_removable_output(Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage1")
+        output_dir = _require_removable_output(Path(request.output_dir) if request.output_dir else _storage_root() / "api_stage1")
         if not input_dir.is_dir():
             raise HTTPException(status_code=400, detail=f"input_dir does not exist: {input_dir}")
         runner = make_extract_runner(input_dir, output_dir, PROJECT_ROOT, device=request.device, limit=request.limit)
@@ -869,7 +931,7 @@ def submit_job(request: JobRequest) -> dict[str, Any]:
         if stage1_root is None:
             raise HTTPException(status_code=400, detail="stage1_root not provided and DEEPUTIN_STAGE1_ROOT not set")
         calibration_root = Path(request.calibration_root) if request.calibration_root else _calibration_root()
-        output_dir = _require_removable_output(Path(request.output_dir) if request.output_dir else Path("/Volumes/SDCARD/storage") / "api_stage2")
+        output_dir = _require_removable_output(Path(request.output_dir) if request.output_dir else _storage_root() / "api_stage2")
         runner = make_recompute_metrics_runner(stage1_root, calibration_root, output_dir)
     else:
         raise HTTPException(status_code=400, detail=f"unknown job kind: {request.kind}")
@@ -928,17 +990,34 @@ def reset_settings() -> dict[str, Any]:
 def clear_data() -> dict[str, Any]:
     """🚪 API → Очистить извлечённые данные без удаления исходных фото с диска.
 
-    Удаляет только `/Volumes/SDCARD/storage/api_stage1`,
-    `/Volumes/SDCARD/storage/api_stage2` и локальный кэш job'ов
+    Удаляет только `<storage_root>/api_stage1`, `<storage_root>/api_stage2`
+    и локальный кэш job'ов
     процесса. Исходные фото под `DEEPUTIN_UPLOADS_ROOT`/`--input` не трогаются.
     """
     removed = []
-    storage_root = Path("/Volumes/SDCARD/storage")
-    for rel in ("api_stage1", "api_stage2"):
-        path = storage_root / rel
+    storage_root = _storage_root()
+    uploads_root = _uploads_root().resolve()
+    target_paths = [storage_root / rel for rel in ("api_stage1", "api_stage2")]
+    targets = []
+    for target_path in target_paths:
+        if target_path.is_symlink():
+            raise HTTPException(status_code=409, detail=f"refusing to clear symlinked output: {target_path}")
+        target = target_path.resolve()
+        try:
+            target.relative_to(storage_root)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=f"clear target escapes storage root: {target}") from exc
+        targets.append(target)
+    for target in targets:
+        if uploads_root == target or target in uploads_root.parents or uploads_root in target.parents:
+            raise HTTPException(
+                status_code=409,
+                detail=f"refusing to clear {target}: uploads root overlaps extracted output",
+            )
+    for path in targets:
         if path.exists():
             shutil.rmtree(path)
-            removed.append(rel)
+            removed.append(path.name)
     return {"schema": APP_SCHEMA, "removed": removed, "note": "исходные фото не удалены"}
 
 

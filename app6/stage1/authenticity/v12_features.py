@@ -54,8 +54,6 @@ def extract_v12_bases(rgb: np.ndarray, mask: np.ndarray) -> dict[str, float]:
     yy, xx = np.mgrid[:h, :w]
     cheek = m & (yy > y0 + 0.45 * (y1 - y0)) & (yy < y0 + 0.82 * (y1 - y0)) & (np.abs(xx - cx) > 0.12 * (x1 - x0))
     forehead = m & (yy < y0 + 0.28 * (y1 - y0)) & (np.abs(xx - cx) < 0.35 * (x1 - x0))
-    undereye = m & (yy > y0 + 0.28 * (y1 - y0)) & (yy < y0 + 0.48 * (y1 - y0)) & (np.abs(xx - cx) > 0.08 * (x1 - x0))
-    midface = m & (yy > y0 + 0.30 * (y1 - y0)) & (yy < y0 + 0.75 * (y1 - y0))
 
     def roi(arr, rm):
         return arr[rm] if rm.any() and int(rm.sum()) > 200 else arr[m]
@@ -66,8 +64,6 @@ def extract_v12_bases(rgb: np.ndarray, mask: np.ndarray) -> dict[str, float]:
     redness = r - 0.5 * (g + b)
     lab = cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB).astype(np.float64)
     a_ch = lab[..., 1]
-    sat = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV).astype(np.float64)[..., 1]
-
     out["redness_ent"] = _entropy(redness[m])
     out["bn_ent"] = _entropy(bn[m])
     out["rn_ent"] = _entropy(rn[m])
@@ -91,8 +87,6 @@ def extract_v12_bases(rgb: np.ndarray, mask: np.ndarray) -> dict[str, float]:
     mott_r = np.asarray(mott_r or [0.0])
     out["mottle_red_med"] = float(np.median(mott_r))
 
-    shade = cv2.GaussianBlur(N, (0, 0), 8)
-    residual = N - shade
     mx = np.maximum(np.maximum(r, g), b)
     spec = (mx - L) / 255.0
     out["spec_cheek_over_fore"] = _pct(roi(spec, cheek), 95) / (_pct(roi(spec, forehead), 95) + 1e-9)
