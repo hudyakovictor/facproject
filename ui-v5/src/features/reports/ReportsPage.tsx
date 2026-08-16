@@ -1,7 +1,7 @@
 import React from "react";
 import { useTimeline, useRunSummary } from "../../shared/api/queries";
 import { FileText, AlertTriangle } from "lucide-react";
-import { normalizeStage, stageLabel } from "../../shared/stage";
+import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { ErrorState, LoadingState } from "../../shared/ui/states";
 import { sortPhotosByTime } from "../../shared/time";
@@ -11,7 +11,7 @@ export const ReportsPage: React.FC = () => {
   const summary = useRunSummary();
   const photos = sortPhotosByTime(timeline.data?.photos ?? []).dated;
   const technical = summary.data?.technical_summary;
-  const stage = normalizeStage(timeline.data?.analysis_stage);
+  const stage = resolveStage(timeline.data);
   if (timeline.isLoading || summary.isLoading) return <LoadingState text="Загрузка сведений о запуске…" />;
   if (timeline.error || summary.error) return <ErrorState title="Сведения о запуске недоступны" error={timeline.error ?? summary.error} onRetry={() => { void timeline.refetch(); void summary.refetch(); }} />;
   return <div className="flex flex-col h-[calc(100vh-49px)] w-full bg-[#080d12] text-[#e2e8f0] overflow-y-auto p-6 space-y-5">

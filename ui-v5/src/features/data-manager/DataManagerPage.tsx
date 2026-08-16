@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTimeline } from "../../shared/api/queries";
 import { type ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel, sortPoseBins } from "../../shared/poseBins";
-import { normalizeStage, stageLabel } from "../../shared/stage";
+import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 import {
@@ -38,7 +38,7 @@ export const DataManagerPage: React.FC = () => {
   const [pageSize, setPageSize] = useState<number>(50);
 
   const timelineQuery = useTimeline();
-  const stage = normalizeStage(timelineQuery.data?.analysis_stage);
+  const stage = resolveStage(timelineQuery.data);
   const rows: DataRow[] = (timelineQuery.data?.photos ?? []).map((p: ResearchPhoto) => {
     const isConflict = p.dateProvenanceStatus === "conflict";
     const noSidecar = p.analysisStage !== "stage2";

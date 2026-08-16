@@ -62,6 +62,8 @@ export interface ResearchPhoto {
 }
 
 export interface ResearchTimeline {
+  /** Идентификатор схемы ответа: по нему определяется стадия. */
+  schema?: string;
   source_mode: string;
   not_a_verdict: boolean;
   note?: string;

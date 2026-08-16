@@ -3,7 +3,7 @@ import { useTimeline } from "../../shared/api/queries";
 import { ShieldCheck } from "lucide-react";
 import { poseLabel } from "../../shared/poseBins";
 import { substantiveFlags } from "../../shared/findings";
-import { normalizeStage, stageLabel } from "../../shared/stage";
+import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 
@@ -16,7 +16,7 @@ export const PhotoInspectorPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string>();
   const selected = useMemo(() => photos.find((p) => p.id === (selectedId ?? photos[0]?.id)) ?? null, [photos, selectedId]);
 
-  const stage = normalizeStage(query.data?.analysis_stage);
+  const stage = resolveStage(query.data);
   if (query.isLoading) return <LoadingState text="Загрузка записей фотографий…" />;
   if (query.isError) return <ErrorState title="Инспектор недоступен" error={query.error} onRetry={() => void query.refetch()} />;
   if (!selected) return <EmptyState title="Записей нет" description="API вернул пустой список фотографий, показывать в инспекторе нечего." />;

@@ -5,7 +5,7 @@ import { TopBar } from "../features/shell/TopBar";
 import { ConsoleLogDrawer } from "../features/shell/ConsoleLogDrawer";
 import { NotAVerdictBar } from "../shared/ui/NotAVerdictBar";
 import { countFindings } from "../shared/findings";
-import { normalizeStage, stageLabel } from "../shared/stage";
+import { resolveStage, stageLabel } from "../shared/stage";
 
 export default function RootLayout() {
   /**
@@ -20,7 +20,7 @@ export default function RootLayout() {
 
   const timeline = useTimeline();
   const photos = timeline.data?.photos ?? [];
-  const stage = normalizeStage(timeline.data?.analysis_stage);
+  const stage = resolveStage(timeline.data);
 
   return (
     <div className="min-h-screen w-full bg-[#080d12] text-[#e2e8f0] font-sans antialiased flex flex-col pb-9">

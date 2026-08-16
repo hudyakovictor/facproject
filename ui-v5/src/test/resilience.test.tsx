@@ -258,6 +258,22 @@ describe("режим Stage 1 не выдаётся за Stage 2", () => {
     expect(text).toMatch(/Находки · 0/);
   });
 
+  test("полный ответ Stage 2 не подписывается как инвентарь", async () => {
+    // research_timeline.py не проставляет analysis_stage вовсе — стадия
+    // определяется по схеме ответа и маркеру analysisStage на строках.
+    mockApi({
+      schema: "deeputin-api-research-timeline-v1.0",
+      source_mode: "research",
+      not_a_verdict: true,
+      era_meta: {},
+      photos: [photo({ analysisStage: "stage2_pairs" })],
+    });
+    const { container } = renderPage(<TimelinePage />);
+    const text = await settled(container);
+    expect(text).toMatch(/ТАЙМЛАЙН · STAGE 2/);
+    expect(text).not.toMatch(/ИНВЕНТАРЬ/);
+  });
+
   test("нарушения контракта полей выводятся из данных", async () => {
     mockApi(stage1Body([stage1Photo()]));
     const { container } = renderPage(<TimelinePage />);

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useTimeline } from "../../shared/api/queries";
 import { type ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel, sortPoseBins } from "../../shared/poseBins";
-import { normalizeStage, stageLabel } from "../../shared/stage";
+import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 import { formatDate, formatYear } from "../../shared/time";
@@ -14,7 +14,7 @@ export const ClusteringPage: React.FC = () => {
   const [selectedPose, setSelectedPose] = useState("all");
   const query = useTimeline();
   const photos = useMemo(() => query.data?.photos ?? [], [query.data]);
-  const stage = normalizeStage(query.data?.analysis_stage);
+  const stage = resolveStage(query.data);
   const poses = useMemo(() => sortPoseBins(Array.from(new Set(photos.map((p) => p.bucket)))), [photos]);
   const visible = includeAllPoses || selectedPose === "all" ? photos : photos.filter((p) => p.bucket === selectedPose);
   /** Только кадры с известным временем: без этого Math.min даёт Infinity. */

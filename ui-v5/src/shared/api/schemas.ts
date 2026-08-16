@@ -88,6 +88,7 @@ export const EraMetaSchema = z.record(
 
 export const TimelineSchema = z
   .object({
+    schema: z.string().optional(),
     source_mode: z.string().catch("research"),
     not_a_verdict: z.boolean().catch(true),
     note: z.string().optional(),

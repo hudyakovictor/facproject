@@ -4,7 +4,7 @@ import { Activity, ArrowLeftRight, Check, Filter, RefreshCw, Search, X } from "l
 import { type ResearchPhoto } from "../../shared/researchApi";
 import { countFindings, isFinding, substantiveFlags } from "../../shared/findings";
 import { poseLabel } from "../../shared/poseBins";
-import { normalizeStage, stageLabel } from "../../shared/stage";
+import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { DataContractBanner } from "../../shared/ui/DataContractBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
@@ -40,7 +40,7 @@ export function TimelinePage({ activePose = "frontal", qualityThreshold = 0 }: {
   const [zoom, setZoom] = useState(1);
 
   const rawPhotos = useMemo(() => query.data?.photos ?? [], [query.data]);
-  const stage = normalizeStage(query.data?.analysis_stage);
+  const stage = resolveStage(query.data);
   /**
    * Порядок задаём сами: полагаться на сортировку ответа нельзя, иначе шкала
    * инвертируется. Недатированные кадры выносим отдельно — приклеивать их к

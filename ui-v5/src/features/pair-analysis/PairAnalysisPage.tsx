@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useTimeline } from "../../shared/api/queries";
 import { type ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel } from "../../shared/poseBins";
-import { normalizeStage, stageLabel } from "../../shared/stage";
+import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 
@@ -14,7 +14,7 @@ export const PairAnalysisPage: React.FC = () => {
   const [aId, setAId] = useState<string>(); const [bId, setBId] = useState<string>();
   const a = useMemo(() => photos.find(p => p.id === (aId ?? photos[0]?.id)), [photos, aId]);
   const b = useMemo(() => photos.find(p => p.id === (bId ?? photos[1]?.id)) ?? photos[1], [photos, bId]);
-  const stage = normalizeStage(q.data?.analysis_stage);
+  const stage = resolveStage(q.data);
   if (q.isLoading) return <LoadingState text="Загрузка записей для сравнения…" />;
   if (q.isError) return <ErrorState title="Парное сравнение недоступно" error={q.error} onRetry={() => void q.refetch()} />;
   if (photos.length === 0) return <EmptyState title="Записей нет" description="API вернул пустой список фотографий." />;

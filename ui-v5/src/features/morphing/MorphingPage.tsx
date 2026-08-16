@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useTimeline } from "../../shared/api/queries";
 import { Play, Pause } from "lucide-react";
 import { poseLabel } from "../../shared/poseBins";
-import { normalizeStage, stageLabel } from "../../shared/stage";
+import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
 import { sortPhotosByTime } from "../../shared/time";
@@ -10,7 +10,7 @@ import { sortPhotosByTime } from "../../shared/time";
 export const MorphingPage: React.FC = () => {
   const q = useTimeline();
   const photos = useMemo(() => sortPhotosByTime(q.data?.photos ?? []).dated, [q.data]);
-  const stage = normalizeStage(q.data?.analysis_stage);
+  const stage = resolveStage(q.data);
   const [index, setIndex] = useState(0); const [playing, setPlaying] = useState(false);
   const photo = useMemo(() => photos[Math.min(index, Math.max(photos.length - 1, 0))], [photos, index]);
   React.useEffect(() => { if (!playing || photos.length < 2) return; const timer = window.setInterval(() => setIndex((current) => (current + 1) % photos.length), 700); return () => window.clearInterval(timer); }, [playing, photos.length]);

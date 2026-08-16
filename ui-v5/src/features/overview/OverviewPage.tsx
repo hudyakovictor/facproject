@@ -2,7 +2,7 @@ import { useTimeline, useRunSummary } from "../../shared/api/queries";
 import { Activity, AlertTriangle, Database, ShieldCheck, type LucideIcon } from "lucide-react";
 import { poseFullLabel, sortPoseBins } from "../../shared/poseBins";
 import { countFindings } from "../../shared/findings";
-import { normalizeStage, stageDescription, stageLabel } from "../../shared/stage";
+import { resolveStage, stageDescription, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
 import { describeError } from "../../shared/ui/errorDetail";
 import { DataContractBanner } from "../../shared/ui/DataContractBanner";
@@ -14,7 +14,7 @@ export function OverviewPage() {
   const photos = timeline.data?.photos ?? [];
   const poses = sortPoseBins([...new Set(photos.map((photo) => photo.bucket))]);
   const flagged = countFindings(photos);
-  const stage = normalizeStage(timeline.data?.analysis_stage);
+  const stage = resolveStage(timeline.data);
   const changePoints = summary.data?.technical_summary?.change_point_count ?? "н/д";
   const loading = timeline.isLoading || summary.isLoading;
   const error = timeline.error ?? summary.error;
