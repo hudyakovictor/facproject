@@ -1,0 +1,396 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: var(--workspace-height, calc(100vh - var(--header-height) - var(--status-height)));
+  width: 100%;
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.banners {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--line-hairline) solid var(--border-default);
+}
+
+.grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/** Сетка «подпись дорожки | полотно». Полотно тянется, подпись фиксирована. */
+.row {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  border-bottom: var(--line-hairline) solid var(--border-subtle);
+}
+
+.rowLabel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  border-right: var(--line-hairline) solid var(--border-default);
+  background: var(--surface-canvas);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.rowLabel small {
+  font-size: 0.5625rem;
+  color: var(--text-disabled);
+}
+
+.canvasArea {
+  position: relative;
+  min-width: 0;
+  cursor: crosshair;
+}
+
+/** Слой фотографий: перекрестие и зум работают поверх него. */
+.photoRow {
+  position: relative;
+  min-width: 0;
+}
+
+.thumb {
+  position: absolute;
+  top: var(--space-4);
+  width: 3.5rem;
+  transform: translateX(-50%);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: var(--line-hairline) solid var(--border-default);
+  background: var(--surface-raised);
+  padding: 0;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.thumb:focus-visible {
+  outline: var(--line-strong) solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.thumbFinding {
+  border-color: var(--red-400);
+}
+
+.thumbA {
+  border-color: var(--cyan-400);
+  box-shadow: 0 0 0 2px var(--cyan-soft);
+}
+
+.thumbB {
+  border-color: var(--amber-400);
+  box-shadow: 0 0 0 2px var(--amber-soft);
+}
+
+.thumbSelected {
+  z-index: 20;
+  border-color: var(--border-focus);
+}
+
+.thumbDimmed {
+  opacity: 0.25;
+}
+
+.thumbCaption {
+  display: block;
+  padding: 1px 3px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pin {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  padding: 0 3px;
+  border-radius: var(--radius-xs);
+}
+
+.pinA {
+  color: var(--surface-canvas);
+  background: var(--cyan-400);
+}
+
+.pinB {
+  color: var(--surface-canvas);
+  background: var(--amber-400);
+}
+
+/** Мост A→B: показывает интервал между сопоставляемыми кадрами. */
+.bridge {
+  position: absolute;
+  top: 0;
+  height: 10px;
+  border: var(--line-hairline) solid var(--amber-400);
+  border-bottom: none;
+  pointer-events: none;
+}
+
+.bridgeLabel {
+  position: absolute;
+  top: -2px;
+  transform: translateX(-50%);
+  padding: 0 var(--space-1);
+  background: var(--surface-canvas);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--amber-300);
+  white-space: nowrap;
+}
+
+.event {
+  position: absolute;
+  width: 0.6rem;
+  height: 0.6rem;
+  transform: translateX(-50%) rotate(45deg);
+  border: var(--line-hairline) solid;
+  padding: 0;
+  cursor: pointer;
+}
+
+.eventChange {
+  top: 0.35rem;
+  border-color: var(--red-300);
+  background: var(--red-400);
+}
+
+.eventLimited {
+  top: 0.35rem;
+  border-color: var(--amber-300);
+  background: var(--amber-500);
+}
+
+.eventProvenance {
+  top: 0.35rem;
+  border-radius: var(--radius-full);
+  transform: translateX(-50%);
+  border-color: var(--violet-300);
+  background: var(--violet-400);
+}
+
+.ruler {
+  position: relative;
+  height: 100%;
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--line-hairline);
+  background: var(--border-subtle);
+}
+
+.tickMajor {
+  background: var(--border-default);
+}
+
+.tickLabel {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tickLabelMajor {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/** Минимапа: полный диапазон с окном текущего вьюпорта. */
+.minimap {
+  position: relative;
+  height: 100%;
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.minimapBar {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.minimapWindow {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border: var(--line-hairline) solid var(--cyan-400);
+  background: var(--cyan-soft);
+  pointer-events: none;
+}
+
+.coverageCell {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  background: var(--cyan-600);
+}
+
+.tooltip {
+  position: fixed;
+  z-index: var(--z-popover);
+  width: 17rem;
+  padding: var(--space-2);
+  border: var(--line-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+
+.tooltipHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.tooltipThumb {
+  width: 3rem;
+  height: 3rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: var(--line-hairline) solid var(--border-default);
+}
+
+.tooltipTitle {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.tooltipTitle strong {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltipGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+}
+
+.tooltipGrid > div {
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-subtle);
+}
+
+.tooltipGrid dt {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+}
+
+.tooltipGrid dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-primary);
+}
+
+.tooltipFindings {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.tooltipFindings li {
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+  border: var(--line-hairline) solid var(--red-500);
+  background: var(--red-soft);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--red-300);
+}
+
+.tooltipHint {
+  margin-top: var(--space-2);
+  padding-top: var(--space-1);
+  border-top: var(--line-hairline) solid var(--border-subtle);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+}
+
+.findingsPanel {
+  border-top: var(--line-hairline) solid var(--border-default);
+  background: var(--surface-base);
+  max-height: 11rem;
+  overflow-y: auto;
+}
+
+.findingsHead {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-base);
+  border-bottom: var(--line-hairline) solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.findingRow {
+  display: grid;
+  grid-template-columns: 6rem 7rem 1fr auto;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) var(--space-4);
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.findingRow:hover,
+.findingRow:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  outline: none;
+}

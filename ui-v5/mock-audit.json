@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-08-16T06:48:43.181Z",
+  "scannedRoot": "src",
+  "filesWithFindings": 0,
+  "findings": [],
+  "summary": {
+    "critical": 0,
+    "high": 0,
+    "total": 0,
+    "fixtureImports": 0
+  }
+}

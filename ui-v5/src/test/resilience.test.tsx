@@ -305,7 +305,11 @@ describe("порядок и время", () => {
     mockApi(body([photo(), photo({ id: "nodate", date: null, t: null })]));
     const { container } = renderPage(<TimelinePage />);
     const text = await settled(container);
-    expect(text).toMatch(/без даты: 1/);
+    // Формулировка шапки менялась вместе с версткой таймлайна, поэтому
+    // проверяется смысл: количество недатированных кадров названо, и сказано,
+    // что на шкалу они не помещены.
+    expect(text).toMatch(/1\s*без даты/);
+    expect(text).toMatch(/не размещены на шкале/);
   });
 
   test("sortPhotosByTime разделяет датированные и недатированные", () => {
