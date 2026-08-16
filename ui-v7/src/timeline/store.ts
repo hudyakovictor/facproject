@@ -31,7 +31,6 @@ export interface TimelineState {
   siliconeProbThreshold: number;
   shapeDifferenceThreshold: number;
   findingsMode: boolean;
-  searchQuery: string;
   activePoseBin: string | null;
   showMultiPose: boolean;
   activeAnomalyKinds: Set<AnomalyKind>;
@@ -59,7 +58,6 @@ export interface TimelineState {
   setSiliconeProbThreshold: (value: number) => void;
   setShapeDifferenceThreshold: (value: number) => void;
   setFindingsMode: (value: boolean) => void;
-  setSearchQuery: (value: string) => void;
   setActivePoseBin: (value: string | null) => void;
   setShowMultiPose: (value: boolean) => void;
   toggleAnomalyKind: (kind: AnomalyKind) => void;
@@ -88,7 +86,6 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   siliconeProbThreshold: 1,
   shapeDifferenceThreshold: 1,
   findingsMode: false,
-  searchQuery: '',
   activePoseBin: null,
   showMultiPose: false,
   activeAnomalyKinds: new Set(['change_point', 'persistent_change', 'return', 'rapid_rate', 'same_day', 'provenance', 'review']),
@@ -175,7 +172,6 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   setSiliconeProbThreshold: (siliconeProbThreshold) => set({ siliconeProbThreshold }),
   setShapeDifferenceThreshold: (shapeDifferenceThreshold) => set({ shapeDifferenceThreshold }),
   setFindingsMode: (findingsMode) => set({ findingsMode }),
-  setSearchQuery: (searchQuery) => set({ searchQuery }),
   setActivePoseBin: (activePoseBin) => set({ activePoseBin }),
   setShowMultiPose: (showMultiPose) => set({ showMultiPose }),
   
@@ -229,22 +225,6 @@ export function photoPassesFilters(photo: TimelinePhoto, state: TimelineState): 
   // Pose bin filter
   if (!state.showMultiPose && state.activePoseBin && photo.bucket !== state.activePoseBin) {
     return false;
-  }
-  
-  // Search filter
-  if (state.searchQuery) {
-    const query = state.searchQuery.toLowerCase();
-    const haystack = [
-      photo.id,
-      photo.date,
-      photo.bucket,
-      photo.era,
-      photo.fuzzy,
-      ...photo.flags,
-    ].join(' ').toLowerCase();
-    if (!haystack.includes(query)) {
-      return false;
-    }
   }
   
   // Findings mode

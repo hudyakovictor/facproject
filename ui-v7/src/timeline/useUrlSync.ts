@@ -13,7 +13,6 @@ export interface UrlState {
   pose?: string;
   q?: number;
   findings?: boolean;
-  search?: string;
 }
 
 export function parseUrlState(searchParams: URLSearchParams): UrlState {
@@ -45,9 +44,6 @@ export function parseUrlState(searchParams: URLSearchParams): UrlState {
   const findings = searchParams.get('findings');
   if (findings === '1') state.findings = true;
   
-  const search = searchParams.get('search');
-  if (search) state.search = search;
-  
   return state;
 }
 
@@ -75,10 +71,6 @@ export function toUrlState(store: ReturnType<typeof useTimelineStore.getState>):
     params.set('findings', '1');
   }
   
-  if (store.searchQuery) {
-    params.set('search', store.searchQuery);
-  }
-  
   return params;
 }
 
@@ -101,7 +93,6 @@ export function useUrlSync() {
     if (urlState.pose) store.setActivePoseBin(urlState.pose);
     if (urlState.q !== undefined) store.setQualityThreshold(urlState.q);
     if (urlState.findings) store.setFindingsMode(true);
-    if (urlState.search) store.setSearchQuery(urlState.search);
   }, []);
   
   // Sync store to URL
@@ -121,6 +112,5 @@ export function useUrlSync() {
     store.activePoseBin,
     store.qualityThreshold,
     store.findingsMode,
-    store.searchQuery,
   ]);
 }

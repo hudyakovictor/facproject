@@ -7,6 +7,14 @@ import type { TimelineResponse, TimelinePhoto } from '../types/timeline';
 
 const API_BASE = '/api/v1';
 
+export function photoThumbnailUrl(photoId: string): string {
+  return `${API_BASE}/photos/${encodeURIComponent(photoId)}/thumbnail`;
+}
+
+export function photoFaceCropUrl(photoId: string): string {
+  return `${API_BASE}/photos/${encodeURIComponent(photoId)}/face_crop`;
+}
+
 export async function fetchTimeline(): Promise<TimelineResponse> {
   const response = await fetch(`${API_BASE}/timeline`);
   if (!response.ok) {

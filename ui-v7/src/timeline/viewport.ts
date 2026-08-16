@@ -68,6 +68,23 @@ export function timeToX(viewport: Viewport, time: number, width: number): number
   return timeToRatio(viewport, time) * width;
 }
 
+/** Shared contiguous photo columns for thumbnails and metric points. */
+export function photosInColumns(
+  photos: readonly TimelinePhoto[],
+  viewport: Viewport,
+): TimelinePhoto[] {
+  return photos
+    .filter((photo) => {
+      const time = timeOf(photo);
+      return time != null && time >= viewport.start && time <= viewport.end;
+    })
+    .sort((a, b) => (timeOf(a) ?? 0) - (timeOf(b) ?? 0));
+}
+
+export function columnX(index: number, count: number, width: number): number {
+  return count > 0 ? ((index + 0.5) / count) * width : 0;
+}
+
 /**
  * Convert x pixel coordinate to time.
  */

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { TimelinePhoto, Viewport, TrackDescriptor } from '../types/timeline';
-import { timeToX } from './viewport';
+import { photosInColumns, timeOf, timeToX } from './viewport';
 
 /**
  * Optimized track data computation with memoization.
@@ -23,6 +23,7 @@ export function useTrackData(
   return useMemo(() => {
     const padding = 8;
     const usableHeight = height - padding * 2;
+    const visiblePhotos = photosInColumns(photos, viewport);
     
     // Calculate domain
     let lo: number;
@@ -32,7 +33,7 @@ export function useTrackData(
     } else {
       lo = Number.POSITIVE_INFINITY;
       hi = Number.NEGATIVE_INFINITY;
-      for (const photo of photos) {
+      for (const photo of visiblePhotos) {
         const value = photo[track.dataKey as keyof TimelinePhoto];
         if (typeof value !== 'number' || !Number.isFinite(value)) continue;
         if (value < lo) lo = value;
@@ -53,13 +54,11 @@ export function useTrackData(
     // Compute points
     const points: Array<{ x: number; y: number; photo: TimelinePhoto }> = [];
     
-    for (const photo of photos) {
-      const time = photo.t;
+    for (const photo of visiblePhotos) {
       const value = photo[track.dataKey as keyof TimelinePhoto];
-      if (time == null || typeof value !== 'number') continue;
+      if (typeof value !== 'number' || !Number.isFinite(value)) continue;
       
-      const x = timeToX(viewport, time, width);
-      if (x < -10 || x > width + 10) continue;
+      const x = timeToX(viewport, timeOf(photo) ?? viewport.start, width);
       
       const normalized = (value - lo) / span;
       const y = padding + (1 - normalized) * usableHeight;
