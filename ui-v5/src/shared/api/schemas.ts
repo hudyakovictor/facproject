@@ -346,3 +346,74 @@ export type SkinZone = z.infer<typeof SkinZoneSchema>;
 export type SkinZones = z.infer<typeof SkinZonesSchema>;
 export type ZoneCatalog = z.infer<typeof ZoneCatalogSchema>;
 export type Landmarks = z.infer<typeof LandmarksSchema>;
+
+// ---------------------------------------------------------------------------
+// Парное сравнение (§11)
+// ---------------------------------------------------------------------------
+
+/**
+ * Значение одной колонки `pair_metrics.csv`. Backend уже привёл типы
+ * (`key_catalog.coerce`): пустая строка и `nan` стали `null`.
+ *
+ * 🚨 WARNING: `null` здесь означает «Stage 2 не смог измерить», а не ноль.
+ * Из 208 колонок на реальной паре заполнены 182 — оставшиеся 26 обязаны
+ * выглядеть как пропуск, иначе «мера равна нулю» будет прочитано как
+ * «различий нет».
+ */
+const MetricValueSchema = z.union([z.number(), z.string(), z.boolean(), z.null()]);
+
+/**
+ * Метрики пары (`/api/v1/pairs/{a}/{b}/metrics`).
+ *
+ * Структура — три уровня: категория A–I → подгруппа → колонка. Она приходит
+ * от `key_catalog.categorize_pair_columns`, и интерфейс её не переизобретает:
+ * своя группировка разошлась бы с backend при первой же новой колонке.
+ */
+export const PairMetricsSchema = z
+  .object({
+    schema: z.string().optional(),
+    not_a_verdict: z.boolean().optional(),
+    source_mode: z.string().catch("research"),
+    photo_a: z.string(),
+    photo_b: z.string(),
+    /** Stage 2 хранит хронологический порядок; пользователь мог выбрать обратный. */
+    reversed_order: z.boolean().catch(false),
+    column_count: z.number().catch(0),
+    available_count: z.number().catch(0),
+    category_titles: z
+      .record(z.string(), z.object({ ru: z.string(), en: z.string() }).loose())
+      .catch({}),
+    categories: z
+      .record(z.string(), z.record(z.string(), z.record(z.string(), MetricValueSchema)))
+      .catch({}),
+  })
+  .loose();
+
+/** Список пар прогона (`/api/v1/pairs`). */
+export const PairListSchema = z
+  .object({
+    schema: z.string().optional(),
+    count: z.number().catch(0),
+    pairs: z
+      .array(
+        z
+          .object({
+            pair_id: z.string(),
+            photo_a: z.string(),
+            photo_b: z.string(),
+            pose_bin: z.string().nullable().catch(null),
+            date_a: z.string().nullable().catch(null),
+            date_b: z.string().nullable().catch(null),
+            status: z.string().nullable().catch(null),
+            evidence_state: z.string().nullable().catch(null),
+            pair_type: z.string().nullable().catch(null),
+          })
+          .loose(),
+      )
+      .catch([]),
+  })
+  .loose();
+
+export type PairMetrics = z.infer<typeof PairMetricsSchema>;
+export type PairList = z.infer<typeof PairListSchema>;
+export type MetricValue = z.infer<typeof MetricValueSchema>;

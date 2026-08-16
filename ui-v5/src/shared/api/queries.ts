@@ -7,6 +7,8 @@ import {
   JobListSchema,
   JobSubmitSchema,
   LandmarksSchema,
+  PairListSchema,
+  PairMetricsSchema,
   PhotoInfoKeysSchema,
   PhotoInventorySchema,
   SkinZonesSchema,
@@ -34,6 +36,8 @@ export const queryKeys = {
   zoneCatalog: ["zone-catalog"] as const,
   landmarks: (photoId: string, count: number, space: string) =>
     ["landmarks", photoId, count, space] as const,
+  pairMetrics: (photoA: string, photoB: string) => ["pair-metrics", photoA, photoB] as const,
+  pairList: (poseBin: string | null) => ["pair-list", poseBin] as const,
 };
 
 /** Ошибки контракта и 4xx повторять бессмысленно — причина не в сети. */
@@ -240,6 +244,45 @@ export function useLandmarks(
       ),
     retry: retryPolicy,
     enabled: Boolean(photoId) && (options.enabled ?? true),
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Парное сравнение (§11)
+// ---------------------------------------------------------------------------
+
+/**
+ * Метрики пары. 404 означает «Stage 2 такую пару не строил» — это нормальный
+ * ответ, а не сбой: пары строятся только внутри одного бина ракурса, и
+ * повторять запрос бессмысленно (`retryPolicy` отсекает 4xx).
+ */
+export function usePairMetrics(photoA: string | null, photoB: string | null) {
+  return useQuery({
+    queryKey: queryKeys.pairMetrics(photoA ?? "", photoB ?? ""),
+    queryFn: () =>
+      getValidated(
+        `/api/v1/pairs/${encodeURIComponent(photoA ?? "")}/${encodeURIComponent(photoB ?? "")}/metrics`,
+        PairMetricsSchema,
+      ),
+    retry: retryPolicy,
+    enabled: Boolean(photoA) && Boolean(photoB) && photoA !== photoB,
+    staleTime: Infinity,
+  });
+}
+
+/** Перечень пар прогона: нужен, чтобы отметить на ленте кадры с готовыми парами. */
+export function usePairList(poseBin: string | null, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: queryKeys.pairList(poseBin),
+    queryFn: () => {
+      const search = new URLSearchParams();
+      if (poseBin) search.set("pose_bin", poseBin);
+      const suffix = search.toString();
+      return getValidated(`/api/v1/pairs${suffix ? `?${suffix}` : ""}`, PairListSchema);
+    },
+    retry: retryPolicy,
+    enabled: options.enabled ?? true,
     staleTime: Infinity,
   });
 }

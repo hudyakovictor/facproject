@@ -1,36 +1,383 @@
-import React, { useMemo } from "react";
-import { useTimeline } from "../../shared/api/queries";
-import { type ResearchPhoto } from "../../shared/researchApi";
+import { useCallback, useMemo, useState } from "react";
+import { ArrowLeftRight, Link2, RotateCcw } from "lucide-react";
+import { usePairMetrics, useTimeline } from "../../shared/api/queries";
+import type { ResearchPhoto } from "../../shared/researchApi";
 import { poseLabel } from "../../shared/poseBins";
 import { resolveStage, stageLabel } from "../../shared/stage";
 import { StageBanner } from "../../shared/ui/StageBanner";
-import { EmptyState, ErrorState, LoadingState } from "../../shared/ui/states";
-import { PhotoImage } from "../../shared/ui/PhotoImage";
+import { QueryState } from "../../shared/ui/QueryState";
+import { Button } from "../../shared/ui/primitives";
+import { BlockedState, EmptyState } from "../../shared/ui/states";
+import { describeError } from "../../shared/ui/errorDetail";
 import { useAnalysisStore } from "../../shared/state/analysisStore";
+import { ABCanvas } from "./ABCanvas";
+import { MetricsPanel } from "./MetricsPanel";
+import { RangeSelector, type RangeValue } from "./RangeSelector";
+import { ReviewerWorkspace } from "./ReviewerWorkspace";
+import { ThumbnailBrowser, type ThumbnailItem } from "./ThumbnailBrowser";
+import { VERDICT_LABELS, applicability, flattenMetrics } from "./applicability";
+import { tintLevel } from "./metricGroups";
+import styles from "./pair.module.css";
 
-const show = (v: unknown) => v === null || v === undefined || v === "" ? "н/д" : String(v);
-export const PairAnalysisPage: React.FC = () => {
-  const q = useTimeline();
-  const photos = useMemo(() => q.data?.photos ?? [], [q.data]);
-  /**
-   * Пара берётся из общего стора: кадры, отмеченные на таймлайне, открываются
-   * здесь без повторного выбора. Раньше страница вела собственные `aId`/`bId`,
-   * и выбор на таймлайне сюда не доходил (BUG-1).
-   */
-  const { pairA: aId, pairB: bId, hydrate } = useAnalysisStore();
-  const setAId = (id: string) => hydrate({ pairA: id });
-  const setBId = (id: string) => hydrate({ pairB: id });
-  const a = useMemo(() => photos.find(p => p.id === (aId ?? photos[0]?.id)), [photos, aId]);
-  const b = useMemo(() => photos.find(p => p.id === (bId ?? photos[1]?.id)) ?? photos[1], [photos, bId]);
-  const stage = resolveStage(q.data);
-  if (q.isLoading) return <LoadingState text="Загрузка записей для сравнения…" />;
-  if (q.isError) return <ErrorState title="Парное сравнение недоступно" error={q.error} onRetry={() => void q.refetch()} />;
-  if (photos.length === 0) return <EmptyState title="Записей нет" description="API вернул пустой список фотографий." />;
-  if (!a || !b) return <EmptyState title="Недостаточно записей для пары" description={`Для сравнения нужно минимум две фотографии, получено ${photos.length.toLocaleString("ru-RU")}.`} />;
-  if (a.bucket !== b.bucket) {
-    return <div className="p-6"><EmptyState title="Пара из разных ракурсов недопустима" description={`A — «${poseLabel(a.bucket)}», B — «${poseLabel(b.bucket)}». Сравнение геометрии допустимо только внутри одного бина ракурса.`} /></div>;
-  }
-  const selector = (label: string, current: string, onChange: (v: string) => void) => <label className="text-xs text-ink-muted">{label}<select aria-label={label} value={current} onChange={e => onChange(e.target.value)} className="block mt-1 w-full bg-surface-raised border border-line-default rounded px-2 py-1 text-ink-primary">{photos.slice(0, 500).map(p => <option key={p.id} value={p.id}>{p.date ?? p.id} · {p.id}</option>)}</select></label>;
-  const cards: Array<{ label: string; photo: ResearchPhoto; setter: (id: string) => void; border: string }> = [{ label: "A", photo: a, setter: setAId, border: "border-cyan-600" }, { label: "B", photo: b, setter: setBId, border: "border-amber-500" }];
-  return <div className="flex flex-col h-workspace w-full bg-surface-canvas text-ink-primary overflow-y-auto p-6 space-y-5"><StageBanner stage={stage} note={q.data?.note} /><header className="rounded-lg border border-cyan-600 bg-surface-base p-4"><div className="font-mono text-sm font-bold text-cyan-300">СРАВНЕНИЕ ДВУХ ЗАПИСЕЙ · {stageLabel(stage)}</div><p className="text-xs text-ink-muted mt-1">Сравнение внутри одного бина ракурса. Клиент показывает поля, которые реально возвращает API. Байесовский verdict, SNR и similarity не подставляются: отдельный endpoint метрик не подключён к этому экрану.</p></header><div className="grid grid-cols-1 md:grid-cols-2 gap-5">{cards.map(({ label, photo, setter, border }) => <section key={label} className={`rounded-lg border ${border} bg-surface-base p-4`}><div className="flex justify-between items-end mb-3"><b className="font-mono text-cyan-300">ФОТО {label}</b>{selector("Запись", photo.id, setter)}</div><div className="h-64 rounded bg-surface-raised flex items-center justify-center"><PhotoImage photoId={photo.id} alt={`Кадр ${photo.id}`} variant="contain" className="max-h-full max-w-full" /></div><div className="grid grid-cols-2 gap-2 mt-3 text-xs font-mono">{([["Дата",photo.date],["Ракурс",poseLabel(photo.bucket)],["Q",photo.quality],["Yaw",photo.yaw],["Pitch",photo.pitch],["Roll",photo.roll],["Evidence",photo.evidenceState ?? null],["Pairs",photo.stage2PairCount ?? null]] as [string,unknown][]).map(([k,v])=><div key={k} className="rounded bg-surface-raised p-2"><span className="text-ink-muted">{k}: </span>{show(v)}</div>)}</div></section>)}</div><section className="rounded-lg border border-line-default bg-surface-base p-4 text-sm"><h2 className="font-mono text-xs text-cyan-300 mb-2">РЕАЛЬНЫЕ МЕТРИКИ ПАРЫ</h2><p className="text-ink-secondary">Для пары <code>{a.id}</code> ↔ <code>{b.id}</code> текущий UI не выдумывает результат. API endpoint <code>/api/v1/pairs/&lt;a&gt;/&lt;b&gt;/metrics</code> требует отдельного подключения и проверки схемы ответа.</p></section></div>;
+/**
+ * Парное сравнение (§11).
+ *
+ * Раньше страница состояла из двух `<select>`, двух превью и абзаца «endpoint
+ * требует подключения» — при том что `/api/v1/pairs/{a}/{b}/metrics` существует
+ * и отдаёт 208 колонок Stage 2.
+ *
+ * Порядок разделов повторяет спеку и логику работы: сначала шапка и
+ * применимость (можно ли вообще мерить эту пару), затем холст, и только потом
+ * числа. Метрики, поставленные раньше применимости, читаются как результат,
+ * даже когда пара исключена по качеству.
+ */
+
+const yearOf = (photo: ResearchPhoto): number | null => {
+  if (!photo.date) return null;
+  const year = Number(photo.date.slice(0, 4));
+  return Number.isFinite(year) ? year : null;
 };
+
+export function PairAnalysisPage() {
+  const timeline = useTimeline();
+  const photos = useMemo(() => timeline.data?.photos ?? [], [timeline.data]);
+  const { pairA, pairB, assignToPair, swapPair, clearPair } = useAnalysisStore();
+
+  const years = useMemo(() => {
+    const set = new Set<number>();
+    for (const photo of photos) {
+      const year = yearOf(photo);
+      if (year !== null) set.add(year);
+    }
+    return [...set].sort((a, b) => a - b);
+  }, [photos]);
+
+  const [range, setRange] = useState<RangeValue | null>(null);
+  const [onlyCurrentPose, setOnlyCurrentPose] = useState(true);
+  const [rows, setRows] = useState(4);
+  const [size, setSize] = useState(40);
+  const [pairRejection, setPairRejection] = useState<string | null>(null);
+  const [copyCount, setCopyCount] = useState(0);
+
+  /** Пока пользователь не трогал ползунки, диапазон покрывает весь архив. */
+  const effectiveRange = useMemo<RangeValue>(
+    () => range ?? { from: years[0] ?? 1999, to: years[years.length - 1] ?? 2026 },
+    [range, years],
+  );
+
+  const photoA = useMemo(() => photos.find((photo) => photo.id === pairA) ?? null, [photos, pairA]);
+  const photoB = useMemo(() => photos.find((photo) => photo.id === pairB) ?? null, [photos, pairB]);
+
+  const metrics = usePairMetrics(pairA, pairB);
+
+  /**
+   * Кадр пары может отсутствовать в текущей ленте: Stage 2 строит пары по
+   * своему прогону, а `/timeline` отдаёт то, что попало в текущую выборку.
+   * Тогда бин и даты берутся из самой пары — иначе шапка писала бы «ракурс не
+   * задан» при полностью определённой паре.
+   */
+  const pairFacts = useMemo(() => {
+    if (!metrics.data) return null;
+    const flat = flattenMetrics(metrics.data);
+    const text = (key: string) => {
+      const value = flat.get(key);
+      return value === null || value === undefined || value === "" ? null : String(value);
+    };
+    return { bucket: text("pose_bin"), dateA: text("date_a"), dateB: text("date_b") };
+  }, [metrics.data]);
+
+  /** Бин, внутри которого ведётся работа: он задан кадром A, если тот выбран. */
+  const activeBucket = photoA?.bucket ?? pairFacts?.bucket ?? null;
+
+  const inRange = useMemo(
+    () =>
+      photos.filter((photo) => {
+        const year = yearOf(photo);
+        if (year === null) return false;
+        if (year < effectiveRange.from || year > effectiveRange.to) return false;
+        if (onlyCurrentPose && activeBucket && photo.bucket !== activeBucket) return false;
+        return true;
+      }),
+    [photos, effectiveRange, onlyCurrentPose, activeBucket],
+  );
+
+
+  /**
+   * Порог для A-relative подсветки берётся из калибровки пары, а не
+   * назначается интерфейсом. Без калибровочного значения уровень остаётся
+   * «не измерено»: раскрасить плитки по произвольной шкале значило бы
+   * выдумать меру.
+   */
+  const tintBasis = useMemo(() => {
+    if (!metrics.data) return { threshold: null as number | null, label: null as string | null };
+    const flat = flattenMetrics(metrics.data);
+    const p95 = flat.get("primary_calibration_p95");
+    return {
+      threshold: typeof p95 === "number" ? p95 : null,
+      label: "первичная метрика относительно калибровочного p95",
+    };
+  }, [metrics.data]);
+
+  const items = useMemo<ThumbnailItem[]>(
+    () =>
+      inRange.map((photo) => ({
+        photo,
+        // Расхождение конкретного кадра с A backend отдаёт только для
+        // построенных пар. Массового A-relative эндпоинта нет (B-04), поэтому
+        // уровень известен лишь для текущей пары, а не для всей ленты.
+        tint:
+          photo.id === pairB && metrics.data
+            ? tintLevel(
+                (() => {
+                  const value = flattenMetrics(metrics.data).get("primary_robust_z");
+                  return typeof value === "number" ? value : null;
+                })(),
+                1,
+                true,
+              )
+            : photo.id === pairA
+              ? "near"
+              : activeBucket && photo.bucket !== activeBucket
+                ? "inapplicable"
+                : "unknown",
+        relative: null,
+      })),
+    [inRange, pairA, pairB, metrics.data, activeBucket],
+  );
+
+  const pick = useCallback(
+    (photoId: string) => {
+      const photo = photos.find((item) => item.id === photoId);
+      if (!photo) return;
+      setPairRejection(
+        assignToPair(photoId, photo.bucket, (id) => photos.find((item) => item.id === id)?.bucket),
+      );
+    },
+    [assignToPair, photos],
+  );
+
+  const copyPermalink = useCallback(() => {
+    const url = new URL(window.location.href);
+    if (pairA) url.searchParams.set("a", pairA);
+    if (pairB) url.searchParams.set("b", pairB);
+    void navigator.clipboard
+      ?.writeText(url.toString())
+      .then(() => setCopyCount((count) => count + 1))
+      .catch(() => setCopyCount(0));
+  }, [pairA, pairB]);
+
+  return (
+    <QueryState
+      query={timeline}
+      loadingText="Загрузка записей для сравнения…"
+      errorTitle="Парное сравнение недоступно"
+      isEmpty={(data) => data.photos.length < 2}
+      emptyTitle="Недостаточно записей для пары"
+      emptyDescription="Для сравнения нужно минимум две фотографии."
+    >
+      {() => (
+        <div className="flex h-workspace w-full flex-col gap-4 overflow-y-auto bg-surface-canvas p-6 text-ink-primary">
+          <StageBanner stage={resolveStage(timeline.data)} note={timeline.data?.note} />
+
+          <header className={styles.header}>
+            <div className={styles.headerMain}>
+              <span className={styles.headerIds}>
+                A: {pairA ?? "не выбран"} · B: {pairB ?? "не выбран"}
+              </span>
+              <span className={styles.headerMeta}>
+                {stageLabel(resolveStage(timeline.data))} ·{" "}
+                {photoA?.date ?? pairFacts?.dateA ?? "дата н/д"} →{" "}
+                {photoB?.date ?? pairFacts?.dateB ?? "дата н/д"} · ракурс:{" "}
+                {activeBucket ? poseLabel(activeBucket) : "не задан"}
+              </span>
+            </div>
+            <div className={styles.headerActions}>
+              <Button size="sm" variant="ghost" onClick={swapPair} disabled={!pairA || !pairB}>
+                <ArrowLeftRight className="h-3.5 w-3.5" /> Поменять местами
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  clearPair();
+                  setPairRejection(null);
+                }}
+                disabled={!pairA && !pairB}
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Сбросить
+              </Button>
+              <Button size="sm" variant="ghost" onClick={copyPermalink} disabled={!pairA || !pairB}>
+                <Link2 className="h-3.5 w-3.5" /> Ссылка
+              </Button>
+              {copyCount > 0 && (
+                <span key={copyCount} className={styles.hint} role="status">
+                  Скопировано
+                </span>
+              )}
+            </div>
+          </header>
+
+          {pairRejection && (
+            <p className={styles.warn} role="status">
+              {pairRejection}
+            </p>
+          )}
+
+          <RangeSelector
+            years={years}
+            value={effectiveRange}
+            onChange={setRange}
+            countInRange={inRange.length}
+            totalCount={photos.length}
+            onlyCurrentPose={onlyCurrentPose}
+            onToggleOnlyCurrentPose={setOnlyCurrentPose}
+            poseLabelText={activeBucket ? poseLabel(activeBucket) : "ракурс задаст кадр A"}
+          />
+
+          <section className={styles.panel} aria-label="Кадры диапазона">
+            <div className={styles.panelHeader}>
+              <span className={styles.panelTitle}>КАДРЫ ДИАПАЗОНА</span>
+              <div className={styles.sliderRow}>
+                <label className={styles.rangeField}>
+                  Рядов
+                  <input
+                    type="range"
+                    min={1}
+                    max={6}
+                    value={rows}
+                    onChange={(event) => setRows(Number(event.target.value))}
+                    aria-label="Число рядов миниатюр"
+                  />
+                  <span className={styles.sliderValue}>{rows}</span>
+                </label>
+                <label className={styles.rangeField}>
+                  Размер
+                  <input
+                    type="range"
+                    min={28}
+                    max={96}
+                    step={4}
+                    value={size}
+                    onChange={(event) => setSize(Number(event.target.value))}
+                    aria-label="Размер миниатюры"
+                  />
+                  <span className={styles.sliderValue}>{size}px</span>
+                </label>
+              </div>
+            </div>
+
+            {items.length === 0 ? (
+              <EmptyState
+                title="В диапазоне нет кадров"
+                description="Расширьте диапазон дат или снимите ограничение по ракурсу."
+              />
+            ) : (
+              <ThumbnailBrowser
+                items={items}
+                rows={rows}
+                size={size}
+                pairA={pairA}
+                pairB={pairB}
+                onPick={pick}
+                metricLabel={tintBasis.label}
+              />
+            )}
+
+            <p className={styles.note}>
+              Подсветка показывает расхождение относительно калибровочного порога и
+              не является вероятностью совпадения личности. Массовый расчёт
+              «все кадры относительно A» backend не отдаёт (задача B-04), поэтому
+              уровень известен только для текущей пары; остальные плитки помечены
+              как неизмеренные, а кадры чужого ракурса — как неприменимые.
+            </p>
+          </section>
+
+          {pairA && pairB ? (
+            <div className={styles.columns}>
+              <div className="flex flex-col gap-4">
+                <ABCanvas
+                  photoA={pairA}
+                  photoB={pairB}
+                  labelA={photoA?.date ?? pairFacts?.dateA ?? pairA}
+                  labelB={photoB?.date ?? pairFacts?.dateB ?? pairB}
+                />
+                <PairMetricsSection queryResult={metrics} />
+              </div>
+              <div className="flex flex-col gap-4">
+                <ReviewerWorkspace photoA={pairA} photoB={pairB} />
+              </div>
+            </div>
+          ) : (
+            <EmptyState
+              title="Пара не выбрана"
+              description="Выберите кадр в ленте: первый становится A, второй — B. Ракурс должен совпадать."
+            />
+          )}
+        </div>
+      )}
+    </QueryState>
+  );
+}
+
+/**
+ * Применимость и метрики. Вынесено отдельно, потому что 404 здесь — не ошибка
+ * интерфейса, а содержательный ответ: Stage 2 такую пару не строил.
+ */
+function PairMetricsSection({
+  queryResult,
+}: {
+  queryResult: ReturnType<typeof usePairMetrics>;
+}) {
+  if (queryResult.isPending) {
+    return <p className={styles.note}>Загрузка метрик пары…</p>;
+  }
+
+  if (queryResult.isError) {
+    const detail = describeError(queryResult.error);
+    if (detail.status === 404) {
+      return (
+        <BlockedState
+          title="Пара отсутствует в прогоне Stage 2"
+          description="Stage 2 строит пары не для всех сочетаний кадров. Чтобы получить метрики, эту пару нужно включить в профиль анализа и выполнить прогон."
+        />
+      );
+    }
+    return (
+      <BlockedState
+        title="Метрики пары недоступны"
+        description={detail.message}
+      />
+    );
+  }
+
+  const data = queryResult.data;
+  if (!data) return null;
+  const verdict = applicability(data);
+
+  return (
+    <>
+      <section className={styles.panel} aria-label="Применимость пары">
+        <div className={styles.panelHeader}>
+          <span className={styles.panelTitle}>ПРИМЕНИМОСТЬ</span>
+          <span className={styles.panelMeta}>решение: {VERDICT_LABELS[verdict.verdict]}</span>
+        </div>
+        <p className={styles.verdictBanner} data-verdict={verdict.verdict}>
+          {verdict.summary}
+        </p>
+        <div className={styles.checkList}>
+          {verdict.checks.map((check) => (
+            <div key={check.id} className={styles.checkItem} data-verdict={check.verdict}>
+              <span className={styles.checkLabel}>{check.label}</span>
+              <span className={styles.checkValue} data-null={check.value === null}>
+                {check.value ?? "н/д"}
+              </span>
+              <span className={styles.checkReason}>{check.reason}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <MetricsPanel data={data} />
+    </>
+  );
+}
