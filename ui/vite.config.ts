@@ -76,5 +76,7 @@ export default defineConfig({
   server: {
     port: 5199,
     strictPort: true,
+    host: '0.0.0.0',
+    allowedHosts: ['.e2b.app', '.preview.app.github.dev', 'localhost'],
   },
 })

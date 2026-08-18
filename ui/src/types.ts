@@ -179,12 +179,14 @@ export interface PairConnection {
   meshP95RobustZ: number | null
   meshPtPlaneRmseRobustZ: number | null
   meshPtPlaneMedianRobustZ: number | null
+  meshPtPlaneP95RobustZ: number | null
 
   meshRmseStatus: string
   meshMedianStatus: string
   meshP95Status: string
   meshPtPlaneRmseStatus: string
   meshPtPlaneMedianStatus: string
+  meshPtPlaneP95Status: string
 
   // Calibration medians
   meshRmseCalMedian: number | null
@@ -384,4 +386,19 @@ export interface ZoneMetric {
   mtSignificantFdr10?: boolean
   mtRole?: string
   mtFdr10DiagnosticFlag?: string
+}
+
+// ─── V10: заметки на оси времени (журналистский след) ───
+export interface TimelineAnnotation {
+  id: string
+  date: string        // ISO YYYY-MM-DD
+  text: string
+  color: string
+}
+
+// ─── V10: контекст-полоса другого ракурса (корроборация взглядом) ───
+export interface ContextPoseLane {
+  bin: PoseBin
+  label: string
+  frames: Frame[]
 }
