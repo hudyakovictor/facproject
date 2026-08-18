@@ -1,2 +1,0 @@
-# Public fixture keeps small extracted arrays as ordinary Git blobs.
-# Large model weights and local pipeline assets stay ignored.
