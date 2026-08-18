@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Frame, PairConnection, PhotoMetrics, ZoneMetric } from './types'
+import type { Frame, PairConnection, PhotoMetrics, PoseBin, TimelineAnnotation, ZoneMetric } from './types'
 import { getPoseColor } from './types'
 import { classifyPair, getFrameEvents, pickDisplayPair, dominantZone, zoneLabel } from './timeline-data-contract'
 import './TimelineV2.css'
@@ -18,81 +18,105 @@ type Props = {
   initialSlot?: number
   initialScroll?: number
   onViewChange?: (slot: number, scroll: number) => void
+  /* V10: честная календарная ось (calendar) или порядок кадров (order) */
+  axisMode?: 'calendar' | 'order'
+  /* V10: контекст-полосы остальных ракурсов под фото-рядом */
+  contextPoses?: { bin: PoseBin; label: string; frames: Frame[] }[]
+  contextCandidates?: Map<string, Set<string>>
+  onContextPoseClick?: (bin: PoseBin, frameId: string) => void
+  /* V10: заметки журналиста на линейке */
+  annotations?: TimelineAnnotation[]
+  onAnnotationClick?: (a: TimelineAnnotation) => void
 }
 
-/* ── V8: единый тип элемента ряда — устраняет 6 из 8 ошибок TS сборки V7-dev ── */
+/* ── V8: единый тип элемента ряда ── */
 interface VisibleItem {
   frame: Frame
   i: number
   stackCount?: number
   groupFrames?: Frame[]
   groupIndices?: number[]
+  x: number      // центр на canvas (в координатах ленты, без scroll)
+  w: number      // ширина
 }
 
 /*
- * TIMELINE V8 — доводка до 95+. Что и почему изменено относительно V7-dev:
+ * TIMELINE V10 — редизайн по документу docs/TIMELINE_REDESIGN_VISION.md.
  *
- * ФАЗА 1. Целостность сетки
- *  - Стек same-day занимает ТОЛЬКО слот первого кадра даты. Раскрытие —
- *    плавающая панель-поверхность под фото-рядом, а не centerX(i+fi):
- *    в V7-dev раскрытые кадры наезжали на чужие слоты и рвали синхронизацию
- *    всех дорожек. Панель не меняет сетку вообще.
- *  - События и роли кадров внутри стека АГРЕГИРУЮТСЯ в маркер стека (+n),
- *    а не исчезают молча.
- *  - Повторный клик/Esc сворачивает стек.
- *  - Скрытые группы дорожек освобождают высоту: доли считаются динамически.
- *  - Readout перенесён вправо — в V7-dev он перекрывал подпись дорожки.
- *
- * ФАЗА 2. Зональный слой (zone_metrics.json, 567 измерений, ранее 0 отображений)
- *  - Opt-in слой «Зоны»: глиф 3×3 с доминантной зоной пары.
- *  - robustZ зон НЕ отображается: в текущем export он некалиброван
- *    (calibrationStatus=insufficient_calibration, медиана ~2.8e6). Показывать
- *    его как z было бы фабрикацией. Доминант выбирается по raw rmse.
- *
- * ФАЗА 3. Persistence
- *  - Цепочки подряд идущих candidate/persistent пар = интервальная заливка:
- *    устойчивый сдвиг отличим от одиночного скачка одним взглядом.
- *  - Закладки кластеров кандидатов на minimap (кликабельны).
- *
- * ФАЗА 5. A11y: hit-area ≥12px у маркеров, tabIndex на точках пар,
- *    focus-visible стили, нативные <title> у всех маркеров.
- *
- * ФАЗА 7. onViewChange (debounced) отдаёт slot/scroll в App для URL state
- *    через history.replaceState — без засорения истории браузера.
+ * ГЛАВНЫЕ ИЗМЕНЕНИЯ:
+ * 1. ЧЕСТНАЯ ОСЬ ВРЕМЕНИ (axisMode='calendar', по умолчанию): X = календарь
+ *    с минимальным зазором MIN_GAP px между соседями. Плотные периоды
+ *    кластеризуются в один элемент фото-ряда, редкие — честно растягиваются
+ *    (пробел данных виден как пробел). Переключатель «время/порядок» в App.
+ * 2. КРИВАЯ СТАБИЛЬНОСТИ: скользящая медиана robust-z по adjacent-парам +
+ *    коридор нормы (q50–q90) + треугольные маркеры одиночных скачков.
+ *    Устойчивый сдвиг (persistence) теперь отличим от скачка одним взглядом.
+ * 3. КОНТЕКСТ-ПОЛОСЫ РАКУРСОВ: под фото-рядом 8 тонких дорожек остальных
+ *    ракурсов с точками-кадрами (календарно выровнены). Кросс-ракурсная
+ *    корроборация — взглядом, без переключения селектора.
+ * 4. ЛИНЕЙКА: вертикальные линии возрастов Путина и публичных событий.
+ * 5. ЗАМЕТКИ: флажки журналиста на датах (localStorage, App).
+ * 6. Кламп initialSlot/initialScroll из URL (аудит-фикс) и якорь зума по
+ *    доле контента (работает для обоих режимов оси).
  */
 
-/* V3/Этап 5: zoom limits по читаемости миниатюр.
-   thumbW = slot − gap (gap = 0.12·slot при slot≥12.5), т.е. thumbW ≈ 0.88·slot.
-   V3: минимальная ширина thumbnail 52px, максимальная 112px →
-   slot ∈ [60, 128]. Вне диапазона wheel-зум не выходит (без overlap и скачков). */
 const MIN_SLOT = 60
 const MAX_SLOT = 128
-/* Порог стека same-day: группируем ракурс в локальный стек только на
-   зум-out/среднем зуме; на default slot (86) кадры показываются поодиночке. */
 const STACK_SLOT = 72
 const GUTTER = 152
 const MINI_H = 30
 const Z_MAX = 36
-const Z_DOT_COLORS = ['#5e9fe8', '#4fb9c9', '#de9255', '#72bc8f', '#bf8eda'] // RMSE/Median/P95/PtPlane-RMSE/PtPlane-Median z
+const DAY = 86400000
+const MIN_GAP = 2 // px между разными датами при календарной оси
+const Z_DOT_COLORS = ['#5e9fe8', '#4fb9c9', '#de9255', '#72bc8f', '#bf8eda', '#eac26b']
 const log = Math.log1p
 const un = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? null : v)
 const CAND_KINDS = new Set(['candidate', 'persistent'])
+const median = (arr: number[]) => {
+  if (!arr.length) return 0
+  const s = [...arr].sort((a, b) => a - b)
+  return s[Math.floor(s.length / 2)]
+}
+/* V10: короткие подписи для контекст-полос (русские, 3/4 б/с/г = ближ/сред/глуб) */
+const SHORT_POSE: Record<string, string> = {
+  left_light: 'Л 3/4·б', right_light: 'П 3/4·б',
+  left_mid: 'Л 3/4·с', right_mid: 'П 3/4·с',
+  left_deep: 'Л 3/4·г', right_deep: 'П 3/4·г',
+  left_profile: 'Л профиль', right_profile: 'П профиль',
+}
 
-export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selectedPairId, onSelect, onPairClick, onPairSelect, collapsed, initialSlot, initialScroll, onViewChange }: Props) {
+/* События и возрасты на линейке (V10). Возраст — от 1952-10-07. */
+const ageDate = (age: number) => {
+  const d = new Date(1952, 9, 7)
+  d.setFullYear(d.getFullYear() + age)
+  return d.toISOString().slice(0, 10)
+}
+const RULER_AGES = [50, 55, 60, 65, 70].map(age => ({ date: ageDate(age), label: `ВП ${age}` }))
+const RULER_EVENTS = [
+  { date: '2000-05-07', label: '2000 инауг.' },
+  { date: '2008-05-07', label: '2008 инауг.' },
+  { date: '2012-05-07', label: '2012 инауг.' },
+  { date: '2020-07-01', label: '2020 поправки' },
+  { date: '2022-02-24', label: '2022' },
+]
+
+export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selectedPairId, onSelect, onPairClick, onPairSelect, collapsed, initialSlot, initialScroll, onViewChange, axisMode = 'calendar', contextPoses, contextCandidates, onContextPoseClick, annotations, onAnnotationClick }: Props) {
   const viewport = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 1200, height: 700 })
-  const [slot, setSlot] = useState(initialSlot ?? 86)
-  const [scroll, setScroll] = useState(initialScroll ?? 0)
+  // Аудит-фикс: URL-значения клампим, иначе #slot=9999 ломает layout.
+  const [slot, setSlot] = useState(() => Math.min(MAX_SLOT, Math.max(MIN_SLOT, initialSlot ?? 86)))
+  const [scroll, setScroll] = useState(() => Math.max(0, initialScroll ?? 0))
   const [dragging, setDragging] = useState(false)
   const [hoverFrame, setHoverFrame] = useState<Frame | null>(null)
   const [hoverPair, setHoverPair] = useState<PairConnection | null>(null)
   const [cursorI, setCursorI] = useState<number | null>(null)
-  const [expandedStack, setExpandedStack] = useState<string | null>(null) // V8: один открытый стек, id = frame.id первого кадра даты
+  const [expandedStack, setExpandedStack] = useState<string | null>(null)
 
   const cam = useRef({ slot, scroll })
   cam.current = { slot, scroll }
   const dragStart = useRef({ x: 0, scroll: 0 })
   const raf = useRef(0)
+  const hoverRaf = useRef(0)
   const maxScrollRef = useRef(0)
   const viewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -105,13 +129,38 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     return () => ro.disconnect()
   }, [])
 
-  // ── Единый масштаб: всё выводится из slot (пропорциональный zoom) ──
   const gap = Math.max(1.5, slot * 0.12)
   const thumbW = slot - gap
   const iconSize = Math.max(16, Math.min(26, slot * 0.3))
   const photoH = Math.max(16, Math.min(150, thumbW * 1.25))
-  const centerX = useCallback((i: number) => GUTTER + i * slot + slot / 2, [slot])
-  const contentW = Math.max(size.width + 1, GUTTER + frames.length * slot + 48)
+
+  /* ── V10: LAYOUT. calendar: X = календарь с мин. зазором; order: X = индекс. ── */
+  const layout = useMemo(() => {
+    const n = frames.length
+    const xs = new Array<number>(n)
+    if (axisMode !== 'calendar' || n < 2) {
+      for (let i = 0; i < n; i++) xs[i] = GUTTER + i * slot + slot / 2
+      return { xs, contentW: GUTTER + n * slot + 48, pxPerDay: slot }
+    }
+    const gaps: number[] = []
+    for (let i = 1; i < n; i++) {
+      const d = (frames[i].timestamp - frames[i - 1].timestamp) / DAY
+      if (Number.isFinite(d) && d > 0) gaps.push(d)
+    }
+    const med = median(gaps) || 1
+    const pxPerDay = Math.max(0.2, slot / Math.max(0.1, med))
+    let x = GUTTER
+    for (let i = 0; i < n; i++) {
+      const dPrev = i > 0 ? (frames[i].timestamp - frames[i - 1].timestamp) / DAY : med
+      const seg = i > 0 ? Math.max(MIN_GAP, dPrev * pxPerDay) : Math.max(MIN_GAP, med * pxPerDay)
+      xs[i] = x + seg / 2
+      x += seg
+    }
+    return { xs, contentW: x + 48, pxPerDay }
+  }, [frames, slot, axisMode])
+
+  const contentW = Math.max(size.width + 1, layout.contentW)
+  const centerX = useCallback((i: number) => layout.xs[i] ?? GUTTER, [layout])
   const maxScroll = Math.max(0, contentW - size.width)
   maxScrollRef.current = maxScroll
 
@@ -121,7 +170,6 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     raf.current = requestAnimationFrame(() => setScroll(clamped))
   }, [])
 
-  // ── V8: debounce отдачи вида в URL (300ms после последнего изменения) ──
   useEffect(() => {
     if (!onViewChange) return
     if (viewTimer.current) clearTimeout(viewTimer.current)
@@ -139,10 +187,11 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
         const cursor = e.clientX - el.getBoundingClientRect().left
         const next = Math.max(MIN_SLOT, Math.min(MAX_SLOT, s * (e.deltaY > 0 ? 0.9 : 1.1)))
         if (next === s) return
-        const logical = (sc + cursor - GUTTER) / s
-        const nextScroll = logical * next + GUTTER - cursor
+        // V10: якорь по доле контента (работает и для календарной оси)
+        const ratio = next / s
+        const nextScroll = Math.max(0, Math.min(maxScrollRef.current, (sc + cursor) * ratio - cursor))
         cancelAnimationFrame(raf.current)
-        raf.current = requestAnimationFrame(() => { setSlot(next); setScroll(Math.max(0, Math.min(maxScrollRef.current, nextScroll))) })
+        raf.current = requestAnimationFrame(() => { setSlot(next); setScroll(nextScroll) })
       } else {
         scheduleScroll(sc + (e.deltaX || e.deltaY))
       }
@@ -151,7 +200,6 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     return () => el.removeEventListener('wheel', onWheel)
   }, [scheduleScroll])
 
-  // ── Auto-scroll только при смене выбора (иначе «дерется» с zoom) ──
   const lastSelected = useRef<string | null>(null)
   useEffect(() => {
     if (selectedId === lastSelected.current) return
@@ -197,25 +245,77 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     }
   }, [selectedPair, index, centerX, size.width])
 
-  /* ── V8 СТЕКИ: типизированный VisibleItem; группа занимает слот первого кадра.
-        Раскрытие — overlay-панель, сетка не меняется. События группы агрегируются. ── */
-  const visible = useMemo<VisibleItem[]>(() => {
-    const inView = (i: number) => centerX(i) > scroll - slot * 2 && centerX(i) < scroll + size.width + slot * 2
-    if (slot > STACK_SLOT) return frames.map((frame, i) => ({ frame, i })).filter(v => inView(v.i))
-    const items: VisibleItem[] = []
-    let i = 0
-    while (i < frames.length) {
-      const f = frames[i]
-      let j = i
-      while (j + 1 < frames.length && frames[j + 1].date === f.date) j++
-      const groupFrames = frames.slice(i, j + 1)
-      items.push({ frame: f, i, stackCount: groupFrames.length > 1 ? groupFrames.length : undefined, groupFrames, groupIndices: groupFrames.map((_, k) => i + k) })
-      i = j + 1
+  /* ── V10: элементы фото-ряда. order: кадры (+same-day стеки при zoom-out);
+        calendar: кластеры перекрывающихся кадров (плотные периоды) ── */
+  const items = useMemo<VisibleItem[]>(() => {
+    const inView = (x: number, w: number) => x > scroll - w * 2 && x < scroll + size.width + w * 2
+    if (axisMode === 'order') {
+      const out: VisibleItem[] = []
+      let i = 0
+      while (i < frames.length) {
+        const f = frames[i]
+        const x = layout.xs[i]
+        const w = thumbW
+        if (slot <= STACK_SLOT) {
+          let j = i
+          while (j + 1 < frames.length && frames[j + 1].date === f.date) j++
+          if (j > i) {
+            const gf = frames.slice(i, j + 1)
+            out.push({ frame: f, i, stackCount: gf.length, groupFrames: gf, groupIndices: gf.map((_, k) => i + k), x, w })
+            i = j + 1
+            continue
+          }
+        }
+        out.push({ frame: f, i, x, w })
+        i++
+      }
+      return out.filter(v => inView(v.x, v.w))
     }
-    return items.filter(v => inView(v.i))
-  }, [frames, centerX, scroll, size.width, slot])
+    // calendar: кластеры — только при реальном перекрытии кадров (gap < thumbW),
+    // и с ограничением размаха (иначе плотный месяц превращается в мега-бар)
+    const out: VisibleItem[] = []
+    const n = frames.length
+    const maxSpan = thumbW * 2.2
+    let start = 0
+    const flush = (end: number) => {
+      const gf = frames.slice(start, end)
+      const gi: number[] = []
+      for (let k = start; k < end; k++) gi.push(k)
+      const x0 = layout.xs[start]
+      const x1 = layout.xs[end - 1]
+      const x = (x0 + x1) / 2
+      const w = Math.max(thumbW, x1 - x0 + Math.min(thumbW, 16))
+      out.push({ frame: gf[0], i: start, stackCount: gf.length > 1 ? gf.length : undefined, groupFrames: gf, groupIndices: gi, x, w })
+      start = end
+    }
+    for (let i = 1; i <= n; i++) {
+      const overlap = i < n && (layout.xs[i] - layout.xs[i - 1]) < thumbW && (layout.xs[i] - layout.xs[start]) < maxSpan
+      if (!overlap) flush(i)
+    }
+    return out.filter(v => inView(v.x, v.w))
+  }, [frames, layout.xs, scroll, size.width, slot, thumbW, axisMode])
 
-  /* V8: агрегированные события для стека — объединяем события всех кадров группы */
+  /* ── V10: контекст-полосы ракурсов (та же календарная шкала) ── */
+  const ctxLanes = useMemo(() => {
+    if (!contextPoses?.length) return []
+    return contextPoses.map(lp => {
+      const n = lp.frames.length
+      const xs = new Array<number>(n)
+      if (axisMode !== 'calendar' || n < 2) {
+        for (let i = 0; i < n; i++) xs[i] = GUTTER + i * slot + slot / 2
+      } else {
+        let x = GUTTER
+        for (let i = 0; i < n; i++) {
+          const d = i > 0 ? (lp.frames[i].timestamp - lp.frames[i - 1].timestamp) / DAY : 1
+          const seg = i > 0 ? Math.max(MIN_GAP, d * layout.pxPerDay) : Math.max(MIN_GAP, layout.pxPerDay)
+          xs[i] = x + seg / 2
+          x += seg
+        }
+      }
+      return { bin: lp.bin, label: lp.label, frames: lp.frames, xs }
+    })
+  }, [contextPoses, axisMode, slot, layout.pxPerDay])
+
   const eventsOf = useCallback((v: VisibleItem) => {
     const framesToScan = v.groupFrames ?? [v.frame]
     const out: ReturnType<typeof getFrameEvents> = []
@@ -225,6 +325,8 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
       const ev = getFrameEvents(f, ps)
       if (ps.some(p => p.smileDetectedA !== p.smileDetectedB || p.jawOpenDetectedA !== p.jawOpenDetectedB))
         ev.push({ kind: 'limited', label: 'Мимика A/B различается (confounder)', symbol: 'E' })
+      if (ps.some(p => [p.meshRmseStatus, p.meshMedianStatus, p.meshP95Status, p.meshPtPlaneRmseStatus, p.meshPtPlaneMedianStatus, p.meshPtPlaneP95Status].includes('mesh_elevated_but_uncertain')))
+        ev.push({ kind: 'limited', label: 'Неуверенный статус метрики (elevated_but_uncertain)', symbol: 'S' })
       for (const e of ev) { const k = e.kind + e.symbol; if (!seen.has(k)) { seen.add(k); out.push(e) } }
     }
     return out
@@ -241,17 +343,20 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     return a && b ? '⇄' : a ? 'A' : b ? 'B' : ''
   }, [byFrame])
 
-  // ── V8: динамические доли дорожек — скрытая группа освобождает место ──
+  /* ── V10: контекст-полосы съедают высоту графика честно ── */
+  const ctxH = (!c.has('pose_lanes') && ctxLanes.length) ? ctxLanes.length * 16 : 0
   const bands = useMemo(() => {
     const defs = [
-      { key: 'pair', frac: 0.34 },
-      { key: 'support', frac: 0.16 },
+      { key: 'pair', frac: 0.30 },
+      { key: 'raw_geom', frac: 0.20 },
+      { key: 'support', frac: 0.14 },
       { key: 'applicability', frac: 0.17 },
       { key: 'quality', frac: 0.33 },
     ].filter(b => {
       if (b.key === 'quality') return !c.has('quality') || !c.has('quality_ext')
       if (b.key === 'support') return !c.has('support') || !c.has('support_ext')
       if (b.key === 'applicability') return !c.has('applicability') || !c.has('expression')
+      if (b.key === 'raw_geom') return !c.has('raw_geom')
       return !c.has(b.key)
     })
     const total = defs.reduce((s, b) => s + b.frac, 0) || 1
@@ -262,8 +367,13 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
 
   const roleH = Math.max(22, Math.min(38, iconSize + 12))
   const evH = roleH, qcH = roleH, rulerH = 40
-  const graphH = Math.max(240, size.height - photoH - roleH - evH - qcH - rulerH - MINI_H)
-  const photoTop = graphH, roleTop = photoTop + photoH, evTop = roleTop + roleH, qcTop = evTop + evH, rulerTop = qcTop + qcH
+  const graphH = Math.max(200, size.height - photoH - ctxH - roleH - evH - qcH - rulerH - MINI_H)
+  const photoTop = graphH
+  const ctxTop = photoTop + photoH + 2
+  const roleTop = photoTop + photoH + ctxH
+  const evTop = roleTop + roleH
+  const qcTop = evTop + evH
+  const rulerTop = qcTop + qcH
   const bb = (key: string, padT: number, padB: number) => {
     const b = bandOf(key)
     return b ? { top: b.top * graphH + padT, bottom: b.bottom * graphH - padB } : null
@@ -282,7 +392,7 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
         const f = frames[i]
         const v = get(f, photoMetrics.get(f.id))
         if (v == null) { pen = false; continue }
-        d += (pen ? 'L' : 'M') + (GUTTER + i * slot + slot / 2).toFixed(1) + ' ' + mapY(v, min, max, top, bottom).toFixed(1)
+        d += (pen ? 'L' : 'M') + (layout.xs[i]).toFixed(1) + ' ' + mapY(v, min, max, top, bottom).toFixed(1)
         pen = true
       }
       return d
@@ -299,15 +409,37 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
       anisotropy: q ? line((_, m) => un(m?.gradientAnisotropy), 1, 3.7, q.top, q.bottom) : '',
       hardArea: q ? line((_, m) => un(m?.hardAreaFraction), 0.2, 0.6, q.top, q.bottom) : '',
     }
-  }, [frames, photoMetrics, slot, bands, graphH, mapY]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [frames, photoMetrics, slot, bands, graphH, mapY, layout.xs]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Марки пар (все семейства) + V8: зоны, FDR, z-suite ──
+  /* ── V10: КРИВАЯ СТАБИЛЬНОСТИ (rolling median z) + коридор нормы + скачки ── */
+  const stab = useMemo(() => {
+    if (!geoB) return null
+    const pts = graphPairs
+      .filter(p => p.pairType === 'adjacent' && p.meshMaxRobustZ != null && index.has(p.photoB))
+      .map(p => ({ x: layout.xs[index.get(p.photoB)!], z: p.meshMaxRobustZ! }))
+      .sort((a, b) => a.x - b.x)
+    if (pts.length < 3) return null
+    const win = Math.max(2, Math.min(6, Math.round(pts.length / 50)))
+    let d = ''
+    for (let k = 0; k < pts.length; k++) {
+      const lo = Math.max(0, k - win), hi = Math.min(pts.length, k + win + 1)
+      const med = median(pts.slice(lo, hi).map(p => p.z))
+      d += (k ? 'L' : 'M') + pts[k].x.toFixed(1) + ' ' + zY(med).toFixed(1)
+    }
+    const sorted = pts.map(p => p.z).sort((a, b) => a - b)
+    const q = (f: number) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * f))]
+    const jumps = graphPairs
+      .filter(p => p.pairType === 'adjacent' && p.meshMaxRobustZ != null && index.has(p.photoB) && classifyPair(p).kind === 'candidate')
+      .map(p => ({ x: layout.xs[index.get(p.photoB)!], y: Math.max(geoB.top + 8, zY(p.meshMaxRobustZ!) - 2) }))
+    return { d, q50: q(0.5), q90: q(0.9), jumps }
+  }, [graphPairs, index, layout.xs, zY, geoB])
+
   const pairMarks = useMemo(() => {
     const sup = bb('support', 26, 10), app = bb('applicability', 26, 10)
     return graphPairs.map(p => {
       const ib = index.get(p.photoB)!
-      const x = GUTTER + ib * slot + slot / 2
-      const xA = index.has(p.photoA) ? GUTTER + index.get(p.photoA)! * slot + slot / 2 : null
+      const x = layout.xs[ib]
+      const xA = index.has(p.photoA) ? layout.xs[index.get(p.photoA)!] : null
       const z = un(p.meshMaxRobustZ)
       const y = z == null || !geoB ? (geoB?.bottom ?? 0) : zY(z)
       const vis = un(p.meshVisibleFraction)
@@ -315,14 +447,69 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
       const verts = un(p.meshCommonVertexCount)
       const anchor = un(p.meshAnchorFraction)
       const resid = un(p.meshAlignResidualAfterMedian)
-      const zDots = [p.meshRmseRobustZ, p.meshMedianRobustZ, p.meshP95RobustZ, p.meshPtPlaneRmseRobustZ, p.meshPtPlaneMedianRobustZ].map(v => un(v))
-      const dz = c.has('zones') ? null : dominantZone(zones.get(p.pairId)) // V8: доминантная зона (opt-in слой)
+      const zDots = [p.meshRmseRobustZ, p.meshMedianRobustZ, p.meshP95RobustZ, p.meshPtPlaneRmseRobustZ, p.meshPtPlaneMedianRobustZ, p.meshPtPlaneP95RobustZ].map(v => un(v))
+      const dz = c.has('zones') ? null : dominantZone(zones.get(p.pairId))
       return { p, x, xA, z, y, barH, verts, anchor, resid, zDots, dz, sup, app, cls: classifyPair(p), selected: p.pairId === selectedPairId }
     })
-  }, [graphPairs, index, slot, geoB, bands, zY, selectedPairId, c, zones]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [graphPairs, index, layout.xs, geoB, bands, zY, selectedPairId, c, zones]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── V8 PERSISTENCE: цепочки подряд идущих кандидатов = интервальная заливка.
-        Почему: устойчивый сдвиг (главный довод ТЗ) раньше не отличался от одиночного скачка. ── */
+  /* ── V14: RAW-геометрия пар: 6 сырых метрик + калибровочный коридор RMSE + статус-точки ── */
+  const rawSeries = useMemo(() => {
+    const b = bb('raw_geom', 26, 10)
+    if (!b) return null
+    const rMin = Math.log(0.0015), rMax = Math.log(0.08)
+    const yOf = (v: number) => mapY(Math.log(v), rMin, rMax, b.top, b.bottom)
+    const mkPath = (get: (p: PairConnection) => number | null) => {
+      let d = '', pen = false
+      for (const p of graphPairs) {
+        const ib = index.get(p.photoB)
+        if (ib == null) continue
+        const v = get(p)
+        if (v == null || v <= 0) { pen = false; continue }
+        d += (pen ? 'L' : 'M') + layout.xs[ib].toFixed(1) + ' ' + yOf(v).toFixed(1)
+        pen = true
+      }
+      return d
+    }
+    const metrics: [string, (p: PairConnection) => number | null, string][] = [
+      ['rmse', p => p.meshRmse, 'ml raw rmse'],
+      ['median', p => p.meshMedian, 'ml raw median'],
+      ['p95', p => p.meshP95, 'ml raw p95'],
+      ['ptr', p => p.meshPtPlaneRmse, 'ml raw ptr'],
+      ['ptm', p => p.meshPtPlaneMedian, 'ml raw ptm'],
+      ['ptp', p => p.meshPtPlaneP95, 'ml raw ptp'],
+    ]
+    const lines = metrics.map(([id, get, cls]) => ({ id, d: mkPath(get), cls }))
+    // калибровочный коридор RMSE: замкнутый полигон между cal median и cal p95
+    const calPts = (get: (p: PairConnection) => number | null) => {
+      const pts: { x: number; y: number }[] = []
+      for (const p of graphPairs) {
+        const ib = index.get(p.photoB)
+        if (ib == null) continue
+        const v = get(p)
+        if (v == null || v <= 0) continue
+        pts.push({ x: layout.xs[ib], y: yOf(v) })
+      }
+      return pts
+    }
+    const loPts = calPts(p => p.meshRmseCalMedian)
+    const upPts = calPts(p => p.meshRmseCalP95)
+    let corridor = ''
+    if (loPts.length && upPts.length) {
+      corridor = 'M' + upPts.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L')
+        + ' L' + [...loPts].reverse().map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L') + ' Z'
+    }
+    const pathOf = (pts: { x: number; y: number }[]) => pts.length ? 'M' + pts.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L') : ''
+    // статус-точки: цвет по meshRmseStatus
+    const statusDots: { x: number; y: number; st: string }[] = []
+    for (const p of graphPairs) {
+      const ib = index.get(p.photoB)
+      if (ib == null || p.meshRmse == null) continue
+      statusDots.push({ x: layout.xs[ib], y: yOf(p.meshRmse), st: p.meshRmseStatus || 'none' })
+    }
+    return { lines, up: pathOf(upPts), lo: pathOf(loPts), corridor, statusDots, yOf }
+  }, [graphPairs, index, layout.xs, bb, mapY]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const persistenceBands = useMemo(() => {
     if (!geoB) return []
     const cands = graphPairs
@@ -339,7 +526,6 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     return chains.filter(ch => ch.b - ch.a >= 1).map(ch => ({ x1: centerX(ch.a), x2: centerX(ch.b) }))
   }, [graphPairs, index, centerX, geoB])
 
-  // ── Minimap: плотность + кандидаты + V8 закладки кластеров + окно ──
   const minimap = useMemo(() => {
     const BINS = 220
     const bins = new Array<number>(BINS).fill(0)
@@ -364,7 +550,15 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     setScroll(Math.max(0, Math.min(maxScrollRef.current, frac * contentW - size.width / 2)))
   }, [contentW, size.width])
 
-  // ── Crosshair: V8 — readout отражает ВКЛЮЧЁННЫЕ треки, не фиксированный набор ──
+  const nearestIdx = useCallback((x: number) => {
+    const xs = layout.xs
+    if (!xs.length) return -1
+    let lo = 0, hi = xs.length - 1
+    while (lo < hi) { const m = (lo + hi) >> 1; if (xs[m] < x) lo = m + 1; else hi = m }
+    if (lo > 0 && Math.abs(xs[lo - 1] - x) < Math.abs(xs[lo] - x)) return lo - 1
+    return lo
+  }, [layout.xs])
+
   const cursorInfo = useMemo(() => {
     if (cursorI == null || !frames[cursorI]) return null
     const f = frames[cursorI]
@@ -388,8 +582,20 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     return { f, rows }
   }, [cursorI, frames, photoMetrics, pairMarks, centerX, slot, c, zones])
 
+  /* ── V10: X для даты (события линейки, заметки) ── */
+  const xForDate = useCallback((iso: string) => {
+    if (!frames.length) return GUTTER + 8
+    const t = Date.parse(`${iso}T00:00:00Z`)
+    if (!Number.isFinite(t)) return GUTTER + 8
+    if (t <= frames[0].timestamp) return Math.max(GUTTER + 6, centerX(0) - 10)
+    if (t >= frames[frames.length - 1].timestamp) return Math.min(contentW - 30, centerX(frames.length - 1) + 10)
+    let lo = 0, hi = frames.length - 1
+    while (lo < hi) { const m = (lo + hi) >> 1; if (frames[m].timestamp < t) lo = m + 1; else hi = m }
+    return centerX(lo)
+  }, [frames, centerX, contentW])
+
   const choosePair = (p: PairConnection) => { onPairSelect?.(p.pairId); onPairClick(p) }
-  const expandedGroup = useMemo(() => visible.find(v => v.stackCount && v.frame.id === expandedStack) ?? null, [visible, expandedStack])
+  const expandedGroup = useMemo(() => items.find(v => v.stackCount && v.frame.id === expandedStack) ?? null, [items, expandedStack])
 
   return (
     <div ref={viewport} className={`tl8 ${dragging ? 'drag' : ''}`}
@@ -397,7 +603,7 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
         if ((e.target as HTMLElement).closest('[data-hit]')) return
         e.currentTarget.setPointerCapture(e.pointerId)
         setDragging(true)
-        setExpandedStack(null) // V8: pan сворачивает стек
+        setExpandedStack(null)
         dragStart.current = { x: e.clientX, scroll: cam.current.scroll }
       }}
       onPointerMove={e => { if (dragging) scheduleScroll(dragStart.current.scroll - (e.clientX - dragStart.current.x)) }}
@@ -407,23 +613,53 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
         <section className="lane graph-lane" style={{ height: graphH }} role="img" aria-label="Графики метрик таймлайна"
           onMouseMove={e => {
             const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-            const i = Math.round((e.clientX - r.left - GUTTER) / slot - 0.5)
-            setCursorI(i >= 0 && i < frames.length ? i : null)
+            const x = e.clientX - r.left + scroll
+            const i = nearestIdx(x)
+            if (hoverRaf.current) return
+            hoverRaf.current = requestAnimationFrame(() => { hoverRaf.current = 0; setCursorI(i >= 0 && i < frames.length ? i : null) })
           }}
-          onMouseLeave={() => setCursorI(null)}>
+          onMouseLeave={() => { if (hoverRaf.current) cancelAnimationFrame(hoverRaf.current); hoverRaf.current = 0; setCursorI(null) }}>
           <svg width={contentW} height={graphH}>
             {bands.slice(1).map(b => <line key={b.key} x1={0} y1={b.top * graphH} x2={contentW} y2={b.top * graphH} className="band-sep" />)}
             {geoB && !c.has('pair') && [3, 5, 10, 20].map(v => (
               <g key={v}><line x1={GUTTER} y1={zY(v)} x2={contentW} y2={zY(v)} className="ref" /><text x={GUTTER - 8} y={zY(v) + 3} className="axis-label">z={v}</text></g>
             ))}
 
-            {/* V8: persistence-интервалы под маркерами пар */}
+            {/* V10: коридор нормы + кривая стабильности + скачки */}
+            {geoB && stab && (
+              <g>
+                <rect className="stab-band" x={GUTTER} y={zY(stab.q90)} width={Math.max(0, contentW - GUTTER)} height={Math.max(0, geoB.bottom - zY(stab.q90))}>
+                  <title>Коридор нормы: q50–q90 robust-z этого ракурса (q90={stab.q90.toFixed(1)})</title>
+                </rect>
+                <path d={stab.d} className="ml stab" />
+                {stab.jumps.map(j => (
+                  <path key={j.x} className="jump-mark" d={`M${j.x - 3},${j.y - 1} L${j.x + 3},${j.y - 1} L${j.x},${j.y - 7} Z`}>
+                    <title>Одиночный скачок (candidate, без persistence)</title>
+                  </path>
+                ))}
+              </g>
+            )}
+
             {geoB && persistenceBands.map((b, k) => (
               <rect key={'pb' + k} x={b.x1} y={geoB.top - 14} width={Math.max(4, b.x2 - b.x1)} height={8} className="persist-band">
                 <title>Устойчивая цепочка candidate-пар (persistence)</title>
               </rect>
             ))}
 
+            {/* V14: RAW-геометрия: коридор калибровки + линии + статус-точки */}
+            {!c.has('raw_geom') && rawSeries && (
+              <g>
+                {rawSeries.corridor && <path d={rawSeries.corridor} className="cal-corridor" />}
+                {rawSeries.up && <path d={rawSeries.up} className="cal-ref up" />}
+                {rawSeries.lo && <path d={rawSeries.lo} className="cal-ref lo" />}
+                {rawSeries.lines.map(l => <path key={l.id} d={l.d} className={l.cls} />)}
+                {rawSeries.statusDots.map((d, k) => (
+                  <circle key={'st' + k} cx={d.x} cy={d.y} r={2.2} className={`status-dot ${d.st}`}>
+                    <title>Статус RMSE: {d.st === 'none' ? 'без калибровочного статуса' : d.st}</title>
+                  </circle>
+                ))}
+              </g>
+            )}
             {!c.has('applicability') && series.alignment && <path d={series.alignment} className="ml align" />}
             {!c.has('applicability') && pairMarks.map(({ p, x, resid, app }) => resid == null || !app ? null :
               <circle key={'ar' + p.pairId} cx={x} cy={mapY(resid, 0, 0.045, app.top, app.bottom)} r={2} className="dot-residual"><title>Residual выравнивания: {resid.toFixed(4)}</title></circle>)}
@@ -467,12 +703,10 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
                   {isRoll
                     ? <rect x={x - 3} y={y - 3} width={selected ? 10 : 6} height={selected ? 10 : 6} className="sq" />
                     : <circle cx={x} cy={y} r={selected ? 6 : 3.5} className={isBase ? 'hollow' : ''} />}
-                  {/* V8: прозрачная hit-area ≥12px — кликабельно при любом zoom */}
                   <circle cx={x} cy={y} r={Math.max(12, slot * 0.4)} className="hitpad" />
                   {p.mtSignificantFdr10 && <circle cx={x} cy={y} r={selected ? 9 : 6.5} className="fdr-ring" />}
                   {!c.has('z_suite') && zDots.map((zv, k) => zv == null ? null :
                     <circle key={k} cx={x} cy={zY(zv)} r={1.6} fill={Z_DOT_COLORS[k]} opacity={0.8} />)}
-                  {/* V8: зональный глиф 3×3 (opt-in «Зоны») — доминант по raw rmse */}
                   {dz && (
                     <g transform={`translate(${x - 6},${geoB.bottom + 6})`}>
                       {[0, 1, 2].map(r => [0, 1, 2].map(cc => {
@@ -489,23 +723,23 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
             {cursorI != null && <line x1={centerX(cursorI)} y1={0} x2={centerX(cursorI)} y2={graphH} className="crosshair" />}
           </svg>
 
-          {/* Подписи дорожек — только видимых */}
-          {bandOf('pair') && !c.has('pair') && <div className="band-label" style={{ top: bandOf('pair')!.top * graphH + 10 }}><strong>ГЕОМЕТРИЯ ПАР</strong><span>сплошной — adjacent · пунктир — baseline · квадрат — rolling · кольцо — FDR10 · полоса сверху — persistence</span></div>}
+          {bandOf('pair') && !c.has('pair') && <div className="band-label" style={{ top: bandOf('pair')!.top * graphH + 10 }}><strong>ГЕОМЕТРИЯ ПАР</strong><span>кривая — медиана z (окно 2–6) · заливка — коридор нормы q50–q90 · сплошной adjacent · пунктир baseline · квадрат rolling · кольцо FDR10 · ▲ одиночный скачок · полоса сверху persistence</span></div>}
+          {bandOf('raw_geom') && !c.has('raw_geom') && <div className="band-label" style={{ top: bandOf('raw_geom')!.top * graphH + 10 }}><strong>ГЕОМЕТРИЯ RAW</strong><span><i className="chip raw-rmse" />RMSE · <i className="chip raw-median" />Median · <i className="chip raw-p95" />P95 · <i className="chip raw-ptr" />PtPlane-RMSE · <i className="chip raw-ptm" />PtPlane-Median · <i className="chip raw-ptp" />PtPlane-P95 · заливка — калибровочный коридор RMSE (median–p95) · точки — статус RMSE: <i className="chip raw-ok" />шум <i className="chip raw-elev" />повышен <i className="chip raw-unc" />неуверенно</span></div>}
           {bandOf('support') && (!c.has('support') || !c.has('support_ext')) && <div className="band-label" style={{ top: bandOf('support')!.top * graphH + 10 }}><strong>ПОДДЕРЖКА ПАР</strong><span><i className="chip svis" />видимость{!c.has('support_ext') && <> · <i className="chip svert" />вершины · <i className="chip sanch" />якоря</>}</span></div>}
           {bandOf('applicability') && (!c.has('applicability') || !c.has('expression')) && <div className="band-label" style={{ top: bandOf('applicability')!.top * graphH + 10 }}><strong>ПРИМЕНИМОСТЬ</strong><span><i className="chip align" />alignment · <i className="chip res" />residual{!c.has('expression') && <> · <i className="chip expr" />экспрессия <i className="chip jawc" />челюсть <i className="chip cornerc" />уголки</>}</span></div>}
           {bandOf('quality') && (!c.has('quality') || !c.has('quality_ext')) && <div className="band-label" style={{ top: bandOf('quality')!.top * graphH + 10 }}><strong>КАЧЕСТВО</strong><span><i className="chip sharp" />резкость <i className="chip noise" />шум <i className="chip skinq" />кожа <i className="chip skinauth" />аутентичность{!c.has('quality_ext') && <> · <i className="chip aniso" />анизотропия <i className="chip hard" />hard area</>}</span></div>}
-          {/* V8: подсказка вместо молчаливого скрытия z-suite */}
-          {!c.has('z_suite') && geoB && <div className="band-label hint" style={{ top: geoB.bottom - 34 }}><span>Пять robust-z на пару — подпись: RMSE/Median/P95/PtPlane-RMSE/PtPlane-Median</span></div>}
+          {!c.has('z_suite') && geoB && <div className="band-label hint" style={{ top: geoB.bottom - 34 }}><span>Шесть robust-z на пару — подпись: RMSE/Median/P95/PtPlane-RMSE/PtPlane-Median/PtPlane-P95</span></div>}
         </section>
 
+        {/* V10: фото-ряд — кластеры (calendar) или кадры/стеки (order) */}
         <section className="lane photo-lane" style={{ top: photoTop, height: photoH }}>
-          {visible.map(v => (
+          {items.map(v => (
             <button key={v.frame.id} data-hit
-              className={`ph ${v.frame.id === selectedId ? 'sel' : ''} ${(v.groupFrames ?? [v.frame]).some(f => endpoints.has(f.id)) ? 'ep' : ''}`}
-              style={{ left: centerX(v.i) - thumbW / 2, width: thumbW, height: photoH - 8, background: getPoseColor(v.frame.poseBin) }}
+              className={`ph ${v.frame.id === selectedId ? 'sel' : ''} ${v.stackCount ? 'cl' : ''} ${(v.groupFrames ?? [v.frame]).some(f => endpoints.has(f.id)) ? 'ep' : ''}`}
+              style={{ left: v.x - v.w / 2, width: v.w, height: photoH - 8, background: getPoseColor(v.frame.poseBin) }}
               onClick={() => v.stackCount ? setExpandedStack(expandedStack === v.frame.id ? null : v.frame.id) : onSelect(v.frame.id)}
               onMouseEnter={() => setHoverFrame(v.frame)} onMouseLeave={() => setHoverFrame(null)}
-              aria-label={`Фото ${v.frame.date}${v.stackCount ? `, стек из ${v.stackCount} кадров — Enter раскрывает` : ''}`}>
+              aria-label={`Фото ${v.frame.date}${v.stackCount ? `, кластер из ${v.stackCount} кадров — Enter раскрывает` : ''}`}>
               <img src={`/storage/stage1/${v.frame.id}/thumb.jpg`} alt="" loading="lazy" draggable={false}
                 onError={e => { const t = e.target as HTMLImageElement; t.style.display = 'none'; t.parentElement?.classList.add('noimg') }} />
               {v.stackCount && <span className="stack-cnt">{v.stackCount}</span>}
@@ -513,33 +747,53 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
           ))}
         </section>
 
-        {/* V8: раскрытый стек — плавающая панель ПОД рядом, сетка не трогается */}
+        {/* V10: контекст-полосы остальных ракурсов (корроборация взглядом) */}
+        {!c.has('pose_lanes') && ctxLanes.length > 0 && (
+          <section className="lane ctx-lanes" style={{ top: ctxTop, height: ctxH }}>
+            {ctxLanes.map((lp, laneIdx) => (
+              <div key={lp.bin} className="ctx-lane" style={{ top: laneIdx * 16, height: 14 }}>
+                <span className="ctx-label" style={{ color: getPoseColor(lp.bin) }}>{SHORT_POSE[lp.bin] ?? lp.label}</span>
+                {lp.xs.map((x, k) => {
+                  const fid = lp.frames[k].id
+                  const cand = contextCandidates?.get(lp.bin)?.has(fid)
+                  return <button key={fid} data-hit className={`ctx-dot ${cand ? 'cand' : ''} ${fid === selectedId ? 'sel' : ''}`}
+                    style={{ left: x - 3 }}
+                    onClick={() => onContextPoseClick?.(lp.bin, fid)}
+                    title={`${lp.frames[k].date} · ${lp.label}${cand ? ' · ◆ кандидат' : ''}`}
+                    aria-label={`${lp.frames[k].date} · ${lp.label}`} />
+                })}
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* V10: раскрытый кластер/стек — плавающая панель (координаты canvas) */}
         {expandedGroup?.groupFrames && (
-          <div className="stack-fan" style={{ left: Math.max(8, centerX(expandedGroup.i) - scroll - (expandedGroup.groupFrames.length * (thumbW + 8)) / 2), top: photoTop + photoH + 2 }}>
+          <div className="stack-fan" style={{ left: Math.max(8, expandedGroup.x - (expandedGroup.groupFrames.length * (thumbW + 8)) / 2), top: photoTop + photoH + 2 }}>
             {expandedGroup.groupFrames.map(f => (
               <button key={f.id} data-hit className={`ph ${f.id === selectedId ? 'sel' : ''}`} style={{ width: thumbW, height: photoH - 8, position: 'relative', background: getPoseColor(f.poseBin) }}
-                onClick={() => { onSelect(f.id); setExpandedStack(null) }} aria-label={`Кадр ${f.date} из стека`}>
+                onClick={() => { onSelect(f.id); setExpandedStack(null) }} aria-label={`Кадр ${f.date} из кластера`}>
                 <img src={`/storage/stage1/${f.id}/thumb.jpg`} alt="" loading="lazy" draggable={false}
                   onError={e => { const t = e.target as HTMLImageElement; t.style.display = 'none'; t.parentElement?.classList.add('noimg') }} />
               </button>
             ))}
-            <button className="stack-close" data-hit onClick={() => setExpandedStack(null)} aria-label="Свернуть стек">×</button>
+            <button className="stack-close" data-hit onClick={() => setExpandedStack(null)} aria-label="Свернуть кластер">×</button>
           </div>
         )}
 
         <section className="lane mini-lane" style={{ top: roleTop, height: roleH }}>
           <span className="mini-label">РОЛЬ</span>
-          {visible.map(v => {
+          {items.map(v => {
             const role = roleOf(v)
             if (!role) return null
             return <span key={v.frame.id} className={`mini role ${(v.groupFrames ?? [v.frame]).some(f => endpoints.has(f.id)) ? 'ep' : ''}`}
-              style={{ left: centerX(v.i) - iconSize / 2, width: iconSize, height: iconSize, fontSize: Math.max(7, iconSize * 0.42) }}>{role}</span>
+              style={{ left: v.x - iconSize / 2, width: iconSize, height: iconSize, fontSize: Math.max(7, iconSize * 0.42) }}>{role}</span>
           })}
         </section>
 
         <section className="lane mini-lane" style={{ top: evTop, height: evH }}>
           <span className="mini-label">СОБЫТИЯ</span>
-          {!c.has('events') && visible.map(v => {
+          {!c.has('events') && items.map(v => {
             const framesToScan = v.groupFrames ?? [v.frame]
             const evPairs = framesToScan.flatMap(f => byFrame.get(f.id) ?? []).filter(p => CAND_KINDS.has(classifyPair(p).kind))
             const p = evPairs.length ? pickDisplayPair(evPairs, 'evidence') : undefined
@@ -547,7 +801,7 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
             const cl = classifyPair(p)
             const extra = evPairs.length - 1
             return <button key={v.frame.id} data-hit className={`mini ev ${cl.kind}`}
-              style={{ left: centerX(v.i) - iconSize / 2, width: iconSize, height: iconSize, fontSize: Math.max(7, iconSize * 0.5) }}
+              style={{ left: v.x - iconSize / 2, width: iconSize, height: iconSize, fontSize: Math.max(7, iconSize * 0.5) }}
               onClick={() => choosePair(p)}
               title={`${cl.label}: ${p.dateA} → ${p.dateB} | z ${p.meshMaxRobustZ?.toFixed(1) ?? '—'}${extra > 0 ? ` · ещё ${extra} пар(ы)` : ''}`}
               aria-label={`${cl.label}, ${p.dateA} → ${p.dateB}`}>
@@ -558,12 +812,12 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
 
         <section className="lane mini-lane qc" style={{ top: qcTop, height: qcH }}>
           <span className="mini-label">QC</span>
-          {!c.has('events') && visible.map(v => {
+          {!c.has('events') && items.map(v => {
             const ev = eventsOf(v)
             if (!ev.length) return null
             const extra = ev.length - 1
             return <button key={v.frame.id} data-hit className={`mini ev ${ev[0].kind}`}
-              style={{ left: centerX(v.i) - iconSize / 2, width: iconSize, height: iconSize, fontSize: Math.max(6, iconSize * 0.42) }}
+              style={{ left: v.x - iconSize / 2, width: iconSize, height: iconSize, fontSize: Math.max(6, iconSize * 0.42) }}
               title={ev.map(e => e.label).join(' · ')}
               aria-label={ev.map(e => e.label).join(', ')}>
               {ev[0].symbol}{extra > 0 && <sup className="cnt">+{extra}</sup>}
@@ -571,6 +825,7 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
           })}
         </section>
 
+        {/* V10: линейка — годы + возрасты + события + заметки */}
         <section className="lane ruler" style={{ top: rulerTop, height: rulerH }}>
           <svg width={contentW} height={rulerH}>
             {slot >= 110 && frames.map((f, i) => f.date.slice(0, 7) !== frames[i - 1]?.date.slice(0, 7) ? <line key={f.id} x1={centerX(i)} y1={rulerH - 14} x2={centerX(i)} y2={rulerH - 2} className="tk mo" /> : null)}
@@ -578,7 +833,25 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
               <g key={f.id}><line x1={centerX(i)} y1={rulerH - 24} x2={centerX(i)} y2={rulerH - 2} className="tk yr" />
                 <text x={centerX(i) + 4} y={rulerH - 10} className="tk-label">{f.year}</text></g>
             ) : null)}
+            {!c.has('ruler_events') && RULER_EVENTS.map(ev => (
+              <g key={ev.label}>
+                <line x1={xForDate(ev.date)} y1={2} x2={xForDate(ev.date)} y2={rulerH - 2} className="ruler-event" />
+                <text x={xForDate(ev.date) + 3} y={10} className="ruler-event-label">{ev.label}</text>
+              </g>
+            ))}
+            {!c.has('ruler_events') && RULER_AGES.map(ag => (
+              <g key={ag.label}>
+                <line x1={xForDate(ag.date)} y1={2} x2={xForDate(ag.date)} y2={rulerH - 2} className="ruler-age" />
+                <text x={xForDate(ag.date) + 3} y={21} className="ruler-age-label">{ag.label}</text>
+              </g>
+            ))}
           </svg>
+          {!c.has('annotations') && (annotations ?? []).map(a => (
+            <button key={a.id} data-hit className="anno-flag" style={{ left: xForDate(a.date) - 5, background: a.color }}
+              onClick={() => onAnnotationClick?.(a)}
+              title={`Заметка (${a.date}): ${a.text} — клик для удаления`}
+              aria-label={`Заметка ${a.date}: ${a.text}`} />
+          ))}
         </section>
       </div>
 
@@ -588,15 +861,13 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
         {minimap.bins.map((n, k) => n === 0 ? null :
           <rect key={k} x={`${k / minimap.bins.length * 100}%`} y={MINI_H - 4 - (n / minimap.maxBin) * (MINI_H - 12)} width={`${100 / minimap.bins.length}%`} height={(n / minimap.maxBin) * (MINI_H - 12)} className="mm-bin" />)}
         {minimap.clusters.map((cf, k) => (
-          <path key={k} data-hit className="mm-book" d={`M0,0 l4,6 l-8,0 Z`} transform={`translate(0,0)`}
-            style={{ transform: `translateX(${cf * 100}%)` }}
+          <rect key={k} data-hit className="mm-book" x={`${cf * 100}%`} y={MINI_H - 13} width={8} height={11} rx={2}
             onClick={e => { e.stopPropagation(); setScroll(Math.max(0, Math.min(maxScrollRef.current, cf * contentW - size.width / 2))) }}>
             <title>Кластер кандидатов — перейти</title>
-          </path>))}
+          </rect>))}
         <rect className="mm-view" x={`${scroll / contentW * 100}%`} y={1} width={`${Math.min(100, size.width / contentW * 100)}%`} height={MINI_H - 2} />
       </svg>
 
-      {/* V8: readout справа (в V7-dev перекрывал band-label слева) */}
       {cursorInfo && <div className="readout" role="status">
         <strong>{cursorInfo.f.date}</strong>
         {cursorInfo.rows.map(([k, v]) => <span key={k}>{k} {v}</span>)}
@@ -613,7 +884,6 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
         <span>z {hoverPair.meshMaxRobustZ?.toFixed(1) ?? '—'} · q {hoverPair.mtQValue?.toFixed(3) ?? '—'}{hoverPair.mtSignificantFdr10 ? ' · FDR10' : ''}</span>
       </div>}
 
-      {/* V8: empty-state для ракурсов с малым числом кадров / пустой ракурс */}
       {frames.length === 0 && <div className="empty-state">
         Нет кадров для этого ракурса — выберите другой в списке поз или проверьте данные.
       </div>}

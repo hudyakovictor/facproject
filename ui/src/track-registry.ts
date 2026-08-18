@@ -6,7 +6,7 @@
 
 import type { Frame, PhotoMetrics, PairConnection } from './types'
 
-export type TrackDomain = 'pair_evidence' | 'pair_support' | 'applicability' | 'expression' | 'quality' | 'quality_ext'
+export type TrackDomain = 'pair_evidence' | 'pair_raw' | 'pair_support' | 'applicability' | 'expression' | 'quality' | 'quality_ext'
 export type Availability = 'default' | 'opt_in' | 'popup' | 'excluded'
 
 export interface TrackDef {
@@ -28,6 +28,15 @@ export const TRACKS: TrackDef[] = [
   // ── P0 · геометрия пар (разреженные точки, все семейства) ──
   { id: 'pair_max_z', label: 'Max robust z', unit: 'z', domain: 'pair_evidence', availability: 'default', displayMin: 0, displayMax: 36, color: '#de9255', transform: 'log1p', getPair: p => p.meshMaxRobustZ },
   { id: 'pair_fdr', label: 'FDR10 (кольцо)', unit: '', domain: 'pair_evidence', availability: 'default', displayMin: 0, displayMax: 1, color: '#f4f6f8', transform: 'none', getPair: p => p.mtSignificantFdr10 ? 1 : 0 },
+  // ── V14: RAW-геометрия (сырые значения, не z) — 6 метрик + калибровочный коридор ──
+  { id: 'raw_rmse', label: 'RMSE raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#5e9fe8', transform: 'log1p', getPair: p => p.meshRmse },
+  { id: 'raw_median', label: 'Median raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#4fb9c9', transform: 'log1p', getPair: p => p.meshMedian },
+  { id: 'raw_p95', label: 'P95 raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#de9255', transform: 'log1p', getPair: p => p.meshP95 },
+  { id: 'raw_pt_rmse', label: 'PtPlane RMSE raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#72bc8f', transform: 'log1p', getPair: p => p.meshPtPlaneRmse },
+  { id: 'raw_pt_median', label: 'PtPlane Median raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#bf8eda', transform: 'log1p', getPair: p => p.meshPtPlaneMedian },
+  { id: 'raw_pt_p95', label: 'PtPlane P95 raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#eac26b', transform: 'log1p', getPair: p => p.meshPtPlaneP95 },
+  // ── V14: статусы пер-метричных z (семантика: шум/повышен/неуверенно) ──
+  { id: 'metric_statuses', label: 'Статусы 6 метрик', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0, displayMax: 1, color: '#e97366', transform: 'none', getPair: p => p.meshRmseStatus === 'mesh_elevated_but_uncertain' ? 1 : 0 },
   // ── P1 · opt-in: пять per-metric robust-z ──
   { id: 'z_rmse', label: 'RMSE z', unit: 'z', domain: 'pair_evidence', availability: 'opt_in', displayMin: 0, displayMax: 36, color: '#5e9fe8', transform: 'log1p', getPair: p => p.meshRmseRobustZ },
   { id: 'z_median', label: 'Median z', unit: 'z', domain: 'pair_evidence', availability: 'opt_in', displayMin: 0, displayMax: 36, color: '#4fb9c9', transform: 'log1p', getPair: p => p.meshMedianRobustZ },
@@ -63,6 +72,7 @@ export const TRACKS: TrackDef[] = [
 
 export const TRACK_GROUPS = [
   { key: 'pair', label: 'Геометрия пар', trackIds: ['pair_max_z', 'pair_fdr'] },
+  { key: 'raw_geom', label: 'Геометрия raw + калибровка', trackIds: ['raw_rmse', 'raw_median', 'raw_p95', 'raw_pt_rmse', 'raw_pt_median', 'raw_pt_p95', 'metric_statuses'] },
   { key: 'pair_families', label: 'baseline + rolling семейства', trackIds: [] },
   { key: 'z_suite', label: 'пять robust-z на пару', trackIds: ['z_rmse', 'z_median', 'z_p95', 'z_pt_rmse', 'z_pt_median'] },
   { key: 'zones', label: 'зоны эффекта (глиф 3×3)', trackIds: [] },  // V8: zone_metrics.json; robustZ зон некалиброван — показываем raw rmse

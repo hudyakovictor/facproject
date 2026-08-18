@@ -139,9 +139,9 @@ def build_research_timeline(stage2_root: Path, stage1_root: Path | None = None) 
         source=_ensure_photo(photo_a_id,row.get("date_a"),pose_bin);target=_ensure_photo(photo_b_id,row.get("date_b"),pose_bin)
         for photo,suffix in ((source,"a"),(target,"b")):
             photo["dateProvenanceStatus"]=row.get(f"date_provenance_status_{suffix}") or "unknown";photo["exifDate"]=row.get(f"exif_date_{suffix}") or None
-            delta=row.get(f"date_delta_days_{suffix}");photo["dateDeltaDays"]=int(float(delta)) if delta not in (None,"") else None
+            delta=row.get(f"date_delta_days_{suffix}");_dv=_optional_num(delta);photo["dateDeltaDays"]=int(_dv) if _dv is not None else None
             claimed=row.get(f"source_claimed_date_{suffix}");photo["sourceClaimedDate"]=claimed or None
-            claimed_delta=row.get(f"source_claimed_delta_days_{suffix}");photo["sourceClaimedDeltaDays"]=int(float(claimed_delta)) if claimed_delta not in (None,"") else None
+            claimed_delta=row.get(f"source_claimed_delta_days_{suffix}");_cd=_optional_num(claimed_delta);photo["sourceClaimedDeltaDays"]=int(_cd) if _cd is not None else None
             raw_sources=row.get(f"date_conflict_sources_{suffix}")
             if isinstance(raw_sources,list):photo["dateConflictSources"]=raw_sources
             else:
