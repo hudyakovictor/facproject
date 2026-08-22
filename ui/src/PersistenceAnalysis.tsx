@@ -92,7 +92,7 @@ export function PersistenceAnalysis({ pairs, onClose, onNavigate }: {
   const posFilter: { v: PoseFilter; label: string }[] = [{ v: 'all', label: 'Все ракурсы' }, ...['frontal', 'left_profile', 'right_profile', 'left_light', 'right_light', 'left_mid', 'right_mid', 'left_deep', 'right_deep'].map(b => ({ v: b as PoseBin, label: b }))]
 
   return (
-    <SectionShell title="Persistence" current="persistence" onNavigate={onNavigate} onClose={onClose}
+    <SectionShell title="Устойчивость во времени" current="persistence" onNavigate={onNavigate} onClose={onClose}
       scope={`${stats.chains} цепочек · ${stats.fdr} FDR-пар · средняя длина ${stats.avgLen.toFixed(1)} · максимум ${stats.max}`}
       help={<>Persistence — цепочки подряд идущих FDR-кандидатов (фотоB одной пары = фотоA следующей). <b>Устойчивый сдвиг</b>, удержавшийся годами, — главный довод ТЗ; одиночный скачок без цепочки — слабый сигнал. Шкала: линия = цепочка (длина → цвет), точки = одиночные кандидаты.</>}
       filters={<div className="sec-filters-row">
@@ -138,37 +138,41 @@ export function PersistenceAnalysis({ pairs, onClose, onNavigate }: {
           </div>
         )}
 
-        <div className="sec-card">
-          <h3>Цепочки ({filtered.length})</h3>
-          {filtered.length === 0 && <p className="sec-note">Нет цепочек под фильтрами.</p>}
-          {filtered.map((c, ci) => (
-            <div key={ci} className="ps-chain">
-              <div className="ps-chain-header">
-                <strong>Цепочка {ci + 1}</strong>
-                <span>{c.start} → {c.end}</span>
-                <span className={`ps-len-badge ${c.linkCount >= 5 ? 'long' : c.linkCount >= 3 ? 'mid' : ''}`}>{c.linkCount} зв.{c.linkCount > 1 ? 'а' : 'о'}</span>
-                <span className="ps-families">{c.families.join(', ')}</span>
-                <span className="ps-poses">{c.poseBins.join(', ')}</span>
-              </div>
-              <div className="ps-links">
-                {c.pairs.map((p, pi) => {
-                  const cl = classifyPair(p)
-                  return (
-                    <div key={p.pairId} className="ps-link">
-                      <span className="ps-idx">{pi + 1}</span>
-                      <span className={`ps-status ${cl.kind}`}>{cl.symbol}</span>
-                      <span>{p.dateA} → {p.dateB}</span>
-                      <span className="ps-z">z={p.meshMaxRobustZ?.toFixed(1) ?? '—'}</span>
-                      <span className="ps-q">q={p.mtQValue?.toFixed(4) ?? '—'}</span>
-                      <span className="ps-type">{p.pairType}</span>
-                      <span className="ps-pose">{p.poseBin}</span>
-                    </div>
-                  )
-                })}
-              </div>
+        <details className="sec-disclosure">
+          <summary>Подробности цепочек ({filtered.length})</summary>
+          <div className="sec-disclosure-body">
+            <div className="sec-card">
+              {filtered.length === 0 && <p className="sec-note">Нет цепочек под фильтрами.</p>}
+              {filtered.map((c, ci) => (
+                <div key={ci} className="ps-chain">
+                  <div className="ps-chain-header">
+                    <strong>Цепочка {ci + 1}</strong>
+                    <span>{c.start} → {c.end}</span>
+                    <span className={`ps-len-badge ${c.linkCount >= 5 ? 'long' : c.linkCount >= 3 ? 'mid' : ''}`}>{c.linkCount} зв.{c.linkCount > 1 ? 'а' : 'о'}</span>
+                    <span className="ps-families">{c.families.join(', ')}</span>
+                    <span className="ps-poses">{c.poseBins.join(', ')}</span>
+                  </div>
+                  <div className="ps-links">
+                    {c.pairs.map((p, pi) => {
+                      const cl = classifyPair(p)
+                      return (
+                        <div key={p.pairId} className="ps-link">
+                          <span className="ps-idx">{pi + 1}</span>
+                          <span className={`ps-status ${cl.kind}`}>{cl.symbol}</span>
+                          <span>{p.dateA} → {p.dateB}</span>
+                          <span className="ps-z">z={p.meshMaxRobustZ?.toFixed(1) ?? '—'}</span>
+                          <span className="ps-q">q={p.mtQValue?.toFixed(4) ?? '—'}</span>
+                          <span className="ps-type">{p.pairType}</span>
+                          <span className="ps-pose">{p.poseBin}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        </details>
       </div>
     </SectionShell>
   )

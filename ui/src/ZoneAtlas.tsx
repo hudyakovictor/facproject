@@ -92,7 +92,6 @@ export function ZoneAtlas({ pairs, zones, selectedPairId, onSelectPair, onClose,
   const currentPair = pairs.find(p => p.pairId === currentId) ?? null
   const pairZones = currentId ? zones.get(currentId) ?? [] : []
   const maxR = Math.max(0.001, ...pairZones.filter(z => z.status === 'measured' && z.rmse != null).map(z => z.rmse!))
-  const topZones = [...pairZones].filter(z => z.status === 'measured' && z.rmse != null).sort((a, b) => b.rmse! - a.rmse!).slice(0, 5)
 
   const resetFilters = () => { setPose('all'); setFromY(1998); setToY(2027); setFdrOnly(false); setQuery('') }
 
@@ -167,17 +166,10 @@ export function ZoneAtlas({ pairs, zones, selectedPairId, onSelectPair, onClose,
                     <div className="za-cell-label">{zoneLabel(zn)}</div>
                     {measured ? <>
                       <div className="za-cell-val">RMSE {z!.rmse!.toFixed(4)}</div>
-                      <div className="za-cell-val">P95 {z!.p95?.toFixed(4) ?? '—'}</div>
-                      <div className="za-cell-val">Δ ({z!.signedX?.toFixed(3)}, {z!.signedY?.toFixed(3)}, {z!.signedZ?.toFixed(3)})</div>
                       {z!.mtSignificantFdr10 && <div className="za-fdr">FDR10</div>}
                     </> : <div className="za-cell-na">не измерено</div>}
                   </div>
                 })}
-              </div>
-              <h4 className="za-top-h">Топ-зоны по rmse</h4>
-              <div className="za-top">
-                {topZones.length === 0 && <span className="sec-note">нет измерений</span>}
-                {topZones.map(z => <span key={z.zone} className="za-top-chip">{zoneLabel(z.zone)} {z.rmse!.toFixed(4)}</span>)}
               </div>
             </>}
           </div>

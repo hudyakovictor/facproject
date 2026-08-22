@@ -15,6 +15,7 @@ import { PersistenceAnalysis } from './PersistenceAnalysis'
 import { MorphPanel } from './MorphPanel'
 import { KeyPointsLab } from './KeyPointsLab'
 import { MetricProfiles } from './MetricProfiles'
+import { Methodology } from './Methodology'
 import type { Frame, PairConnection, PhotoMetrics, PoseBin, TimelineAnnotation, ZoneMetric } from './types'
 import { POSE_CONFIGS } from './types'
 import './App.css'
@@ -50,16 +51,16 @@ function parseCsv(raw: string): Frame[] {
    Остальное (качество, поддержка, применимость, z-suite, зоны) — по требованию. */
 const LAYERS: [string, string, boolean][] = [
   ['pair', 'Геометрия пар', true],
-  ['raw_geom', 'Геометрия raw + калибровка', true],
+  ['raw_geom', 'Техническая геометрия', false],
   ['pair_families', '· baseline + rolling семейства', true],
   ['z_suite', '· пять robust-z на пару', false],
   ['zones', '· зоны эффекта (глиф 3×3)', false],
   ['support', 'Поддержка пар (видимость)', false],
   ['support_ext', '· вершины + якоря', false],
   ['applicability', 'Применимость (alignment)', false],
-  ['expression', '· экспрессия (magnitude/jaw/corner)', false],
-  ['quality', 'Качество (резкость/шум/кожа)', false],
-  ['quality_ext', '· анизотропия + hard area', false],
+  ['expression', 'Открытие рта', false],
+  ['quality', 'Кожа: качество + аутентичность', false],
+  ['quality_ext', 'Техническая диагностика кожи', false],
   ['events', 'События и QC-иконки', true],
   ['ruler_events', 'Линейка: возрасты и события', true],
   ['pose_lanes', 'Контекст-полосы ракурсов', true],
@@ -67,15 +68,22 @@ const LAYERS: [string, string, boolean][] = [
 ]
 /* V10: пресеты радио-режима слоя */
 const PRESETS: Record<'geometry' | 'texture' | 'context', string[]> = {
-  geometry: ['pair', 'raw_geom', 'pair_families', 'events', 'ruler_events', 'pose_lanes', 'annotations'],
-  texture: ['quality', 'quality_ext', 'events', 'ruler_events', 'pose_lanes', 'annotations'],
-  context: ['applicability', 'expression', 'support', 'support_ext', 'events', 'ruler_events', 'pose_lanes', 'annotations'],
+  geometry: ['pair', 'pair_families', 'events', 'ruler_events', 'pose_lanes', 'annotations'],
+  texture: ['quality', 'events', 'ruler_events', 'pose_lanes', 'annotations'],
+  context: ['applicability', 'expression', 'support', 'events', 'ruler_events', 'pose_lanes', 'annotations'],
 }
 const SECTIONS: [SectionKey, string][] = [
     ['atlas', 'Зональный атлас'], ['casework', 'Проверка кандидатов'], ['matrix', 'Корроборация'],
-    ['keypoints', 'Ключевые точки'], ['calibration', 'Калибровка'], ['persistence', 'Persistence'],
-    ['metrics', 'Метрики пар'], ['report', 'Отчёт'], ['integrity', 'Целостность данных'],
+    ['keypoints', 'Ключевые точки'], ['methodology', 'Методика и качество'], ['calibration', 'Калибровка'], ['persistence', 'Устойчивость во времени'],
+    ['metrics', 'Метрики и поля'], ['report', 'Отчёт'], ['integrity', 'Целостность данных'],
   ]
+const PRIMARY_SECTIONS: [SectionKey, string][] = [
+  ['atlas', 'Атлас'], ['casework', 'Кандидаты'], ['matrix', 'Корроборация'],
+  ['keypoints', 'Ключевые точки'], ['persistence', 'Устойчивость во времени'], ['report', 'Отчёт'],
+]
+const DIAGNOSTIC_SECTIONS: [SectionKey, string][] = [
+  ['methodology', 'Методика и качество'],
+]
 const num = (v: string | null) => { const n = Number(v); return Number.isFinite(n) ? n : undefined }
 const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const CAND_KINDS = new Set(['candidate', 'persistent'])
@@ -206,11 +214,11 @@ export default function App() {
     const rows = pf.map(f => {
       const m = metrics.get(f.id)
       const pairZs = pp.filter(p => p.photoA === f.id || p.photoB === f.id).map(p => p.meshMaxRobustZ ?? null).filter((z): z is number => z != null)
-      return `<tr><td>${esc(f.date)}</td><td>${esc(f.poseBin)}</td><td>${f.yaw.toFixed(1)}°/${f.pitch.toFixed(1)}°</td><td>${(f.combinedVisibleFraction * 100).toFixed(0)}%</td><td>${m?.skinAuthenticityScore?.toFixed(2) ?? '—'}</td><td>${pairZs.length ? Math.max(...pairZs).toFixed(1) : '—'}</td></tr>`
+      return `<tr><td>${esc(f.date)}</td><td>${esc(f.poseBin)}</td><td>${(f.combinedVisibleFraction * 100).toFixed(0)}%</td><td>${m?.skinQualityScore?.toFixed(2) ?? '—'}</td><td>${m?.skinAuthenticityScore?.toFixed(2) ?? '—'}</td><td>${pairZs.length ? Math.max(...pairZs).toFixed(1) : '—'}</td></tr>`
     }).join('')
     const pairRows = pp.map(p => `<tr><td>${esc(p.dateA)} → ${esc(p.dateB)}</td><td>${esc(p.pairType)}</td><td>${p.meshMaxRobustZ?.toFixed(1) ?? '—'}</td><td>${p.mtQValue?.toFixed(3) ?? '—'}</td><td>${p.mtSignificantFdr10 ? 'FDR10' : ''}</td><td>${esc(classifyPair(p).label)}</td></tr>`).join('')
     const annoRows = annotations.map(a => `<li>${esc(a.date)}: ${esc(a.text)}</li>`).join('')
-    const html = `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>DEEPUTIN — снимок вида</title><style>body{font:12px/1.5 sans-serif;color:#222;max-width:1100px;margin:20px auto;padding:20px}h1{font-size:18px;border-bottom:2px solid #333;padding-bottom:8px}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #ccc;padding:3px 6px;font-size:11px}.wm{position:fixed;right:12px;top:12px;color:#b00;border:2px solid #b00;padding:6px 10px;font-weight:700;transform:rotate(3deg)}</style></head><body><div class="wm">КАНДИДАТЫ — НЕ ВЕРДИКТ</div><h1>DEEPUTIN — снимок вида</h1><p>Сгенерировано ${esc(now)} · ракурс ${esc(pose)} · ось ${axisMode} · кадров ${pf.length} · пар ${pp.length} · кандидатов ${cands.length} · FDR ${fdrCount} · контракт ${esc(DATA_CONTRACT_VERSION)}</p><h3>Заметки</h3>${annoRows || '<p>—</p>'}<h3>Кадры (${pf.length})</h3><table><thead><tr><th>Дата</th><th>Ракурс</th><th>Yaw/Pitch</th><th>Видимость</th><th>Кожа z</th><th>Max z пар</th></tr></thead><tbody>${rows}</tbody></table><h3>Пары (${pp.length})</h3><table><thead><tr><th>Пара</th><th>Тип</th><th>z</th><th>q</th><th>FDR</th><th>Статус</th></tr></thead><tbody>${pairRows}</tbody></table></body></html>`
+    const html = `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>DEEPUTIN — снимок вида</title><style>body{font:12px/1.5 sans-serif;color:#222;max-width:1100px;margin:20px auto;padding:20px}h1{font-size:18px;border-bottom:2px solid #333;padding-bottom:8px}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #ccc;padding:3px 6px;font-size:11px}.wm{position:fixed;right:12px;top:12px;color:#b00;border:2px solid #b00;padding:6px 10px;font-weight:700;transform:rotate(3deg)}</style></head><body><div class="wm">КАНДИДАТЫ — НЕ ВЕРДИКТ</div><h1>DEEPUTIN — снимок вида</h1><p>Сгенерировано ${esc(now)} · ракурс ${esc(pose)} · ось ${axisMode} · кадров ${pf.length} · пар ${pp.length} · кандидатов ${cands.length} · FDR ${fdrCount} · контракт ${esc(DATA_CONTRACT_VERSION)}</p><h3>Заметки</h3>${annoRows || '<p>—</p>'}<h3>Кадры (${pf.length})</h3><table><thead><tr><th>Дата</th><th>Ракурс</th><th>Видимость</th><th>Качество кожи</th><th>Аутентичность кожи</th><th>Max z пар</th></tr></thead><tbody>${rows}</tbody></table><h3>Пары (${pp.length})</h3><table><thead><tr><th>Пара</th><th>Тип</th><th>Отклонение геометрии</th><th>q-value</th><th>FDR</th><th>Статус</th></tr></thead><tbody>${pairRows}</tbody></table></body></html>`
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
     a.download = `deeputin_view_${now.slice(0, 10)}.html`
@@ -334,7 +342,10 @@ export default function App() {
       <div className="filter-wrap">
         <button className={`tab ${activeSection ? 'active' : ''}`} onClick={() => { setSectionsOpen(v => !v); setFilterOpen(false) }} aria-expanded={sectionsOpen}>Разделы ▾</button>
         {sectionsOpen && <div className="filter-drop" role="menu" aria-label="Разделы">
-          {SECTIONS.map(([k, label]) => <button key={k} className="drop-item" role="menuitem" onClick={() => openSection(k)}>{label}</button>)}
+          <div className="drop-group-title">Основная работа</div>
+          {PRIMARY_SECTIONS.map(([k, label]) => <button key={k} className="drop-item" role="menuitem" onClick={() => openSection(k)}>{label}</button>)}
+          <div className="drop-group-title">Методика и контроль</div>
+          {DIAGNOSTIC_SECTIONS.map(([k, label]) => <button key={k} className="drop-item" role="menuitem" onClick={() => openSection(k)}>{label}</button>)}
         </div>}
       </div>
       <span className="ctx">{pf.length} кадров · {pp.length} пар · <strong className="cand-n">◆ {cands.length}</strong> (FDR {fdrCount})</span>
@@ -374,10 +385,11 @@ export default function App() {
       }}
       onClose={() => { setPairPopup(null); setSelectedPairId(null) }} />
     {activeSection === 'atlas' && <ZoneAtlas pairs={pairs} zones={zones} selectedPairId={selectedPairId} onSelectPair={setSelectedPairId} onClose={() => openSection(null)} onNavigate={openSection} />}
-    {activeSection === 'casework' && <Casework pairs={pairs} zones={zones} decisions={decisions} onDecision={setDecision} initialPairId={selectedPairId} onClose={() => openSection(null)}
+    {activeSection === 'casework' && <Casework pairs={pairs} decisions={decisions} onDecision={setDecision} initialPairId={selectedPairId} onClose={() => openSection(null)}
       onNavigate={openSection} onCompare={p => { setAbPair(p); setActiveSection('abcompare') }} />}
     {activeSection === 'matrix' && <MatrixView pairs={pairs} frames={frames} onNavigate={navigateToTimeline} onClose={() => openSection(null)} onNavigateSection={openSection} />}
     {activeSection === 'keypoints' && <KeyPointsLab pairs={pairs} zones={zones} onClose={() => openSection(null)} onNavigate={openSection} />}
+    {activeSection === 'methodology' && <Methodology frames={frames} pairs={pairs} zones={zones} onClose={() => openSection(null)} onNavigate={openSection} />}
     {activeSection === 'calibration' && <Calibration pairs={pairs} zones={zones} onClose={() => openSection(null)} onNavigate={openSection} />}
     {activeSection === 'persistence' && <PersistenceAnalysis pairs={pairs} onClose={() => openSection(null)} onNavigate={openSection} />}
     {/* V13: панель морфинга — поверх всего, закрывается Esc */}
@@ -386,7 +398,6 @@ export default function App() {
     {activeSection === 'report' && <Report pairs={pairs} zones={zones} decisions={decisions} annotations={annotations} onClose={() => openSection(null)} onNavigate={openSection} />}
     {activeSection === 'integrity' && <DataIntegrity frames={frames} pairs={pairs} zones={zones} onNavigate={navigateToTimeline} onClose={() => openSection(null)} onNavigateSection={openSection} />}
     {activeSection === 'abcompare' && abPair && <ABCompare pair={abPair} zones={zones.get(abPair.pairId) ?? []} photoMetrics={metrics} frames={frames} onClose={() => { setAbPair(null); openSection(null) }} />}
-    {activeSection === 'persistence' && <PersistenceAnalysis pairs={pairs} onClose={() => openSection(null)} />}
     <SessionJournal pairs={pairs} selectedPairId={selectedPairId} activeSection={activeSection} />
   </div>
 }

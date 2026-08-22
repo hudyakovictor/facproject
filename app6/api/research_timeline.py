@@ -21,7 +21,8 @@ from pathlib import Path
 from typing import Any
 
 from .photo_fields import merge_photo_fields
-from .ui_fields import UI_FIELDS_SCHEMA, bone_score as _ui_bone_score, validate_ui_row
+from .ui_fields import UI_FIELDS_SCHEMA, validate_ui_row
+from datetime import UTC
 
 RESEARCH_TIMELINE_SCHEMA = "deeputin-api-research-timeline-v1.0"
 
@@ -57,12 +58,12 @@ def _num(value: Any, default: float = 0.0) -> float:
 def _date_to_ms(date_iso: str | None) -> int | None:
     if not date_iso:
         return None
-    from datetime import date, datetime, timezone
+    from datetime import date, datetime
     try:
         d = date.fromisoformat(str(date_iso)[:10])
     except ValueError:
         return None
-    return int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp() * 1000)
+    return int(datetime(d.year, d.month, d.day, tzinfo=UTC).timestamp() * 1000)
 
 
 def build_research_timeline(stage2_root: Path, stage1_root: Path | None = None) -> dict[str, Any]:
@@ -248,6 +249,17 @@ def build_research_timeline(stage2_root: Path, stage1_root: Path | None = None) 
         ),
         "analysis_manifest": manifest,
         "ui_fields_schema": UI_FIELDS_SCHEMA,
+        "ui_field_contracts": {
+            "boneScore": {
+                "role": "derived_display_only",
+                "source": "stage1_stage2_projection",
+                "source_metric": "p95_point_z",
+                "transform": "1/(1+max(z,0)/3)",
+                "not_a_measurement": True,
+                "not_a_verdict": True,
+                "evidence_metric": False,
+            },
+        },
         "ui_fields_complete_photo_count": sum(1 for r in rows if not r.get("uiContractViolations")),
         "ui_fields_violations_by_field": ui_violations_by_field,
         "photos": rows,

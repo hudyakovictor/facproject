@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PairConnection, PoseBin, ZoneMetric } from './types'
 import { zoneLabel } from './timeline-data-contract'
 import { SectionShell, Chip } from './SectionShell'
+import type { SectionKey } from './section-meta'
 
 /* V14: КЛЮЧЕВЫЕ ТОЧКИ (KeyPointsLab).
  *
  * Полноценная панель анализа смещения ключевых точек по парам:
- * - Векторы смещения 9 зон (signedX/Y/Z из zone_metrics) на схеме лица.
+ * - Векторы смещения 9 зон (signedX/Y/Z из zone_metrics) на карте зон.
  * - АНИМАЦИЯ ПО ХРОНОЛОГИИ: playhead по годам 1999–2026; в каждом году —
  *   агрегат пар ракурса (макс. магнитуда по зонам, направление — среднее).
  * - Режимы: «Смещения» (лицо+векторы), «Временной ряд» (9 зон × годы),
@@ -21,8 +22,8 @@ import { SectionShell, Chip } from './SectionShell'
  * некалиброван — цвет по магнитуде/rmse, z только как опция с пометкой.
  */
 const ZONE_ORDER = ['x_high_low', 'x_high_center', 'x_high_high', 'x_center_low', 'x_center_center', 'x_center_high', 'x_low_low', 'x_low_center', 'x_low_high']
-const ZONE_POS: Record<string, { x: number; y: number }> = {}
-ZONE_ORDER.forEach((zn, i) => { ZONE_POS[zn] = { x: ((i % 3) + 0.5) / 3, y: (Math.floor(i / 3) + 0.5) / 3 } })
+const ZONE_POS: Record<string, { col: number; row: number }> = {}
+ZONE_ORDER.forEach((zn, i) => { ZONE_POS[zn] = { col: i % 3, row: Math.floor(i / 3) } })
 const POSES: (PoseBin | 'all')[] = ['all', 'frontal', 'left_light', 'right_light', 'left_mid', 'right_mid', 'left_deep', 'right_deep', 'left_profile', 'right_profile']
 type Mode = 'vectors' | 'timeseries' | 'scatter'
 const MAG_METRICS = [
@@ -36,6 +37,7 @@ const MAG_METRICS = [
 type MetricId = typeof MAG_METRICS[number]['id']
 
 interface PointRec { pairId: string; year: number; pose: string; zone: string; rmse: number | null; dx: number; dy: number; dz: number; mag: number; z: number | null; status: string }
+interface ZoneAgg { mag: number; dx: number; dy: number; dz: number; n: number; pairs: Set<string>; rmseMax: number }
 const valueOf = (p: PointRec, m: MetricId): number | null => {
   switch (m) {
     case 'mag': return p.mag
@@ -49,7 +51,7 @@ const valueOf = (p: PointRec, m: MetricId): number | null => {
 
 export function KeyPointsLab({ pairs, zones, onClose, onNavigate }: {
   pairs: PairConnection[]; zones: Map<string, ZoneMetric[]>
-  onClose: () => void; onNavigate?: (k: 'atlas' | 'casework' | 'matrix' | 'calibration' | 'persistence' | 'report' | 'integrity' | 'metrics' | 'keypoints') => void
+  onClose: () => void; onNavigate?: (k: SectionKey) => void
 }) {
   const [pose, setPose] = useState<'all' | PoseBin>('all')
   const [fromY, setFromY] = useState(1999)
@@ -113,10 +115,9 @@ export function KeyPointsLab({ pairs, zones, onClose, onNavigate }: {
     return { mags, noiseVal, anomVal, max: mags.length ? mags[mags.length - 1] : 1 }
   }, [points, noisePct, anomPct])
 
-  /* Агрегат по году: для каждой зоны — макс магнитуда и средний вектор */
-  const yearAgg = useMemo(() => {
-    const m = new Map<number, Map<string, { mag: number; dx: number; dy: number; dz: number; n: number; pairs: Set<string>; rmseMax: number }>>()
-    for (const p of points) {
+  const aggregate = (source: PointRec[]) => {
+    const m = new Map<number, Map<string, ZoneAgg>>()
+    for (const p of source) {
       const zonesMap = m.get(p.year) ?? new Map()
       const cur = zonesMap.get(p.zone) ?? { mag: 0, dx: 0, dy: 0, dz: 0, n: 0, pairs: new Set<string>(), rmseMax: 0 }
       cur.n++
@@ -128,6 +129,23 @@ export function KeyPointsLab({ pairs, zones, onClose, onNavigate }: {
       m.set(p.year, zonesMap)
     }
     return m
+  }
+
+  /* Агрегат по году: для каждой зоны — макс магнитуда и средний вектор.
+     Отдельно строим общий агрегат, чтобы «Год: все» был данными, а не пустым состоянием. */
+  const yearAgg = useMemo(() => aggregate(points), [points])
+  const allAgg = useMemo(() => {
+    const out = new Map<string, ZoneAgg>()
+    for (const p of points) {
+      const cur = out.get(p.zone) ?? { mag: 0, dx: 0, dy: 0, dz: 0, n: 0, pairs: new Set<string>(), rmseMax: 0 }
+      cur.n++
+      cur.pairs.add(p.pairId)
+      if (p.mag > cur.mag) cur.mag = p.mag
+      cur.dx += p.dx; cur.dy += p.dy; cur.dz += p.dz
+      if ((p.rmse ?? 0) > cur.rmseMax) cur.rmseMax = p.rmse ?? 0
+      out.set(p.zone, cur)
+    }
+    return out
   }, [points])
 
   /* Playhead-анимация по годам */
@@ -147,16 +165,15 @@ export function KeyPointsLab({ pairs, zones, onClose, onNavigate }: {
   }, [playing, speed, yearRange]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeYear = playYear ?? null
-  const agg = activeYear != null ? yearAgg.get(activeYear) : null
+  const agg = activeYear != null ? yearAgg.get(activeYear) : allAgg
   const yearPairs = useMemo(() => {
-    if (activeYear == null) return []
     const set = new Set<string>()
-    for (const p of points) if (p.year === activeYear) set.add(p.pairId)
+    for (const p of points) if (activeYear == null || p.year === activeYear) set.add(p.pairId)
     return pairs.filter(p => set.has(p.pairId))
   }, [points, pairs, activeYear])
 
   const anomCount = useMemo(() => {
-    if (activeYear == null || !agg) return 0
+    if (!agg) return 0
     let n = 0
     for (const cur of agg.values()) if (cur.mag > dist.anomVal) n++
     return n
@@ -244,41 +261,49 @@ export function KeyPointsLab({ pairs, zones, onClose, onNavigate }: {
 
           {mode === 'vectors' && (
             <div className="kp-vectors">
-              <svg viewBox="0 0 480 400" className="kp-face" role="img" aria-label="Схема лица с векторами смещения зон">
-                {showGrid && [1, 2].map(i => <line key={'v' + i} x1={i * 160} y1={30} x2={i * 160} y2={370} className="kp-grid" />)}
-                {showGrid && [1, 2].map(i => <line key={'h' + i} x1={20} y1={30 + i * 113} x2={460} y2={30 + i * 113} className="kp-grid" />)}
-                <ellipse cx={240} cy={205} rx={170} ry={180} fill="#12161c" stroke="#2a3340" strokeWidth={2} />
-                <ellipse cx={240} cy={190} rx={70} ry={26} fill="#0d0f13" stroke="#2a3340" />
-                <path d="M240,120 Q280,170 300,215" stroke="#2a3340" strokeWidth={2} fill="none" />
-                <path d="M240,120 Q200,170 180,215" stroke="#2a3340" strokeWidth={2} fill="none" />
+              <svg viewBox="0 0 720 520" className="kp-face" role="img" aria-label="Карта фактически измеренных зон с векторами смещения">
+                {showGrid && [1, 2].map(i => <line key={'v' + i} x1={i * 240} y1={24} x2={i * 240} y2={496} className="kp-grid" />)}
+                {showGrid && [1, 2].map(i => <line key={'h' + i} x1={0} y1={i * 157.3} x2={720} y2={i * 157.3} className="kp-grid" />)}
                 {ZONE_ORDER.map(zn => {
                   const pos = ZONE_POS[zn]
-                  const cx = 40 + pos.x * 400, cy = 30 + pos.y * 340
+                  const cellX = pos.col * 240, cellY = pos.row * 157.3
+                  const cx = cellX + 120, cy = cellY + 78.5
                   const cur = agg?.get(zn)
                   const mag = cur?.mag ?? 0
+                  const hasData = !!cur?.n
+                  const avgDx = cur?.n ? cur.dx / cur.n : 0
+                  const avgDy = cur?.n ? cur.dy / cur.n : 0
+                  const avgDz = cur?.n ? cur.dz / cur.n : 0
                   const isAnom = mag > dist.anomVal
                   const isNoise = mag <= dist.noiseVal
                   const col = colorBy === 'rmse' ? (cur?.rmseMax ?? 0) : mag
                   const colMax = colorBy === 'rmse' ? Math.max(dist.anomVal, 1e-6) : dist.anomVal
                   const intensity = Math.min(1, col / Math.max(1e-6, colMax))
                   const color = isAnom ? '#ef4444' : isNoise ? '#3a4452' : `rgba(${Math.round(120 + intensity * 90)},${Math.round(140 + intensity * 60)},${Math.round(230 - intensity * 90)},0.9)`
-                  const len = isAnom || !isNoise ? Math.min(46, mag * 520 * vecScale) : 2
-                  const ang = Math.atan2(cur?.dy ?? 0, cur?.dx ?? 0)
+                  const len = hasData && (isAnom || !isNoise) ? Math.min(54, mag * 520 * vecScale) : 0
+                  const ang = Math.atan2(avgDy, avgDx)
                   const ex = cx + Math.cos(ang) * len
                   const ey = cy + Math.sin(ang) * len
                   return (
                     <g key={zn} className={isAnom ? 'kp-anom-g' : ''}>
-                      {showVectors && !isNoise && (
+                      <rect x={cellX + 10} y={cellY + 10} width={220} height={137.3} rx={12} className={`kp-zone-card ${hasData ? '' : 'empty'}`} />
+                      {hasData && showVectors && !isNoise && (
                         <g>
                           <line x1={cx} y1={cy} x2={ex} y2={ey} stroke={color} strokeWidth={2.4} markerEnd="url(#kpArrow)" />
-                          <path d={`M${ex},${ey} m-7,-4 l7,4 l-7,4`} fill="none" stroke={color} strokeWidth={2} />
                         </g>
                       )}
-                      <circle cx={cx} cy={cy} r={isAnom ? 8 : isNoise ? 5 : 6.5} fill={color} stroke={isAnom ? '#fff' : '#0f1115'} strokeWidth={1.6}
+                      {hasData ? <circle cx={cx} cy={cy} r={isAnom ? 9 : 7} fill={color} stroke={isAnom ? '#fff' : '#0f1115'} strokeWidth={1.6}
                         className={isAnom ? 'kp-anom-pt' : ''}>
                         <title>{`${zoneLabel(zn)}: mag ${mag.toFixed(4)} · rmse ${cur?.rmseMax.toFixed(4) ?? '—'} · n=${cur?.n ?? 0} пар${isAnom ? ' · АНОМАЛЬНОЕ СМЕЩЕНИЕ' : isNoise ? ' · в пределах шума' : ''}`}</title>
-                      </circle>
-                      {showLabels && <text x={cx + 10} y={cy - 8} className="kp-zone-label">{zoneLabel(zn)}</text>}
+                      </circle> : <text x={cx - 5} y={cy + 5} className="kp-zone-empty">—</text>}
+                      {hasData ? <>
+                        {showLabels && <text x={cellX + 24} y={cellY + 34} className="kp-zone-name">{zoneLabel(zn)}</text>}
+                        <text x={cellX + 24} y={cellY + 112} className="kp-zone-value">mag {mag.toFixed(4)} · n {cur?.n}</text>
+                        <text x={cellX + 24} y={cellY + 130} className="kp-zone-detail">Δ {avgDx.toFixed(3)} / {avgDy.toFixed(3)} / {avgDz.toFixed(3)}</text>
+                      </> : <>
+                        {showLabels && <text x={cellX + 24} y={cellY + 34} className="kp-zone-name">{zoneLabel(zn)}</text>}
+                        <text x={cellX + 24} y={cellY + 112} className="kp-zone-detail">нет измерения</text>
+                      </>}
                     </g>
                   )
                 })}
@@ -292,7 +317,7 @@ export function KeyPointsLab({ pairs, zones, onClose, onNavigate }: {
                   <div className="kp-thresh" style={{ left: `${(dist.noiseVal / dist.max) * 100}%` }} title={`Порог шума: ${dist.noiseVal.toFixed(4)} (p${noisePct})`} />
                   <div className="kp-thresh an" style={{ left: `${(dist.anomVal / dist.max) * 100}%` }} title={`Порог аномалии: ${dist.anomVal.toFixed(4)} (p${anomPct})`} />
                 </div>
-                <h4>Пары года {activeYear ?? '—'} ({yearPairs.length})</h4>
+                <h4>{activeYear != null ? `Пары ${activeYear}` : 'Пары диапазона'} ({yearPairs.length})</h4>
                 <div className="kp-pairs">
                   {yearPairs.map(p => (
                     <button key={p.pairId} data-hit className={`kp-pair ${focusedPair === p.pairId ? 'active' : ''}`} onClick={() => setFocusedPair(focusedPair === p.pairId ? null : p.pairId)}>
@@ -406,27 +431,32 @@ export function KeyPointsLab({ pairs, zones, onClose, onNavigate }: {
             <label>Порог аномалии (процентиль)<input type="range" min={50} max={99} value={anomPct} onChange={e => { const v = Number(e.target.value); setAnomPct(v); if (v <= noisePct) setNoisePct(Math.max(5, v - 10)) }} /><b>{anomPct}% → {dist.anomVal.toFixed(4)}</b></label>
             <p className="kp-note">Ниже порога шума — <b>погрешность</b> (приглушено). Выше порога аномалии — <b>аномальное смещение</b> (красное, пульсация). Между — внимание.</p>
           </div>
-          <h4>Векторы</h4>
-          <div className="kp-sec">
-            <label>Масштаб векторов<input type="range" min={0.4} max={4} step={0.1} value={vecScale} onChange={e => setVecScale(Number(e.target.value))} /><b>{vecScale.toFixed(1)}×</b></label>
-            <label>Цвет по
-              <select value={colorBy} onChange={e => setColorBy(e.target.value as 'mag' | 'rmse')}>
-                <option value="mag">магнитуде</option><option value="rmse">RMSE зоны</option>
-              </select>
-            </label>
-            <label><input type="checkbox" checked={showVectors} onChange={e => setShowVectors(e.target.checked)} />Стрелки векторов</label>
-            <label><input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} />Подписи зон</label>
-            <label><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} />Сетка 3×3</label>
-          </div>
-          <h4>Анимация</h4>
-          <div className="kp-sec">
-            <label>Скорость<input type="range" min={0.5} max={3} step={0.1} value={speed} onChange={e => setSpeed(Number(e.target.value))} /><b>{speed.toFixed(1)}×</b></label>
-            <p className="kp-note">Пробел — играть/пауза. Анимация идёт по годам хронологии; в каждом году — агрегат пар (макс. магнитуда, средний вектор).</p>
-          </div>
-          <h4>Справка</h4>
-          <div className="kp-sec">
-            <p className="kp-note">signedX/Y/Z — вектор смещения зоны между фото пары (raw). Режим «Комбинации» — любые 2 метрики на осях (замер сочетаний по ТЗ). robustZ зон некалиброван — z доступен как ось, но помечен.</p>
-          </div>
+          <details className="sec-disclosure kp-settings-more">
+            <summary>Настройки отображения и анимации</summary>
+            <h4>Векторы</h4>
+            <div className="kp-sec">
+              <label>Масштаб векторов<input type="range" min={0.4} max={4} step={0.1} value={vecScale} onChange={e => setVecScale(Number(e.target.value))} /><b>{vecScale.toFixed(1)}×</b></label>
+              <label>Цвет по
+                <select value={colorBy} onChange={e => setColorBy(e.target.value as 'mag' | 'rmse')}>
+                  <option value="mag">магнитуде</option><option value="rmse">RMSE зоны</option>
+                </select>
+              </label>
+              <label><input type="checkbox" checked={showVectors} onChange={e => setShowVectors(e.target.checked)} />Стрелки векторов</label>
+              <label><input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} />Подписи зон</label>
+              <label><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} />Сетка 3×3</label>
+            </div>
+            <h4>Анимация</h4>
+            <div className="kp-sec">
+              <label>Скорость<input type="range" min={0.5} max={3} step={0.1} value={speed} onChange={e => setSpeed(Number(e.target.value))} /><b>{speed.toFixed(1)}×</b></label>
+              <p className="kp-note">Пробел — играть/пауза. Анимация идёт по годам хронологии; в каждом году — агрегат пар.</p>
+            </div>
+          </details>
+          <details className="sec-disclosure kp-settings-more">
+            <summary>Как читать данные</summary>
+            <div className="kp-sec">
+              <p className="kp-note">signedX/Y/Z — вектор смещения зоны между фото пары. «Комбинации» показывает взаимосвязь двух метрик. robustZ зон некалиброван и помечен как технический.</p>
+            </div>
+          </details>
         </aside>
       </div>
     </SectionShell>

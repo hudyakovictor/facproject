@@ -239,11 +239,28 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     return defs.map(b => { const top = acc; acc += b.frac / total; return { ...b, top, bottom: acc } })
   }, [c])
   const bandOf = (key: string) => bands.find(b => b.key === key)
+  const bandLabels: Record<string, string> = {
+    pair: 'z / пары',
+    support: 'поддержка',
+    applicability: 'QC',
+    quality: 'кожа',
+  }
 
   const roleH = Math.max(22, Math.min(38, iconSize + 12))
   const evH = roleH, qcH = roleH, rulerH = 40
-  const graphH = Math.max(240, size.height - photoH - roleH - evH - qcH - rulerH - MINI_H)
-  const photoTop = graphH, roleTop = photoTop + photoH, evTop = roleTop + roleH, qcTop = evTop + evH, rulerTop = qcTop + qcH
+  const availableGraphH = size.height - photoH - roleH - evH - qcH - rulerH - MINI_H
+  // Аналитическая дорожка должна оставаться компактной: свободное место окна
+  // не должно растягивать графики в высокий пустой плакат.
+  const graphH = Math.min(280, Math.max(220, availableGraphH))
+  const stackH = graphH + photoH + roleH + evH + qcH + rulerH
+  const layoutH = Math.max(0, size.height - MINI_H)
+  const layoutTop = Math.max(8, Math.floor((layoutH - stackH) / 2))
+  const graphTop = layoutTop
+  const photoTop = graphTop + graphH
+  const roleTop = photoTop + photoH
+  const evTop = roleTop + roleH
+  const qcTop = evTop + evH
+  const rulerTop = qcTop + qcH
   const bb = (key: string, padT: number, padB: number) => {
     const b = bandOf(key)
     return b ? { top: b.top * graphH + padT, bottom: b.bottom * graphH - padB } : null
@@ -352,11 +369,10 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
     const near = pairMarks.filter(pm => Math.abs(pm.x - centerX(cursorI)) < slot / 2).map(pm => pm.p)
     const rows: [string, string][] = []
     if (!c.has('applicability')) rows.push(['align', m?.alignmentQuality?.toFixed(3) ?? '—'])
-    if (!c.has('expression')) rows.push(['экспр', m?.expressionMagnitude?.toFixed(2) ?? '—'])
+    if (!c.has('expression')) rows.push(['рот', m?.jawOpenDegree != null ? `${m.jawOpenDegree.toFixed(1)}°` : '—'])
     if (!c.has('quality')) {
-      rows.push(['резк', m?.laplacianVariance?.toFixed(0) ?? '—'], ['шум', m?.noiseResidualMean?.toFixed(2) ?? '—'], ['кожа', m?.skinQualityScore?.toFixed(2) ?? '—'], ['аут', m?.skinAuthenticityScore?.toFixed(2) ?? '—'])
+      rows.push(['кожа', m?.skinQualityScore?.toFixed(2) ?? '—'], ['аут', m?.skinAuthenticityScore?.toFixed(2) ?? '—'])
     }
-    if (!c.has('quality_ext')) rows.push(['аниз', m?.gradientAnisotropy?.toFixed(2) ?? '—'])
     const nearPair = near[0]
     if (nearPair) {
       rows.push(['пара z', nearPair.meshMaxRobustZ?.toFixed(1) ?? '—'])
@@ -381,8 +397,12 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
       onPointerMove={e => { if (dragging) scheduleScroll(dragStart.current.scroll - (e.clientX - dragStart.current.x)) }}
       onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)}>
 
+      <div className="lane-labels" aria-hidden="true">
+        {bands.map(b => <span key={b.key} className="lane-label" style={{ top: graphTop + (b.top + b.bottom) * graphH / 2 - 7 }}>{bandLabels[b.key]}</span>)}
+      </div>
+
       <div className="tl8-canvas" style={{ width: contentW, height: size.height - MINI_H, transform: `translate3d(${-scroll}px,0,0)` }}>
-        <section className="lane graph-lane" style={{ height: graphH }} role="img" aria-label="Графики метрик таймлайна"
+        <section className="lane graph-lane" style={{ top: graphTop, height: graphH }} role="img" aria-label="Графики метрик таймлайна"
           onMouseMove={e => {
             const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
             const i = Math.round((e.clientX - r.left - GUTTER) / slot - 0.5)
@@ -403,14 +423,10 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
             {!c.has('applicability') && pairMarks.map(({ p, x, resid, app }) => resid == null || !app ? null :
               <circle key={'ar' + p.pairId} cx={x} cy={mapY(resid, 0, 0.045, app.top, app.bottom)} r={2} className="dot-residual"><title>Residual выравнивания: {resid.toFixed(4)}</title></circle>)}
             {!c.has('expression') && <>
-              <path d={series.expression} className="ml expr" />
               <path d={series.jawOpen} className="ml jaw" />
-              <path d={series.cornerLift} className="ml corner" />
             </>}
 
             {!c.has('quality') && <>
-              <path d={series.sharpness} className="ml sharp" />
-              <path d={series.noise} className="ml noise" />
               <path d={series.skinQuality} className="ml skinq" />
               <path d={series.skinAuth} className="ml skinauth" />
             </>}
@@ -420,14 +436,16 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
             </>}
 
             {!c.has('support') && pairMarks.map(({ p, x, barH, sup }) => barH <= 0 || !sup ? null :
-              <rect key={'v' + p.pairId} x={x - Math.max(1, slot * 0.14)} y={sup.bottom - barH} width={Math.max(2, slot * 0.28)} height={barH} className="support-bar" />)}
+              <circle key={'v' + p.pairId} cx={x} cy={sup.bottom - barH} r={Math.max(2.5, Math.min(4.5, slot * 0.055))} className="support-dot">
+                <title>Видимость mesh: {(barH / (sup.bottom - sup.top) * 100).toFixed(0)}%</title>
+              </circle>)}
             {!c.has('support_ext') && pairMarks.map(({ p, x, verts, anchor, sup }) => !sup ? null : (
               <g key={'sx' + p.pairId}>
                 {verts != null && <circle cx={x} cy={mapY(log(verts), log(14000), log(23000), sup.top, sup.bottom)} r={2.2} className="dot-verts"><title>Общие вершины: {verts}</title></circle>}
                 {anchor != null && <path d={`M${x},${mapY(anchor, 0.25, 0.38, sup.top, sup.bottom) - 3} l3,3 l-3,3 l-3,-3 Z`} className="dot-anchor"><title>Anchor fraction: {anchor.toFixed(3)}</title></path>}
               </g>))}
 
-            {!c.has('pair') && geoB && pairMarks.map(({ p, x, xA, y, cls, selected, zDots, dz }) => {
+            {!c.has('pair') && geoB && pairMarks.map(({ p, x, xA, y, z, cls, selected, zDots, dz }) => {
               const isBase = p.pairType === 'baseline', isRoll = p.pairType === 'rolling_anchor'
               return (
                 <g key={p.pairId} data-hit tabIndex={0} role="button"
@@ -438,13 +456,13 @@ export function Timeline({ frames, pairs, photoMetrics, zones, selectedId, selec
                   onClick={() => choosePair(p)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') choosePair(p) }}>
                   <title>{`${cls.label}: ${p.dateA} → ${p.dateB} | max z ${p.meshMaxRobustZ?.toFixed(1) ?? '—'}`}</title>
                   {isBase && xA != null && <line x1={xA} y1={geoB.bottom} x2={x} y2={geoB.bottom} className="base-link" />}
-                  <line x1={x} y1={geoB.bottom} x2={x} y2={y} />
-                  {isRoll
-                    ? <rect x={x - 3} y={y - 3} width={selected ? 10 : 6} height={selected ? 10 : 6} className="sq" />
-                    : <circle cx={x} cy={y} r={selected ? 6 : 3.5} className={isBase ? 'hollow' : ''} />}
+                  <circle cx={x} cy={y} r={10} className="metric-badge" />
+                  <text x={x} y={y + 3.2} textAnchor="middle" className="metric-value">
+                    {z == null ? '—' : z.toFixed(1)}
+                  </text>
                   {/* V8: прозрачная hit-area ≥12px — кликабельно при любом zoom */}
                   <circle cx={x} cy={y} r={Math.max(12, slot * 0.4)} className="hitpad" />
-                  {p.mtSignificantFdr10 && <circle cx={x} cy={y} r={selected ? 9 : 6.5} className="fdr-ring" />}
+                  {p.mtSignificantFdr10 && <circle cx={x} cy={y} r={13} className="fdr-ring" />}
                   {!c.has('z_suite') && zDots.map((zv, k) => zv == null ? null :
                     <circle key={k} cx={x} cy={zY(zv)} r={1.6} fill={Z_DOT_COLORS[k]} opacity={0.8} />)}
                   {/* V8: зональный глиф 3×3 (opt-in «Зоны») — доминант по raw rmse */}
