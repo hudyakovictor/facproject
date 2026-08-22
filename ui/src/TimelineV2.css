@@ -4,7 +4,6 @@
    - Шрифты label 11px (порог читаемости, фаза 5).
    - focus-visible кольца на маркерах/фото (клавиатурная навигация, фаза 5).
    - hitpad: прозрачная зона клика ≥12px у точек пар (фаза 5).
-   - stack-fan: раскрытие стека ПОВЕРХ ряда, не ломая slot-сетку (фаза 1).
    - persist-band: интервальная заливка цепочек кандидатов (фаза 3).
    - zone-cell: глиф 3×3 доминантной зоны (фаза 2). */
 .tl8{height:100%;position:relative;overflow:hidden;background:#0f1115;cursor:grab;touch-action:none;color:#f4f6f8;user-select:none;-webkit-user-select:none}
@@ -14,14 +13,6 @@
 .graph-lane{top:0;background:#11141a;border-bottom:1px solid #303641;cursor:crosshair}
 .graph-lane svg{position:absolute;inset:0;display:block}
 .band-sep{stroke:#232830;stroke-width:1}
-.ref{stroke:#313844;stroke-width:1;stroke-dasharray:3 5}
-.axis-label{fill:#8b96a3;font:10px ui-monospace,monospace;text-anchor:end}
-.band-label{position:sticky;left:10px;z-index:4;width:136px;display:flex;flex-direction:column;gap:2px;pointer-events:none}
-.band-label strong{font-size:11px;letter-spacing:.05em;color:#d5dce5}
-.band-label span{font-size:10px;color:#9aa8b8;line-height:1.5}
-.band-label.hint span{color:#eac26b}
-.chip{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 5px;vertical-align:-1px}
-.chip.align{background:#5e9fe8}.chip.res{background:#de9255}.chip.sharp{background:#4fb9c9}.chip.noise{background:#eac26b}.chip.skinq{background:#72bc8f}.chip.skinauth{background:#e97366}.chip.expr{background:#df84a8}.chip.jawc{background:#bf8eda}.chip.cornerc{background:#eac26b}.chip.svis{background:#5e9fe8}.chip.svert{background:#72bc8f}.chip.sanch{background:#bf8eda}.chip.aniso{background:#9aa4b2}.chip.hard{background:#d8b4fe}
 .ml{fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
 .ml.align{stroke:#5e9fe8}.ml.sharp{stroke:#4fb9c9}.ml.noise{stroke:#eac26b}.ml.skinq{stroke:#72bc8f}.ml.skinauth{stroke:#e97366}
 .ml.expr{stroke:#df84a8}.ml.jaw{stroke:#bf8eda;opacity:.6;stroke-dasharray:4 3}.ml.corner{stroke:#eac26b;opacity:.55;stroke-dasharray:2 3}
@@ -57,13 +48,8 @@
 .ph:focus-visible{outline:2px solid #fff;outline-offset:1px}
 .ph.sel{border:2px solid #5e9fe8;box-shadow:0 0 0 2px #5e9fe82e}
 .ph.ep{box-shadow:inset 0 -3px #de9255}
-.stack-cnt{position:absolute;right:1px;bottom:1px;min-width:14px;height:14px;padding:0 2px;border-radius:3px;background:#374252e0;color:#f4f6f8;font:700 9px ui-monospace,monospace;display:grid;place-items:center}
-.stack-fan{position:absolute;z-index:30;display:flex;gap:8px;align-items:center;padding:8px;background:#171b22f5;border:1px solid #4b5563;border-radius:8px;box-shadow:0 10px 30px #000a}
-.stack-fan .ph{position:relative;top:0}
-.stack-close{width:26px;height:26px;border:1px solid #4b5563;border-radius:6px;background:#20242c;color:#cbd3dc;cursor:pointer;font-size:14px}
 .mini-lane{background:#12151a;border-bottom:1px solid #2a2f38}
 .mini-lane.qc{background:#101318}
-.mini-label{position:sticky;left:10px;top:8px;z-index:3;color:#8b96a3;font-size:10px;letter-spacing:.06em;pointer-events:none}
 .mini{position:absolute;top:50%;transform:translateY(-50%);display:grid;place-items:center;border:1px solid #45505d;border-radius:4px;background:#1c2128;color:#cbd3dc;font-family:ui-monospace,monospace}
 .mini.role.ep{border-color:#de9255;color:#f3bd8f}
 .mini.ev{border-radius:50%;cursor:pointer;font-weight:700}
