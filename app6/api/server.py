@@ -14,7 +14,6 @@
 """
 from __future__ import annotations
 
-import csv
 import json
 import os
 import shutil
@@ -127,8 +126,10 @@ def _manifest_sort_key(item: tuple[Path, dict[str, Any]]) -> tuple[str, int, str
 
 
 def _stage1_root() -> Path | None:
-    raw = os.environ.get("DEEPUTIN_STAGE1_ROOT")
-    if raw:
+    if "DEEPUTIN_STAGE1_ROOT" in os.environ:
+        raw = os.environ.get("DEEPUTIN_STAGE1_ROOT", "").strip()
+        if not raw:
+            return None
         return _path_with_file(Path(raw), "main_timeline.csv")
     return _path_with_file(_storage_root() / "stage1", "main_timeline.csv")
 

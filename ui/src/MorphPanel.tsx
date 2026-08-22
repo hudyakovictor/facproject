@@ -6,8 +6,7 @@ import { classifyPair, zoneLabel } from './timeline-data-contract'
  *
  * Возможности:
  * - Интерактивный морфинг между фото пары (слайдер + авто-петля A→B→A).
- * - 3D-морфинг: если Stage 1 отдаёт mesh.json — интерполяция вершин с
- *   вращением; иначе честный 2D-режим (данные Stage 1 вне песочницы).
+ * - 3D-морфинг: интерполяция двух OBJ-мешей и их UV-текстур в WebGL.
  * - Тепловая карта: зонная (3×3 raw rmse) + пиксельная (разностная карта
  *   изображений) с настраиваемыми порогами (0–25–50–75 по ТЗ), схемой,
  *   гаммой и размытием.
@@ -33,6 +32,16 @@ interface MorphSettings {
   showPoints: boolean; showAnomalies: boolean; showDiff: boolean; showLabels: boolean
   auto: boolean; loop: boolean
 }
+interface TexturedMeshMorph {
+  positionsA: Float32Array
+  positionsB: Float32Array
+  uvsA: Float32Array
+  uvsB: Float32Array
+  indices: Uint32Array
+  textureA: HTMLImageElement
+  textureB: HTMLImageElement
+}
+interface ParsedObj { position: Float32Array; uv: Float32Array; indices: Uint32Array }
 const DEFAULTS: MorphSettings = {
   s1: 25, s2: 50, s3: 75, gamma: 1, blur: 0, scheme: 'thermal',
   anomalyPct: 0.6, pointSize: 12, speed: 1.2,
@@ -77,6 +86,62 @@ function drawContain(ctx: CanvasRenderingContext2D, img: HTMLImageElement, W: nu
   ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h)
 }
 
+function withAlpha(color: string, alpha: number): string {
+  const match = color.match(/\d+/g)
+  if (!match || match.length < 3) return color
+  return `rgba(${match[0]},${match[1]},${match[2]},${alpha})`
+}
+
+async function loadImage(src: string): Promise<HTMLImageElement> {
+  return await new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error(`Не удалось загрузить ${src}`))
+    img.src = src
+  })
+}
+
+async function loadObj(id: string): Promise<ParsedObj> {
+  const response = await fetch(`/storage/stage1/${id}/mesh.obj`)
+  if (!response.ok) throw new Error(`OBJ ${id}: ${response.status}`)
+  const text = await response.text()
+  const vertices: number[][] = [], uvs: number[][] = [], faces: number[] = []
+  for (const line of text.split('\n')) {
+    const p = line.trim().split(/\s+/)
+    if (p[0] === 'v' && p.length >= 4) vertices.push([+p[1], +p[2], +p[3]])
+    else if (p[0] === 'vt' && p.length >= 3) uvs.push([+p[1], 1 - +p[2]])
+    else if (p[0] === 'f' && p.length >= 4) {
+      const refs = p.slice(1).map(v => Number(v.split('/')[0]) - 1)
+      for (let i = 1; i < refs.length - 1; i++) faces.push(refs[0], refs[i], refs[i + 1])
+    }
+  }
+  if (!vertices.length || !uvs.length || !faces.length) throw new Error(`Пустой OBJ ${id}`)
+  const position = new Float32Array(vertices.flat())
+  const uv = new Float32Array(vertices.length * 2)
+  for (let i = 0; i < vertices.length; i++) { uv[i * 2] = uvs[i]?.[0] ?? 0; uv[i * 2 + 1] = uvs[i]?.[1] ?? 0 }
+  return { position, uv, indices: new Uint32Array(faces) }
+}
+
+function normalizePair(a: Float32Array, b: Float32Array) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+  for (const positions of [a, b]) {
+    for (let i = 0; i < positions.length; i += 3) {
+      minX = Math.min(minX, positions[i]); maxX = Math.max(maxX, positions[i])
+      minY = Math.min(minY, positions[i + 1]); maxY = Math.max(maxY, positions[i + 1])
+    }
+  }
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2
+  const scale = 1.82 / Math.max(maxX - minX, maxY - minY, 1e-6)
+  for (const positions of [a, b]) {
+    for (let i = 0; i < positions.length; i += 3) {
+      positions[i] = (positions[i] - cx) * scale
+      positions[i + 1] = (positions[i + 1] - cy) * scale
+      positions[i + 2] *= scale
+    }
+  }
+}
+
 export function MorphPanel({ pair, zones, onClose }: {
   pair: PairConnection; zones: ZoneMetric[]; onClose: () => void
 }) {
@@ -86,11 +151,16 @@ export function MorphPanel({ pair, zones, onClose }: {
   })
   const [imgs, setImgs] = useState<{ a?: HTMLImageElement; b?: HTMLImageElement; aOk: boolean; bOk: boolean }>({ aOk: false, bOk: false })
   const [diff, setDiff] = useState<HTMLCanvasElement | null>(null)
-  const [mesh, setMesh] = useState<{ a: number[][]; b: number[][] } | null>(null)
+  const [mesh, setMesh] = useState<TexturedMeshMorph | null>(null)
   const [meshStatus, setMeshStatus] = useState<'idle' | 'checking' | 'ok' | 'missing'>('idle')
   const [angle, setAngle] = useState(0)
   const sceneRef = useRef<HTMLCanvasElement>(null)
   const canvas3dRef = useRef<HTMLCanvasElement>(null)
+  const gl3dRef = useRef<{
+    gl: WebGL2RenderingContext; program: WebGLProgram; vao: WebGLVertexArrayObject
+    texA: WebGLTexture; texB: WebGLTexture; t: WebGLUniformLocation; angle: WebGLUniformLocation
+    count: number
+  } | null>(null)
   const rafRef = useRef(0)
 
   useEffect(() => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } catch { /* noop */ } }, [settings])
@@ -98,14 +168,20 @@ export function MorphPanel({ pair, zones, onClose }: {
   /* Загрузка изображений пары */
   useEffect(() => {
     let alive = true
-    const load = (src: string) => new Promise<HTMLImageElement | null>((res) => {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => res(img)
-      img.onerror = () => res(null)
-      img.src = src
-    })
-    Promise.all([load(`/storage/stage1/${pair.photoA}/face_crop.jpg`), load(`/storage/stage1/${pair.photoB}/face_crop.jpg`)]).then(([a, b]) => {
+    const load = async (id: string) => {
+      for (const filename of ['face_crop.jpg', 'thumb.jpg']) {
+        const image = await new Promise<HTMLImageElement | null>((res) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => res(img)
+          img.onerror = () => res(null)
+          img.src = `/storage/stage1/${id}/${filename}`
+        })
+        if (image) return image
+      }
+      return null
+    }
+    Promise.all([load(pair.photoA), load(pair.photoB)]).then(([a, b]) => {
       if (!alive) return
       setImgs({ a: a ?? undefined, b: b ?? undefined, aOk: !!a, bOk: !!b })
     })
@@ -165,7 +241,7 @@ export function MorphPanel({ pair, zones, onClose }: {
       ctx.fillStyle = '#3a4452'
       ctx.font = '12px monospace'
       ctx.textAlign = 'center'
-      ctx.fillText(imgs.aOk || imgs.bOk ? 'Одно из изображений недоступно — морфинг неполный' : 'Изображения Stage 1 недоступны в этом окружении — зонная карта активна', W / 2, H / 2)
+      ctx.fillText(!imgs.aOk || !imgs.bOk ? 'Одно из изображений недоступно — морфинг неполный' : 'Изображения Stage 1 недоступны в этом окружении — зонная карта активна', W / 2, H / 2)
       ctx.font = '10px monospace'
       ctx.fillStyle = '#5a6573'
       ctx.fillText('При наличии /Volumes/SDCARD/storage/stage1 морфинг заработает автоматически', W / 2, H / 2 + 18)
@@ -177,53 +253,75 @@ export function MorphPanel({ pair, zones, onClose }: {
     }
   }, [t, imgs, diff, settings.showDiff])
 
-  /* 3D-рендер (если mesh доступен): интерполяция вершин + вращение */
+  /* Подготовка WebGL-ресурсов: два OBJ-меша и две UV-текстуры загружаются один раз. */
   useEffect(() => {
     const cv = canvas3dRef.current
     if (!cv || meshStatus !== 'ok' || !mesh) return
-    const ctx = cv.getContext('2d')
-    if (!ctx) return
-    const W = cv.width, H = cv.height
-    ctx.clearRect(0, 0, W, H)
-    const n = Math.min(mesh.a.length, mesh.b.length)
-    const step = Math.max(1, Math.floor(n / 9000))
-    const rad = (angle * Math.PI) / 180
-    const cos = Math.cos(rad), sin = Math.sin(rad)
-    // нормализация к общему центру/масштабу
-    const ax = mesh.a, bx = mesh.b
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity
-    for (let i = 0; i < n; i += step) {
-      const v = ax[i]
-      if (!v || v.length < 3) continue
-      const vx = v[0] + (bx[i][0] - v[0]) * t
-      const vy = v[1] + (bx[i][1] - v[1]) * t
-      const vz = v[2] + (bx[i][2] - v[2]) * t
-      const xr = vx * cos - vz * sin
-      const zr = vx * sin + vz * cos
-      if (xr < minX) minX = xr; if (xr > maxX) maxX = xr
-      if (vy < minY) minY = vy; if (vy > maxY) maxY = vy
-      if (zr < minZ) minZ = zr; if (zr > maxZ) maxZ = zr
+    const gl = cv.getContext('webgl2', { alpha: true, antialias: true })
+    if (!gl) return
+    const compile = (type: number, source: string) => {
+      const shader = gl.createShader(type)
+      if (!shader) throw new Error('Не удалось создать WebGL shader')
+      gl.shaderSource(shader, source); gl.compileShader(shader)
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader) ?? 'Ошибка shader')
+      return shader
     }
-    const sx = (W - 40) / Math.max(1e-6, maxX - minX)
-    const sy = (H - 40) / Math.max(1e-6, maxY - minY)
-    const sc = Math.min(sx, sy)
-    ctx.fillStyle = '#101318'
-    ctx.fillRect(0, 0, W, H)
-    for (let i = 0; i < n; i += step) {
-      const va = ax[i], vb = bx[i]
-      if (!va || !vb || va.length < 3) continue
-      const vx = va[0] + (vb[0] - va[0]) * t
-      const vy = va[1] + (vb[1] - va[1]) * t
-      const vz = va[2] + (vb[2] - va[2]) * t
-      const xr = vx * cos - vz * sin
-      const zr = vx * sin + vz * cos
-      const px = (W - (maxX + minX) * sc) / 2 + xr * sc
-      const py = (H - (maxY + minY) * sc) / 2 + vy * sc
-      const depth = (zr - minZ) / Math.max(1e-6, maxZ - minZ)
-      ctx.fillStyle = `rgba(${Math.round(80 + depth * 120)},${Math.round(120 + depth * 90)},${Math.round(200 - depth * 60)},0.85)`
-      ctx.fillRect(px, py, 1.6, 1.6)
+    try {
+      const vs = compile(gl.VERTEX_SHADER, `#version 300 es
+        in vec3 aPosA; in vec3 aPosB; in vec2 aUvA; in vec2 aUvB;
+        uniform float uT; uniform float uAngle;
+        out vec2 vUvA; out vec2 vUvB;
+        void main() { vec3 p = mix(aPosA, aPosB, uT); float c = cos(uAngle), s = sin(uAngle);
+          p = vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z);
+          gl_Position = vec4(p.xy, 0.0, 1.0); vUvA = aUvA; vUvB = aUvB; }`)
+      const fs = compile(gl.FRAGMENT_SHADER, `#version 300 es
+        precision highp float; uniform sampler2D uTexA; uniform sampler2D uTexB; uniform float uT;
+        in vec2 vUvA; in vec2 vUvB; out vec4 outColor;
+        void main() { outColor = mix(texture(uTexA, vUvA), texture(uTexB, vUvB), uT); }`)
+      const program = gl.createProgram()
+      if (!program) throw new Error('Не удалось создать WebGL program')
+      gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program)
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) ?? 'Ошибка link')
+      const vao = gl.createVertexArray(), texA = gl.createTexture(), texB = gl.createTexture()
+      if (!vao || !texA || !texB) throw new Error('Не удалось создать WebGL buffers')
+      gl.bindVertexArray(vao)
+      const bindAttribute = (name: string, data: Float32Array, size: number) => {
+        const buffer = gl.createBuffer(); if (!buffer) throw new Error('Не удалось создать WebGL buffer')
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
+        const loc = gl.getAttribLocation(program, name); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0)
+      }
+      bindAttribute('aPosA', mesh.positionsA, 3); bindAttribute('aPosB', mesh.positionsB, 3)
+      bindAttribute('aUvA', mesh.uvsA, 2); bindAttribute('aUvB', mesh.uvsB, 2)
+      const indexBuffer = gl.createBuffer(); if (!indexBuffer) throw new Error('Не удалось создать index buffer')
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW)
+      const uploadTexture = (texture: WebGLTexture, image: HTMLImageElement) => {
+        gl.bindTexture(gl.TEXTURE_2D, texture); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+      }
+      uploadTexture(texA, mesh.textureA); uploadTexture(texB, mesh.textureB)
+      gl3dRef.current = { gl, program, vao, texA, texB, t: gl.getUniformLocation(program, 'uT')!, angle: gl.getUniformLocation(program, 'uAngle')!, count: mesh.indices.length }
+      gl.bindVertexArray(null)
+    } catch (error) {
+      console.warn('3D WebGL:', error); setMeshStatus('missing')
     }
-  }, [mesh, meshStatus, t, angle])
+    return () => {
+      const resources = gl3dRef.current
+      if (resources) { resources.gl.deleteTexture(resources.texA); resources.gl.deleteTexture(resources.texB); resources.gl.deleteVertexArray(resources.vao); resources.gl.deleteProgram(resources.program); gl3dRef.current = null }
+    }
+  }, [mesh, meshStatus])
+
+  /* GPU-отрисовка: меняются только uniforms, поэтому слайдер не перезаливает OBJ. */
+  useEffect(() => {
+    const resources = gl3dRef.current
+    if (!resources || meshStatus !== 'ok') return
+    const { gl } = resources
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); gl.clearColor(0.06, 0.075, 0.095, 1); gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.useProgram(resources.program); gl.uniform1f(resources.t, t); gl.uniform1f(resources.angle, (angle * Math.PI) / 180)
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, resources.texA); gl.uniform1i(gl.getUniformLocation(resources.program, 'uTexA'), 0)
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, resources.texB); gl.uniform1i(gl.getUniformLocation(resources.program, 'uTexB'), 1)
+    gl.bindVertexArray(resources.vao); gl.drawElements(gl.TRIANGLES, resources.count, gl.UNSIGNED_INT, 0); gl.bindVertexArray(null)
+  }, [t, angle, meshStatus])
 
   /* Авто-морфинг */
   useEffect(() => {
@@ -265,20 +363,22 @@ export function MorphPanel({ pair, zones, onClose }: {
 
   const try3d = async () => {
     setMeshStatus('checking')
-    const load = async (id: string): Promise<number[][] | null> => {
-      try {
-        const r = await fetch(`/storage/stage1/${id}/mesh.json`)
-        if (!r.ok) return null
-        const j = await r.json()
-        const verts = j.vertices ?? j.mesh?.vertices ?? null
-        return verts && Array.isArray(verts) && verts.length > 0 ? verts : null
-      } catch { return null }
+    try {
+      const [a, b, textureA, textureB] = await Promise.all([
+        loadObj(pair.photoA), loadObj(pair.photoB),
+        loadImage(`/storage/stage1/${pair.photoA}/uv_texture.png`),
+        loadImage(`/storage/stage1/${pair.photoB}/uv_texture.png`),
+      ])
+      if (a.position.length !== b.position.length || a.indices.length !== b.indices.length) throw new Error('Топология мешей не совпадает')
+      normalizePair(a.position, b.position)
+      setMesh({ positionsA: a.position, positionsB: b.position, uvsA: a.uv, uvsB: b.uv, indices: a.indices, textureA, textureB })
+      setMeshStatus('ok')
+    } catch (error) {
+      console.warn('3D morph:', error); setMeshStatus('missing'); setMesh(null)
     }
-    const [a, b] = await Promise.all([load(pair.photoA), load(pair.photoB)])
-    if (a && b) { setMesh({ a, b }); setMeshStatus('ok') }
-    else { setMeshStatus('missing'); setMesh(null) }
   }
   const reset = () => { setSettings(DEFAULTS); setT(0.5); setAngle(0) }
+  const is3d = meshStatus === 'ok'
 
   return (
     <div className="morph" role="dialog" aria-modal="true" aria-label="Морфинг пары A/B">
@@ -290,27 +390,27 @@ export function MorphPanel({ pair, zones, onClose }: {
         <div className="morph-controls">
           <button className={`m-btn ${settings.auto ? 'active' : ''}`} onClick={() => set({ auto: !settings.auto })} title="Авто-морфинг (пробел)">{settings.auto ? '⏸ Пауза' : '▶ Авто'}</button>
           <button className="m-btn" onClick={reset} title="Сбросить настройки и позицию">Сброс</button>
-          <button className="m-btn" onClick={try3d} title="Загрузить 3D-модели (mesh.json из Stage 1)">3D</button>
+          <button className="m-btn" onClick={try3d} title="Загрузить текстурированные OBJ-модели из Stage 1">3D</button>
           {meshStatus === 'ok' && <label className="m-op">угол <input type="range" min={-60} max={60} value={angle} onChange={e => setAngle(Number(e.target.value))} aria-label="Угол вращения 3D" /></label>}
           {meshStatus === 'checking' && <span className="m-status">проверка 3D…</span>}
-          {meshStatus === 'missing' && <span className="m-status">3D-данные не найдены — работает 2D-морфинг</span>}
+          {meshStatus === 'missing' && <span className="m-status">OBJ/UV-текстуры не найдены — работает 2D-морфинг</span>}
           <button onClick={onClose} aria-label="Закрыть (Esc)">×</button>
         </div>
       </header>
 
-      <div className="morph-body">
+      <div className={`morph-body ${is3d ? 'morph-body-3d' : ''}`}>
         <div className="morph-stage-wrap">
           <div className="morph-stage">
-            <canvas ref={sceneRef} width={900} height={560} className="morph-canvas" />
+            <canvas ref={sceneRef} width={900} height={560} className="morph-canvas" style={{ visibility: meshStatus === 'ok' ? 'hidden' : 'visible' }} />
             {meshStatus === 'ok' && <canvas ref={canvas3dRef} width={900} height={560} className="morph-canvas3d" />}
-            {settings.showZones && (
+            {!is3d && settings.showZones && (
               <div className="morph-zones" aria-label="Зонная тепловая карта 3×3">
                 {ZONE_ORDER.map(zn => {
                   const z = zones.find(x => x.zone === zn)
                   const measured = z?.status === 'measured' && z.rmse != null
                   const intensity = measured ? (z!.rmse! / maxRmse) * 100 : 0
                   const pos = ZONE_POS[zn]
-                  const bg = measured && settings.showHeat ? heatColor(intensity, settings) : 'transparent'
+                    const bg = measured && settings.showHeat ? withAlpha(heatColor(intensity, settings), 0.46) : 'transparent'
                   return (
                     <div key={zn} className="morph-zone" style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%,-50%)', background: bg, borderColor: measured ? undefined : '#2a3340' }}
                       title={`${zoneLabel(zn)}: ${measured ? 'rmse ' + z!.rmse!.toFixed(4) + ' · ' + Math.round(intensity) + '% шкалы' : 'не измерено'}`}>
@@ -320,12 +420,12 @@ export function MorphPanel({ pair, zones, onClose }: {
                 })}
               </div>
             )}
-            {settings.showGrid && (
+            {!is3d && settings.showGrid && (
               <div className="morph-grid" aria-hidden="true">
                 {[0, 1, 2].map(r => [0, 1, 2].map(c => <div key={`${r}${c}`} className="morph-grid-cell" style={{ left: `${c * 33.333}%`, top: `${r * 33.333}%` }} />))}
               </div>
             )}
-            {settings.showPoints && zonesMeasured.map(z => {
+            {!is3d && settings.showPoints && zonesMeasured.map(z => {
               const pos = ZONE_POS[z.zone]
               const intensity = (z.rmse! / maxRmse) * 100
               const anomaly = intensity >= settings.s1 * (1 + settings.anomalyPct) || intensity >= settings.s2
@@ -337,27 +437,27 @@ export function MorphPanel({ pair, zones, onClose }: {
               )
             })}
             {meshStatus === 'ok' && (
-              <div className="morph-3d-note">3D-морфинг: интерполяция вершин {t * 100 | 0}% · угол {angle}° · точки = вершины меша</div>
+              <div className="morph-3d-note">3D-морфинг: OBJ-вершины + UV-текстуры {t * 100 | 0}% · угол {angle}°</div>
             )}
           </div>
           <div className="morph-slider-row">
             <span className="m-side">{pair.dateA}</span>
             <input type="range" min={0} max={100} value={Math.round(t * 100)} onChange={e => setT(Number(e.target.value) / 100)}
-              className="morph-slider" aria-label="Морфинг A→B" style={{ background: `linear-gradient(90deg, #1d4ed8, #22d3ee ${settings.s1}%, #22c55e ${settings.s2}%, #ef4444 ${settings.s3}%, #7f1d1d)` }} />
+              className="morph-slider" aria-label="Морфинг A→B" style={{ background: is3d ? `linear-gradient(90deg, #5e9fe8 ${t * 100}%, #273241 ${t * 100}%)` : `linear-gradient(90deg, #1d4ed8, #22d3ee ${settings.s1}%, #22c55e ${settings.s2}%, #ef4444 ${settings.s3}%, #7f1d1d)` }} />
             <span className="m-side">{pair.dateB}</span>
             <span className="m-pct">{Math.round(t * 100)}%</span>
           </div>
-          <div className="morph-legend">
+          {!is3d && <div className="morph-legend">
             <span className="m-legend-item" style={{ background: '#1d4ed8' }}>0</span>
             <span className="m-legend-item" style={{ background: '#22d3ee' }}>{settings.s1}%</span>
             <span className="m-legend-item" style={{ background: '#22c55e' }}>{settings.s2}%</span>
             <span className="m-legend-item" style={{ background: '#ef4444' }}>{settings.s3}%</span>
             <span className="m-legend-item" style={{ background: '#7f1d1d' }}>100%</span>
             <span className="m-legend-txt">норма · внимание · выражено · критично — пороги настраиваются справа</span>
-          </div>
+          </div>}
         </div>
 
-        <aside className="morph-panel" aria-label="Настройки морфинга">
+        {!is3d && <aside className="morph-panel" aria-label="Настройки морфинга">
           <h4>Тепловая карта</h4>
           <div className="m-sec">
             <label>Порог синий→голубой <input type="range" min={0} max={99} value={settings.s1} onChange={e => set({ s1: Number(e.target.value) })} /><b>{settings.s1}%</b></label>
@@ -417,7 +517,7 @@ export function MorphPanel({ pair, zones, onClose }: {
               </div>
             ))}
           </div>
-        </aside>
+        </aside>}
       </div>
 
       <footer className="morph-foot">

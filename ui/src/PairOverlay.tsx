@@ -69,7 +69,7 @@ export function PairPopup({ pair, visible, nav, onClose, frames, photoMetrics, z
         <div className="pp-body">
           {/* Фото A | Δ | B — горизонтальный ряд (главный визуальный контраст) */}
           <section className="pp-photos">
-            <PhotoSide tag="A" date={pair.dateA} frame={frameA} m={mA} smile={pair.smileDetectedA} jaw={pair.jawOpenDetectedA} photoId={pair.photoA} />
+            <PhotoSide tag="A" date={pair.dateA} frame={frameA} m={mA} photoId={pair.photoA} />
             <div className="pp-delta">
               <span className="pp-dk">Δ max z</span>
               <span className="pp-dv" style={{ color: zColor(pair.meshMaxRobustZ) }}>{v(pair.meshMaxRobustZ, 1)}</span>
@@ -80,19 +80,18 @@ export function PairPopup({ pair, visible, nav, onClose, frames, photoMetrics, z
               {isFdrSig && <span className="pp-fdr">FDR10</span>}
               {pair.mtRole === 'diagnostic_only' && <span className="pp-dk">диагностическая</span>}
             </div>
-            <PhotoSide tag="B" date={pair.dateB} frame={frameB} m={mB} smile={pair.smileDetectedB} jaw={pair.jawOpenDetectedB} photoId={pair.photoB} />
+            <PhotoSide tag="B" date={pair.dateB} frame={frameB} m={mB} photoId={pair.photoB} />
           </section>
 
-          {/* Карточки ключевых метрик — 8 штук в сетке 4×2 */}
+          {/* Основной вывод — только показатели, которые влияют на решение */}
           <section className="pp-cards" aria-label="Ключевые метрики пары">
-            <Card k="Max robust z" value={v(pair.meshMaxRobustZ, 2)} color={zColor(pair.meshMaxRobustZ)} s={pair.meshCalibratedStatus || '—'} />
-            <Card k="FDR q-value" value={v(pair.mtQValue, 6)} s={isFdrSig ? 'FDR10 значимый' : 'не значим'} />
-            <Card k="Видимость" value={pct(pair.meshVisibleFraction)} s={`вершины ${v(pair.meshCommonVertexCount, 0)}`} />
-            <Card k="Δ alignment A→B" value={dAlign != null ? (dAlign >= 0 ? '+' : '') + dAlign.toFixed(3) : '—'} s={`${v(mA?.alignmentQuality, 2)} → ${v(mB?.alignmentQuality, 2)}`} />
-            <Card k="Резкость A / B" value={`${v(mA?.laplacianVariance, 0)} / ${v(mB?.laplacianVariance, 0)}`} s="Laplacian" />
-            <Card k="Кожа z A / B" value={`${v(mA?.skinAuthenticityScore, 1)} / ${v(mB?.skinAuthenticityScore, 1)}`} s="аутентичность (diagnostic)" />
-            <Card k="Калибровка" value={pair.meshCalibratedStatus || '—'} s={`elevated ${v(pair.meshCalibratedElevatedCount, 0)}/${v(pair.meshCalibratedMetricCount, 0)}`} />
-            <Card k="Выравнивание" value={v(pair.meshAlignResidualAfterMedian)} s={`зоны ${v(pair.meshAnatomicalZoneCount, 0)} · trimmed ${v(pair.meshAlignmentTrimmedCount, 0)}`} />
+            <Card k="Отклонение геометрии" value={v(pair.meshMaxRobustZ, 1)} color={zColor(pair.meshMaxRobustZ)} s="max robust z" />
+            <Card k="Статус FDR10" value={isFdrSig ? 'значимо' : 'не значимо'} s={pair.mtQValue == null ? 'q-value —' : `q ${pair.mtQValue.toFixed(3)}`} />
+            <Card k="Видимость лица" value={pct(pair.meshVisibleFraction)} s="общая поддержка пары" />
+            <Card k="Выравнивание" value={`${v(mA?.alignmentQuality, 2)} → ${v(mB?.alignmentQuality, 2)}`} s={dAlign == null ? 'нет Δ' : `Δ ${dAlign >= 0 ? '+' : ''}${dAlign.toFixed(3)}`} />
+            <Card k="Качество кожи A / B" value={`${v(mA?.skinQualityScore, 2)} / ${v(mB?.skinQualityScore, 2)}`} />
+            <Card k="Аутентичность кожи A / B" value={`${v(mA?.skinAuthenticityScore, 2)} / ${v(mB?.skinAuthenticityScore, 2)}`} />
+            <Card k="Открытие рта A / B" value={`${mA?.jawOpenDegree == null ? '—' : `${mA.jawOpenDegree.toFixed(1)}°`} / ${mB?.jawOpenDegree == null ? '—' : `${mB.jawOpenDegree.toFixed(1)}°`}`} s={expressionMismatch ? 'мимика различается' : 'мимика сопоставима'} />
           </section>
 
           {/* Зоны + гейты (две колонки, нижний ярус) */}
@@ -209,22 +208,19 @@ export function PairPopup({ pair, visible, nav, onClose, frames, photoMetrics, z
   )
 }
 
-function PhotoSide({ tag, date, frame, m, smile, jaw, photoId }: {
-  tag: string; date: string; frame?: Frame; m?: PhotoMetrics; smile: boolean; jaw: boolean; photoId: string
+function PhotoSide({ tag, date, frame, m, photoId }: {
+  tag: string; date: string; frame?: Frame; m?: PhotoMetrics; photoId: string
 }) {
   return (
     <div className="pp-side">
       <div className="pp-side-h"><span className="pp-tag">{tag}</span><strong>{date}</strong></div>
       <img src={`/storage/stage1/${photoId}/face_crop.jpg`} alt={`Кадр ${tag} (${date})`} loading="lazy" onError={imgErr} />
       <div className="pp-meta">
-        <span>yaw/pitch <b>{frame ? `${frame.yaw.toFixed(1)}°/${frame.pitch.toFixed(1)}°` : '—'}</b></span>
-        <span>roll <b>{frame ? `${frame.roll.toFixed(1)}°` : '—'}</b></span>
         <span>видимость <b>{frame ? pct(frame.combinedVisibleFraction) : '—'}</b></span>
-        <span>align <b>{v(m?.alignmentQuality, 2)}</b></span>
-        <span>резкость <b>{v(m?.laplacianVariance, 0)}</b></span>
-        <span>шум <b>{v(m?.noiseResidualMean, 2)}</b></span>
-        <span>улыбка <b>{smile ? '✓' : '—'}</b></span>
-        <span>челюсть <b>{jaw ? '✓' : '—'}</b></span>
+        <span>выравнивание <b>{v(m?.alignmentQuality, 2)}</b></span>
+        <span>кожа <b>{v(m?.skinQualityScore, 2)}</b></span>
+        <span>аутентичность <b>{v(m?.skinAuthenticityScore, 2)}</b></span>
+        <span>рот <b>{m?.jawOpenDegree != null ? `${m.jawOpenDegree.toFixed(1)}°` : '—'}</b></span>
       </div>
     </div>
   )
@@ -237,7 +233,7 @@ function Card({ k, value, s, color }: { k: string; value: string; s?: string; co
 function Gate({ label, gate, children }: { label: string; gate: 'ok' | 'caution' | 'candidate' | 'info' | 'pose'; children: React.ReactNode }) {
   const colors: Record<string, string> = { ok: '#72bc8f', caution: '#de9255', candidate: '#e97366', info: '#5e9fe8', pose: '#bf8eda' }
   return (
-    <details open>
+    <details>
       <summary style={{ color: colors[gate] || '#9aa4b2', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
         <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: colors[gate], marginRight: 6 }} />
         {label}

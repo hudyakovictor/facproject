@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { PairConnection, ZoneMetric } from './types'
 import { SectionShell, MiniBars } from './SectionShell'
+import type { SectionKey } from './section-meta'
 
 /* V14: МЕТРИКИ ПАР — полный каталог извлечённых метрик и их отображения.
  *
@@ -32,7 +33,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export function MetricProfiles({ pairs, zones, onClose, onNavigate }: {
   pairs: PairConnection[]; zones: Map<string, ZoneMetric[]>; onClose: () => void
-  onNavigate?: (k: 'atlas' | 'casework' | 'matrix' | 'calibration' | 'persistence' | 'report' | 'integrity' | 'metrics' | 'keypoints') => void
+  onNavigate?: (k: SectionKey) => void
 }) {
   const byMetric = useMemo(() => METRIC_ROWS.map(m => {
     const statuses: Record<string, number> = {}
@@ -100,11 +101,24 @@ export function MetricProfiles({ pairs, zones, onClose, onNavigate }: {
   }, [pairs])
 
   return (
-    <SectionShell title="Метрики пар" current="metrics" onNavigate={onNavigate} onClose={onClose}
+    <SectionShell title="Метрики и поля" current="metrics" onNavigate={onNavigate} onClose={onClose}
       scope={`${pairs.length} пар · 68 полей пары · ${METRIC_ROWS.length} геометрических метрик`}
       help={<>Каталог извлечённых метрик пар и их отображения. <b>Пер-метричные статусы</b> — семантика каждого z (повышен/в пределах шума/неуверенно): z сам по себе не сигнал, статус решает. <b>Калибровочные референсы</b> — медиана и p95 калибровочного распределения для каждой метрики. <b>Роли FDR</b> — почему пара получила роль (внимание: 253 пары — «p95_order_statistic_unreliable_below_20_points»).</>}
       footer={<span className="sec-foot-note">Согласовано с таймлайном: 6 линий raw-геометрии + калибровочный коридор + статус-точки; z-suite дополнен 6-й метрикой PtPlane-P95; «S» в QC-событиях = неуверенный статус метрики.</span>}>
       <div className="mp2">
+        <div className="sec-card mp-summary">
+          <h3>Что здесь действительно важно</h3>
+          <div className="mp-const">
+            <span>Пар в анализе: <b>{pairs.length}</b></span>
+            <span>Калиброваны: <b>{constants.calibrated}</b></span>
+            <span>Повышенный RMSE: <b>{statusCount.mesh_elevated ?? 0}</b></span>
+            <span>Смешанные статусы: <b>{mixedStatusPairs.length}</b></span>
+          </div>
+          <p className="sec-note">Для решения на первом экране достаточно статуса RMSE, robust-z и FDR10. Остальные поля нужны для проверки методики и аудита экспорта.</p>
+        </div>
+        <details className="sec-disclosure">
+          <summary>Полный технический каталог: 6 метрик, статусы, FDR и калибровка</summary>
+          <div className="sec-disclosure-body">
         <div className="sec-card">
           <h3>Шесть геометрических метрик: статусы и калибровка</h3>
           <table className="sec-table">
@@ -191,6 +205,8 @@ export function MetricProfiles({ pairs, zones, onClose, onNavigate }: {
           </div>
           <p className="sec-note">zone robustZ некалиброван (insufficient_calibration) — разделы показывают raw rmse и магнитуды смещения, никогда не выдают их за z.</p>
         </div>
+          </div>
+        </details>
       </div>
     </SectionShell>
   )

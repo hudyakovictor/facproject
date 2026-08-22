@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,7 @@ def _date_to_ms(value: str | None) -> int | None:
         parsed = date.fromisoformat(str(value)[:10])
     except (TypeError, ValueError):
         return None
-    return int(datetime(parsed.year, parsed.month, parsed.day, tzinfo=timezone.utc).timestamp() * 1000)
+    return int(datetime(parsed.year, parsed.month, parsed.day, tzinfo=UTC).timestamp() * 1000)
 
 
 def build_stage1_inventory(stage1_root: Path) -> dict[str, Any]:

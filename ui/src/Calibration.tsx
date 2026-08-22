@@ -129,31 +129,36 @@ export function Calibration({ pairs, zones, onClose, onNavigate }: {
           <p className="sec-note">Уверенность — прокси по числу пар в ракурсе, не реальная калибровочная база (backend: `/api/v1/calibration/health`, 943 записи, 7 персон × 9 ракурсов).</p>
         </div>
 
-        <div className="sec-card">
-          <h3>Распределение robust-z по семействам пар</h3>
-          {Object.entries(families).sort().map(([fam, d]) => (
-            <div key={fam} className="cal-fam">
-              <div className="cal-fam-head">
-                <strong>{fam}</strong>
-                <span>n={d.zs.length} · elevated {d.elevated} · FDR {d.fdr} · медиана {quantile(d.zs, 0.5)?.toFixed(2) ?? '—'} · p90 {quantile(d.zs, 0.9)?.toFixed(2) ?? '—'}</span>
-              </div>
-              <Histogram values={d.zs} max={globalMax} bins={24} q90={quantile(d.zs, 0.9)} />
-            </div>
-          ))}
-        </div>
-
-        <div className="sec-card">
-          <h3>Калибровка зон</h3>
-          <table className="sec-table">
-            <thead><tr><th>Статус</th><th>Строк</th><th>Доля</th></tr></thead>
-            <tbody>
-              {Object.entries(zoneStats).sort().map(([s, n]) => (
-                <tr key={s}><td>{s}</td><td>{n}</td><td>{zoneRows ? (n / zoneRows * 100).toFixed(0) + '%' : '—'}</td></tr>
+        <details className="sec-disclosure">
+          <summary>Техническая диагностика распределений и зон</summary>
+          <div className="sec-disclosure-body">
+            <div className="sec-card">
+              <h3>Распределение robust-z по семействам пар</h3>
+              {Object.entries(families).sort().map(([fam, d]) => (
+                <div key={fam} className="cal-fam">
+                  <div className="cal-fam-head">
+                    <strong>{fam}</strong>
+                    <span>n={d.zs.length} · elevated {d.elevated} · FDR {d.fdr} · медиана {quantile(d.zs, 0.5)?.toFixed(2) ?? '—'} · p90 {quantile(d.zs, 0.9)?.toFixed(2) ?? '—'}</span>
+                  </div>
+                  <Histogram values={d.zs} max={globalMax} bins={24} q90={quantile(d.zs, 0.9)} />
+                </div>
               ))}
-            </tbody>
-          </table>
-          <p className="sec-note">zone robustZ некалиброван: UI везде показывает raw rmse, не z. Для калибровки зон пайплайну нужен расширенный референсный набор.</p>
-        </div>
+            </div>
+
+            <div className="sec-card">
+              <h3>Калибровка зон</h3>
+              <table className="sec-table">
+                <thead><tr><th>Статус</th><th>Строк</th><th>Доля</th></tr></thead>
+                <tbody>
+                  {Object.entries(zoneStats).sort().map(([s, n]) => (
+                    <tr key={s}><td>{s}</td><td>{n}</td><td>{zoneRows ? (n / zoneRows * 100).toFixed(0) + '%' : '—'}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="sec-note">zone robustZ некалиброван: UI везде показывает raw rmse, не z. Для калибровки зон пайплайну нужен расширенный референсный набор.</p>
+            </div>
+          </div>
+        </details>
 
         <div className="sec-card">
           <h3>Рекомендации</h3>

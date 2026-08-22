@@ -55,7 +55,6 @@ def fields_from_info(info: dict[str, Any] | None) -> dict[str, Any]:
     quality_inputs = info.get("quality_inputs") if isinstance(info.get("quality_inputs"), dict) else {}
     uv = info.get("uv") if isinstance(info.get("uv"), dict) else {}
     provenance = info.get("date_provenance") if isinstance(info.get("date_provenance"), dict) else {}
-    texture_quality = None
     texture_path = None
     files = info.get("files") if isinstance(info.get("files"), dict) else {}
     if files.get("texture"):

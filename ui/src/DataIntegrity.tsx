@@ -93,42 +93,48 @@ export function DataIntegrity({ frames, pairs, zones, onNavigate, onClose, onNav
             <p className={`di-verdict ${checks.failed === 0 ? 'ok' : 'fail'}`}>{checks.failed === 0 ? '✅ Все проверки пройдены — данные соответствуют контракту.' : `❌ ${checks.failed} проверок провалено — см. выше.`}</p>
           </div>
 
-          <div className="sec-card">
-            <h3>Плотность архива по эпохам</h3>
-            <table className="sec-table">
-              <thead><tr><th>Эпоха</th><th>Кадров</th><th>Пар</th><th>Баланс</th></tr></thead>
-              <tbody>
-                {stats.eraDensity.map(e => (
-                  <tr key={e.label}><td>{e.label}</td><td>{e.count}</td><td>{e.pairs}</td>
-                    <td>{e.count ? (e.pairs / e.count).toFixed(2) : '—'}</td></tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="sec-note">Ранние годы (1999–2005) — редкие и шумные, поздние (2020–2026) — плотные и детальные. Алгоритм калибрует текстурные метрики, чтобы «шум 90-х» не читался как силикон.</p>
+        </div>
+
+        <details className="sec-disclosure">
+          <summary>Покрытие архива, плотность по годам и исключённые поля</summary>
+          <div className="sec-disclosure-body">
+            <div className="sec-card">
+              <h3>Плотность архива по эпохам</h3>
+              <table className="sec-table">
+                <thead><tr><th>Эпоха</th><th>Кадров</th><th>Пар</th><th>Баланс</th></tr></thead>
+                <tbody>
+                  {stats.eraDensity.map(e => (
+                    <tr key={e.label}><td>{e.label}</td><td>{e.count}</td><td>{e.pairs}</td>
+                      <td>{e.count ? (e.pairs / e.count).toFixed(2) : '—'}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="sec-note">Ранние годы (1999–2005) — редкие и шумные, поздние (2020–2026) — плотные и детальные. Алгоритм калибрует текстурные метрики, чтобы «шум 90-х» не читался как силикон.</p>
+            </div>
+
+            <div className="sec-card">
+              <h3>Покрытие по ракурсам <small>(клик — перейти в таймлайн)</small></h3>
+              <table className="sec-table">
+                <thead><tr><th>Ракурс</th><th>Кадров</th><th>Пар</th><th>FDR10</th><th>Ratio</th><th>Оценка базы</th></tr></thead>
+                <tbody>
+                  {Object.entries(stats.byPose).sort().map(([bin, d]) => {
+                    const ratio = d.frames ? d.pairs / d.frames : 0
+                    return <tr key={bin} onClick={() => onNavigate(bin as PoseBin)} className="di-linkrow">
+                      <td>{bin}</td><td>{d.frames}</td><td>{d.pairs}</td><td>{d.fdr}</td>
+                      <td>{d.frames ? ratio.toFixed(2) : '—'}</td>
+                      <td className={ratio < 0.10 ? 'di-warn' : 'di-ok'}>{ratio < 0.10 ? 'слабая' : 'достаточная'}</td>
+                    </tr>
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="sec-card">
+              <h3>Исключённые поля (единый реестр)</h3>
+              {EXCLUDED_FIELDS.map(x => <div key={x.field} className="di-excluded"><code>{x.field}</code><span>{x.reason}</span></div>)}
+            </div>
           </div>
-        </div>
-
-        <div className="sec-card">
-          <h3>Покрытие по ракурсам <small>(клик — перейти в таймлайн)</small></h3>
-          <table className="sec-table">
-            <thead><tr><th>Ракурс</th><th>Кадров</th><th>Пар</th><th>FDR10</th><th>Ratio</th><th>Оценка базы</th></tr></thead>
-            <tbody>
-              {Object.entries(stats.byPose).sort().map(([bin, d]) => {
-                const ratio = d.frames ? d.pairs / d.frames : 0
-                return <tr key={bin} onClick={() => onNavigate(bin as PoseBin)} className="di-linkrow">
-                  <td>{bin}</td><td>{d.frames}</td><td>{d.pairs}</td><td>{d.fdr}</td>
-                  <td>{d.frames ? ratio.toFixed(2) : '—'}</td>
-                  <td className={ratio < 0.10 ? 'di-warn' : 'di-ok'}>{ratio < 0.10 ? 'слабая' : 'достаточная'}</td>
-                </tr>
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="sec-card">
-          <h3>Исключённые поля (единый реестр)</h3>
-          {EXCLUDED_FIELDS.map(x => <div key={x.field} className="di-excluded"><code>{x.field}</code><span>{x.reason}</span></div>)}
-        </div>
+        </details>
       </div>
     </SectionShell>
   )

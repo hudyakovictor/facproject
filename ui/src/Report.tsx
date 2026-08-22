@@ -39,18 +39,6 @@ export function Report({ pairs, zones, decisions, annotations, onClose, onNaviga
     }
     return [...m.keys()].sort((a, b) => a - b).map(y => ({ label: String(y).slice(2), value: m.get(y) ?? 0 }))
   }, [accepted])
-  const zBars = useMemo(() => {
-    const buckets = [0, 0, 0, 0]
-    for (const p of accepted) {
-      const z = p.meshMaxRobustZ ?? 0
-      if (z < 5) buckets[0]++
-      else if (z < 10) buckets[1]++
-      else if (z < 20) buckets[2]++
-      else buckets[3]++
-    }
-    return [{ label: '<5', value: buckets[0] }, { label: '5–10', value: buckets[1] }, { label: '10–20', value: buckets[2] }, { label: '>20', value: buckets[3] }]
-  }, [accepted])
-
   const topZonesOf = (pairId: string) =>
     (zones.get(pairId) ?? []).filter(z => z.status === 'measured' && z.rmse != null)
       .sort((a, b) => (b.rmse ?? 0) - (a.rmse ?? 0)).slice(0, 3)
@@ -152,10 +140,6 @@ ${rows || '<p>Нет принятых к отчёту кандидатов.</p>'
           <div className="sec-card">
             <h3>Принятые по годам</h3>
             {byYear.length === 0 ? <p className="sec-note">Нет принятых.</p> : <MiniBars data={byYear} />}
-          </div>
-          <div className="sec-card">
-            <h3>Принятые по robust-z</h3>
-            {zBars.every(b => b.value === 0) ? <p className="sec-note">Нет принятых.</p> : <MiniBars data={zBars} />}
           </div>
           <div className="sec-card">
             <h3>Заметки журналиста ({annotations?.length ?? 0})</h3>

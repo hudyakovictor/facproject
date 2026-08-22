@@ -29,14 +29,14 @@ export const TRACKS: TrackDef[] = [
   { id: 'pair_max_z', label: 'Max robust z', unit: 'z', domain: 'pair_evidence', availability: 'default', displayMin: 0, displayMax: 36, color: '#de9255', transform: 'log1p', getPair: p => p.meshMaxRobustZ },
   { id: 'pair_fdr', label: 'FDR10 (кольцо)', unit: '', domain: 'pair_evidence', availability: 'default', displayMin: 0, displayMax: 1, color: '#f4f6f8', transform: 'none', getPair: p => p.mtSignificantFdr10 ? 1 : 0 },
   // ── V14: RAW-геометрия (сырые значения, не z) — 6 метрик + калибровочный коридор ──
-  { id: 'raw_rmse', label: 'RMSE raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#5e9fe8', transform: 'log1p', getPair: p => p.meshRmse },
-  { id: 'raw_median', label: 'Median raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#4fb9c9', transform: 'log1p', getPair: p => p.meshMedian },
-  { id: 'raw_p95', label: 'P95 raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#de9255', transform: 'log1p', getPair: p => p.meshP95 },
-  { id: 'raw_pt_rmse', label: 'PtPlane RMSE raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#72bc8f', transform: 'log1p', getPair: p => p.meshPtPlaneRmse },
-  { id: 'raw_pt_median', label: 'PtPlane Median raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#bf8eda', transform: 'log1p', getPair: p => p.meshPtPlaneMedian },
-  { id: 'raw_pt_p95', label: 'PtPlane P95 raw', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0.0015, displayMax: 0.08, color: '#eac26b', transform: 'log1p', getPair: p => p.meshPtPlaneP95 },
+  { id: 'raw_rmse', label: 'RMSE raw', unit: '', domain: 'pair_raw', availability: 'opt_in', displayMin: 0.0015, displayMax: 0.08, color: '#5e9fe8', transform: 'log1p', getPair: p => p.meshRmse },
+  { id: 'raw_median', label: 'Median raw', unit: '', domain: 'pair_raw', availability: 'opt_in', displayMin: 0.0015, displayMax: 0.08, color: '#4fb9c9', transform: 'log1p', getPair: p => p.meshMedian },
+  { id: 'raw_p95', label: 'P95 raw', unit: '', domain: 'pair_raw', availability: 'opt_in', displayMin: 0.0015, displayMax: 0.08, color: '#de9255', transform: 'log1p', getPair: p => p.meshP95 },
+  { id: 'raw_pt_rmse', label: 'PtPlane RMSE raw', unit: '', domain: 'pair_raw', availability: 'opt_in', displayMin: 0.0015, displayMax: 0.08, color: '#72bc8f', transform: 'log1p', getPair: p => p.meshPtPlaneRmse },
+  { id: 'raw_pt_median', label: 'PtPlane Median raw', unit: '', domain: 'pair_raw', availability: 'opt_in', displayMin: 0.0015, displayMax: 0.08, color: '#bf8eda', transform: 'log1p', getPair: p => p.meshPtPlaneMedian },
+  { id: 'raw_pt_p95', label: 'PtPlane P95 raw', unit: '', domain: 'pair_raw', availability: 'opt_in', displayMin: 0.0015, displayMax: 0.08, color: '#eac26b', transform: 'log1p', getPair: p => p.meshPtPlaneP95 },
   // ── V14: статусы пер-метричных z (семантика: шум/повышен/неуверенно) ──
-  { id: 'metric_statuses', label: 'Статусы 6 метрик', unit: '', domain: 'pair_raw', availability: 'default', displayMin: 0, displayMax: 1, color: '#e97366', transform: 'none', getPair: p => p.meshRmseStatus === 'mesh_elevated_but_uncertain' ? 1 : 0 },
+  { id: 'metric_statuses', label: 'Статусы 6 метрик', unit: '', domain: 'pair_raw', availability: 'opt_in', displayMin: 0, displayMax: 1, color: '#e97366', transform: 'none', getPair: p => p.meshRmseStatus === 'mesh_elevated_but_uncertain' ? 1 : 0 },
   // ── P1 · opt-in: пять per-metric robust-z ──
   { id: 'z_rmse', label: 'RMSE z', unit: 'z', domain: 'pair_evidence', availability: 'opt_in', displayMin: 0, displayMax: 36, color: '#5e9fe8', transform: 'log1p', getPair: p => p.meshRmseRobustZ },
   { id: 'z_median', label: 'Median z', unit: 'z', domain: 'pair_evidence', availability: 'opt_in', displayMin: 0, displayMax: 36, color: '#4fb9c9', transform: 'log1p', getPair: p => p.meshMedianRobustZ },
@@ -51,17 +51,17 @@ export const TRACKS: TrackDef[] = [
   { id: 'alignment_quality', label: 'Alignment quality', unit: '', domain: 'applicability', availability: 'default', displayMin: 0, displayMax: 1, color: '#5e9fe8', transform: 'none', getPhoto: (_, m) => m?.alignmentQuality ?? null },
   { id: 'pair_align_residual', label: 'Pair align residual', unit: '', domain: 'applicability', availability: 'default', displayMin: 0, displayMax: 0.045, color: '#de9255', transform: 'none', getPair: p => p.meshAlignResidualAfterMedian },
   // ── P1 · экспрессия (confounder мягких тканей) — opt-in ──
-  { id: 'expression', label: 'Expression magnitude', unit: '', domain: 'expression', availability: 'opt_in', displayMin: 2.8, displayMax: 10.2, color: '#df84a8', transform: 'none', getPhoto: (_, m) => m?.expressionMagnitude ?? null },
-  { id: 'jaw_open', label: 'Jaw open degree', unit: '°', domain: 'expression', availability: 'opt_in', displayMin: 0, displayMax: 142, color: '#bf8eda', transform: 'none', getPhoto: (_, m) => m?.jawOpenDegree ?? null },
-  { id: 'corner_lift', label: 'Corner lift IoC', unit: '', domain: 'expression', availability: 'opt_in', displayMin: -0.07, displayMax: 0.11, color: '#eac26b', transform: 'none', getPhoto: (_, m) => m?.cornerLiftIoc ?? null },
+  { id: 'expression', label: 'Общий индекс мимики (служебный)', unit: '', domain: 'expression', availability: 'opt_in', displayMin: 2.8, displayMax: 10.2, color: '#df84a8', transform: 'none', getPhoto: (_, m) => m?.expressionMagnitude ?? null },
+  { id: 'jaw_open', label: 'Открытие рта', unit: '°', domain: 'expression', availability: 'default', displayMin: 0, displayMax: 142, color: '#bf8eda', transform: 'none', getPhoto: (_, m) => m?.jawOpenDegree ?? null },
+  { id: 'corner_lift', label: 'Подъём уголков губ (служебный)', unit: '', domain: 'expression', availability: 'opt_in', displayMin: -0.07, displayMax: 0.11, color: '#eac26b', transform: 'none', getPhoto: (_, m) => m?.cornerLiftIoc ?? null },
   // ── P0 · качество (группа: резкость/шум/кожа/аутентичность) ──
-  { id: 'sharpness', label: 'Резкость (Laplacian, log)', unit: 'log', domain: 'quality', availability: 'default', displayMin: log(20), displayMax: log(2000), color: '#4fb9c9', transform: 'log1p', getPhoto: (_, m) => m?.laplacianVariance ?? null },
-  { id: 'noise', label: 'Шум (residual)', unit: '', domain: 'quality', availability: 'default', displayMin: 0.2, displayMax: 3, color: '#eac26b', transform: 'none', getPhoto: (_, m) => m?.noiseResidualMean ?? null },
+  { id: 'sharpness', label: 'Резкость (служебная)', unit: 'log', domain: 'quality', availability: 'opt_in', displayMin: log(20), displayMax: log(2000), color: '#4fb9c9', transform: 'log1p', getPhoto: (_, m) => m?.laplacianVariance ?? null },
+  { id: 'noise', label: 'Шум (служебный)', unit: '', domain: 'quality', availability: 'opt_in', displayMin: 0.2, displayMax: 3, color: '#eac26b', transform: 'none', getPhoto: (_, m) => m?.noiseResidualMean ?? null },
   { id: 'skin_quality', label: 'Качество кожи', unit: '', domain: 'quality', availability: 'default', displayMin: 0.3, displayMax: 1, color: '#72bc8f', transform: 'none', getPhoto: (_, m) => m?.skinQualityScore ?? null },
-  { id: 'skin_auth', label: 'Аутентичность кожи (z)', unit: 'z', domain: 'quality', availability: 'default', displayMin: -1.5, displayMax: 3.5, color: '#e97366', transform: 'none', getPhoto: (_, m) => m?.skinAuthenticityScore ?? null },
+  { id: 'skin_auth', label: 'Аутентичность кожи', unit: '', domain: 'quality', availability: 'default', displayMin: -1.5, displayMax: 3.5, color: '#e97366', transform: 'none', getPhoto: (_, m) => m?.skinAuthenticityScore ?? null },
   // ── P2 · текстурная диагностика — opt-in ──
-  { id: 'anisotropy', label: 'Gradient anisotropy', unit: '', domain: 'quality_ext', availability: 'opt_in', displayMin: 1, displayMax: 3.7, color: '#9aa4b2', transform: 'none', getPhoto: (_, m) => m?.gradientAnisotropy ?? null },
-  { id: 'hard_area', label: 'Hard area fraction', unit: '', domain: 'quality_ext', availability: 'opt_in', displayMin: 0.2, displayMax: 0.6, color: '#d8b4fe', transform: 'none', getPhoto: (_, m) => m?.hardAreaFraction ?? null },
+  { id: 'anisotropy', label: 'Анизотропия градиента (служебная)', unit: '', domain: 'quality_ext', availability: 'opt_in', displayMin: 1, displayMax: 3.7, color: '#9aa4b2', transform: 'none', getPhoto: (_, m) => m?.gradientAnisotropy ?? null },
+  { id: 'hard_area', label: 'Доля сложной области (служебная)', unit: '', domain: 'quality_ext', availability: 'opt_in', displayMin: 0.2, displayMax: 0.6, color: '#d8b4fe', transform: 'none', getPhoto: (_, m) => m?.hardAreaFraction ?? null },
 ]
 
 // Исключённые поля (availability='excluded' намеренно не в TRACKS):
@@ -72,16 +72,16 @@ export const TRACKS: TrackDef[] = [
 
 export const TRACK_GROUPS = [
   { key: 'pair', label: 'Геометрия пар', trackIds: ['pair_max_z', 'pair_fdr'] },
-  { key: 'raw_geom', label: 'Геометрия raw + калибровка', trackIds: ['raw_rmse', 'raw_median', 'raw_p95', 'raw_pt_rmse', 'raw_pt_median', 'raw_pt_p95', 'metric_statuses'] },
+  { key: 'raw_geom', label: 'Техническая геометрия', trackIds: ['raw_rmse', 'raw_median', 'raw_p95', 'raw_pt_rmse', 'raw_pt_median', 'raw_pt_p95', 'metric_statuses'] },
   { key: 'pair_families', label: 'baseline + rolling семейства', trackIds: [] },
   { key: 'z_suite', label: 'пять robust-z на пару', trackIds: ['z_rmse', 'z_median', 'z_p95', 'z_pt_rmse', 'z_pt_median'] },
   { key: 'zones', label: 'зоны эффекта (глиф 3×3)', trackIds: [] },  // V8: zone_metrics.json; robustZ зон некалиброван — показываем raw rmse
   { key: 'support', label: 'Поддержка пар', trackIds: ['pair_visibility'] },
   { key: 'support_ext', label: 'вершины + якоря', trackIds: ['pair_vertices', 'pair_anchor'] },
   { key: 'applicability', label: 'Применимость', trackIds: ['alignment_quality', 'pair_align_residual'] },
-  { key: 'expression', label: 'экспрессия', trackIds: ['expression', 'jaw_open', 'corner_lift'] },
-  { key: 'quality', label: 'Качество (резкость/шум/кожа)', trackIds: ['sharpness', 'noise', 'skin_quality', 'skin_auth'] },
-  { key: 'quality_ext', label: 'анизотропия + hard area', trackIds: ['anisotropy', 'hard_area'] },
+  { key: 'expression', label: 'Открытие рта', trackIds: ['expression', 'jaw_open', 'corner_lift'] },
+  { key: 'quality', label: 'Кожа: качество + аутентичность', trackIds: ['sharpness', 'noise', 'skin_quality', 'skin_auth'] },
+  { key: 'quality_ext', label: 'Техническая диагностика кожи', trackIds: ['anisotropy', 'hard_area'] },
   { key: 'events', label: 'События и QC-иконки', trackIds: [] },
 ]
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { PairConnection, PoseBin, ZoneMetric } from './types'
-import { classifyPair, zoneLabel } from './timeline-data-contract'
-import { SectionShell, MiniBars } from './SectionShell'
+import type { PairConnection, PoseBin } from './types'
+import { classifyPair } from './timeline-data-contract'
+import { SectionShell } from './SectionShell'
 import type { SectionKey } from './section-meta'
 import type { DecisionEntry, DecisionValue } from './App'
 
@@ -25,8 +25,8 @@ function score(p: PairConnection): number {
 const POSES: (PoseBin | 'all')[] = ['all', 'frontal', 'left_light', 'right_light', 'left_mid', 'right_mid', 'left_deep', 'right_deep', 'left_profile', 'right_profile']
 type DecFilter = 'all' | 'undecided' | 'accepted' | 'rejected' | 'more_data'
 
-export function Casework({ pairs, zones, decisions, onDecision, initialPairId, onClose, onNavigate, onCompare }: {
-  pairs: PairConnection[]; zones: Map<string, ZoneMetric[]>
+export function Casework({ pairs, decisions, onDecision, initialPairId, onClose, onNavigate, onCompare }: {
+  pairs: PairConnection[]
   decisions: Record<string, DecisionEntry>; onDecision: (pairId: string, d: DecisionValue | null, rationale?: string) => void
   initialPairId: string | null; onClose: () => void; onNavigate?: (k: SectionKey) => void; onCompare?: (p: PairConnection) => void
 }) {
@@ -53,24 +53,12 @@ export function Casework({ pairs, zones, decisions, onDecision, initialPairId, o
   /* V12-fix: при фильтрации индекс не должен выходить за границы */
   useEffect(() => { setIndex(i => Math.max(0, Math.min(queue.length - 1, i))) }, [queue.length])
   const current = queue[index] ?? null
-  const pairZones = useMemo(() => (current ? zones.get(current.pairId) ?? [] : []).filter(z => z.status === 'measured' && z.rmse != null), [zones, current])
-  const topZones = useMemo(() => [...pairZones].sort((a, b) => (b.rmse ?? 0) - (a.rmse ?? 0)).slice(0, 5), [pairZones])
-
   const stats = useMemo(() => {
-    const byYear = new Map<number, { done: number; total: number }>()
-    for (const p of base) {
-      const y = Number(p.dateB.slice(0, 4))
-      const c = byYear.get(y) ?? { done: 0, total: 0 }
-      c.total++
-      if (decisions[p.pairId]?.decision) c.done++
-      byYear.set(y, c)
-    }
-    const years = [...byYear.keys()].sort((a, b) => a - b)
     const counts = { total: base.length, done: Object.values(decisions).filter(d => d.decision).length,
       accepted: Object.values(decisions).filter(d => d.decision === 'accepted').length,
       rejected: Object.values(decisions).filter(d => d.decision === 'rejected').length,
       more: Object.values(decisions).filter(d => d.decision === 'more_data').length }
-    return { byYear, years, counts }
+    return { counts }
   }, [base, decisions])
 
   const exportLog = () => {
@@ -126,10 +114,6 @@ export function Casework({ pairs, zones, decisions, onDecision, initialPairId, o
       </div>}>
       <div className="cw2">
         <div className="cw2-left">
-          <div className="sec-card cw2-stats">
-            <h4>Решения по годам <small>(заполненность — доля решённых)</small></h4>
-            <MiniBars data={stats.years.map(y => ({ label: String(y).slice(2), value: stats.byYear.get(y)?.total ?? 0 }))} />
-          </div>
           <div className="sec-card cw2-list-wrap">
             <h4>Очередь ({queue.length})</h4>
             <div className="cw2-list">
@@ -176,14 +160,6 @@ export function Casework({ pairs, zones, decisions, onDecision, initialPairId, o
                 <span>q <b>{current.mtQValue?.toFixed(6) ?? '—'}</b></span>
                 <span>видимость <b>{current.meshVisibleFraction != null ? Math.round(current.meshVisibleFraction * 100) + '%' : '—'}</b></span>
                 <span>мимика <b>{exprMismatch ? '⚠ различается' : 'совпадает'}</b></span>
-                <span>калибровка <b>{current.meshCalibratedStatus || '—'}</b></span>
-              </div>
-              <div className="cw2-zones">
-                <h4>Топ-зоны (raw rmse)</h4>
-                {topZones.length === 0 && <p className="sec-note">Зональных измерений нет (зоны есть у 63 из 305 пар).</p>}
-                {topZones.map(z => (
-                  <div key={z.zone} className="cw2-zone-row"><span>{zoneLabel(z.zone)}</span><span>RMSE {z.rmse?.toFixed(4)}</span><span>P95 {z.p95?.toFixed(4) ?? '—'}</span><span>n={z.pointCount ?? '—'}</span></div>
-                ))}
               </div>
               <div className="cw2-actions" role="group" aria-label="Решение по кандидату">
                 <button className={`cw2-btn ${dec === 'accepted' ? 'active ok' : ''}`} onClick={() => onDecision(current.pairId, 'accepted')}>✓ К отчёту (1)</button>
