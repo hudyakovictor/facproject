@@ -18,7 +18,7 @@ alpha-векторов, использующих ТОЧНО ТУ ЖЕ модел
 
 Модуль не встраивает файл `face_model.npy` в git (см. `.gitignore: *.npy`):
 он извлекается лениво из уже закоммиченного `face_model.tar.gz` в кэш
-`runs/bfm_cache/` при первом обращении и переиспользуется дальше.
+`.runtime/runs/bfm_cache/` при первом обращении и переиспользуется дальше.
 """
 from __future__ import annotations
 

@@ -88,7 +88,7 @@ EXIF не читается.
 ## Этап 2
 
 Актуальные контракты Stage 2 описаны в `AGENTS.md` и `SKILL.md` (корень проекта,
-`ui-v5/AGENTS.md`, `ui-v5/SKILL.md`) и scoped-правилах `app6` (
-`ui-v5/app6/AGENTS.md`); фактическое состояние покрывается regression-тестами
+`ui/README.md`) и scoped-правилах `app6`;
+фактическое состояние покрывается regression-тестами
 `app6/test_module/` (см. `pytest app6/test_module`).
 

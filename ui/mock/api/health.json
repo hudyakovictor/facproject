@@ -1,0 +1,11 @@
+{
+  "schema": "deeputin-api-v1.0",
+  "source_mode": "research",
+  "not_a_verdict": true,
+  "status": "ok",
+  "stage1_ready": true,
+  "stage2_ready": true,
+  "stage3_ready": true,
+  "photo_count": 3,
+  "pair_count": 3
+}

@@ -41,6 +41,7 @@ from .visibility_gate import pair_visibility
 from .space_selection import assert_analysis_space, space_manifest
 from .run_manifest import build_manifest
 from .core import build_coordinate_zone_map,calibrated_score,compare_landmarks
+from .pair_row_patch import enrich_pair_row
 from .loaders import load_calibration,load_main
 from .mesh_calibration import MeshNoiseModel
 from .multiple_testing import apply_pair_fdr, apply_zone_fdr
@@ -215,7 +216,11 @@ class Stage2Engine:
   # Load and construct every read-only dependency before destructive overwrite.
   main=load_main(self.cfg.stage1_root);cal=load_calibration(self.cfg.calibration_root);leads=load_leads(self.cfg.lead_archive)
   if not main:raise RuntimeError('no valid stage1 records')
-  z106,m106=build_coordinate_zone_map(cal,106);z134,m134=build_coordinate_zone_map(cal,134);model=CalibrationModel(cal,z106,z134);point_model=PointNoiseModel(cal);descriptor_model=DescriptorNoiseModel(cal);mesh_model=MeshNoiseModel(cal)
+  from .primary_zones import build_anatomical_landmark_zone_map as _build_anat_zones
+  z106_coord,m106_coord=build_coordinate_zone_map(cal,106);z134_coord,m134_coord=build_coordinate_zone_map(cal,134)
+  z106,m106=_build_anat_zones(list(cal)+list(main),106);z134,m134=_build_anat_zones(list(cal)+list(main),134)
+  if m134.get('status')!='ok':z106,m106,z134,m134=z106_coord,m106_coord,z134_coord,m134_coord
+  model=CalibrationModel(cal,z106,z134);point_model=PointNoiseModel(cal);descriptor_model=DescriptorNoiseModel(cal);mesh_model=MeshNoiseModel(cal)
   if o.exists() and self.cfg.overwrite:
    for child in o.iterdir():
     try:
@@ -223,7 +228,7 @@ class Stage2Engine:
     except FileNotFoundError:
      pass
   o.mkdir(parents=True,exist_ok=True)
-  atomic_json(o/'zone_map.json',{'schema':'coordinate-zone-map-v1','ldm106':z106,'ldm134':z134,'ldm106_meta':m106,'ldm134_meta':m134})
+  atomic_json(o/'zone_map.json',{'schema':'primary-hypothesis-zone-map-v1','ldm106':z106,'ldm134':z134,'ldm106_meta':m106,'ldm134_meta':m134})
   atomic_json(o/'calibration_noise_model.json',{'schema':'calibration-noise-v2-balanced','policy':'equal_person_median_of_quantiles_v1','datasets':model.datasets,'record_count':len(cal),'references':model.references})
   calibration_sensitivity=leave_one_dataset_sensitivity(cal,z106,z134)
   atomic_json(o/'calibration_sensitivity.json',calibration_sensitivity)
@@ -337,6 +342,7 @@ class Stage2Engine:
    if isinstance(dpl, str):
        dpl = dpl.strip().lower() in ('true', '1', 'yes')
    row['evidence_state']=('date_provenance_limited' if dpl else ('near_duplicate_limited' if row.get('near_duplicate_pair') and status not in ('within_reconstruction_noise','within_calibration_noise') else evidence_state(str(row.get('status','')),quality_limited=qlimited)))
+   row=enrich_pair_row(row,zones=c.zones,record_a=a,record_b=b,qc_a=qc_by_id.get(a.record_id,{}),qc_b=qc_by_id.get(b.record_id,{}),smile_a=bool(smile_detected.get(a.record_id)),smile_b=bool(smile_detected.get(b.record_id)),jaw_a=bool(jaw_open_detected.get(a.record_id)),jaw_b=bool(jaw_open_detected.get(b.record_id)))
    rows.append(row)
    for z in c.zones:
     zr={'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**z}

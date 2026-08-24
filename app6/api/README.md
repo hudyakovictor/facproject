@@ -33,7 +33,7 @@ API всегда явно указывает `source_mode` в ответе:
 | `DEEPUTIN_STAGE1_ROOT` | Каталог вывода Stage 1 (`main_timeline.csv`) |
 | `DEEPUTIN_STAGE2_ROOT` | Каталог вывода Stage 2 (`analysis_manifest.json`) |
 | `DEEPUTIN_CALIBRATION_ROOT` | По умолчанию `calibration_dataset/` |
-| `DEEPUTIN_UPLOADS_ROOT` | По умолчанию `runs/api_uploads/` |
+| `DEEPUTIN_UPLOADS_ROOT` | По умолчанию `.runtime/runs/api_uploads/` |
 
 ## Основные эндпоинты
 
@@ -65,8 +65,8 @@ API всегда явно указывает `source_mode` в ответе:
   доступность BFM-геометрии (`bfm_geometry_available`).
 - `GET|PUT /api/v1/settings`, `POST /api/v1/settings/reset` — пороги
   тепловой карты и прочие UI-настройки, персистентно на диске.
-- `POST /api/v1/data/clear` — очистить извлечённые данные (`runs/api_stage1`,
-  `runs/api_stage2`) без удаления исходных фото с диска.
+- `POST /api/v1/data/clear` — очистить извлечённые данные (`.runtime/runs/api_stage1`,
+  `.runtime/runs/api_stage2`) без удаления исходных фото с диска.
 
 ## Тесты
 

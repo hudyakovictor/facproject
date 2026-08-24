@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /Users/victorkhudyakov/work
+cd "$(dirname "$0")/.."
 export PYTHONPATH=. 
 
 echo "Running route coverage audit..."

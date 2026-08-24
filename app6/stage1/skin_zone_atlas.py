@@ -570,6 +570,7 @@ def project_atlas_to_photo(
     quality_doc = {
         "schema_version": ATLAS_SCHEMA_VERSION,
         "pose_bin": pose_bin,
+        "pose": {"pose_bin": pose_bin},
         "skin_mask_coverage": skin_coverage,
         "zones": {
             name: {
