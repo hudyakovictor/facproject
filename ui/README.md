@@ -13,6 +13,11 @@ ui/
     stage2/              # Mock Stage 2 output
     stage3/              # Mock Stage 3 output
     api/                 # Mock API responses
+  real_examples/
+    stage1/              # REAL Stage 1 output for one frontal photo
+    stage2/              # REAL Stage 2 output for one pair
+    stage3/              # REAL Stage 3 report
+    README.md            # Explanation of real data files
   src/                   # Frontend source code (to be created)
   public/                # Static assets (to be created)
 ```
@@ -21,8 +26,9 @@ ui/
 
 1. Read `spec/SPEC.md` — it lists every UI element with its data key and type.
 2. Open `mock/` — these files are your data playground. They have the exact same schema as real data.
-3. Design any layout you want. Do NOT invent new data fields.
-4. Hand off to developers with your mock data + `SPEC.md`.
+3. Open `real_examples/` — here you can see REAL data from one processed photo and one pair. This shows exactly what the backend produces.
+4. Design any layout you want. Do NOT invent new data fields.
+5. Hand off to developers with your mock data + `SPEC.md`.
 
 ## Quick Start for Developers
 
