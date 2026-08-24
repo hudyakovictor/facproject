@@ -157,6 +157,7 @@ def robust_rigid_align(
     translation = np.zeros(3, dtype=np.float32)
     trim_fraction = float(np.clip(trim_fraction, 0.0, 0.4))
     for _ in range(1, max_iterations + 1):
+        iterations += 1
         _, rotation, translation = _rigid_align(src[keep], dst[keep])
         all_aligned = src @ rotation + translation
         residual = np.linalg.norm(all_aligned[ids] - dst[ids], axis=1)
@@ -494,3 +495,14 @@ def zone_weighted_score(zone_rmse: dict[str, float], zone_map: np.ndarray,
         "weighted_status": status,
         "per_zone_scores": per_zone_scores,
     }
+
+
+# Веса primary-зон гипотез. Сетка 3×3 остаётся fallback с малым весом.
+from .primary_zones import PRIMARY_ZONE_WEIGHTS as _PRIMARY_ZONE_WEIGHTS
+
+ZONE_WEIGHTS = {
+    **_PRIMARY_ZONE_WEIGHTS,
+    "x_low_low": 0.4, "x_center_low": 0.4, "x_high_low": 0.4,
+    "x_low_center": 0.4, "x_center_center": 0.5, "x_high_center": 0.4,
+    "x_low_high": 0.3, "x_center_high": 0.3, "x_high_high": 0.3,
+}

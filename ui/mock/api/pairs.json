@@ -1,0 +1,20 @@
+{
+  "schema": "deeputin-api-v1.0",
+  "source_mode": "research",
+  "not_a_verdict": true,
+  "status": "measured",
+  "uncompensated": false,
+  "metrics": {
+    "mesh_rmse": 0.05,
+    "texture_score": 0.95,
+    "primary_robust_z": 1.5
+  },
+  "photo_a": {
+    "id": "1998_01_01__9714228198ba",
+    "bucket": "left_light"
+  },
+  "photo_b": {
+    "id": "1999_01_11__db32bc4a4ce9",
+    "bucket": "left_deep"
+  }
+}

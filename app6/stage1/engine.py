@@ -621,6 +621,19 @@ class Stage1Engine:
                 "quality_summary": quality_summary, "skin": skin_status,
                 "reprojection": rec.reprojection, "crop": crop_meta, "files": files,
             }
+            # 🛠️ PATCH → quality honesty: compute real technical metrics using already-defined variables.
+            quality_summary = {
+                "status": "technical_v1",
+                "reprojection_p95": reprojection_p95,
+                "reprojection_rmse": reprojection_rmse,
+                "correction_magnitude_deg": float(np.linalg.norm(correction_per_axis)),
+                "alignment_quality": float(1.0 - np.clip(
+                    (correction_per_axis[0] / 15.0 + correction_per_axis[1] / 30.0 + correction_per_axis[2] / 15.0) / 3.0,
+                    0.0, 1.0
+                )),
+                "face_area_ratio": face_area_ratio,
+                "uv_observed_coverage": uv_meta["observed_coverage"],
+            }
             if skin_status.get("state") == "success" and (out / "texture.json").is_file():
                 tex = json.loads((out / "texture.json").read_text(encoding="utf-8"))
                 info["skin_quality_score"] = tex.get("quality", {}).get("score")

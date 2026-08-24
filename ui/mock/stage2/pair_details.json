@@ -1,0 +1,91 @@
+{
+  "schema": "deeputin-pair-details-v1.0",
+  "pairs": [
+    {
+      "pair_id": "1998_01_01__9714228198ba__1999_01_11__db32bc4a4ce9",
+      "pair": {
+        "photo_a": "1998_01_01__9714228198ba",
+        "photo_b": "1999_01_11__db32bc4a4ce9",
+        "pose_bin": "frontal",
+        "date_a": "1998-01-01",
+        "date_b": "1999-01-11",
+        "status": "measured"
+      },
+      "zones": [
+        {
+          "zone_id": "zone_001",
+          "name": "forehead_left",
+          "rmse": 0.05,
+          "median": 0.04,
+          "p95": 0.08,
+          "status": "pass"
+        },
+        {
+          "zone_id": "zone_002",
+          "name": "cheek_right",
+          "rmse": 0.06,
+          "median": 0.05,
+          "p95": 0.09,
+          "status": "pass"
+        }
+      ],
+      "calibrated_metrics": {
+        "primary_robust_z": 1.5,
+        "primary_calibration_p95": 0.05,
+        "evidence_state": "measured"
+      }
+    },
+    {
+      "pair_id": "1998_01_01__9714228198ba__1999_07_01__d6f93fc968d7",
+      "pair": {
+        "photo_a": "1998_01_01__9714228198ba",
+        "photo_b": "1999_07_01__d6f93fc968d7",
+        "pose_bin": "left_light",
+        "date_a": "1998-01-01",
+        "date_b": "1999-07-01",
+        "status": "measured"
+      },
+      "zones": [
+        {
+          "zone_id": "zone_001",
+          "name": "forehead_left",
+          "rmse": 0.05,
+          "median": 0.04,
+          "p95": 0.08,
+          "status": "pass"
+        }
+      ],
+      "calibrated_metrics": {
+        "primary_robust_z": 1.5,
+        "primary_calibration_p95": 0.05,
+        "evidence_state": "measured"
+      }
+    },
+    {
+      "pair_id": "1999_01_11__db32bc4a4ce9__1999_07_01__d6f93fc968d7",
+      "pair": {
+        "photo_a": "1999_01_11__db32bc4a4ce9",
+        "photo_b": "1999_07_01__d6f93fc968d7",
+        "pose_bin": "left_light",
+        "date_a": "1999-01-11",
+        "date_b": "1999-07-01",
+        "status": "measured"
+      },
+      "zones": [
+        {
+          "zone_id": "zone_001",
+          "name": "forehead_left",
+          "rmse": 0.05,
+          "median": 0.04,
+          "p95": 0.08,
+          "status": "pass"
+        }
+      ],
+      "calibrated_metrics": {
+        "primary_robust_z": 1.5,
+        "primary_calibration_p95": 0.05,
+        "evidence_state": "measured"
+      }
+    }
+  ]
+}

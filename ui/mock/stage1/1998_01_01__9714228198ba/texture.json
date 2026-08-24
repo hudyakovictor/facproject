@@ -1,0 +1,40 @@
+{
+  "schema": "texture-v1",
+  "photo_id": "1998_01_01__9714228198ba",
+  "source": {
+    "face_mask_png": "face_mask.png",
+    "size": [458, 515],
+    "mask_pixels": 100173
+  },
+  "model": {
+    "version": "skin-authenticity-v1",
+    "panel_size": 20,
+    "aggregation": "median_z_top20",
+    "libraries": ["numpy", "opencv-python-headless", "Pillow"],
+    "source": "user_stress_quality_run_2026-07-23"
+  },
+  "quality": {
+    "score": 0.9584572302565246,
+    "status": "high",
+    "hard_stop": false,
+    "rule": {
+      "required_count": 3,
+      "thresholds": {
+        "q_noise_mad": 0.46002500000000873,
+        "q_grad_med": 0.10522263936677943,
+        "q_lap_med": 0.017564602107188035
+      }
+    },
+    "metrics": {
+      "q_noise_mad": 1.266999999999996,
+      "q_grad_med": 0.18421784121021306,
+      "q_lap_med": 0.04001802586044953,
+      "q_contrast": 110.033,
+      "q_exposure_clip": 0.0
+    }
+  },
+  "authenticity": {
+    "score": 0.95,
+    "status": "high"
+  }
+}
