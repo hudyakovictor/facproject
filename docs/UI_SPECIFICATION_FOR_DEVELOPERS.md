@@ -196,6 +196,21 @@ export DEEPUTIN_MOCK_DATA_ROOT="/Users/victorkhudyakov/work/ui/mock"
 | [ui/mock/api/health.json](https://github.com/hudyakovictor/facproject/blob/main/ui/mock/api/health.json) | Мок ответа API `/api/v1/health` |
 | [ui/mock/api/pairs.json](https://github.com/hudyakovictor/facproject/blob/main/ui/mock/api/pairs.json) | Мок ответа API `/api/v1/compare` |
 
+### 5.2. Реальные примеры данных (production)
+
+| Файл | Что там |
+|---|---|
+| [ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/info.json](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/info.json) | **Реальная** карточка фронтального фото из вашего набора |
+| [ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/ldm106_raw.csv](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/ldm106_raw.csv) | Реальные 106 landmarks в сыром пространстве |
+| [ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/ldm134_chronology.csv](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/ldm134_chronology.csv) | Реальные 134 landmarks после выравнивания |
+| [ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/texture.json](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/texture.json) | Реальная текстура кожи с метриками |
+| [ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/face_mask.png](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/face_mask.png) | Реальная маска лица |
+| [ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/mesh.obj](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage1/1999_09_01__fdfba9d7bcd5/mesh.obj) | Реальный 3D-меш лица (7 MB, 35k вершин) |
+| [ui/real_examples/stage2/pair_metrics_sample.csv](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage2/pair_metrics_sample.csv) | Реальная строка из pair_metrics.csv — одна пара с 222 колонками |
+| [ui/real_examples/stage2/analysis_manifest.json](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage2/analysis_manifest.json) | Реальный манифест Stage 2 |
+| [ui/real_examples/stage2/pair_details_sample.json](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage2/pair_details_sample.json) | Реальные детали пары: zones, calibrated_metrics |
+| [ui/real_examples/stage3/report_data.json](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples/stage3/report_data.json) | Реальный финальный отчёт Stage 3 |
+
 ### 5.3. Запускальщик пайплайна
 
 | Файл | Что там |
@@ -218,7 +233,7 @@ export DEEPUTIN_MOCK_DATA_ROOT="/Users/victorkhudyakov/work/ui/mock"
 
 ## 7. Что дальше
 
-1. **Дизайнер** читает [SPEC.md](https://github.com/hudyakovictor/facproject/blob/main/ui/spec/SPEC.md), открывает [mock/](https://github.com/hudyakovictor/facproject/blob/main/ui/mock) и делает макеты, привязываясь к ключам из SPEC.md.
+1. **Дизайнер** читает [SPEC.md](https://github.com/hudyakovictor/facproject/blob/main/ui/spec/SPEC.md), открывает [mock/](https://github.com/hudyakovictor/facproject/blob/main/ui/mock) для схемы данных и [real_examples/](https://github.com/hudyakovictor/facproject/blob/main/ui/real_examples) для реальных примеров, и делает макеты, привязываясь к ключам из SPEC.md.
 2. **Разработчик** берёт макеты и подключает их к API (см. [API_CONTRACT.md](https://github.com/hudyakovictor/facproject/blob/main/ui/spec/API_CONTRACT.md)) или прямым файлам (см. [DATA_SOURCES.md](https://github.com/hudyakovictor/facproject/blob/main/ui/spec/DATA_SOURCES.md)).
 3. **Мок-данные заменяются на реальные** одной переменной окружения `DEEPUTIN_MOCK_DATA_ROOT`. Никакого переписывания кода не требуется.
 
