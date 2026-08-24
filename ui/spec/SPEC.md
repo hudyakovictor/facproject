@@ -271,7 +271,14 @@ DEEPUTIN_CALIBRATION_ROOT → /Volumes/SDCARD/photo/calibration_dataset/calibrat
 
 **Purpose:** final forensic report with narrative, timelines, and change points.
 
-**Data source:** `stage3/report_data.json`
+**Data source:** `stage3/report_data.json` (57 MB) — never load whole. Use derived artifacts from `/Volumes/SDCARD/storage/ui_artifacts/report_sections/`.
+
+**Top-level keys in report_data.json:**
+```
+analysis_manifest, change_points, lead_pairs, lead_registry, methodology,
+metric_catalog, motion_maps, narrative, pairs, schema_version,
+summary, timelines, zones
+```
 
 **Elements:**
 
@@ -289,6 +296,10 @@ DEEPUTIN_CALIBRATION_ROOT → /Volumes/SDCARD/photo/calibration_dataset/calibrat
 | `methodology` | `report_data.methodology` | object | Methodology description |
 | `metric_catalog` | `report_data.metric_catalog` | object | Same structure as stage2 metric_catalog |
 | `analysis_manifest` | `report_data.analysis_manifest` | object | Mirrors stage2 manifest |
+
+**Derived artifacts (preferred for UI):**
+- `report_meta.json` — sections list, counters, limitations (1.3 KB)
+- `report_sections/{name}.json` — individual sections on demand
 
 **Empty state:** If `report_data.json` missing, show `"Stage 3 report not generated."` + link to trigger `POST /api/v1/jobs` or run `run_stage3.py`.
 
