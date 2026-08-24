@@ -56,8 +56,9 @@ This file maps every UI element to its exact source file and key path.
 | `change_points` | `stage3/report_data.json` | `change_points` | JSON array |
 | `timelines` | `stage3/report_data.json` | `timelines` | JSON object |
 | `zones` | `stage3/report_data.json` | `zones` | JSON array |
+| `report_sections/*` | `ui_artifacts/report_sections/{name}.json` | per-section | JSON file |
 
-## API Equivalents
+**Important:** `report_data.json` is 57 MB. UI must NOT load it whole. Use `report_meta.json` (1.3 KB) for navigation and `report_sections/{name}.json` for section content. Regenerate with `scripts/prepare_ui_data.py`.
 
 Every file above is also accessible via API endpoints listed in `API_CONTRACT.md`.  
 Prefer API reads over direct filesystem access in the UI. Direct filesystem access is only needed for binary artifacts (images, OBJ).
