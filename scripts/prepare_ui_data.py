@@ -23,27 +23,24 @@ def prepare_timeline_matrix() -> None:
 
 
 def prepare_zone_summary() -> None:
-    with open(STORAGE / "stage2" / "pair_details.json", encoding="utf-8") as f:
-        data = json.load(f)
+    # Use zone_metrics.csv instead of removed pair_details.json
     rows = []
-    for entry in data.get("pairs", []):
-        pair = entry.get("pair", {})
-        zones = entry.get("zones", [])
-        rmse = [z["rmse"] for z in zones if isinstance(z.get("rmse"), (int, float))]
-        median = [z["median"] for z in zones if isinstance(z.get("median"), (int, float))]
-        rows.append({
-            "pair_id": f"{pair.get('photo_a','')}__{pair.get('photo_b','')}",
-            "photo_a": pair.get("photo_a", ""),
-            "photo_b": pair.get("photo_b", ""),
-            "pose_bin": pair.get("pose_bin", ""),
-            "zone_count": len(zones),
-            "avg_rmse": sum(rmse) / len(rmse) if rmse else None,
-            "avg_median": sum(median) / len(median) if median else None,
-            "max_rmse": max(rmse) if rmse else None,
-            "min_rmse": min(rmse) if rmse else None,
-            "status": pair.get("status", ""),
-            "primary_robust_z": pair.get("calibrated_metrics", {}).get("primary_robust_z"),
-        })
+    with open(STORAGE / "stage2" / "zone_metrics.csv", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append({
+                "pair_id": row.get("pair_id", ""),
+                "photo_a": row.get("photo_a", ""),
+                "photo_b": row.get("photo_b", ""),
+                "pose_bin": row.get("pose_bin", ""),
+                "zone_count": 1,
+                "avg_rmse": float(row["rmse"]) if row.get("rmse") else None,
+                "avg_median": float(row["median"]) if row.get("median") else None,
+                "max_rmse": float(row["rmse"]) if row.get("rmse") else None,
+                "min_rmse": float(row["rmse"]) if row.get("rmse") else None,
+                "status": row.get("status", ""),
+                "primary_robust_z": float(row["robust_z"]) if row.get("robust_z") else None,
+            })
     if rows:
         with open(UI_ARTIFACTS / "zone_summary.csv", "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))

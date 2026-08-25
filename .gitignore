@@ -28,6 +28,13 @@ __MACOSX/
 *.png
 *.webp
 *.bmp
+
+# DEEPUTIN heavy redundant artifacts (use ui_artifacts/ instead)
+storage/stage2/pair_details.json
+storage/stage2/evidence_packets.json
+storage/stage2/evidence_packets.jsonl
+storage/stage2/mesh_zone_metrics.csv
+storage/stage3/report_data.json
 *.tif
 *.tiff
 
@@ -36,10 +43,9 @@ __MACOSX/
 3ddfa_v3/examples/
 uv_module/_cache/
 calibration_dataset/photos
-runs/
+.runtime/
 results/
 assets/
-patch/
 storage_light/
 
 # Build artifacts

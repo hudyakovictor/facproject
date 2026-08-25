@@ -144,6 +144,16 @@ else
     fi
     STAGE2_DONE=true
     log "Stage 2 complete."
+
+    log "=== VALIDATION: Stage 2 contract ==="
+    "$PYTHON" "$ROOT/validation/check_stage2_contract.py" "$DEEPUTIN_STAGE2_ROOT" \
+      --sample-limit 20 --max-depth 4 2>&1 | tee "$LOG_DIR/val_01_stage2_contract.log"
+    VAL_STATUS="${PIPESTATUS[0]}"
+    if [[ "$VAL_STATUS" -ne 0 ]]; then
+      fail "Stage 2 validation failed (exit $VAL_STATUS). Check $LOG_DIR/val_01_stage2_contract.log"
+      exit "$VAL_STATUS"
+    fi
+    log "Stage 2 validation passed."
   fi
 
   # ═══════════════════════════════════════════════════════════════════════════════
@@ -170,6 +180,16 @@ mkdir -p "$STAGE2B_OUT"
     fi
     STAGE2B_DONE=true
     log "Stage 2B complete."
+
+    log "=== VALIDATION: Stage 2B non-invention ==="
+    "$PYTHON" "$ROOT/validation/check_stage2b_noninvention.py" \
+      "$DEEPUTIN_STAGE2_ROOT" "$STAGE2B_OUT" 2>&1 | tee "$LOG_DIR/val_11_stage2b_noninvention.log"
+    VAL2B_STATUS="${PIPESTATUS[0]}"
+    if [[ "$VAL2B_STATUS" -ne 0 ]]; then
+      fail "Stage 2B validation failed (exit $VAL2B_STATUS). Check $LOG_DIR/val_11_stage2b_noninvention.log"
+      exit "$VAL2B_STATUS"
+    fi
+    log "Stage 2B validation passed."
   fi
 
   # ═══════════════════════════════════════════════════════════════════════════════
@@ -193,6 +213,20 @@ mkdir -p "$STAGE2B_OUT"
     fi
     STAGE3_DONE=true
     log "Stage 3 complete."
+
+    log "=== Preparing UI artifacts ==="
+    "$PYTHON" "$ROOT/scripts/prepare_ui_data.py" 2>&1 | tee -a "$LOG_DIR/prepare_ui_data.log"
+    log "UI artifacts prepared."
+
+    log "=== VALIDATION: Stage 3 claim safety ==="
+    "$PYTHON" "$ROOT/validation/check_stage3_claim_safety.py" "$DEEPUTIN_STAGE3_ROOT" \
+      2>&1 | tee "$LOG_DIR/val_12_stage3_claim_safety.log"
+    VAL3_STATUS="${PIPESTATUS[0]}"
+    if [[ "$VAL3_STATUS" -ne 0 ]]; then
+      fail "Stage 3 validation failed (exit $VAL3_STATUS). Check $LOG_DIR/val_12_stage3_claim_safety.log"
+      exit "$VAL3_STATUS"
+    fi
+    log "Stage 3 validation passed."
   fi
 fi
 
@@ -250,6 +284,49 @@ log " API server:            $([[ $SKIP_API == true ]] && echo 'skipped' || echo
 log " UI dev server:         $([[ $SKIP_UI == true ]] && echo 'skipped' || echo -e "${GREEN}running (PID $UI_PID)${NC}")"
 log " Logs:                  $LOG_DIR"
 log "═══════════════════════════════════════════════════════════════"
-log "Open UI:  http://localhost:5173"
-log "Open API: http://localhost:8000/api/v1/health"
+log " Open UI:  http://localhost:5173"
+log " Open API: http://localhost:8000/api/v1/health"
 log "═══════════════════════════════════════════════════════════════"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Full validation suite (01-12)
+# ═══════════════════════════════════════════════════════════════════════════════
+log "=== RUNNING FULL VALIDATION SUITE ==="
+VALIDATION_DIR="$ROOT/validation"
+run_validation() {
+  local num="$1"
+  local script="$2"
+  shift 2
+  local log="$LOG_DIR/val_${num}_${script%.py}.log"
+  echo "--- VALIDATION: $script ---" | tee -a "$LOG_DIR/00_header.log"
+  "$PYTHON" "$VALIDATION_DIR/$script" "$@" 2>&1 | tee -a "$log"
+  local rc=${PIPESTATUS[0]}
+  echo "EXIT_CODE=$rc" | tee -a "$log"
+  return $rc
+}
+
+run_validation "01" "check_stage2_contract.py" "$DEEPUTIN_STAGE2_ROOT" --sample-limit 20 --max-depth 4 || VAL_SUITE_STATUS=1
+run_validation "02" "check_stage1_to_stage2_link.py" "$DEEPUTIN_STAGE1_ROOT" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "03" "check_pair_legality.py" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "04" "check_calibration_health.py" "$DEEPUTIN_CALIBRATION_ROOT" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "05" "check_expression_consistency.py" "$DEEPUTIN_STAGE1_ROOT" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "06" "check_pose_alignment_diagnostics.py" "$DEEPUTIN_STAGE1_ROOT" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "07" "check_primary_metrics_consistency.py" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "08" "check_fdr_and_pvalues.py" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "09" "check_chronology_logic.py" "$DEEPUTIN_STAGE2_ROOT" "$DEEPUTIN_STAGE3_ROOT" || true
+run_validation "10" "check_evidence_packet_integrity.py" "$DEEPUTIN_STAGE2_ROOT" || true
+run_validation "11" "check_stage2b_noninvention.py" "$DEEPUTIN_STAGE2_ROOT" "$STAGE2B_OUT" || true
+run_validation "12" "check_stage3_claim_safety.py" "$DEEPUTIN_STAGE3_ROOT" || true
+
+if [[ "${VAL_SUITE_STATUS:-0}" -ne 0 ]]; then
+  fail "Validation suite had failures. Check logs in $LOG_DIR/val_*.log"
+else
+  log "Validation suite completed."
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Prepare UI artifacts
+# ═══════════════════════════════════════════════════════════════════════════════
+log "=== Preparing UI artifacts ==="
+"$PYTHON" "$ROOT/scripts/prepare_ui_data.py" 2>&1 | tee -a "$LOG_DIR/prepare_ui_data.log"
+log "UI artifacts prepared."
