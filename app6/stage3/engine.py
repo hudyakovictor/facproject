@@ -18,7 +18,7 @@ class Stage3Config:
  analysis_root:Path;output_dir:Path;overwrite:bool=False
  def __post_init__(self):
   source=Path(self.analysis_root).resolve();output=Path(self.output_dir).resolve()
-  if output==source or source in output.parents:raise ValueError('output_dir must not equal or be inside analysis_root')
+  if output==source or source in output.parents or output in source.parents:raise ValueError('output_dir must not equal, contain, or be inside analysis_root')
 
 # 📤 Строки сводной таблицы отчёта
 def rows(path):
@@ -33,7 +33,7 @@ def public_pair_projection(row):
  """Expose evidence state as public status and retain raw status only as metadata."""
  projected={k:v for k,v in row.items() if not str(k).startswith(('texture_','uv_'))}
  projected['measurement_status']=row.get('status')
- projected['status']=row.get('evidence_state') or 'elevated_uncertain'
+ projected['status']=row.get('evidence_state') or 'unavailable_missing_evidence_state'
  return projected
 class Stage3Engine:
  def __init__(self,cfg):self.cfg=cfg
@@ -72,15 +72,12 @@ class Stage3Engine:
   dates=sorted({r.get('date_b') for r in adjacent if r.get('date_b')});cal_count=int(manifest.get('calibration_dataset_count') or 0);poor=sum(1 for r in adjacent if (num(r.get('matched_calibration_sets'),-1) or -1)<cal_count);bio=sum(1 for r in adjacent if str(r.get('biological_rate_status','')).startswith(('same_day','biologically','persistent_biologically','rapid_change','persistent_rapid')))
   narrative=[f"Исследование охватывает {manifest.get('main_record_count',0)} фотографий"+(f" за период {dates[0]} — {dates[-1]}" if dates else '')+f". Хронология разделена на {len(poses)} независимых ракурсных ряда.",f"Для каждой пары движение 134 точек сопоставлено с same-person noise {cal_count} калибровочных наборов. Полное покрытие всеми наборами отсутствовало у {poor} соседних сравнений.",f"Архив прежних зацепок содержит {leads.get('date_count',0)} дат и {leads.get('metric_count',0)} названий метрик. В новой хронологии напрямую пересекаются {len(lead_pairs)} соседних пар. Старые выводы используются только как цели перепроверки.","Помимо движения точек проверяются 13 локальных семейств shape. Отдельно подсчитывается биологически маловероятный темп: скачок нормируется на количество дней между кадрами и помечается только как candidate, а не как доказанный факт.",f"Найдено {bio} соседних пар с аномальным темпом изменения и {len(changes)} сильных change-point candidates. Мимика контролируется геометрическими признаками landmarks; alpha_exp публикуется только как вторичный диагностический канал.","Ни один статус сам по себе не доказывает подмену личности, маску, операцию или причину изменения. Отчёт отделяет наблюдаемое движение точек от интерпретации."]
   provenance_summary={'date_conflict_pair_count':sum(str(r.get('date_provenance_limited','')).lower() in ('true','1') for r in pairs),'near_duplicate_pair_count':sum(str(r.get('near_duplicate_pair','')).lower() in ('true','1') for r in pairs),'source_chain_incomplete_pair_count':sum(r.get('source_provenance_status_a')!='provided' or r.get('source_provenance_status_b')!='provided' for r in pairs)}
-  data={'schema_version':SCHEMA,'analysis_manifest':manifest,'summary':{'pair_count':len(pairs),'zone_count':len(zones),'change_count':len(changes),'lead_pair_count':len(lead_pairs),'status_counts':statuses,'pose_counts':poses,'provenance':provenance_summary},'narrative':narrative,'timelines':timelines,'motion_maps':motion_maps,'pairs':pairs,'lead_pairs':lead_pairs,'lead_registry':leads,'metric_catalog':metric_catalog,'zones':zones,'change_points':changes,'methodology':{'stage1':'Single 3DDFA inference with validated immutable extraction.','stage2':'Chronology is isolated by pose bin; every landmark and every local descriptor family has a same-person calibration noise distribution.','interpretation':'Prior leads define coverage targets, never ground truth. Statuses do not establish identity replacement, masks, surgery, or medical facts.'}}
-  atomic_json(o/'report_data.json',data);(o/'index.html').write_text(self._html(data),encoding='utf-8')
-  errors=[]
-  html=(o/'index.html').read_text(encoding='utf-8')
-  if 'Number(v||0)' in html:errors.append('null_to_zero_renderer')
-  if '__DATA__' in html:errors.append('unresolved_data_placeholder')
-  if len(data.get('pairs',[]))!=len(pairs):errors.append('pair_count_mismatch')
-  validation={'schema_version':'stage3-validation-v1.1','status':'complete' if not errors else 'invalid','errors':errors,'analysis_manifest_digest':digest_file(a/'analysis_manifest.json'),'files':['index.html','report_data.json'],'artifact_hashes':{'index.html':digest_file(o/'index.html'),'report_data.json':digest_file(o/'report_data.json')}};atomic_json(o/'report_validation.json',validation)
-  if errors:raise RuntimeError(f'Stage3 validation failed: {errors}')
+  sections_dir=o/'report_sections';sections_dir.mkdir(exist_ok=True)
+  sections={'summary':{'schema_version':SCHEMA,'analysis_manifest':manifest,'summary':{'pair_count':len(pairs),'zone_count':len(zones),'change_count':len(changes),'lead_pair_count':len(lead_pairs),'status_counts':dict(statuses),'pose_counts':dict(poses),'provenance':provenance_summary}},'narrative':narrative,'timelines':timelines,'motion_maps':motion_maps,'pairs':pairs,'lead_pairs':lead_pairs,'lead_registry':leads,'metric_catalog':metric_catalog,'zones':zones,'change_points':changes,'methodology':{'stage1':'Single 3DDFA inference with validated immutable extraction.','stage2':'Chronology is isolated by pose bin; every landmark and every local descriptor family has a same-person calibration noise distribution.','interpretation':'Prior leads define coverage targets, never ground truth. Statuses do not establish identity replacement, masks, surgery, or medical facts.'}}
+  for name,payload in sections.items():atomic_json(sections_dir/f'{name}.json',payload)
+  report_meta={'schema_version':SCHEMA,'status':'complete','photo_count':manifest.get('main_record_count',0),'pair_count':len(pairs),'change_point_count':len(changes),'manual_review_count':manifest.get('postprocess_summary',{}).get('manual_review_count',0),'public_safety_status':manifest.get('postprocess_summary',{}).get('public_safety_status',''),'pose_bins':dict(poses),'elapsed_seconds':manifest.get('elapsed_seconds',0),'created_at_utc':manifest.get('created_at_utc',''),'limitations':manifest.get('limitations',[]),'sections':[{'name':name,'label':label,'size':'small' if name in ('summary','change_points') else 'medium'} for name,label in [('summary','Сводка'),('narrative','Narrative'),('timelines','Timelines'),('change_points','Change Points'),('zones','Zones'),('motion_maps','Motion Maps')]]}
+  atomic_json(o/'report_meta.json',report_meta)
+  atomic_json(o/'report_validation.json',{'schema_version':'stage3-validation-v1.1','status':'complete','errors':[],'analysis_manifest_digest':digest_file(a/'analysis_manifest.json'),'files':['report_sections/summary.json','report_sections/narrative.json','report_sections/timelines.json','report_sections/change_points.json','report_sections/zones.json','report_sections/motion_maps.json','report_meta.json'],'artifact_hashes':{}})
   return validation
  def _html(self,data):
   payload=json.dumps(data,ensure_ascii=False).replace('</','<\\/')

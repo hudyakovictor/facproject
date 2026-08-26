@@ -16,9 +16,7 @@ from typing import Any
 EXPECTED_SCHEMA = "deeputin-stage2-v1.4-robustness"
 CANONICAL_JSON = (
     "analysis_manifest.json",
-    "pair_details.json",
     "artifact_index.json",
-    "evidence_packets.json",
     "change_points.json",
     "analysis_validation.json",
 )
@@ -36,9 +34,14 @@ CANONICAL_CSV = (
     "pair_metrics.csv",
     "zone_metrics.csv",
     "mesh_pair_metrics.csv",
-    "mesh_zone_metrics.csv",
     "status_summary.csv",
     "event_aggregation.csv",
+)
+REMOVED_ARTIFACTS = (
+    "pair_details.json",
+    "evidence_packets.json",
+    "evidence_packets.jsonl",
+    "mesh_zone_metrics.csv",
 )
 
 
@@ -128,6 +131,9 @@ def validate_manifest(obj: Any, path: Path, reporter: Reporter) -> dict[str, Any
 
 
 def validate_pairs(obj: Any, path: Path, reporter: Reporter) -> tuple[int, set[str], int]:
+    if obj is None:
+        reporter.warn("PAIR_DETAILS_REMOVED", str(path), "file removed from pipeline output; use pair_metrics.csv instead")
+        return 0, set(), 0
     if not isinstance(obj, dict) or not isinstance(obj.get("pairs"), list):
         reporter.error("PAIR_DETAILS_SHAPE_INVALID", str(path), "expected top-level pairs list")
         return 0, set(), 0
@@ -179,6 +185,9 @@ def validate_artifact_index(obj: Any, path: Path, reporter: Reporter) -> int:
 
 
 def validate_evidence(obj: Any, path: Path, pair_ids: set[str], reporter: Reporter) -> int:
+    if obj is None:
+        reporter.warn("EVIDENCE_PACKETS_REMOVED", str(path), "file removed from pipeline output; evidence state is in pair_metrics.csv")
+        return 0
     if not isinstance(obj, dict) or not isinstance(obj.get("packets"), list):
         reporter.error("EVIDENCE_SHAPE_INVALID", str(path), "expected packets list")
         return 0
@@ -230,6 +239,11 @@ def main() -> int:
         if path.is_file() and not is_ignored(path) and path.stat().st_size:
             checked += 1
             safe_json(path, reporter)
+
+    for name in REMOVED_ARTIFACTS:
+        path = root / name
+        if path.is_file() and not is_ignored(path) and path.stat().st_size:
+            reporter.warn("REMOVED_ARTIFACT_PRESENT", name, "file should be removed per new pipeline config")
 
     csv_stats: dict[str, int] = {}
     for name in CANONICAL_CSV:
