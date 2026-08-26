@@ -34,6 +34,7 @@ from app6.stage1.utils import atomic_json,json_ready,digest_file,digest_json,wri
 from app6.stage1.status_logger import log_status, status_warning
 from .calibration import CalibrationModel
 from .calibration_sensitivity import leave_one_dataset_sensitivity
+from .angle_noise import build_calibration_pair_index, subtract_angle_noise
 from .analysis_policy import ANALYSIS_COORDINATE_SPACE
 from .expression_pair_gate import expression_gate
 from .quality_stratification import quality_gate
@@ -88,6 +89,14 @@ def _write_checkpoint(path:Path,payload:dict[str,Any])->None:
   f.flush();os.fsync(f.fileno())
  os.replace(tmp,path)
 
+def _atomic_npz(path:Path,**arrays:Any)->None:
+ """Write a deterministic NPZ to a sibling temporary file, then replace."""
+ tmp=path.with_name(f'{path.name}.tmp')
+ with tmp.open('wb') as f:
+  np.savez_compressed(f,**arrays)
+  f.flush();os.fsync(f.fileno())
+ os.replace(tmp,path)
+
 def _read_checkpoint(path:Path)->dict[str,Any]:
  with path.open('rb') as f:payload=pickle.load(f)
  if not isinstance(payload,dict) or payload.get('schema')!=CHECKPOINT_SCHEMA:raise RuntimeError(f'invalid Stage 2 checkpoint: {path}')
@@ -118,8 +127,8 @@ def _record_qc(record)->dict[str,Any]:
   'alignment_quality':alignment,
   'corner_lift_ioc':float(corner) if corner is not None else None,
   'jaw_open_ratio':float(jaw) if jaw is not None else None,
-  'smile_detected':bool(smile_d),
-  'jaw_open_detected':bool(jaw_d),
+  'smile_detected':False if smile_d in (None,'') else (smile_d if isinstance(smile_d,bool) else str(smile_d).strip().lower() in {'true','1','yes'}),
+  'jaw_open_detected':False if jaw_d in (None,'') else (jaw_d if isinstance(jaw_d,bool) else str(jaw_d).strip().lower() in {'true','1','yes'}),
   'jaw_open_degree':float(chronology['jaw_open_degree']) if chronology.get('jaw_open_degree') is not None else None,
   'detection_confidence':float(chronology['detection_confidence']) if chronology.get('detection_confidence') is not None else None,
   'face_area_ratio':float(chronology['face_area_ratio']) if chronology.get('face_area_ratio') is not None else None,
@@ -221,6 +230,10 @@ class Stage2Engine:
   z106,m106=_build_anat_zones(list(cal)+list(main),106);z134,m134=_build_anat_zones(list(cal)+list(main),134)
   if m134.get('status')!='ok':z106,m106,z134,m134=z106_coord,m106_coord,z134_coord,m134_coord
   model=CalibrationModel(cal,z106,z134);point_model=PointNoiseModel(cal);descriptor_model=DescriptorNoiseModel(cal);mesh_model=MeshNoiseModel(cal)
+  # Differential pose-angle noise is a production input, not a standalone audit helper.
+  # Build it once from same-person/same-bin calibration pairs and annotate every
+  # measured main pair below. Missing matches remain explicitly uncompensated.
+  angle_noise_pairs=build_calibration_pair_index(cal,compare_landmarks,z106,z134)
   if o.exists() and self.cfg.overwrite:
    for child in o.iterdir():
     try:
@@ -237,11 +250,11 @@ class Stage2Engine:
   point_payload={}
   for (pose,count),ref in point_model.references.items():
    prefix=f'{pose}__ldm{count}';point_payload[f'{prefix}__median']=ref.median;point_payload[f'{prefix}__mad']=ref.mad;point_payload[f'{prefix}__p95']=ref.p95;point_payload[f'{prefix}__count']=ref.count;point_payload[f'{prefix}__template']=ref.template
-  np.savez_compressed(o/'point_noise_model.npz',**point_payload)
+  _atomic_npz(o/'point_noise_model.npz',**point_payload)
   descriptor_payload={'metric_names':np.asarray(DESCRIPTOR_NAMES)}
   for pose,ref in descriptor_model.refs.items():
    descriptor_payload[f'{pose}__median']=ref.median;descriptor_payload[f'{pose}__mad']=ref.mad;descriptor_payload[f'{pose}__p95']=ref.p95;descriptor_payload[f'{pose}__count']=ref.count;descriptor_payload[f'{pose}__template']=ref.template
-  np.savez_compressed(o/'descriptor_noise_model.npz',**descriptor_payload)
+  _atomic_npz(o/'descriptor_noise_model.npz',**descriptor_payload)
   motion_dir=o/'point_motion';motion_dir.mkdir(exist_ok=True)
   groups=defaultdict(list)
   for r in main:groups[r.pose_bin].append(r)
@@ -320,9 +333,11 @@ class Stage2Engine:
        expression_influence = float(max(0., 1. - identity_rmse / full_rmse))
    if c.status=='measured':status=motion_score134['status']
    if descriptor_score['status']=='descriptor_jump_candidate' and status in ('within_reconstruction_noise','scattered_or_uncertain'):status='coherent_jump_candidate'
-   safe_pid=pid.replace('/','_');np.savez_compressed(motion_dir/f'{safe_pid}.npz',ldm106_vectors=motion106['vectors'],ldm106_magnitude=motion106['magnitude'],ldm106_point_z=motion_score106['z'],ldm106_significant=motion_score106['significant'],ldm134_vectors=motion134['vectors'],ldm134_magnitude=motion134['magnitude'],ldm134_point_z=motion_score134['z'],ldm134_significant=motion_score134['significant'],ldm134_identity_only_vectors=identity_motion['vectors'],ldm134_identity_only_magnitude=identity_motion['magnitude'],descriptor_names=np.asarray(DESCRIPTOR_NAMES),descriptor_values=descriptor_score['values'],descriptor_z=descriptor_score['z'],descriptor_significant=descriptor_score['significant'])
+   safe_pid=pid.replace('/','_');_atomic_npz(motion_dir/f'{safe_pid}.npz',ldm106_vectors=motion106['vectors'],ldm106_magnitude=motion106['magnitude'],ldm106_point_z=motion_score106['z'],ldm106_significant=motion_score106['significant'],ldm134_vectors=motion134['vectors'],ldm134_magnitude=motion134['magnitude'],ldm134_point_z=motion_score134['z'],ldm134_significant=motion_score134['significant'],ldm134_identity_only_vectors=identity_motion['vectors'],ldm134_identity_only_magnitude=identity_motion['magnitude'],descriptor_names=np.asarray(DESCRIPTOR_NAMES),descriptor_values=descriptor_score['values'],descriptor_z=descriptor_score['z'],descriptor_significant=descriptor_score['significant'])
    ms=motion_score134['summary'];ds=descriptor_score['summary'];lead=pair_leads(leads,a.date,b.date);mesh_row,mesh_zone_list=dense_mesh_pair(a,b,o,pid);texture_row,texture_zone_list=texture_pair_deltas(a,b,pid);texture_zone_rows.extend(texture_zone_list);mesh_score=mesh_model.score(a.pose_bin,mesh_row);mesh_row.update(mesh_score);mesh_rows.append({'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**mesh_row});mesh_zones.extend(mesh_zone_list)
-   row={'pair_id':pid,'pair_index':n,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,'source_group_a':a.source_group,'source_group_b':b.source_group,'source_digest_a':a.source_digest,'source_digest_b':b.source_digest,'analysis_space':a.analysis_space,'date_provenance_status_a':a.date_provenance_status,'date_provenance_status_b':b.date_provenance_status,'exif_date_a':a.exif_date,'exif_date_b':b.exif_date,'date_delta_days_a':a.date_delta_days,'date_delta_days_b':b.date_delta_days,'source_claimed_date_a':a.source_claimed_date,'source_claimed_date_b':b.source_claimed_date,'source_claimed_delta_days_a':a.source_claimed_delta_days,'source_claimed_delta_days_b':b.source_claimed_delta_days,'date_conflict_sources_a':a.date_conflict_sources,'date_conflict_sources_b':b.date_conflict_sources,'date_provenance_limited':bool(a.date_provenance_status=='conflict' or b.date_provenance_status=='conflict'),'near_duplicate_of_a':a.near_duplicate_of,'near_duplicate_of_b':b.near_duplicate_of,'near_duplicate_pair':bool(a.near_duplicate_of or b.near_duplicate_of),'source_provenance_status_a':a.source_provenance.get('status','not_provided'),'source_provenance_status_b':b.source_provenance.get('status','not_provided'),'source_url_a':a.source_provenance.get('source_url'),'source_url_b':b.source_provenance.get('source_url'),'archive_url_a':a.source_provenance.get('archive_url'),'archive_url_b':b.source_provenance.get('archive_url'),'alignment_quality_a':alignment_quality.get(a.record_id),'alignment_quality_b':alignment_quality.get(b.record_id),'corner_lift_ioc_a':corner_lift_ioc.get(a.record_id),'corner_lift_ioc_b':corner_lift_ioc.get(b.record_id),'jaw_open_ratio_a':jaw_open_ratio.get(a.record_id),'jaw_open_ratio_b':jaw_open_ratio.get(b.record_id),'smile_detected_a':smile_detected.get(a.record_id),'smile_detected_b':smile_detected.get(b.record_id),'jaw_open_detected_a':jaw_open_detected.get(a.record_id),'jaw_open_detected_b':jaw_open_detected.get(b.record_id),'expression_source':'geometry_landmarks_v1','qc_skip_reason':qc_decision.get('skip_reason',''),'status':status,'motion_file':f'point_motion/{safe_pid}.npz',**mesh_row,**texture_row,'point_motion_status':motion_score134['status'],'ldm134_anchor_count':motion134.get('anchor_count',0),'ldm134_anchor_policy':motion134.get('anchor_policy','unknown'),'ldm134_alignment_policy':motion134.get('alignment_policy','unknown'),'ldm134_alignment_trimmed_count':motion134.get('alignment_trimmed_count',0),'ldm106_anchor_count':motion106.get('anchor_count',0),'ldm106_anchor_policy':motion106.get('anchor_policy','unknown'),'descriptor_status':descriptor_score['status'],'descriptor_significant_fraction':ds.get('significant_cell_fraction',0.),'descriptor_landmark_fraction':ds.get('significant_landmark_fraction',0.),'descriptor_p95_z':ds.get('p95_descriptor_z',0.),'descriptor_top_families':ds.get('top_descriptor_families',''),'descriptor_top_counts':ds.get('top_descriptor_counts',''),'calibrated_point_count':ms.get('calibrated_point_count',0),'significant_point_count':ms.get('significant_point_count',0),'significant_point_fraction':ms.get('significant_fraction',0.),'coherent_motion_fraction':ms.get('coherent_fraction',0.),'median_point_z':ms.get('median_point_z',0.),'p95_point_z':ms.get('p95_point_z',0.),'identity_only_motion_rmse':identity_rmse,'expression_influence':expression_influence,**lead,**c.diagnostics,**c.metrics,'primary_robust_z':float(primary.get('robust_z',0)),'primary_calibration_p95':float(primary.get('calibration_p95',0)),'matched_calibration_sets':len(matched.get('ldm134_rmse',[]))}
+   angle_adjusted=subtract_angle_noise({'pose_bin':a.pose_bin,'angles_a':a.angles,'angles_b':b.angles,**c.metrics},angle_noise_pairs)
+   angle_fields={k:v for k,v in angle_adjusted.items() if k.startswith('angle_') or k.endswith('_angle_compensated') or k.endswith('_angle_noise')}
+   row={'pair_id':pid,'pair_index':n,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,'date_a':a.date,'date_b':b.date,**angle_fields,'source_group_a':a.source_group,'source_group_b':b.source_group,'source_digest_a':a.source_digest,'source_digest_b':b.source_digest,'analysis_space':a.analysis_space,'date_provenance_status_a':a.date_provenance_status,'date_provenance_status_b':b.date_provenance_status,'exif_date_a':a.exif_date,'exif_date_b':b.exif_date,'date_delta_days_a':a.date_delta_days,'date_delta_days_b':b.date_delta_days,'source_claimed_date_a':a.source_claimed_date,'source_claimed_date_b':b.source_claimed_date,'source_claimed_delta_days_a':a.source_claimed_delta_days,'source_claimed_delta_days_b':b.source_claimed_delta_days,'date_conflict_sources_a':a.date_conflict_sources,'date_conflict_sources_b':b.date_conflict_sources,'date_provenance_limited':bool(a.date_provenance_status=='conflict' or b.date_provenance_status=='conflict'),'near_duplicate_of_a':a.near_duplicate_of,'near_duplicate_of_b':b.near_duplicate_of,'near_duplicate_pair':bool(a.near_duplicate_of or b.near_duplicate_of),'source_provenance_status_a':a.source_provenance.get('status','not_provided'),'source_provenance_status_b':b.source_provenance.get('status','not_provided'),'source_url_a':a.source_provenance.get('source_url'),'source_url_b':b.source_provenance.get('source_url'),'archive_url_a':a.source_provenance.get('archive_url'),'archive_url_b':b.source_provenance.get('archive_url'),'alignment_quality_a':alignment_quality.get(a.record_id),'alignment_quality_b':alignment_quality.get(b.record_id),'corner_lift_ioc_a':corner_lift_ioc.get(a.record_id),'corner_lift_ioc_b':corner_lift_ioc.get(b.record_id),'jaw_open_ratio_a':jaw_open_ratio.get(a.record_id),'jaw_open_ratio_b':jaw_open_ratio.get(b.record_id),'smile_detected_a':smile_detected.get(a.record_id),'smile_detected_b':smile_detected.get(b.record_id),'jaw_open_detected_a':jaw_open_detected.get(a.record_id),'jaw_open_detected_b':jaw_open_detected.get(b.record_id),'expression_source':'geometry_landmarks_v1','qc_skip_reason':qc_decision.get('skip_reason',''),'status':status,'motion_file':f'point_motion/{safe_pid}.npz',**mesh_row,**texture_row,'point_motion_status':motion_score134['status'],'ldm134_anchor_count':motion134.get('anchor_count',0),'ldm134_anchor_policy':motion134.get('anchor_policy','unknown'),'ldm134_alignment_policy':motion134.get('alignment_policy','unknown'),'ldm134_alignment_trimmed_count':motion134.get('alignment_trimmed_count',0),'ldm106_anchor_count':motion106.get('anchor_count',0),'ldm106_anchor_policy':motion106.get('anchor_policy','unknown'),'descriptor_status':descriptor_score['status'],'descriptor_significant_fraction':ds.get('significant_cell_fraction',0.),'descriptor_landmark_fraction':ds.get('significant_landmark_fraction',0.),'descriptor_p95_z':ds.get('p95_descriptor_z',0.),'descriptor_top_families':ds.get('top_descriptor_families',''),'descriptor_top_counts':ds.get('top_descriptor_counts',''),'calibrated_point_count':ms.get('calibrated_point_count',0),'significant_point_count':ms.get('significant_point_count',0),'significant_point_fraction':ms.get('significant_fraction',0.),'coherent_motion_fraction':ms.get('coherent_fraction',0.),'median_point_z':ms.get('median_point_z',0.),'p95_point_z':ms.get('p95_point_z',0.),'identity_only_motion_rmse':identity_rmse,'expression_influence':expression_influence,**lead,**c.diagnostics,**c.metrics,'primary_robust_z':float(primary.get('robust_z',0)),'primary_calibration_p95':float(primary.get('calibration_p95',0)),'matched_calibration_sets':len(matched.get('ldm134_rmse',[]))}
    qmin = min(float(getattr(a, 'quality_texture_score', 0.0) or 0.0), float(getattr(b, 'quality_texture_score', 0.0) or 0.0))
    qzone_summary,qzone_pair_rows=pair_quality_zone_overlap(a,b,pid)
    quality_zone_rows.extend(qzone_pair_rows)
@@ -347,7 +362,7 @@ class Stage2Engine:
    for z in c.zones:
     zr={'pair_id':pid,'pair_type':ptype,'pose_bin':a.pose_bin,'photo_a':a.record_id,'photo_b':b.record_id,**z}
     if z.get('status')=='measured':
-     k=f"zone::{z['zone']}::rmse";s=calibrated_score(float(z['rmse']),model.reference(a.pose_bin,k,stratum=stratum_arg),matched.get(k,[]));zr.update({'calibration_status':s['status'],'robust_z':s['robust_z'],'calibration_p95':s['calibration_p95']})
+     k=f"zone::{z['zone']}::rmse";s=calibrated_score(float(z['rmse']),model.reference(a.pose_bin,k,stratum=stratum_arg),matched.get(k,[]),coordinate_noise_sigma=pair_sigma);zr.update({'calibration_status':s['status'],'robust_z':s['robust_z'],'calibration_p95':s['calibration_p95']})
     zones.append(zr)
    details.append({'pair':row,'calibrated_metrics':scores,'zones':c.zones})
    processed_pair_ids.add(pid)
@@ -358,7 +373,7 @@ class Stage2Engine:
   # 🚧 Патч 14: без временной оси (калибровка, единичная дата) временные
   # детекторы не запускаются вовсе, а в отчёт идёт явный skip-статус.
   temporal_axis = require_temporal_axis(main)
-  if temporal_axis is not None:
+  if temporal_axis is None:
       alpha_chronology_report=apply_alpha_chronology(rows,model)
       baseline_return_report=apply_baseline_return(rows,o)
       chronology_refs=apply_chronology_rate_flags(rows)
@@ -402,6 +417,22 @@ class Stage2Engine:
   metric_catalog=build_metric_catalog(rows)
   evidence_packets=[packet_from_pair(r) for r in rows]
   changes=[{'pair_id':r['pair_id'],'pair_type':r['pair_type'],'pose_bin':r['pose_bin'],'date':r['date_b'],'photo_a':r['photo_a'],'photo_b':r['photo_b'],'status':r.get('evidence_state',''),'measurement_status':r['status'],'evidence_state':r.get('evidence_state',''),'p95_point_z':r.get('p95_point_z',0),'significant_point_fraction':r.get('significant_point_fraction',0),'coherent_motion_fraction':r.get('coherent_motion_fraction',0),'days_delta':r.get('days_delta',-1),'chronology_rate_status':r.get('chronology_rate_status',''),'chronology_rate_z':r.get('chronology_rate_z',0.0),'cross_bin_corroboration_status':r.get('cross_bin_corroboration_status',''),'cross_bin_support_pose_count':r.get('cross_bin_support_pose_count',0)} for r in rows if is_reportable_change(r)]
+  # Persist every computed stage transformation before final post-processing.
+  # Previously these values existed only in memory, so validation truthfully
+  # rejected the manifest as incomplete after an otherwise successful analysis.
+  atomic_json(o/'chronology_rate_model.json',{'schema':'deeputin-stage2-chronology-rate-model-v1.0','references':chronology_refs})
+  atomic_json(o/'alpha_chronology.json',alpha_chronology_report)
+  write_csv(o/'alpha_chronology_events.csv',alpha_chronology_report.get('events') or [{'status':alpha_chronology_report.get('status','no_events')}])
+  atomic_json(o/'baseline_return.json',baseline_return_report)
+  atomic_json(o/'cumulative_drift.json',cumulative_drift_report)
+  atomic_json(o/'cross_bin_corroboration.json',cross_bin_report)
+  write_csv(o/'event_aggregation.csv',event_rows or [{'status':'no_events'}])
+  atomic_json(o/'pose_leakage_diagnostic.json',pose_leakage_report)
+  atomic_json(o/'multiple_testing.json',multiple_testing_report)
+  atomic_json(o/'metric_catalog.json',metric_catalog)
+  atomic_json(o/'change_points.json',{'schema':'deeputin-stage2-change-points-v1.0','change_points':changes})
+  # pair_details.json, evidence_packets.json, evidence_packets.jsonl, mesh_zone_metrics.csv
+  # removed to reduce storage; UI uses pair_metrics.csv + zone_metrics.csv instead
   write_csv(o/'pair_metrics.csv',rows or [{'status':'no_pairs'}]);write_csv(o/'skipped_pairs.csv',skipped_pair_rows or [{'status':'no_skipped_pairs'}]);write_csv(o/'zone_metrics.csv',zones or [{'status':'no_zones'}]);write_csv(o/'quality_zone_pair_coverage.csv',quality_zone_rows or [{'status':'no_quality_zone_pairs'}]);write_csv(o/'texture_pair_metrics.csv',texture_pair_rows or [{'status':'no_texture_pairs'}]);write_csv(o/'texture_zone_metrics.csv',texture_zone_rows or [{'status':'no_texture_zone_metrics'}]);write_csv(o/'mesh_pair_metrics.csv',mesh_rows or [{'status':'no_mesh_pairs'}])
   postprocess_summary=write_postprocess_reports(o,rows=rows,zones=zones,mesh_zones=mesh_zones,texture_zone_rows=texture_zone_rows,changes=changes,evidence_packets=evidence_packets)
   pd=o/'photo_analysis';pd.mkdir(exist_ok=True)
@@ -411,7 +442,14 @@ class Stage2Engine:
   artifact_hashes={name:digest_file(o/name) for name in artifact_names if (o/name).is_file()}
   _work_root=Path(__file__).resolve().parents[2]
   _reuse_report=model.reuse_report();_space_manifest=space_manifest()
-  _run_manifest=build_manifest(_work_root,code_hash=digest_file(Path(__file__)),config_hash=digest_json(self.cfg.payload()),model_hash=digest_file(_work_root/'3ddfa_v3'/'assets'/'face_model.npy') or 'missing',reuse_report=_reuse_report,space_manifest=_space_manifest,anchor_policy=anchor_policy_by_bin)
+  _modules={
+   'angle_noise':{'imported':True,'applied':any(bool(r.get('angle_noise_compensated')) for r in rows),'affected_pair_count':sum(bool(r.get('angle_noise_compensated')) for r in rows)},
+   'chronology_rate':{'imported':True,'applied':bool(chronology_refs),'affected_pair_count':sum(bool(r.get('chronology_rate_status')) for r in rows)},
+   'same_day_gate_v2':{'imported':True,'applied':any(r.get('days_delta')==0 for r in rows),'affected_pair_count':sum(r.get('days_delta')==0 for r in rows)},
+   'multiple_testing':{'imported':True,'applied':bool(multiple_testing_report['pair_fdr'].get('test_count')),'affected_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0)},
+   'cross_bin_corroboration':{'imported':True,'applied':bool(cross_bin_report),'affected_pair_count':sum(bool(r.get('cross_bin_corroboration_status')) for r in rows)},
+  }
+  _run_manifest=build_manifest(_work_root,code_hash=digest_file(Path(__file__)),config_hash=digest_json(self.cfg.payload()),model_hash=digest_file(_work_root/'3ddfa_v3'/'assets'/'face_model.npy') or 'missing',reuse_report=_reuse_report,space_manifest=_space_manifest,anchor_policy=anchor_policy_by_bin,modules=_modules)
   manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'execution':{'checkpoint_every':self.cfg.checkpoint_every,'resumed':self.cfg.resume},'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.']}
   atomic_json(o/'technical_summary.json',build_technical_summary(rows,changes,manifest))
   atomic_json(o/'analysis_manifest.json',manifest)

@@ -54,14 +54,25 @@ _PAGED_SECTIONS = frozenset({"motion_maps", "pairs", "zones", "change_points", "
 DEFAULT_PAGE_SIZE = 100
 
 
-def _read_report(stage3_root: Path) -> dict[str, Any]:
-    """🔍 QUERY → `report_data.json` прогона Stage 3."""
-    path = stage3_root / "report_data.json"
+def _read_report_section(stage3_root: Path, name: str) -> Any:
+    """🔍 QUERY → section file from report_sections/."""
+    path = stage3_root / "report_sections" / f"{name}.json"
     if not path.is_file():
-        raise FileNotFoundError(f"report_data.json not found under {stage3_root}")
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("report_data.json must contain an object")
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _read_report(stage3_root: Path) -> dict[str, Any]:
+    """🔍 QUERY → Assemble report from report_sections/ + report_meta.json."""
+    meta_path = stage3_root / "report_meta.json"
+    if not meta_path.is_file():
+        raise FileNotFoundError(f"report_meta.json not found under {stage3_root}")
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    data = dict(meta)
+    for name in REPORT_SECTIONS:
+        section = _read_report_section(stage3_root, name)
+        if section is not None:
+            data[name] = section
     return data
 
 
@@ -190,7 +201,10 @@ def report_available(stage3_root: Path | None) -> bool:
     """🔍 QUERY → Есть ли пригодный вывод Stage 3."""
     if stage3_root is None:
         return False
-    return (stage3_root / "report_data.json").is_file()
+    if not (stage3_root / "report_meta.json").is_file():
+        return False
+    validation = _read_validation(stage3_root)
+    return bool(validation) and validation.get("status") == "complete"
 
 
 __all__ = [

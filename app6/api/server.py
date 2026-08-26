@@ -142,10 +142,8 @@ def _stage2_root() -> Path | None:
     storage_root = _storage_root()
     # Check for canonical Stage 2 location
     candidate_path = storage_root / "stage2_resumable_20260816"
-    if candidate_path.is_dir():
-        manifest_path = candidate_path / "analysis_manifest.json"
-        if manifest_path.is_file():
-            return candidate_path
+    if candidate_path.is_dir() and _stage2_manifest(candidate_path) is not None:
+        return candidate_path
 
     # Check for direct stage2 directory
     direct = _stage2_manifest(storage_root / "stage2")
@@ -314,6 +312,46 @@ def _calibration_records() -> list[Any]:
         return load_calibration(_calibration_root())
     except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=f"калибровочный Stage 1 недоступен: {exc}") from exc
+
+
+
+
+@app.get("/api/v1/ui_artifacts/{name}")
+def get_ui_artifact(name: str) -> dict[str, Any]:
+    """🚪 API → Загрузка UI-артефактов из Stage outputs.
+
+    Сервирует файлы из /Volumes/SDCARD/storage/ui_artifacts/.
+    Поддерживает .json (application/json) и .csv (text/plain).
+    Имена артефактов соответствуют prepare_ui_data.py.
+    """
+    storage_root = Path("/Volumes/SDCARD/storage")
+    artifact_path = storage_root / "ui_artifacts" / name
+    if not artifact_path.is_file():
+        raise HTTPException(status_code=404, detail=f"UI artifact not found: {name}")
+    if name.endswith(".json"):
+        try:
+            import json
+            data = json.loads(artifact_path.read_text(encoding="utf-8"))
+            return JSONResponse(content=data, headers={"Cache-Control": "no-store"})
+        except (OSError, json.JSONDecodeError) as exc:
+            raise HTTPException(status_code=422, detail=f"invalid JSON in {name}: {exc}") from exc
+    else:
+        return FileResponse(artifact_path, media_type="text/plain", filename=name)
+
+
+@app.get("/api/v1/ui_artifacts/report_sections/{section_name}.json")
+def get_report_section_artifact(section_name: str) -> dict[str, Any]:
+    """🚪 API → Одна секция отчёта из ui_artifacts/report_sections/."""
+    storage_root = Path("/Volumes/SDCARD/storage")
+    artifact_path = storage_root / "ui_artifacts" / "report_sections" / f"{section_name}.json"
+    if not artifact_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Report section artifact not found: {section_name}")
+    try:
+        import json
+        data = json.loads(artifact_path.read_text(encoding="utf-8"))
+        return JSONResponse(content=data, headers={"Cache-Control": "no-store"})
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=422, detail=f"invalid JSON in report_sections/{section_name}: {exc}") from exc
 
 
 @app.get("/api/v1/health")
@@ -623,7 +661,11 @@ def delete_photo(photo_id: str) -> dict[str, Any]:
     stage1_root = _stage1_root()
     if stage1_root is None:
         raise HTTPException(status_code=409, detail="no Stage 1 output configured (DEEPUTIN_STAGE1_ROOT)")
-    target = stage1_root / photo_id
+    try:
+        target = (stage1_root / photo_id).resolve()
+        target.relative_to(stage1_root.resolve())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid photo_id") from None
     if not target.is_dir():
         raise HTTPException(status_code=404, detail=f"no Stage 1 output for {photo_id}")
     shutil.rmtree(target)
@@ -910,7 +952,7 @@ def get_photo_info_keys(photo_id: str) -> dict[str, Any]:
 def _stage3_root() -> Path | None:
     raw = os.environ.get("DEEPUTIN_STAGE3_ROOT")
     path = Path(raw) if raw else _storage_root() / "stage3"
-    return path if (path / "report_data.json").is_file() else None
+    return path if (path / "report_meta.json").is_file() else None
 
 
 def _require_stage3() -> Path:
@@ -921,7 +963,7 @@ def _require_stage3() -> Path:
             status_code=409,
             detail=(
                 "публичный отчёт доступен только после прогона Stage 3. "
-                "Положите report_data.json в storage/stage3 или задайте "
+                "Положите report_meta.json в storage/stage3 или задайте "
                 "DEEPUTIN_STAGE3_ROOT на каталог с этим файлом "
                 "(python app6/run_stage3.py --analysis <stage2> --output <dir>)."
             ),
