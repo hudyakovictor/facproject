@@ -38,6 +38,12 @@ def _quality_exclusion_reason(row: dict) -> str | None:
     if _as_flag(row.get('near_duplicate_pair')):return 'perceptual_duplicate_dependence'
     if _as_flag(row.get('quality_limited')):
         return 'quality_limited'
+    # 🔧 FIX (audit round 2): exclude pose-leakage and residual-tilt limited pairs
+    # from chronology rate analysis — their metrics retain pose dependence.
+    if _as_flag(row.get('pose_leakage_limited')):
+        return 'pose_leakage_limited'
+    if _as_flag(row.get('residual_tilt_limited')):
+        return 'residual_tilt_limited'
     # D-003 пересмотр (2026-08-03): alignment_quality некоррелирован с остатком
     return None
 
@@ -120,6 +126,13 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
             r['biological_rate_z']=r['chronology_rate_z']
             r['biological_rate_status']=r['chronology_rate_status']
             r['biological_reason']=r['chronology_rate_reason']
+    # 🔧 FIX (audit P0-3): explicitly mark that baseline is self-calibrating
+    # from the analyzed dataset, NOT from an independent calibration set.
+    # This is a known limitation — thresholds derived from the same data
+    # they flag are circular. Future fix: calibrate on independent longitudinal data.
+    for pose, ref in refs.items():
+        ref['baseline_source'] = 'self_calibrating_from_analyzed_pairs'
+        ref['baseline_warning'] = 'rate thresholds derived from analyzed data, not independent calibration; interpret as diagnostic only'
     return refs
 
 

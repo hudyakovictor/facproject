@@ -257,6 +257,9 @@ class Stage2Engine:
   atomic_json(o/'calibration_noise_model.json',{'schema':'calibration-noise-v2-balanced','policy':'equal_person_median_of_quantiles_v1','datasets':model.datasets,'record_count':len(cal),'references':model.references})
   calibration_sensitivity=leave_one_dataset_sensitivity(cal,z106,z134)
   atomic_json(o/'calibration_sensitivity.json',calibration_sensitivity)
+  # 🔧 FIX (audit P2-9): run calibration consistency check
+  calibration_consistency = model.consistency_check()
+  atomic_json(o/'calibration_consistency.json', {'schema': 'deeputin-calibration-consistency-v1.0', 'results': calibration_consistency})
   atomic_json(o/'mesh_noise_model.json',mesh_model.to_json())
   atomic_json(o/'lead_registry.json',leads);write_csv(o/'lead_coverage.csv',leads.get('coverage') or [{'legacy_metric':'none','coverage':'not_provided'}])
   point_payload={}
@@ -482,7 +485,7 @@ class Stage2Engine:
    'cross_bin_corroboration':{'imported':True,'applied':bool(cross_bin_report),'affected_pair_count':sum(bool(r.get('cross_bin_corroboration_status')) for r in rows)},
   }
   _run_manifest=build_manifest(_work_root,code_hash=digest_file(Path(__file__)),config_hash=digest_json(self.cfg.payload()),model_hash=digest_file(_work_root/'3ddfa_v3'/'assets'/'face_model.npy') or 'missing',reuse_report=_reuse_report,space_manifest=_space_manifest,anchor_policy=anchor_policy_by_bin,modules=_modules)
-  manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'execution':{'checkpoint_every':self.cfg.checkpoint_every,'resumed':self.cfg.resume},'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.'],'calibration_yaw_range_per_bin':calibration_yaw_range}
+  manifest={'schema_version':SCHEMA,'status':'complete','reuse_report':_reuse_report,'space_manifest':_space_manifest,'run_manifest':_run_manifest,'anchor_policy_by_bin':anchor_policy_by_bin,'expression_gate_summary':expr_gate_summary,'created_at_utc':utc(),'stage1_manifest_digest':digest_file(self.cfg.stage1_root/'stage1_manifest.json'),'config_hash':digest_json(self.cfg.payload()),'robustness_policy':self.cfg.payload(),'execution':{'checkpoint_every':self.cfg.checkpoint_every,'resumed':self.cfg.resume},'main_record_count':len(main),'calibration_record_count':len(cal),'calibration_dataset_count':len(model.datasets),'mesh_calibration_status':mesh_model.reference.status,'mesh_calibration_pair_count':mesh_model.reference.pair_count,'calibration_sensitivity_status':calibration_sensitivity.get('status'),'calibration_consistency':{k:v.get('consistency_flag','unknown') for k,v in calibration_consistency.items()},'calibration_limited_pair_count':sum(bool(r.get('calibration_limited')) for r in rows),'pose_leakage_status':pose_leakage_report.get('status'),'pose_leakage_limited_pair_count':sum(bool(r.get('pose_leakage_limited')) for r in rows),'missing_mandatory_qc_record_count':missing_qc_record_count,'skipped_pair_counts':dict(skipped_counts),'pose_leakage_flagged_metrics':pose_leakage_report.get('flagged_metrics',[]),'multiple_testing_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0),'pair_count':len(rows),'zone_measurement_count':len(zones),'quality_zone_pair_count':len(quality_zone_rows),'texture_pair_count':len(texture_pair_rows),'texture_zone_metric_count':len(texture_zone_rows),'mesh_pair_count':len(mesh_rows),'mesh_zone_count':len(mesh_zones),'point_motion_pair_count':len(rows),'descriptor_family_count':len(DESCRIPTOR_NAMES),'lead_registry_status':leads.get('status'),'lead_date_count':leads.get('date_count',0),'lead_metric_count':leads.get('metric_count',0),'lead_overlap_pair_count':sum(bool(r.get('lead_overlap')) for r in rows),'change_point_count':len(changes),'cumulative_drift_event_count':cumulative_drift_report.get('event_count',0),'alpha_chronology_event_count':alpha_chronology_report.get('event_count',0),'baseline_return_count':baseline_return_report.get('event_count',0),'evidence_packet_count':len(evidence_packets),'postprocess_summary':postprocess_summary,'artifact_hashes':artifact_hashes,'pose_bins':{k:len(v) for k,v in groups.items()},'elapsed_seconds':time.time()-t,'limitations':['Prior leads prioritize coverage and reporting but never define ground truth or thresholds.','Coordinate zones are not anatomical labels.','Statuses are measurements, not identity or medical verdicts.'],'calibration_yaw_range_per_bin':calibration_yaw_range}
   manifest['calibration_yaw_range_per_bin'] = calibration_yaw_range
   atomic_json(o/'technical_summary.json',build_technical_summary(rows,changes,manifest))
   atomic_json(o/'analysis_manifest.json',manifest)
@@ -493,6 +496,10 @@ class Stage2Engine:
   return manifest
  @staticmethod
  def _persistence(rows):
+  """🔧 FIX (audit P2-11): persistence requires elevated metrics in successor,
+  not just candidate status. Two adjacent candidates from noise should not
+  become 'persistent_geometric_change'. Successor must have p95_point_z >= 3.0
+  OR be a coherent/descriptor jump candidate."""
   by=defaultdict(list)
   for r in rows:
    if r['pair_type']=='adjacent':by[r['pose_bin']].append(r)
@@ -500,4 +507,18 @@ class Stage2Engine:
    g.sort(key=lambda x:(x['date_b'] or '',x['pair_index']))
    for i,r in enumerate(g):
     nxt=g[i+1:i+3]
-    if r['status']=='coherent_jump_candidate' and any(x.get('point_motion_status')=='coherent_jump_candidate' or x.get('descriptor_status')=='descriptor_jump_candidate' for x in nxt):r['status']='persistent_geometric_change'
+    if r['status']!='coherent_jump_candidate':
+     continue
+    # Require at least one successor with genuinely elevated signal
+    has_persistent_successor = False
+    for x in nxt:
+     successor_elevated = (
+      x.get('point_motion_status')=='coherent_jump_candidate'
+      or x.get('descriptor_status')=='descriptor_jump_candidate'
+     )
+     successor_p95 = float(x.get('p95_point_z', 0) or 0)
+     if successor_elevated and successor_p95 >= 3.0:
+      has_persistent_successor = True
+      break
+    if has_persistent_successor:
+     r['status']='persistent_geometric_change'
