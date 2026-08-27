@@ -1,6 +1,0 @@
-WARN code=MACOS_METADATA_IGNORED subject=/Volumes/SDCARD/storage/stage2 detail=count=13077
-WARN code=SCHEMA_MISMATCH subject=artifact_index.json detail=schema=deeputin-stage2-postprocess-v1.0 expected=deeputin-stage2-v1.4-robustness
-WARN code=SCHEMA_MISMATCH subject=evidence_packets.json detail=schema=deeputin-stage2-evidence-v1.1 expected=deeputin-stage2-v1.4-robustness
-WARN code=SCHEMA_MISMATCH subject=analysis_validation.json detail=schema=stage2-validation-v1.1 expected=deeputin-stage2-v1.4-robustness
-WARN code=ARTIFACT_INDEX_MACOS_METADATA subject=/Volumes/SDCARD/storage/stage2/artifact_index.json detail=count=41 ignored by validator
-SUMMARY script=check_stage2_contract status=PASS checked_files=20 ignored_macos_files=13077 errors=0 warnings=5 pairs=5561 pair_metrics_rows=5561 zones=4256 evidence_packets=5561 indexed_artifacts=79
