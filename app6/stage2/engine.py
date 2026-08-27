@@ -122,6 +122,9 @@ def _record_qc(record)->dict[str,Any]:
  jaw=chronology.get('jaw_open_ratio')
  smile_d=chronology.get('smile_detected',False)
  jaw_d=chronology.get('jaw_open_detected',False)
+ # 🔧 FIX (audit P2-1): read pixels from info.json image section for resolution gate
+ _image_info = payload.get('image', {})
+ _pixels = _image_info.get('pixels')
  result.update({
   'status':'available',
   'alignment_quality':alignment,
@@ -133,6 +136,7 @@ def _record_qc(record)->dict[str,Any]:
   'detection_confidence':float(chronology['detection_confidence']) if chronology.get('detection_confidence') is not None else None,
   'face_area_ratio':float(chronology['face_area_ratio']) if chronology.get('face_area_ratio') is not None else None,
   'skin_quality_score':float(payload['skin_quality_score']) if payload.get('skin_quality_score') is not None else None,
+  'pixels':int(_pixels) if _pixels is not None else None,
   'reason':'',
  })
  return result
@@ -222,17 +226,17 @@ class Stage2Engine:
   checkpoint_path=o/'stage2_checkpoint.pkl'
   if o.exists() and any(o.iterdir()) and not self.cfg.overwrite and not self.cfg.resume:raise FileExistsError(f'output exists: {o}')
   if self.cfg.resume and not checkpoint_path.is_file():raise FileNotFoundError(f'Stage 2 checkpoint not found: {checkpoint_path}')
-   # Load and construct every read-only dependency before destructive overwrite.
-   main=load_main(self.cfg.stage1_root);cal=load_calibration(self.cfg.calibration_root);leads=load_leads(self.cfg.lead_archive)
-   calibration_yaw_range = {}
-   for r in cal:
-       b = r.pose_bin
-       y = float(r.angles[1])
-       calibration_yaw_range.setdefault(b, [y, y])
-       calibration_yaw_range[b][0] = min(calibration_yaw_range[b][0], y)
-       calibration_yaw_range[b][1] = max(calibration_yaw_range[b][1], y)
-   record_yaw = {r.record_id: float(r.angles[1]) for r in main}
-   if not main:raise RuntimeError('no valid stage1 records')
+  # Load and construct every read-only dependency before destructive overwrite.
+  main=load_main(self.cfg.stage1_root);cal=load_calibration(self.cfg.calibration_root);leads=load_leads(self.cfg.lead_archive)
+  calibration_yaw_range = {}
+  for r in cal:
+      b = r.pose_bin
+      y = float(r.angles[1])
+      calibration_yaw_range.setdefault(b, [y, y])
+      calibration_yaw_range[b][0] = min(calibration_yaw_range[b][0], y)
+      calibration_yaw_range[b][1] = max(calibration_yaw_range[b][1], y)
+  record_yaw = {r.record_id: float(r.angles[1]) for r in main}
+  if not main:raise RuntimeError('no valid stage1 records')
   from .primary_zones import build_anatomical_landmark_zone_map as _build_anat_zones
   z106_coord,m106_coord=build_coordinate_zone_map(cal,106);z134_coord,m134_coord=build_coordinate_zone_map(cal,134)
   z106,m106=_build_anat_zones(list(cal)+list(main),106);z134,m134=_build_anat_zones(list(cal)+list(main),134)
@@ -408,7 +412,7 @@ class Stage2Engine:
   # разная (pose_distance > 1.0). Если обе фото в анфас или близком ракурсе —
   # утечка позы не имеет значения, метрики считаются.
   POSE_LEAKAGE_DISTANCE_THRESHOLD=1.0
-   for r in rows:
+  for r in rows:
     yaw_a = record_yaw.get(str(r.get('photo_a', '')), float('nan'))
     yaw_b = record_yaw.get(str(r.get('photo_b', '')), float('nan'))
     yaw_range = calibration_yaw_range.get(str(r.get('pose_bin', '')))
@@ -426,7 +430,14 @@ class Stage2Engine:
     residual_tilt_angle = float(r.get('residual_rotation_angle_134_deg', 0.0) or 0.0)
     r['residual_tilt_limited'] = residual_tilt_angle > 10.0
     r['residual_tilt_angle_deg'] = residual_tilt_angle
-    r['evidence_state']=evidence_state(str(r.get('status','')),quality_limited=bool(r.get('quality_limited')),calibration_limited=r['calibration_limited'],pose_leakage_limited=r['pose_leakage_limited'],residual_tilt_limited=r['residual_tilt_limited'])
+    # 🔧 FIX (audit P1-1): preserve date_provenance_limited and near_duplicate_limited
+    # from initial evidence_state set at row creation (line ~367).
+    # Previously this unconditional overwrite lost provenance-based downgrades.
+    _prev_evidence = r.get('evidence_state', '')
+    if _prev_evidence in ('date_provenance_limited', 'near_duplicate_limited'):
+        pass  # keep provenance-based evidence state from initial assignment
+    else:
+        r['evidence_state']=evidence_state(str(r.get('status','')),quality_limited=bool(r.get('quality_limited')),calibration_limited=r['calibration_limited'],pose_leakage_limited=r['pose_leakage_limited'],residual_tilt_limited=r['residual_tilt_limited'])
   states={r['pair_id']:r['status'] for r in rows}
   evidence_states={r['pair_id']:r['evidence_state'] for r in rows}
   for d in details:
@@ -456,7 +467,6 @@ class Stage2Engine:
   # pair_details.json, evidence_packets.json, evidence_packets.jsonl, mesh_zone_metrics.csv
   # removed to reduce storage; UI uses pair_metrics.csv + zone_metrics.csv instead
   write_csv(o/'pair_metrics.csv',rows or [{'status':'no_pairs'}]);write_csv(o/'skipped_pairs.csv',skipped_pair_rows or [{'status':'no_skipped_pairs'}]);write_csv(o/'zone_metrics.csv',zones or [{'status':'no_zones'}]);write_csv(o/'quality_zone_pair_coverage.csv',quality_zone_rows or [{'status':'no_quality_zone_pairs'}]);write_csv(o/'texture_pair_metrics.csv',texture_pair_rows or [{'status':'no_texture_pairs'}]);write_csv(o/'texture_zone_metrics.csv',texture_zone_rows or [{'status':'no_texture_zone_metrics'}]);write_csv(o/'mesh_pair_metrics.csv',mesh_rows or [{'status':'no_mesh_pairs'}])
-  postprocess_summary=write_postprocess_reports(o,rows=rows,zones=zones,mesh_zones=mesh_zones,texture_zone_rows=texture_zone_rows,changes=changes,evidence_packets=evidence_packets)
   pd=o/'photo_analysis';pd.mkdir(exist_ok=True)
   for r in main:atomic_json(pd/f'{r.record_id}.json',{'schema':SCHEMA,'photo_id':r.record_id,'date':r.date,'pose_bin':r.pose_bin,'related_pairs':[x for x in rows if r.record_id in (x['photo_a'],x['photo_b'])]})
   postprocess_summary=write_postprocess_reports(o,rows=rows,zones=zones,mesh_zones=mesh_zones,texture_zone_rows=texture_zone_rows,changes=changes,evidence_packets=evidence_packets)
@@ -465,9 +475,9 @@ class Stage2Engine:
   _work_root=Path(__file__).resolve().parents[2]
   _reuse_report=model.reuse_report();_space_manifest=space_manifest()
   _modules={
-   'angle_noise':{'imported':True,'applied':any(bool(r.get('angle_noise_compensated')) for r in rows),'affected_pair_count':sum(bool(r.get('angle_noise_compensated')) for r in rows)},
+   'angle_noise':{'imported':True,'applied':any(r.get('angle_noise_uncompensated') is False for r in rows),'affected_pair_count':sum(r.get('angle_noise_uncompensated') is False for r in rows)},
    'chronology_rate':{'imported':True,'applied':bool(chronology_refs),'affected_pair_count':sum(bool(r.get('chronology_rate_status')) for r in rows)},
-   'same_day_gate_v2':{'imported':True,'applied':any(r.get('days_delta')==0 for r in rows),'affected_pair_count':sum(r.get('days_delta')==0 for r in rows)},
+   'same_day_gate_v2':{'imported':False,'applied':False,'affected_pair_count':0,'note':'module exists but not wired into engine; days_delta=0 pairs tracked via chronology flags only'},
    'multiple_testing':{'imported':True,'applied':bool(multiple_testing_report['pair_fdr'].get('test_count')),'affected_pair_count':multiple_testing_report['pair_fdr'].get('test_count',0)},
    'cross_bin_corroboration':{'imported':True,'applied':bool(cross_bin_report),'affected_pair_count':sum(bool(r.get('cross_bin_corroboration_status')) for r in rows)},
   }
@@ -476,7 +486,7 @@ class Stage2Engine:
   manifest['calibration_yaw_range_per_bin'] = calibration_yaw_range
   atomic_json(o/'technical_summary.json',build_technical_summary(rows,changes,manifest))
   atomic_json(o/'analysis_manifest.json',manifest)
-   req=['analysis_manifest.json','technical_summary.json','calibration_noise_model.json','calibration_sensitivity.json','mesh_noise_model.json','point_noise_model.npz','descriptor_noise_model.npz','lead_registry.json','lead_coverage.csv','chronology_rate_model.json','alpha_chronology.json','alpha_chronology_events.csv','baseline_return.json','cumulative_drift.json','cross_bin_corroboration.json','event_aggregation.csv','pose_leakage_diagnostic.json','metric_catalog.json','zone_map.json','pair_metrics.csv','zone_metrics.csv','quality_zone_pair_coverage.csv','texture_pair_metrics.csv','texture_zone_metrics.csv','mesh_pair_metrics.csv','multiple_testing.json','change_points.json','manual_review_queue.csv','public_safety_report.json','degraded_modules.json','mesh_shape_summary.csv','texture_summary.json','status_summary.csv','gate_report.json','stage3_input_summary.json','artifact_index.json','evidence_chain_manifest.json','evidence_packets.json']
+  req=['analysis_manifest.json','technical_summary.json','calibration_noise_model.json','calibration_sensitivity.json','mesh_noise_model.json','point_noise_model.npz','descriptor_noise_model.npz','lead_registry.json','lead_coverage.csv','chronology_rate_model.json','alpha_chronology.json','alpha_chronology_events.csv','baseline_return.json','cumulative_drift.json','cross_bin_corroboration.json','event_aggregation.csv','pose_leakage_diagnostic.json','metric_catalog.json','zone_map.json','pair_metrics.csv','zone_metrics.csv','quality_zone_pair_coverage.csv','texture_pair_metrics.csv','texture_zone_metrics.csv','mesh_pair_metrics.csv','multiple_testing.json','change_points.json','manual_review_queue.csv','public_safety_report.json','degraded_modules.json','mesh_shape_summary.csv','texture_summary.json','status_summary.csv','gate_report.json','stage3_input_summary.json','artifact_index.json','evidence_chain_manifest.json','evidence_packets.json']
   errors=validate_analysis_contract(o,required_files=req,rows=rows,changes=changes,evidence_packets=evidence_packets,public_safety={'status':postprocess_summary.get('public_safety_status')});atomic_json(o/'analysis_validation.json',{'schema':'stage2-validation-v1.1','status':'complete' if not errors else 'invalid','errors':errors})
   if errors:raise RuntimeError(str(errors))
   checkpoint_path.unlink(missing_ok=True)
