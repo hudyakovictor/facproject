@@ -126,9 +126,10 @@ def balanced_reference(values_by_person, min_persons: int = MIN_REFERENCE_PERSON
                 'required_persons':int(min_persons),
                 'observed_value_count':int(total)}
     a=np.asarray(summaries,float)
-    return {'count':int(total),'dataset_count':int(len(a)),'median':float(np.median(a[:,0])),
+    return {'count':int(len(a)),'dataset_count':int(len(a)),'median':float(np.median(a[:,0])),
             'mad':float(np.median(a[:,1])),'p95':float(np.median(a[:,2])),
-            'p99':float(np.median(a[:,3])),'policy':'equal_person_median_of_quantiles_v1'}
+            'p99':float(np.median(a[:,3])),'policy':'equal_person_median_of_quantiles_v1',
+            'observed_value_count':int(total)}
 
 
 def validate_serialized_record(csv_points, npz_points, metadata_angles, npz_angles, atol=1e-6):

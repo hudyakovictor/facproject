@@ -45,6 +45,10 @@ class ParsePhotoNameTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_photo_name(Path("misc_label.png"))
 
+    def test_date_embedded_in_alphanumeric_token_is_rejected(self):
+        with self.assertRaises(ValueError):
+            parse_photo_name(Path("x2020_01_01.jpg"))
+
     def test_canonical_stem_keeps_normalized_rest(self):
         p = parse_photo_name(Path("2025_03_27_y5p10r0.jpg"))
         self.assertEqual(p.canonical_stem, "2025_03_27_y5p10r0")

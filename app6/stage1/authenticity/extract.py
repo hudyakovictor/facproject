@@ -37,6 +37,8 @@ def extract_quality_metrics(rgb: np.ndarray, mask: np.ndarray) -> dict[str, floa
     x = rgb.astype(np.float64)
     r, g, b = x[..., 0], x[..., 1], x[..., 2]
     m = mask.astype(bool)
+    if int(m.sum()) < 1:
+        raise ValueError("quality mask is empty; metrics are not measurable")
     L = 0.299 * r + 0.587 * g + 0.114 * b
     v = L[m]
     p1, p99 = np.percentile(v, [1, 99])
@@ -59,17 +61,26 @@ def extract_quality_metrics(rgb: np.ndarray, mask: np.ndarray) -> dict[str, floa
 
 
 def _quality_score(q: dict[str, float], policy: dict[str, Any]) -> tuple[float, str, bool]:
+    if not policy:
+        return float("nan"), "insufficient", True
     thr = policy.get("thresholds") or {}
     metrics = policy.get("metrics") or ["q_noise_mad", "q_grad_med", "q_lap_med"]
     required = int(policy.get("required_count", 3))
+    if required < 1:
+        return float("nan"), "insufficient", True
     low = 0
     ratios = []
     for m in metrics:
         t = float(thr.get(m, 0.0))
-        val = float(q.get(m, 0.0))
-        if val < t:
+        raw = q.get(m)
+        if raw is None:
             low += 1
-        ratios.append(min(2.0, val / (t + 1e-9)))
+            continue
+        val = float(raw)
+        if not np.isfinite(val) or val < t:
+            low += 1
+        if np.isfinite(val):
+            ratios.append(min(2.0, val / (t + 1e-9)))
     hard_stop = bool(policy.get("enabled", True)) and low >= required
     score = float(np.clip(np.mean(ratios) / 2.0, 0.0, 1.0))
     if hard_stop:
@@ -103,6 +114,12 @@ def _panel_score(metrics: dict[str, float], panel: list[dict[str, Any]]) -> tupl
 def _authenticity_status(score: float | None, hard_stop: bool, q95: float, q99: float) -> str:
     if hard_stop or score is None:
         return "quality_insufficient"
+    try:
+        score_f = float(score)
+    except (TypeError, ValueError):
+        return "not_measurable"
+    if not np.isfinite(score_f):
+        return "not_measurable"
     if score <= q95:
         return "high_authenticity"
     if score <= q99:

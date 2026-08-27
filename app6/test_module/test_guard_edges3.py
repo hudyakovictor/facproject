@@ -65,6 +65,14 @@ class QualityGateTests(unittest.TestCase):
         self.assertFalse(out["texture_conclusions_allowed"])
         self.assertEqual(out["quality_gate_reason"], "quality_limited")
 
+    def test_missing_quality_metadata_fails_closed(self):
+        pair = compensate_quality_disparity(
+            {"photo_a": "A", "photo_b": "B", "texture_score_0_1": 0.1},
+            {"A": {}, "B": {}},
+        )
+        self.assertTrue(pair["quality_limited"])
+        self.assertFalse(pair["texture_conclusions_allowed"])
+
     def test_resolution_disparity_flagged(self):
         pair = compensate_quality_disparity(
             {"photo_a": "A", "photo_b": "B", "texture_score_0_1": 0.8},

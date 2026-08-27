@@ -43,8 +43,8 @@ class ParseFilenameDateTests(unittest.TestCase):
         self.assertEqual(parse_filename_date("misc_label")[0], None)
         self.assertEqual(parse_filename_date("misc_label")[1], "none")
 
-    def test_first_date_pattern_wins(self):
-        self.assertEqual(parse_filename_date("2020_01_01_b_2021_02_02")[0], "2020-01-01")
+    def test_multiple_distinct_date_patterns_are_ambiguous(self):
+        self.assertEqual(parse_filename_date("2020_01_01_b_2021_02_02"), (None, "ambiguous"))
 
 
 class ResolveDateSemanticsTests(unittest.TestCase):
@@ -144,6 +144,17 @@ class TemporalAxisTests(unittest.TestCase):
         self.assertEqual(require_temporal_axis([
             _rec("2020-01-01"), _rec("2020-01-02"), _rec("2020-03-05"),
         ]), None)
+
+
+class ChronologyDateOrderRegressionTests(unittest.TestCase):
+    def test_reverse_date_order_is_not_converted_to_positive_elapsed_time(self):
+        from app6.stage2.chronology import apply_chronology_rate_flags
+        rows = [{"pose_bin": "frontal", "pair_type": "adjacent",
+                 "date_a": "2020-02-01", "date_b": "2020-01-01",
+                 "p95_point_z": 5.0, "status": "coherent_jump_candidate"}]
+        apply_chronology_rate_flags(rows)
+        self.assertEqual(rows[0]["days_delta"], -31)
+        self.assertEqual(rows[0]["chronology_rate_status"], "date_order_conflict")
 
 
 if __name__ == "__main__":

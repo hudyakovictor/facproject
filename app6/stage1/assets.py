@@ -100,7 +100,7 @@ def technical_quality(bgr: np.ndarray, face_bbox: list[int], mask: np.ndarray | 
         "gradient_anisotropy": float(max(vx / vy, vy / vx)),
         "combined_visible_fraction": float(np.mean(np.asarray(combined_visible, bool))),
     }
-    out["skin_mask_coverage"] = float(np.mean(mask > 0)) if mask is not None else 0.0
+    out["skin_mask_coverage"] = float(np.mean(mask > 0)) if mask is not None else None
     return out
 
 
@@ -235,11 +235,20 @@ def save_face_mask(bgr: np.ndarray, hard_mask: np.ndarray | None, bbox: list[int
     if hard_mask is None or hard_mask.size == 0:
         return None
 
-    # Convert to uint8 if boolean
+    if hard_mask.ndim != 2:
+        return None
+    # Convert to uint8 alpha. Float 0/1 masks must become 0/255, not 0/1.
     if hard_mask.dtype == bool:
         hard_mask = hard_mask.astype(np.uint8) * 255
-    elif hard_mask.dtype != np.uint8:
-        hard_mask = np.clip(hard_mask, 0, 255).astype(np.uint8)
+    else:
+        arr = np.asarray(hard_mask, np.float32)
+        finite = arr[np.isfinite(arr)]
+        if finite.size == 0:
+            return None
+        peak = float(np.nanmax(arr))
+        if peak <= 1.0:
+            arr = arr * 255.0
+        hard_mask = np.clip(np.nan_to_num(arr, nan=0.0), 0, 255).astype(np.uint8)
 
     x, y, w, h = bbox
     H, W = hard_mask.shape[:2]

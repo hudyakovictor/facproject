@@ -10,14 +10,23 @@ from dataclasses import dataclass, asdict
 from typing import Any
 
 from .metric_registry import evidence_metric_channel
+from .candidate_states import REPORTABLE_CHANGE_STATES
 
 EVIDENCE_SCHEMA = "deeputin-stage2-evidence-v1.1"
-REPORTABLE_CHANGE_STATES = {
-    "coherent_jump_candidate", "persistent_geometric_change",
-    "reversible_change_candidate", "alpha_id_change_candidate",
-    "same_day_conflict_candidate", "rate_change_candidate",
-    "persistent_rate_change_candidate",
-}
+
+
+def _optional_id(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return None if text in {"", "None", "null", "nan"} else text
+
+
+def _required_id(value: Any, field: str) -> str:
+    text = _optional_id(value)
+    if not text:
+        raise ValueError(f"evidence packet missing required identifier: {field}")
+    return text
 
 STATUS_TO_EVIDENCE_STATE = {
     "within_reconstruction_noise": "within_noise",
@@ -45,15 +54,19 @@ STATUS_TO_EVIDENCE_STATE = {
 }
 
 
-def evidence_state(status: str, *, quality_limited: bool = False, calibration_limited: bool = False, pose_leakage_limited: bool = False) -> str:
+def evidence_state(status: str, *, quality_limited: bool = False, calibration_limited: bool = False, pose_leakage_limited: bool = False, residual_tilt_limited: bool = False) -> str:
     log_status("evidence_state", "complete")
-    if quality_limited and status not in {"within_reconstruction_noise", "within_calibration_noise"}:
+    if status not in STATUS_TO_EVIDENCE_STATE:
+        return "unknown_status_not_interpretable"
+    if quality_limited:
         return "quality_limited"
-    if pose_leakage_limited and status not in {"within_reconstruction_noise", "within_calibration_noise"}:
+    if residual_tilt_limited:
+        return "residual_tilt_limited"
+    if pose_leakage_limited:
         return "pose_leakage_limited"
-    if calibration_limited and status not in {"within_reconstruction_noise", "within_calibration_noise"}:
+    if calibration_limited:
         return "calibration_limited"
-    return STATUS_TO_EVIDENCE_STATE.get(status, "elevated_uncertain")
+    return STATUS_TO_EVIDENCE_STATE[status]
 
 
 def is_reportable_change(row: dict[str, Any]) -> bool:
@@ -79,12 +92,21 @@ def alternative_reasons(row: dict[str, Any]) -> list[str]:
         expression_influence = 0.0
     if expression_influence >= 0.45:
         reasons.append("expression_or_soft_tissue_influence")
-    if row.get("common_visible134", 999) < 60:
+    try:
+        if row.get("common_visible134") is not None and float(row.get("common_visible134")) < 60:
+            reasons.append("limited_landmark_visibility")
+    except (TypeError, ValueError):
         reasons.append("limited_landmark_visibility")
-    if row.get("matched_calibration_sets", 999) < 3:
+    try:
+        if row.get("matched_calibration_sets") is not None and float(row.get("matched_calibration_sets")) < 3:
+            reasons.append("limited_matched_calibration")
+    except (TypeError, ValueError):
         reasons.append("limited_matched_calibration")
-    if row.get("pose_distance", 0.0) > 2.5:
-        reasons.append("large_pose_distance")
+    try:
+        if row.get("pose_distance") is not None and float(row.get("pose_distance")) > 2.5:
+            reasons.append("large_pose_distance")
+    except (TypeError, ValueError):
+        pass
     if row.get("baseline_return"):
         reasons.append("baseline_return_or_reversible_motion")
     if row.get("alpha_exp_status") == "elevated":
@@ -191,13 +213,13 @@ def packet_from_pair(row: dict[str, Any]) -> dict[str, Any]:
     }
     pkt = EvidencePacket(
         schema_version=EVIDENCE_SCHEMA,
-        pair_id=str(row.get("pair_id")),
-        evidence_state=str(row.get("evidence_state") or evidence_state(str(row.get("status", "")), quality_limited=bool(row.get("quality_limited")), calibration_limited=bool(row.get("calibration_limited")), pose_leakage_limited=bool(row.get("pose_leakage_limited")))),
-        status=str(row.get("status")),
-        pair_type=str(row.get("pair_type")),
-        pose_bin=str(row.get("pose_bin")),
-        photo_a=str(row.get("photo_a")),
-        photo_b=str(row.get("photo_b")),
+        pair_id=_required_id(row.get("pair_id"), "pair_id"),
+        evidence_state=str(row.get("evidence_state") or evidence_state(str(row.get("status", "")), quality_limited=bool(row.get("quality_limited")), calibration_limited=bool(row.get("calibration_limited")), pose_leakage_limited=bool(row.get("pose_leakage_limited")), residual_tilt_limited=bool(row.get("residual_tilt_limited")))),
+        status=_optional_id(row.get("status")),
+        pair_type=_optional_id(row.get("pair_type")),
+        pose_bin=_optional_id(row.get("pose_bin")),
+        photo_a=_required_id(row.get("photo_a"), "photo_a"),
+        photo_b=_required_id(row.get("photo_b"), "photo_b"),
         date_a=row.get("date_a"),
         date_b=row.get("date_b"),
         primary_zone_or_family=str(row.get("descriptor_top_families") or "ldm134_motion"),

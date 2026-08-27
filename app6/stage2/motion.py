@@ -99,23 +99,37 @@ class PointNoiseModel:
     def _build(self):
         groups=defaultdict(list)
         for r in self.records:groups[(r.dataset_id,r.pose_bin)].append(r)
-        values=defaultdict(list);templates=defaultdict(list)
+        values=defaultdict(lambda:defaultdict(list));templates=defaultdict(list)
         for (_,pose),rs in groups.items():
             rs=sorted(rs,key=lambda r:r.date or str(r.sequence))
             for r in rs:templates[(pose,106)].append(r.ldm106);templates[(pose,134)].append(r.ldm134)
             for off in (1,2,3,5,10,20,50):
                 for a,b in zip(rs,rs[off:],strict=False):
                     if self._pose_distance(a,b)>2.5:continue
+                    person=a.dataset_id
                     for count in (106,134):
                         m=aligned_point_motion(a,b,count)
-                        if m['status']=='measured':values[(pose,count)].append(m['magnitude'])
-        for key,arrs in values.items():
-            stack=np.stack(arrs)
+                        if m['status']=='measured':values[(pose,count)][person].append(m['magnitude'])
+        for key,person_dict in values.items():
+            per_person_medians=[]
+            person_ids=[]
+            for person,arrs in person_dict.items():
+                stack=np.stack(arrs)
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore',RuntimeWarning)
+                    med=np.nanmedian(stack,axis=0)
+                per_person_medians.append(med);person_ids.append(person)
+            if len(per_person_medians)<3:continue
+            agg=np.stack(per_person_medians)
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore',RuntimeWarning)
-                median=np.nanmedian(stack,axis=0);mad=np.nanmedian(np.abs(stack-median),axis=0);p95=np.nanpercentile(stack,95,axis=0)
-            cnt=np.sum(np.isfinite(stack),axis=0);template=np.nanmedian(np.stack(templates[key][:200]),axis=0)
-            self.references[key]=PointNoiseReference(median.astype(np.float32),mad.astype(np.float32),p95.astype(np.float32),cnt.astype(np.int32),template.astype(np.float32))
+                median=np.nanmedian(agg,axis=0);mad=np.nanmedian(np.abs(agg-median),axis=0)
+                p99_per_person=np.nanpercentile(agg,99,axis=0)
+                p95=np.nanmedian(np.stack([np.nanpercentile(np.stack(arrs),95,axis=0) for arrs in person_dict.values()]),axis=0)
+            n_persons=len(per_person_medians)
+            cnt=np.full(len(median),n_persons,dtype=np.int32)
+            template=np.nanmedian(np.stack(templates[key][:200]),axis=0)
+            self.references[key]=PointNoiseReference(median.astype(np.float32),mad.astype(np.float32),p95.astype(np.float32),cnt,template.astype(np.float32))
     # 📊 Калиброванный motion-скор
     def score(self,pose:str,count:int,motion:dict[str,Any])->dict[str,Any]:
         support=pose_motion_support(pose)

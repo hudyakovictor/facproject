@@ -134,6 +134,9 @@ def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z",
 
 def apply_zone_fdr(zones: list[dict[str, Any]], *, z_key: str = "robust_z", q_threshold: float = DEFAULT_FDR_LEVEL) -> dict[str, Any]:
     log_status("apply_zone_fdr", "complete")
+    # Для зон n_eff = количество измеренных RMSE-оценок (одинаковое для всех зон одной пары).
+    # Зависимость инфляция: m / n_eff ≈ 5.83× (как в pair_fdr).
+    n_eff = sum(1 for z in zones if z.get("status") == "measured")
     tests: list[tuple[int, float]] = []
     for i, zrow in enumerate(zones):
         if zrow.get("status") != "measured" and zrow.get("mesh_zone_status") != "measured":
@@ -147,10 +150,13 @@ def apply_zone_fdr(zones: list[dict[str, Any]], *, z_key: str = "robust_z", q_th
             continue
         if not isfinite(z_value):
             continue
-        p = _p_from_z(z_value)
+        # 🚧 FIX (аудит N1): порядковая статистика вместо одиночного z.
+        # n_visible — количество измеренных RMSE для этой зоны/пара.
+        n_visible = n_eff
+        p = _p_from_p95_z(z_value, n_visible)
         zrow["mt_p_approx"] = p
         tests.append((i, p))
-    qmap = _bh_qvalues(tests)
+    qmap = _bh_qvalues(tests, m_override=n_eff)
     significant = 0
     for i, q in qmap.items():
         zones[i]["mt_q_value"] = q
@@ -159,13 +165,21 @@ def apply_zone_fdr(zones: list[dict[str, Any]], *, z_key: str = "robust_z", q_th
         zones[i]["mt_fdr10_diagnostic_flag"] = flag
         zones[i]["mt_role"] = "diagnostic_only"
         significant += int(flag)
+    dependence_inflation = 1.0
+    if n_eff is not None and tests:
+        dependence_inflation = max(1.0, len(tests) / float(n_eff))
     return {
         "schema": MT_SCHEMA,
         "scope": "zone_metrics",
         "test_count": len(tests),
+        "effective_test_count": n_eff,
+        "dependence_inflation": round(dependence_inflation, 4),
+        "independence_policy": "zone_cluster_v1",
+        "independence_note": ("зональные RMSE кластеризованы; "
+                              "n_eff = число измеренных RMSE; ранжирование по всем m"),
         "q_threshold": q_threshold,
         "significant_count": significant,
         "diagnostic_only": True,
         "not_a_verdict": True,
-        "method": "Benjamini-Hochberg on approximate p-values (DIAGNOSTIC ONLY)",
+        "method": "Benjamini-Hochberg on order-statistic p for zone p95 z-scores; q scaled by dependence inflation (DIAGNOSTIC ONLY; do not use as identity/material verdict)",
     }

@@ -395,13 +395,14 @@ def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], l
             registered_structure_count += 1
             max_ridge_delta = max(max_ridge_delta, float(structure.get("ridge_map_delta", 0.0)))
             min_registered_ssim = min(min_registered_ssim, float(structure.get("registered_ssim", 1.0)))
-        max_lap_delta = max(max_lap_delta, lap_delta)
-        max_grad_delta = max(max_grad_delta, grad_delta)
-        max_lbp_chi2 = max(max_lbp_chi2, lbp_chi2)
-        max_glcm_contrast_delta = max(max_glcm_contrast_delta, glcm_contrast_delta)
-        max_high_freq_delta = max(max_high_freq_delta, high_freq_delta)
-        max_entropy_delta = max(max_entropy_delta, entropy_delta)
-        max_gabor_delta = max(max_gabor_delta, gabor_delta)
+        if usable:
+            max_lap_delta = max(max_lap_delta, lap_delta)
+            max_grad_delta = max(max_grad_delta, grad_delta)
+            max_lbp_chi2 = max(max_lbp_chi2, lbp_chi2)
+            max_glcm_contrast_delta = max(max_glcm_contrast_delta, glcm_contrast_delta)
+            max_high_freq_delta = max(max_high_freq_delta, high_freq_delta)
+            max_entropy_delta = max(max_entropy_delta, entropy_delta)
+            max_gabor_delta = max(max_gabor_delta, gabor_delta)
         rows.append({
             "pair_id": pair_id,
             "zone": name,
@@ -430,7 +431,7 @@ def texture_pair_deltas(a: Any, b: Any, pair_id: str) -> tuple[dict[str, Any], l
             "texture_backend": "scikit-image" if _HAS_SKIMAGE else "numpy_cv2_fallback",
             "policy": "image-space LBP/GLCM/frequency texture delta; quality/exposure/compression alternatives required",
         })
-    status = "measured" if rows else "no_common_zones"
+    status = "measured" if usable_count else ("not_measurable" if rows else "no_common_zones")
     return {
         "texture_image_status": status,
         "texture_image_zone_count": len(rows),

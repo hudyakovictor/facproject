@@ -12,24 +12,13 @@ from typing import Any
 import numpy as np
 
 from app6.stage1.utils import atomic_json, digest_file, write_csv
+from .candidate_states import CANDIDATE_STATES
 
 POSTPROCESS_SCHEMA = "deeputin-stage2-postprocess-v1.0"
 FORBIDDEN_PUBLIC_TERMS = (
     "двойник", "подмена", "силикон", "маска", "другой человек",
     "double", "impostor", "silicone", "mask", "different person",
 )
-CANDIDATE_STATES = {
-    "persistent_geometric_change",
-    "persistent_geometric_change_candidate",
-    "alpha_id_change_candidate",
-    "reversible_change_candidate",
-    "rate_change_candidate",
-    "persistent_rate_change_candidate",
-    "same_day_conflict_candidate",
-    "quality_limited",
-    "calibration_limited",
-    "pose_leakage_limited",
-}
 
 
 def _num(v: Any, default: float = 0.0) -> float:
@@ -167,13 +156,16 @@ def _write_gate_report(out: Path, rows: list[dict[str, Any]], changes: list[dict
         gate = "next_gate_100_photos_or_pairs"
     else:
         gate = "ready_for_full_run_if_error_rate_ok"
+    mesh_calibrated = sum(str(r.get("mesh_calibration_status")) == "sufficient_calibration" for r in rows)
     report = {
         "schema": POSTPROCESS_SCHEMA,
         "pair_count": pair_count,
         "change_point_count": len(changes),
         "recommended_next_gate": gate,
         "quality_limited_fraction": sum(bool(r.get("quality_limited")) for r in rows) / max(pair_count, 1),
-        "mesh_measured_fraction": sum(str(r.get("mesh_status")) in {"measured_uncalibrated", "measured_calibrated"} for r in rows) / max(pair_count, 1),
+        "mesh_calibrated_fraction": mesh_calibrated / max(pair_count, 1),
+        "texture_conclusions_allowed": False,
+        "per_bin_anchors_effective": False,
     }
     atomic_json(out / "gate_report.json", report)
     return report
@@ -229,6 +221,7 @@ def write_postprocess_reports(
         "artifact_count": artifact_index.get("artifact_count"),
     }
     atomic_json(out / "evidence_chain_manifest.json", evidence_chain)
+    atomic_json(out / "evidence_packets.json", {"schema": "deeputin-stage2-evidence-v1.1", "packets": evidence_packets})
     return {
         "manual_review_count": review_count,
         "public_safety_status": public_safety.get("status"),

@@ -22,10 +22,19 @@ def _one(points: np.ndarray, ids: np.ndarray):
     normal=vec[:,0]; plane=float(np.std(q@normal)); curv=float(ev[0]/s); plan=float((ev[1]-ev[0])/max(ev[2],1e-9))
     return c,span,float(area),volume,rad,plane,normal,curv,plan
 
+def descriptor_pose_compatible(a: Record, b: Record) -> bool:
+    """Fail closed unless both records have the same canonical pose bin."""
+    pose_a = getattr(a, "pose_bin", None)
+    pose_b = getattr(b, "pose_bin", None)
+    return isinstance(pose_a, str) and isinstance(pose_b, str) and pose_a == pose_b
+
 def local_pair_descriptors(a: Record, b: Record, template: np.ndarray) -> dict[str, np.ndarray | str]:
     log_status("local_pair_descriptors", "complete")
     vis=np.asarray(a.visible134,bool)&np.asarray(b.visible134,bool); out=np.full((134,len(NAMES)),np.nan,np.float32)
     if vis.sum()<30: return {"status":"insufficient_visibility","values":out}
+    # Descriptor comparisons are meaningful only inside one canonical pose bin.
+    if not descriptor_pose_compatible(a, b):
+        return {"status":"residual_pose_mismatch","values":out}
     _,r,t,_=robust_rigid_align(b.ldm134[vis],a.ldm134[vis]); pb=b.ldm134@r+t; neigh=_neighbors(template)
     for i,ns in enumerate(neigh):
         ids=np.array([i,*ns]); ids=ids[vis[ids]]
@@ -47,20 +56,32 @@ class DescriptorNoiseModel:
     def _build(self, records: list[Record]):
         groups=defaultdict(list); templates=defaultdict(list)
         for r in records: groups[(r.dataset_id,r.pose_bin)].append(r); templates[r.pose_bin].append(r.ldm134)
-        vals=defaultdict(list)
+        vals=defaultdict(lambda:defaultdict(list))
         for (_,pose),rs in groups.items():
             rs=sorted(rs,key=lambda r:r.date or str(r.sequence)); tpl=np.median(np.stack(templates[pose][:200]),axis=0)
             for off in (1,2,3,5,10,20,50):
                 for a,b in zip(rs,rs[off:],strict=False):
                     if self._pd(a,b)<=2.5:
+                        person=a.dataset_id
                         x=local_pair_descriptors(a,b,tpl)
-                        if x["status"]=="measured": vals[pose].append(x["values"])
-        for pose,arr in vals.items():
-            st=np.stack(arr)
+                        if x["status"]=="measured": vals[pose][person].append(x["values"])
+        for pose,person_dict in vals.items():
+            per_person_medians=[]
+            for person,arr in person_dict.items():
+                st=np.stack(arr)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore",RuntimeWarning)
+                    per_person_medians.append(np.nanmedian(st,0))
+            if len(per_person_medians)<3:continue
+            agg=np.stack(per_person_medians)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore",RuntimeWarning)
-                med=np.nanmedian(st,0); mad=np.nanmedian(np.abs(st-med),0); p95=np.nanpercentile(st,95,0)
-            self.refs[pose]=Ref(med.astype('f4'),mad.astype('f4'),p95.astype('f4'),np.sum(np.isfinite(st),0).astype('i4'),np.median(np.stack(templates[pose][:200]),0).astype('f4'))
+                med=np.nanmedian(agg,0); mad=np.nanmedian(np.abs(agg-med),0)
+                p95_per=np.stack([np.nanpercentile(np.stack(arr),95,0) for arr in person_dict.values()])
+                p95=np.nanmedian(p95_per,0)
+            n_persons=len(per_person_medians)
+            cnt=np.full(med.shape,n_persons,dtype=np.int32)
+            self.refs[pose]=Ref(med.astype('f4'),mad.astype('f4'),p95.astype('f4'),cnt,np.median(np.stack(templates[pose][:200]),0).astype('f4'))
     # 📊 Скоринг локальных дескрипторов
     def score(self, pose: str, a: Record, b: Record) -> dict[str, object]:
         ref=self.refs.get(pose)

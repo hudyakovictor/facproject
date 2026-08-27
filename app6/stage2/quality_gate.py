@@ -78,8 +78,77 @@ def compensate_quality_disparity(
             ratio = float("nan")
 
     disparity = bool(np.isfinite(ratio) and ratio > float(max_resolution_ratio))
-    quality_limited = bool(qa.get("quality_limited") or qb.get("quality_limited")
-                           or pair_metrics.get("quality_limited"))
+    quality_metadata_missing = not (np.isfinite(ratio) and qa and qb)
+    quality_limited = bool(quality_metadata_missing or qa.get("quality_limited")
+                           or qb.get("quality_limited") or pair_metrics.get("quality_limited"))
+
+    out["resolution_ratio"] = ratio
+    out["quality_disparity"] = disparity
+    out["quality_limited"] = quality_limited
+
+    # Защита: при ограниченном качестве текстурный счёт не опускается ниже
+    # нейтрального. Размытость источника не должна читаться как признак материала.
+    if quality_limited or disparity:
+        current = pair_metrics.get("texture_score_0_1")
+        try:
+            current_f = float(current) if current is not None else float("nan")
+        except (TypeError, ValueError):
+            current_f = float("nan")
+        if not np.isfinite(current_f) or current_f < NEUTRAL_TEXTURE_SCORE:
+            out["texture_score_0_1"] = NEUTRAL_TEXTURE_SCORE
+            out["texture_score_source"] = "neutral_default_quality_limited"
+        else:
+            out["texture_score_source"] = "measured"
+        out["texture_conclusions_allowed"] = False
+        out["quality_gate_reason"] = ("resolution_disparity" if disparity else "quality_limited")
+    else:
+        out["texture_score_source"] = "measured"
+        out["texture_conclusions_allowed"] = True
+        out["quality_gate_reason"] = ""
+    return out
+
+
+def resolution_quality_gate(
+    pair_metrics: dict[str, Any],
+    photo_qualities: dict[str, dict[str, Any]],
+    *,
+    max_resolution_ratio: float = DEFAULT_RESOLUTION_RATIO,
+) -> dict[str, Any]:
+    """🚧 GATE → Resolution quality gate (companion to quality_stratification.quality_gate).
+
+    This gate checks resolution disparity between the two photos in a pair.
+    If the resolution ratio exceeds the threshold, the pair is marked with
+    quality_disparity and texture conclusions are blocked.
+
+    Returns:
+        Copied pair_metrics with fields:
+        - quality_gate_schema
+        - resolution_ratio
+        - quality_disparity
+        - quality_limited (from photo qualities)
+        - texture_score_0_1 (neutral if limited/disparity)
+        - texture_conclusions_allowed
+        - quality_gate_reason
+    """
+    from .quality_stratification import quality_gate as _qg
+
+    out = dict(pair_metrics)
+    out["quality_gate_schema"] = QUALITY_GATE_SCHEMA
+    qa = photo_qualities.get(str(pair_metrics["photo_a"]), {})
+    qb = photo_qualities.get(str(pair_metrics["photo_b"]), {})
+
+    ratio = float("nan")
+    pixels_a, pixels_b = qa.get("pixels"), qb.get("pixels")
+    if pixels_a and pixels_b:
+        try:
+            ratio = resolution_ratio(pixels_a, pixels_b)
+        except ValueError:
+            ratio = float("nan")
+
+    disparity = bool(np.isfinite(ratio) and ratio > float(max_resolution_ratio))
+    quality_metadata_missing = not (np.isfinite(ratio) and qa and qb)
+    quality_limited = bool(quality_metadata_missing or qa.get("quality_limited")
+                           or qb.get("quality_limited") or pair_metrics.get("quality_limited"))
 
     out["resolution_ratio"] = ratio
     out["quality_disparity"] = disparity

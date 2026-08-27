@@ -117,6 +117,12 @@ class RunManifestTests(unittest.TestCase):
             )
             self.assertEqual(manifest["dependence"]["status"], "cross_bin_corroboration")
 
+    def test_modules_separate_imported_from_applied(self):
+        with TemporaryDirectory() as td:
+            modules = {"same_day_gate_v2": {"imported": True, "applied": False}}
+            manifest = build_manifest(Path(td), code_hash="c", config_hash="g", model_hash="m", modules=modules)
+            self.assertEqual(manifest["modules"], modules)
+
     def test_required_gates_declared(self):
         with TemporaryDirectory() as td:
             manifest = build_manifest(Path(td), code_hash="c", config_hash="g", model_hash="m")

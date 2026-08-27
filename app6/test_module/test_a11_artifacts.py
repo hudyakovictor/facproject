@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
 import numpy as np
+
+# Audit utilities are intentionally kept outside the runtime package.  Add the
+# local tools root explicitly so collection works from the repository root.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / ".runtime"))
 
 from tools.rebuild_landmark_utility import (
     BINS,

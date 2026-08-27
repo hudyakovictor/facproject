@@ -8,6 +8,7 @@ angle_noise: при отсутствии подходящей калиброво
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from app6.stage2.angle_noise import (
     angle_delta,
@@ -93,6 +94,14 @@ class SubtractAngleNoiseTests(unittest.TestCase):
         }]
         out = subtract_angle_noise(pair, calibration_pairs)
         self.assertEqual(out["ldm106_rmse_angle_compensated"], 0.0)
+
+
+class ProductionIntegrationTests(unittest.TestCase):
+    def test_stage2_engine_integrates_angle_noise(self):
+        source = (Path(__file__).parents[1] / "stage2" / "engine.py").read_text(encoding="utf-8")
+        self.assertIn("build_calibration_pair_index", source)
+        self.assertIn("subtract_angle_noise", source)
+        self.assertIn("angle_fields", source)
 
 
 if __name__ == "__main__":

@@ -39,7 +39,8 @@ def artifact_hashes(root: Path) -> dict[str, str | None]:
 def build_manifest(root: Path, *, code_hash: str, config_hash: str,
                    model_hash: str, reuse_report: dict[str, Any] | None = None,
                    space_manifest: dict[str, Any] | None = None,
-                   anchor_policy: dict[str, Any] | None = None) -> dict[str, Any]:
+                   anchor_policy: dict[str, Any] | None = None,
+                   modules: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     hashes = artifact_hashes(root)
     missing = [k for k, v in hashes.items() if v is None]
     return {"schema": RUN_MANIFEST_SCHEMA,
@@ -48,10 +49,11 @@ def build_manifest(root: Path, *, code_hash: str, config_hash: str,
             "model_hash": model_hash,
             "artifact_hashes": hashes,
             "missing_artifacts": missing,
-            "ready": not missing,
+            "ready": not missing and bool(code_hash) and bool(config_hash) and bool(model_hash),
             #: Обязательная декларация: пары не независимы.
             "dependence": reuse_report or {"status": "not_reported"},
             "analysis_space": space_manifest or {"status": "not_reported"},
             "anchor_policy_by_bin": anchor_policy or {"status": "not_reported"},
+            "modules": modules or {},
             "gates": ["pose_gate_v2", "visibility_gate", "quality_stratification",
                       "expression_pair_gate", "temporal_axis", "same_day_gate_v2"]}

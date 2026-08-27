@@ -38,9 +38,12 @@ MIN_BASELINE_EVENTS: Final[int] = 3
 
 
 def _robust_scale(values: np.ndarray) -> tuple[float, float]:
-    """Медиана и робастная сигма (MAD → σ) распределения."""
-    median = float(np.median(values))
-    mad = float(np.median(np.abs(values - median)))
+    """Медиана и робастная сигма (MAD → σ) конечного распределения."""
+    array = np.asarray(values, dtype=np.float64)
+    if array.size == 0 or not np.isfinite(array).all():
+        raise ValueError("robust scale requires non-empty finite values")
+    median = float(np.median(array))
+    mad = float(np.median(np.abs(array - median)))
     return median, max(1.4826 * mad, 1e-9)
 
 

@@ -12,7 +12,7 @@ from pathlib import Path
 
 # Only underscore separator allowed
 _DATE_PATTERNS = (
-    re.compile(r"(?<!\d)(?P<y>19\d{2}|20\d{2})_(?P<m>\d{1,2})_(?P<d>\d{1,2})(?!\d)"),
+    re.compile(r"(?<![A-Za-z0-9])(?P<y>19\d{2}|20\d{2})_(?P<m>\d{1,2})_(?P<d>\d{1,2})(?!\d)"),
 )
 _COPY_SUFFIX = re.compile(r"(?:\s*\((?P<n1>\d+)\)|[_-](?P<n2>\d+)|[-_ ]copy)$", re.I)
 

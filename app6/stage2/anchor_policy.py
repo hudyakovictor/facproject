@@ -67,7 +67,7 @@ def stable_anchor_indices(points: np.ndarray, common_indices: np.ndarray, *, max
 
 def per_bin_anchor_mask(points: np.ndarray, common_visible: np.ndarray, *, pose_bin: str,
                         utility: np.ndarray, visibility_prior: np.ndarray,
-                        min_count: int = 24, bin_names=None) -> tuple[np.ndarray, dict[str, float | int | str]]:
+                        min_count: int = 15, bin_names=None) -> tuple[np.ndarray, dict[str, float | int | str]]:
     """Per-pose-bin anchor selection from calibration-ranked landmark utility (patch 6/A11).
 
     Uses ``subset_for_bin`` ranked by per-bin utility with a visibility floor.

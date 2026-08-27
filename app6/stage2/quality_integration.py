@@ -114,6 +114,6 @@ def pair_quality_zone_overlap(a: Any, b: Any, pair_id: str) -> tuple[dict[str, A
         "quality_zone_common_count": len(common),
         "quality_zone_usable_common_count": len(usable_common),
         "quality_zone_usable_common": "|".join(usable_common),
-        "quality_zone_pair_limited": len(common) > 0 and len(usable_common) == 0,
+        "quality_zone_pair_limited": len(common) > 0 and (len(usable_common) == 0 or qa.get("status") == "missing" or qb.get("status") == "missing"),
     }
     return summary, rows
