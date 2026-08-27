@@ -65,10 +65,20 @@ def _write_manual_review_queue(out: Path, rows: list[dict[str, Any]]) -> int:
 def _write_public_safety(out: Path, evidence_packets: list[dict[str, Any]]) -> dict[str, Any]:
     hits: list[dict[str, Any]] = []
     for pkt in evidence_packets:
-        text = str(pkt).lower()
+        # 🔧 FIX (audit P1-13): check specific text-bearing fields, not str(pkt)
+        # str(pkt) includes field names like "mask" which trigger false positives.
+        text_fields = []
+        for key in ("evidence_state", "status", "primary_zone_or_family"):
+            val = pkt.get(key)
+            if val is not None:
+                text_fields.append(str(val))
+        alt_explanations = pkt.get("alternative_explanations", [])
+        if isinstance(alt_explanations, list):
+            text_fields.extend(str(x) for x in alt_explanations)
+        text = " ".join(text_fields).lower()
         for term in FORBIDDEN_PUBLIC_TERMS:
             if term.lower() in text:
-                hits.append({"pair_id": pkt.get("pair_id"), "term": term})
+                hits.append({"pair_id": pkt.get("pair_id"), "term": term, "field": "evidence_text"})
     report = {
         "schema": POSTPROCESS_SCHEMA,
         "status": "pass" if not hits else "fail",
@@ -150,10 +160,19 @@ def _write_status_summary(out: Path, rows: list[dict[str, Any]]) -> None:
 
 def _write_gate_report(out: Path, rows: list[dict[str, Any]], changes: list[dict[str, Any]]) -> dict[str, Any]:
     pair_count = len(rows)
+    # 🔧 FIX (audit P1-12): check actual error/limited rates before declaring ready
+    quality_limited_count = sum(bool(r.get("quality_limited")) for r in rows)
+    calibration_limited_count = sum(bool(r.get("calibration_limited")) for r in rows)
+    error_count = sum(1 for r in rows if str(r.get("status", "")).startswith("error"))
+    limited_fraction = (quality_limited_count + calibration_limited_count + error_count) / max(pair_count, 1)
     if pair_count < 10:
         gate = "next_gate_10_photos_or_pairs"
     elif pair_count < 100:
         gate = "next_gate_100_photos_or_pairs"
+    elif limited_fraction > 0.5:
+        gate = "blocked_high_limited_fraction"
+    elif error_count > 0:
+        gate = "blocked_errors_present"
     else:
         gate = "ready_for_full_run_if_error_rate_ok"
     mesh_calibrated = sum(str(r.get("mesh_calibration_status")) == "sufficient_calibration" for r in rows)
@@ -162,7 +181,10 @@ def _write_gate_report(out: Path, rows: list[dict[str, Any]], changes: list[dict
         "pair_count": pair_count,
         "change_point_count": len(changes),
         "recommended_next_gate": gate,
-        "quality_limited_fraction": sum(bool(r.get("quality_limited")) for r in rows) / max(pair_count, 1),
+        "quality_limited_fraction": quality_limited_count / max(pair_count, 1),
+        "calibration_limited_fraction": calibration_limited_count / max(pair_count, 1),
+        "error_count": error_count,
+        "limited_fraction": round(limited_fraction, 4),
         "mesh_calibrated_fraction": mesh_calibrated / max(pair_count, 1),
         "texture_conclusions_allowed": False,
         "per_bin_anchors_effective": False,
