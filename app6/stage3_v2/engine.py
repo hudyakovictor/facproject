@@ -32,6 +32,9 @@ from .bootstrap import compute_bootstrap_ci
 from .change_point import detect_change_points
 from .narrative import NarrativeEngine
 from .formatting import fmt
+from .cross_pose import apply_cross_pose_confirmation
+from .legacy import LegacyIntegrator
+from .feedback import run_feedback_loop
 
 
 class Stage3V2Engine:
@@ -41,6 +44,7 @@ class Stage3V2Engine:
         self.config = config
         self.loader = Stage2Loader(config.stage2_root)
         self.narrative = NarrativeEngine(config)
+        self.legacy = LegacyIntegrator(config)  # Legacy integrator
     
     def run(self) -> FullReport:
         """
@@ -88,7 +92,15 @@ class Stage3V2Engine:
         print(f"   Analyzed {len(pair_analyses)} pairs")
         
         # ═══════════════════════════════════════════
-        # STEP 4: Zone aggregation
+        # STEP 4: Cross-pose confirmation
+        # ═══════════════════════════════════════════
+        print("🔄 Cross-pose confirmation...")
+        pair_analyses = apply_cross_pose_confirmation(pair_analyses, self.config)
+        n_confirmed = sum(1 for a in pair_analyses if a.cross_pose is not None)
+        print(f"   {n_confirmed} pairs confirmed across poses")
+        
+        # ═══════════════════════════════════════════
+        # STEP 5: Zone aggregation
         # ═══════════════════════════════════════════
         print("📊 Aggregating by zones...")
         zone_analysis = self._aggregate_zones(pair_analyses)
@@ -113,7 +125,28 @@ class Stage3V2Engine:
         print(f"   Generated {narrative.word_count} words")
         
         # ═══════════════════════════════════════════
-        # STEP 7: Build report
+        # STEP 8: Feedback loop
+        # ═══════════════════════════════════════════
+        print("🔄 Running feedback loop...")
+        feedback = run_feedback_loop(pair_analyses, self.config)
+        if feedback.get("suggestions"):
+            n_suggestions = len(feedback["suggestions"])
+            n_applied = feedback.get("applied_count", 0)
+            print(f"   {n_suggestions} suggestions ({n_applied} auto-applied)")
+            # Merge feedback suggestions with Fast Pass suggestions
+            for s in feedback.get("suggestions", []):
+                suggestions.append(CalibrationSuggestion(
+                    parameter=s["parameter"],
+                    current_value=s["current"],
+                    suggested_value=s["suggested"],
+                    reason_ru=s["reason"],
+                    confidence=s["confidence"],
+                    impact_ru=s["impact"],
+                    auto_apply=s["confidence"] >= self.config.feedback_auto_apply_threshold,
+                ))
+        
+        # ═══════════════════════════════════════════
+        # STEP 9: Build report
         # ═══════════════════════════════════════════
         elapsed = time.time() - start_time
         
@@ -135,7 +168,7 @@ class Stage3V2Engine:
         )
         
         # ═══════════════════════════════════════════
-        # STEP 8: Export
+        # STEP 10: Export
         # ═══════════════════════════════════════════
         print("📤 Exporting results...")
         self._export(report)
@@ -341,5 +374,27 @@ class Stage3V2Engine:
         }
         with summary_path.open("w", encoding="utf-8") as f:
             json.dump(summary, f, ensure_ascii=False, indent=2)
+        
+        # Export feedback data
+        if report.suggestions:
+            feedback_path = output_dir / "feedback.json"
+            feedback_data = {
+                "suggestions": [
+                    {
+                        "parameter": s.parameter,
+                        "current_value": s.current_value,
+                        "suggested_value": s.suggested_value,
+                        "reason": s.reason_ru,
+                        "confidence": s.confidence,
+                        "impact": s.impact_ru,
+                        "auto_apply": s.auto_apply,
+                    }
+                    for s in report.suggestions
+                ],
+                "applied_count": sum(1 for s in report.suggestions if s.auto_apply),
+                "pending_count": sum(1 for s in report.suggestions if not s.auto_apply),
+            }
+            with feedback_path.open("w", encoding="utf-8") as f:
+                json.dump(feedback_data, f, ensure_ascii=False, indent=2)
         
         print(f"   Exported to {output_dir}")
