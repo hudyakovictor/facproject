@@ -132,7 +132,7 @@ def load_main(stage1_root: Path) -> list[Record]:
                 record_dir=str(directory),
                 source_group=source_group,
                 source_digest=info.get("source_digest"),
-                coordinate_noise_sigma=float(chronology_info.get("coordinate_noise_sigma", 0.0) or 0.0),
+                coordinate_noise_sigma=float(chronology_info.get("coordinate_noise_sigma") or chronology_info.get("reprojection_rmse", 0.0) or 0.0),
                 analysis_space=ANALYSIS_COORDINATE_SPACE,
                 date_provenance_status=str(resolved.get("date_provenance_status") or "unknown"),
                 exif_date=(info.get("date_provenance") or {}).get("exif_date"),date_delta_days=(info.get("date_provenance") or {}).get("delta_days"),source_claimed_date=(info.get("date_provenance") or {}).get("source_claimed_date"),source_claimed_delta_days=(info.get("date_provenance") or {}).get("source_claimed_delta_days"),date_conflict_sources=list((info.get("date_provenance") or {}).get("conflict_sources") or []),
