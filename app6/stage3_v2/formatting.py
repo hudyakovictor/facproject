@@ -60,7 +60,9 @@ def fmt(value: float, format_type: str = "auto", precision: Optional[int] = None
 def _auto_precision(value: float) -> int:
     """Determine precision based on magnitude."""
     abs_val = abs(value)
-    if abs_val >= 100:
+    if abs_val == 0:
+        return 2
+    elif abs_val >= 100:
         return 0
     elif abs_val >= 10:
         return 1

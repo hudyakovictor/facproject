@@ -271,7 +271,7 @@ class LikelihoodCalculator:
         p_h0 = max(p_h0, 1e-6)
         
         # P(mesh_rmse | H2): высокий RMSE при изменениях
-        p_h2 = stats.gamma.pdf(mesh_rmse * 1000, shape=2.0, scale=1.5)
+        p_h2 = stats.gamma.pdf(mesh_rmse * 1000, a=2.0, scale=1.5)
         p_h2 = max(p_h2, 1e-6)
         
         # P(mesh_rmse | H1)
@@ -294,7 +294,7 @@ class LikelihoodCalculator:
         p_h0 = 1.0 - stats.norm.cdf(descriptor_p95_z, loc=1.5, scale=0.8)
         p_h0 = max(p_h0, 1e-6)
         
-        p_h2 = stats.gamma.pdf(descriptor_p95_z, shape=2.5, scale=1.2)
+        p_h2 = stats.gamma.pdf(descriptor_p95_z, a=2.5, scale=1.2)
         p_h2 = max(p_h2, 1e-6)
         
         # Модификация по информативным семействам
