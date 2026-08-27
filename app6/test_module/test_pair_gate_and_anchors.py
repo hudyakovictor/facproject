@@ -64,6 +64,11 @@ class ExpressionGateTests(unittest.TestCase):
         self.assertTrue(over["jaw_degree_gap_exceeded"])
         self.assertGreater(over["jaw_degree_gap"], MAX_JAW_DEGREE_GAP)
 
+    def test_nonfinite_expression_metadata_is_limited(self):
+        gate = expression_gate({"jaw_open_degree": float("nan")}, {})
+        self.assertEqual(gate["confidence"], "limited")
+        self.assertTrue(np.isnan(gate["jaw_degree_gap"]))
+
     def test_schema_and_confidence(self):
         gate = expression_gate({}, {})
         self.assertEqual(gate["schema"], "deeputin-expression-pair-gate-v2.0")

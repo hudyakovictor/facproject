@@ -79,7 +79,8 @@ class BalancedReferenceTests(unittest.TestCase):
     def test_three_persons_produces_aggregate(self):
         by_person = {"p1": [1.0, 2.0], "p2": [3.0, 4.0], "p3": [5.0, 6.0]}
         out = balanced_reference(by_person, min_persons=3)
-        self.assertEqual(out["count"], 6)
+        self.assertEqual(out["count"], 3)
+        self.assertEqual(out["observed_value_count"], 6)
         self.assertGreater(out["p95"], 0.0)
 
 

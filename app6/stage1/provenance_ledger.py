@@ -21,6 +21,7 @@ def load_provenance_sidecar(path:str|Path)->dict[str,Any]:
     image=Path(path);candidates=(image.with_suffix(image.suffix+".provenance.json"),image.with_suffix(".provenance.json"))
     side=next((x for x in candidates if x.is_file()),None)
     if side is None:return {"status":"not_provided","sidecar_path":None,"sidecar_digest":None}
+    if side.is_symlink():raise ValueError(f"provenance sidecar must not be a symlink: {side}")
     raw=side.read_bytes()
     try:data=json.loads(raw.decode("utf-8"))
     except Exception as exc:raise ValueError(f"invalid provenance sidecar {side}: {exc}") from exc

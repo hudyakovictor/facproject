@@ -86,11 +86,14 @@ def _load_mesh(record: Any) -> dict[str, Any]:
                 space = "object_normalized"
             else:
                 return {"status": "missing_vertices"}
+            n_vertices = int(vertices.shape[0])
             if "full_mesh_visible_packbits" in z:
-                visible = unpack_mask(z["full_mesh_visible_packbits"], MESH_COUNT).astype(bool)
+                visible = unpack_mask(z["full_mesh_visible_packbits"], n_vertices).astype(bool)
             else:
-                visible = np.ones(MESH_COUNT, bool)
-            normals = z["normals_object"].astype(np.float32) if "normals_object" in z else np.zeros_like(vertices)
+                return {"status": "missing_visibility"}
+            if "normals_object" not in z:
+                return {"status": "missing_normals"}
+            normals = z["normals_object"].astype(np.float32)
         return {"status": "ok", "vertices": vertices, "visible": visible, "normals": normals, "space": space}
     except Exception as exc:
         return {"status": "load_error", "error": str(exc)}

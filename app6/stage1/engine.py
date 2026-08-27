@@ -571,7 +571,7 @@ class Stage1Engine:
                 "near_duplicate_of":(getattr(self,"_provenance_index",{}).get(self._relative(path),{}) or {}).get("near_duplicate_of") or None,
                 "extraction_timestamp": _utc(), "code_hash": self.code_hash,
                 "config_hash": self.config_hash, "model_hash": self.model_hash,
-                "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower(), "decode": decode_meta},
+                "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower(), "decode": decode_meta, "pixels": int(bgr.shape[1]) * int(bgr.shape[0])},
                 "pose": pose_payload,
                 "chronology": {
                     "alignment_method": "full_pose_correction_v1",
@@ -634,6 +634,7 @@ class Stage1Engine:
                 "face_area_ratio": face_area_ratio,
                 "uv_observed_coverage": uv_meta["observed_coverage"],
             }
+            info["quality_summary"] = quality_summary
             if skin_status.get("state") == "success" and (out / "texture.json").is_file():
                 tex = json.loads((out / "texture.json").read_text(encoding="utf-8"))
                 info["skin_quality_score"] = tex.get("quality", {}).get("score")

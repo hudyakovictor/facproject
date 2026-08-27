@@ -13,8 +13,8 @@ from typing import Any, Final
 
 DATE_PROVENANCE_SCHEMA: Final[str] = "deeputin-date-provenance-v1.0"
 
-#: Приоритет источников: EXIF надёжнее имени файла, имя надёжнее утверждения.
-SOURCE_PRIORITY: Final[tuple[str, ...]] = ("exif", "filename", "claimed")
+#: Приоритет источников: дата из имени файла авторитетна; EXIF и claimed — только конфликт/диагностика.
+SOURCE_PRIORITY: Final[tuple[str, ...]] = ("filename", "exif", "claimed")
 
 #: Расхождение свыше этого числа дней считается конфликтом, а не округлением.
 CONFLICT_DAYS: Final[int] = 3
@@ -25,12 +25,25 @@ _YEAR = re.compile(r"(?<!\d)(19|20)\d{2}(?!\d)")
 
 
 def parse_filename_date(name: str) -> tuple[str | None, str]:
-    """Извлечь дату из имени файла вместе с её точностью."""
+    """Извлечь единственную календарно допустимую дату и её точность.
+
+    Несколько разных полных дат не разрешаются правилом «первая победила»:
+    неоднозначное имя должно быть явно отклонено downstream-гейтами.
+    """
     text = str(name)
-    m = _DAY.search(text)
-    if m:
-        digits = re.sub(r"\D", "", m.group(0))
-        return f"{digits[0:4]}-{digits[4:6]}-{digits[6:8]}", "day"
+    day_matches = list(_DAY.finditer(text))
+    if day_matches:
+        parsed: list[str] = []
+        for match in day_matches:
+            digits = re.sub(r"\D", "", match.group(0))
+            candidate = f"{digits[0:4]}-{digits[4:6]}-{digits[6:8]}"
+            try:
+                date.fromisoformat(candidate)
+            except ValueError:
+                return None, "none"
+            if candidate not in parsed:
+                parsed.append(candidate)
+        return (parsed[0], "day") if len(parsed) == 1 else (None, "ambiguous")
     m = _MONTH.search(text)
     if m:
         digits = re.sub(r"\D", "", m.group(0))
@@ -60,18 +73,25 @@ def resolve_date(*, filename: str | None = None, exif_date: str | None = None,
                 "note": "калибровочный набор упорядочивается по позе и sequence"}
 
     fn_date, fn_precision = parse_filename_date(filename or "")
+
+    def valid_iso(value: str | None) -> str | None:
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(str(value)[:10]).isoformat()
+        except (TypeError, ValueError):
+            return None
+
+    exif_date = valid_iso(exif_date)
+    claimed_date = valid_iso(claimed_date)
     # Игнорировать EXIF-даты, лежащие более чем на 365 дней в будущем
     # относительно даты из имени файла: типично для пересканированных
     # фото, где EXIF содержит дату сканирования, а не съёмки.
-    if exif_date:
-        try:
-            exif_d = date.fromisoformat(exif_date[:10])
-            if fn_date:
-                fn_d = date.fromisoformat(fn_date[:10])
-                if (exif_d - fn_d).days > 365:
-                    exif_date = None
-        except (TypeError, ValueError):
-            pass
+    if exif_date and fn_date:
+        exif_d = date.fromisoformat(exif_date)
+        fn_d = date.fromisoformat(fn_date)
+        if (exif_d - fn_d).days > 365:
+            exif_date = None
     candidates = {"exif": (exif_date, "day"),
                   "filename": (fn_date, fn_precision),
                   "claimed": (claimed_date, "day")}

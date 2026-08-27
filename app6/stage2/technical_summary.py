@@ -18,7 +18,7 @@ def build_technical_summary(rows: list[dict[str, Any]], changes: list[dict[str, 
     quality_limited = sum(bool(r.get("quality_limited")) for r in rows)
     calibration_limited = sum(bool(r.get("calibration_limited")) for r in rows)
     pose_leakage_limited = sum(bool(r.get("pose_leakage_limited")) for r in rows)
-    mesh_measured = sum(str(r.get("mesh_status")) in {"measured_uncalibrated", "measured_calibrated"} for r in rows)
+    mesh_calibrated = sum(str(r.get("mesh_calibration_status")) == "sufficient_calibration" for r in rows)
     texture_ready = sum(str(r.get("texture_pair_status")) == "texture_ready" for r in rows)
     return {
         "schema": SUMMARY_SCHEMA,
@@ -29,9 +29,12 @@ def build_technical_summary(rows: list[dict[str, Any]], changes: list[dict[str, 
         "quality_limited_pair_count": quality_limited,
         "calibration_limited_pair_count": calibration_limited,
         "pose_leakage_limited_pair_count": pose_leakage_limited,
-        "mesh_measured_pair_count": mesh_measured,
+        "mesh_calibrated_pair_count": mesh_calibrated,
+        "mesh_measured_pair_count": sum(str(r.get("mesh_status")) in {"measured_uncalibrated", "measured_calibrated"} for r in rows),
         "texture_ready_pair_count": texture_ready,
+        "texture_conclusions_allowed": False,
         "texture_policy": "visualization/morphing only; excluded from evidence metric channel",
+        "per_bin_anchors_effective": False,
         "manifest_core": {
             "schema_version": manifest.get("schema_version"),
             "main_record_count": manifest.get("main_record_count"),

@@ -100,6 +100,7 @@ class MeshNoiseModel:
         pair_count = 0
         unavailable = 0
         pose_counts: dict[str, int] = defaultdict(int)
+        person_sets: dict[str, set] = defaultdict(set)
         for (_, pose), rs in groups.items():
             rs = sorted(rs, key=lambda r: r.date or str(r.sequence))
             local_pairs = 0
@@ -113,6 +114,8 @@ class MeshNoiseModel:
                     if m.get("status") != "measured":
                         unavailable += 1
                         continue
+                    person = a.dataset_id
+                    person_sets[pose].add(person)
                     pair_count += 1
                     local_pairs += 1
                     pose_counts[pose] += 1
@@ -121,7 +124,8 @@ class MeshNoiseModel:
                         if v is not None and np.isfinite(float(v)):
                             values[pose][k].append(float(v))
         refs = {pose: {metric: robust_reference(vals) for metric, vals in metrics.items()} for pose, metrics in values.items()}
-        status = "available" if pair_count >= 7 else "unavailable"
+        n_persons = sum(len(s) for s in person_sets.values())
+        status = "available" if n_persons >= 3 else "unavailable"
         return MeshNoiseReference(
             schema=MESH_CALIBRATION_SCHEMA,
             status=status,

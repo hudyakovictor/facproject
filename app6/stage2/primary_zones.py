@@ -116,10 +116,17 @@ def build_anatomical_landmark_zone_map(
     }
 
 
+def _flag(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text in {"true", "1", "yes"}
+
+
 def pair_expression_active(meta_a: dict[str, Any], meta_b: dict[str, Any]) -> bool:
     return bool(
-        meta_a.get("smile_detected") or meta_b.get("smile_detected")
-        or meta_a.get("jaw_open_detected") or meta_b.get("jaw_open_detected")
+        _flag(meta_a.get("smile_detected")) or _flag(meta_b.get("smile_detected"))
+        or _flag(meta_a.get("jaw_open_detected")) or _flag(meta_b.get("jaw_open_detected"))
     )
 
 

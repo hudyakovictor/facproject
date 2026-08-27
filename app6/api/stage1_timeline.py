@@ -61,7 +61,7 @@ def build_stage1_inventory(stage1_root: Path) -> dict[str, Any]:
             "quality": _float(source.get("combined_visible_fraction")),
             "qualityBasis": "combined_visible_fraction",
             "boneScore": None, "orbit": None, "chin": None, "jaw": None,
-            "cheek": None, "symmetry": None, "siliconeProb": None,
+            "cheek": None, "symmetry": None, "skinAuthenticity": None,
             "fillerProb": None, "skinQuality": None, "wrinkleDensity": None,
             "subsurface": None, "visualAge": None, "calendarAge": None,
             # z-оценки существуют только относительно общей калиброванной

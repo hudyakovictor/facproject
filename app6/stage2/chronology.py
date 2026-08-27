@@ -16,7 +16,7 @@ MIN_ALIGNMENT_QUALITY = 0.5
 def _days(a: str | None, b: str | None) -> int | None:
     if not a or not b: return None
     try:
-        da=date.fromisoformat(str(a)[:10]); db=date.fromisoformat(str(b)[:10]); return abs((db-da).days)
+        da=date.fromisoformat(str(a)[:10]); db=date.fromisoformat(str(b)[:10]); return (db-da).days
     except Exception:
         return None
 
@@ -25,11 +25,18 @@ def _robust(vals: list[float]) -> tuple[float,float,float]:
     if arr.size==0: return 0.0,0.0,0.0
     med=float(np.median(arr)); mad=float(np.median(np.abs(arr-med))); p95=float(np.percentile(arr,95)); return med,mad,p95
 
+def _as_flag(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text in {"true", "1", "yes"}
+
+
 def _quality_exclusion_reason(row: dict) -> str | None:
     """Return a fail-closed reason when pair-level chronology is not applicable."""
-    if bool(row.get('date_provenance_limited')):return 'date_provenance_conflict'
-    if bool(row.get('near_duplicate_pair')):return 'perceptual_duplicate_dependence'
-    if bool(row.get('quality_limited')):
+    if _as_flag(row.get('date_provenance_limited')):return 'date_provenance_conflict'
+    if _as_flag(row.get('near_duplicate_pair')):return 'perceptual_duplicate_dependence'
+    if _as_flag(row.get('quality_limited')):
         return 'quality_limited'
     # D-003 пересмотр (2026-08-03): alignment_quality некоррелирован с остатком
     return None
@@ -70,6 +77,11 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
                 r['time_weighted_jump_rate']=float('nan')
                 r['date_status']='date_missing'
                 continue
+            if d < 0:
+                r['days_delta']=int(d)
+                r['time_weighted_jump_rate']=float('nan')
+                r['date_status']='date_order_conflict'
+                continue
             r['date_status']='ok'
             eff=max(1,int(d))
             weighted=float(r.get('p95_point_z',0.0))*max(float(r.get('coherent_motion_fraction',0.0)),0.1)/math.sqrt(eff)
@@ -80,10 +92,10 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
         floor=max(1.4826*mad,0.05)
         seq=sorted(group,key=lambda x:(x.get('date_b') or '',x.get('pair_index',0)))
         for i,r in enumerate(seq):
-            if r.get('date_status')=='date_missing' or r.get('days_delta') is None:
+            if r.get('date_status') in ('date_missing','date_order_conflict') or r.get('days_delta') is None:
                 r['chronology_rate_z']=float('nan')
-                r['chronology_rate_status']='date_missing'
-                r['chronology_rate_reason']='missing_or_unparseable_pair_dates'
+                r['chronology_rate_status']=r.get('date_status','date_missing')
+                r['chronology_rate_reason']=('date_b_precedes_date_a' if r.get('date_status')=='date_order_conflict' else 'missing_or_unparseable_pair_dates')
                 r['biological_rate_z']=r['chronology_rate_z']
                 r['biological_rate_status']=r['chronology_rate_status']
                 r['biological_reason']=r['chronology_rate_reason']
@@ -145,6 +157,7 @@ def apply_cumulative_drift_flags(
                 row['cumulative_drift_status']='excluded'
                 row['cumulative_drift_reason']=reason or 'nonfinite_point_z'
                 row['cumulative_drift_cusum']=float('nan')
+                cusum=0.0
                 continue
             cusum=max(0.0,cusum+(z-float(point_z_floor)))
             max_cusum=max(max_cusum,cusum)

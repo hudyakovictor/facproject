@@ -36,7 +36,12 @@ def _bool(value: Any) -> bool | None:
 def load_info(stage1_root: Path | None, photo_id: str | None) -> dict[str, Any] | None:
     if stage1_root is None or not photo_id:
         return None
-    path = stage1_root / photo_id / "info.json"
+    try:
+        photo_dir = (stage1_root / photo_id).resolve()
+        photo_dir.relative_to(stage1_root.resolve())
+    except ValueError:
+        return None
+    path = photo_dir / "info.json"
     if not path.is_file():
         return None
     try:
@@ -68,8 +73,8 @@ def fields_from_info(info: dict[str, Any] | None) -> dict[str, Any]:
         "yaw": _num(pose.get("yaw")),
         "pitch": _num(pose.get("pitch")),
         "roll": _num(pose.get("roll")),
-        "canonicalYaw": _num(pose.get("canonical_yaw") or chronology.get("canonical_yaw")),
-        "poseConfidence": _num(pose.get("pose_confidence") or chronology.get("pose_confidence")),
+        "canonicalYaw": _num(pose["canonical_yaw"] if pose.get("canonical_yaw") is not None else chronology.get("canonical_yaw")),
+        "poseConfidence": _num(pose["pose_confidence"] if pose.get("pose_confidence") is not None else chronology.get("pose_confidence")),
         "detectionConfidence": _num(chronology.get("detection_confidence")),
         "alignmentQuality": _num(chronology.get("alignment_quality")),
         "expressionMagnitude": _num(chronology.get("expression_magnitude")),
@@ -86,7 +91,7 @@ def fields_from_info(info: dict[str, Any] | None) -> dict[str, Any]:
         "residualRoll": _num(chronology.get("residual_roll_deg")),
         "quality": visible,
         "qualityBasis": "combined_visible_fraction" if visible is not None else None,
-        "confidence": _num(chronology.get("detection_confidence") or pose.get("pose_confidence")),
+        "confidence": _num(chronology["detection_confidence"] if chronology.get("detection_confidence") is not None else pose.get("pose_confidence")),
         "skinQuality": skin_quality,
         "skinAuthenticity": skin_auth,
         "uvCoverage": _num(uv.get("observed_coverage") or quality_inputs.get("uv_observed_coverage")),

@@ -79,8 +79,8 @@ def main() -> int:
         limit=a.limit, overwrite=a.overwrite, continue_on_error=not a.fail_fast,
         save_original=not a.no_original_copy, save_mesh=not a.no_mesh,
     )
-    Stage1Engine(cfg).run()
-    return 0
+    manifest = Stage1Engine(cfg).run()
+    return 0 if str(manifest.get("status", "")).startswith("complete") and not manifest.get("error_count") else 1
 
 
 if __name__ == "__main__":

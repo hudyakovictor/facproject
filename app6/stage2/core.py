@@ -107,6 +107,13 @@ class Comparison:
     diagnostics: dict[str, Any]
 
 
+def _rotation_angle_deg(R: np.ndarray) -> float:
+    tr = float(np.trace(R))
+    cos_angle = (tr - 1.0) / 2.0
+    cos_angle = max(-1.0, min(1.0, cos_angle))
+    return float(np.degrees(np.arccos(cos_angle)))
+
+
 def _rigid_align(source: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Kabsch row-vector alignment source -> target, without scale."""
     cs = source.mean(axis=0); ct = target.mean(axis=0)
@@ -180,6 +187,7 @@ def robust_rigid_align(
         "residual_before_median": float(np.median(before)),
         "residual_after_median": float(np.median(after)),
         "residual_after_p95": float(np.percentile(after, 95)),
+        "residual_rotation_angle_deg": float(_rotation_angle_deg(rotation)),
     }
 
 
@@ -339,6 +347,8 @@ def compare_landmarks(
             "signed_z": float(np.median(rv[:, 2])),
         })
     diagnostics.update({"rotation106": r106, "translation106": t106, "rotation134": r134, "translation134": t134,
+                        "residual_rotation_angle_106_deg": float(_rotation_angle_deg(r106)),
+                        "residual_rotation_angle_134_deg": float(_rotation_angle_deg(r134)),
                         "anchor106_count": anchor_meta106.get("anchor_count", 0), "anchor106_policy": anchor_meta106.get("anchor_policy", "unknown"), "anchor106_source": anchor_meta106.get("anchor_source", "unknown"),
                         "anchor134_count": anchor_meta134.get("anchor_count", 0), "anchor134_policy": anchor_meta134.get("anchor_policy", "unknown"),
                         "anchor134_source": anchor_meta134.get("anchor_source", "unknown"),
@@ -371,7 +381,7 @@ def robust_reference(values: list[float]) -> dict[str, float | int]:
     log_status("robust_reference", "complete")
     arr = np.asarray([v for v in values if np.isfinite(v)], np.float64)
     if arr.size == 0:
-        return {"count": 0, "median": 0.0, "mad": 0.0, "p95": 0.0, "p99": 0.0}
+        return {"count": 0, "median": float("nan"), "mad": float("nan"), "p95": float("nan"), "p99": float("nan")}
     median = float(np.median(arr)); mad = float(np.median(np.abs(arr - median)))
     return {"count": int(arr.size), "median": median, "mad": mad,
             "p95": float(np.percentile(arr, 95)), "p99": float(np.percentile(arr, 99))}
@@ -400,13 +410,18 @@ def calibrated_score(
                 "coordinate_noise_sigma": float(coordinate_noise_sigma),
                 "robust_z": float("nan"), "status": "not_measurable"}
     matched_arr = np.asarray([v for v in matched if np.isfinite(v)], np.float64)
-    threshold = float(reference.get("p95", 0.0))
+    threshold = max(float(reference.get("p95", 0.0)), float(reference.get("ci_hi", 0.0)))
     if matched_arr.size:
         threshold = max(threshold, float(np.percentile(matched_arr, 95)))
     unadjusted_threshold = threshold
     if coordinate_noise_sigma > 0:
         threshold = noise_adjusted_threshold(threshold, coordinate_noise_sigma)
     median = float(reference.get("median", 0.0)); mad = float(reference.get("mad", 0.0))
+    if not np.isfinite(mad) or mad <= 0.0:
+        return {"calibration_median": median, "calibration_p95": threshold,
+                "calibration_p95_unadjusted": unadjusted_threshold,
+                "coordinate_noise_sigma": float(coordinate_noise_sigma),
+                "robust_z": float("nan"), "status": "insufficient_calibration"}
     z = float((value - median) / max(1.4826 * mad, 1e-8))
     if int(reference.get("count", 0)) < 7:
         status = "insufficient_calibration"

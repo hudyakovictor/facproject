@@ -114,7 +114,7 @@ def build_research_timeline(stage2_root: Path, stage1_root: Path | None = None) 
                 "boneScore": None, "orbit": None, "chin": None, "jaw": None, "cheek": None, "symmetry": None,
                 "yaw": _optional_num(stage1.get("yaw")), "pitch": _optional_num(stage1.get("pitch")),
                 "roll": _optional_num(stage1.get("roll")),
-                "siliconeProb": None, "specular": None, "lbpEntropy": None, "frangi": None,
+                "skinAuthenticity": None, "specular": None, "lbpEntropy": None, "frangi": None,
                 "wrinkle": None, "subsurface": None, "visualAge": None, "calendarAge": None,
                 "p0": None, "p1": None, "p2": None, "dominant": None, "fuzzy": "INSUFFICIENT_DATA",
                 "confidence": None, "flags": [], "exifAnomaly": False,

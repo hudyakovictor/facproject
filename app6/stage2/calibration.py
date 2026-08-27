@@ -95,14 +95,6 @@ class CalibrationModel:
                         ref["ci_method"] = ci["method"]
                     else:
                         ref["ci_status"] = "insufficient_clusters_after_filter"
-                    ref["ci_lo"] = ci["ci_lo"]
-                    ref["ci_hi"] = ci["ci_hi"]
-                    ref["ci_width"] = ci["width"]
-                    ref["ci_naive_width"] = ci["naive_width"]
-                    ref["ci_width_underestimate_factor"] = ci["width_underestimate_factor"]
-                    ref["ci_n_observations"] = ci["n_observations"]
-                    ref["ci_n_clusters"] = ci["n_clusters"]
-                    ref["ci_method"] = ci["method"]
                 else:
                     ref["ci_status"] = "insufficient_clusters"
                 pose_refs[metric] = ref
