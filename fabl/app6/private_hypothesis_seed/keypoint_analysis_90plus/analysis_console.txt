@@ -1,0 +1,50 @@
+frames 144 high_visibility_points_106 45 features 17
+
+TOP ANOMALIES
+      date                       filename  geometry_anomaly_score  features_over_2_5mad                                                                              top_changed_features
+2001-11-01   2001_11_01__431490e159af.png                5.239136                     8             nose_base_asym; mouth_height_3d; nose_axis_bend_3d; mouth_width_3d; mouth_nose_offset
+2003-10-16   2003_10_16__faa3a4aaff20.png                4.565404                     6                nose_axis_bend_3d; nose_base_asym; brow_span_3d; midface_ratio; nose_base_width_3d
+2010-02-11   2010_02_11__66995147a003.png                4.256782                     5         nose_base_asym; brow_eye_right_3d; brow_eye_left_3d; mouth_nose_offset; nose_axis_bend_3d
+2008-01-05   2008_01_05__7cc5adb4554f.png                4.194397                     7            mouth_height_3d; nose_axis_bend_3d; nose_base_width_3d; eye_level_asym; mouth_width_3d
+2003-08-04 2003_08_04_5__ff990e8c18e9.png                3.833865                     3      nose_base_asym; eye_level_asym; mouth_nose_offset; central_depth_contrast; brow_eye_right_3d
+2008-02-14 2008_02_14_3__d6f0e64ab9bf.png                3.768940                     3        nose_base_asym; mouth_height_3d; nose_ridge_length_3d; brow_height_asym; mouth_nose_offset
+2001-06-16 2001_06_16_2__69d51850915d.png                3.609080                     2           nose_base_asym; brow_height_asym; mouth_nose_offset; mouth_height_3d; nose_axis_bend_3d
+2001-09-06 2001_09_06_1__245c19779dd7.png                3.600028                     2 nose_base_asym; mouth_nose_offset; nose_ridge_length_3d; central_depth_contrast; brow_eye_left_3d
+2007-04-08   2007_04_08__c233b8c9babd.png                3.469567                     4      nose_base_asym; brow_eye_left_3d; brow_eye_right_3d; nose_axis_bend_3d; nose_ridge_length_3d
+2005-05-08   2005_05_08__ebecb32e98dc.png                3.356422                     3            nose_base_asym; mouth_height_3d; mouth_nose_offset; nose_ridge_length_3d; brow_span_3d
+2000-05-09 2000_05_09_2__bef8b5c58a70.png                3.279654                     2         nose_base_asym; brow_height_asym; brow_eye_asym; brow_eye_right_3d; eye_anchor_spacing_3d
+2012-01-25 2012_01_25_2__682dc53e8340.png                3.190500                     1            nose_base_asym; mouth_nose_offset; mouth_height_3d; mouth_width_3d; nose_base_width_3d
+2005-05-10   2005_05_10__4cf472db10cb.png                3.096286                     1          nose_base_asym; mouth_width_3d; nose_base_width_3d; nose_axis_bend_3d; mouth_nose_offset
+1999-08-12 1999_08_12_2__f8d0dfc4ed4d.png                3.045505                     1               nose_base_asym; eye_level_asym; brow_eye_left_3d; mouth_nose_offset; mouth_width_3d
+2009-09-24   2009_09_24__a781e62958f6.png                3.003973                     2                 nose_base_asym; mouth_nose_offset; eye_level_asym; mouth_height_3d; midface_ratio
+2004-09-28   2004_09_28__a2845eed8e20.png                2.980390                     1             nose_base_asym; brow_height_asym; mouth_nose_offset; brow_eye_right_3d; brow_eye_asym
+1999-12-19   1999_12_19__268029ccb16b.png                2.960693                     1       nose_base_asym; mouth_nose_offset; midface_ratio; eye_anchor_spacing_3d; nose_base_width_3d
+2011-12-09 2011_12_09_2__8ba7e14bd2da.png                2.831843                     2            nose_base_asym; mouth_nose_offset; brow_eye_asym; brow_span_3d; central_depth_contrast
+2010-06-28   2010_06_28__80f5c9f5d085.png                2.707065                     3        brow_eye_right_3d; central_depth_contrast; brow_eye_asym; nose_base_asym; brow_eye_left_3d
+2003-01-10   2003_01_10__23b16927f674.png                2.632332                     4 mouth_width_3d; nose_base_width_3d; nose_projection_3d; central_depth_contrast; nose_axis_bend_3d
+
+TOP ABA
+    a_date     b_date     c_date  aba_score_geometry  return_features_count                                                                                                           return_features                     b_filename
+2008-01-12 2008-02-01 2008-02-12            2.051992                      8                 nose_base_asym; central_depth_contrast; mouth_nose_offset; brow_height_asym; brow_span_3d; eye_level_asym   2008_02_01__1c9577a6c773.png
+2003-06-21 2003-08-04 2003-10-10            1.747886                      2                                                                                      nose_base_asym; nose_ridge_length_3d 2003_08_04_5__ff990e8c18e9.png
+2008-02-01 2008-02-12 2008-02-14            1.425089                      5                                  mouth_nose_offset; brow_height_asym; eye_level_asym; brow_eye_left_3d; brow_eye_right_3d 2008_02_12_2__5915242188c1.png
+2004-09-24 2004-09-28 2004-11-21            1.322758                      6           nose_base_asym; mouth_nose_offset; brow_height_asym; midface_ratio; nose_ridge_length_3d; eye_anchor_spacing_3d   2004_09_28__a2845eed8e20.png
+2007-03-14 2007-04-08 2007-04-13            1.267158                      4                                                    nose_base_asym; brow_eye_left_3d; nose_axis_bend_3d; mouth_nose_offset   2007_04_08__c233b8c9babd.png
+2003-01-10 2003-02-10 2003-02-10            1.208505                      5                                    nose_base_asym; midface_ratio; mouth_nose_offset; eye_anchor_spacing_3d; brow_eye_asym 2003_02_10_1__3769e8a139ff.png
+2001-06-16 2001-06-16 2001-09-06            1.195101                      7                     nose_base_asym; mouth_nose_offset; mouth_width_3d; nose_axis_bend_3d; brow_span_3d; brow_eye_right_3d   2001_06_16__71d032996fa8.png
+2008-02-12 2008-02-14 2008-02-29            1.189878                      4                                          mouth_nose_offset; brow_height_asym; nose_ridge_length_3d; eye_anchor_spacing_3d 2008_02_14_3__d6f0e64ab9bf.png
+2003-10-10 2003-10-16 2003-12-31            1.186433                      2                                                                                        brow_height_asym; brow_eye_left_3d   2003_10_16__faa3a4aaff20.png
+1999-10-23 1999-12-19 2000-01-14            1.011542                      1                                                                                                            nose_base_asym   1999_12_19__268029ccb16b.png
+2007-09-13 2007-11-20 2007-12-15            0.929180                      7 nose_ridge_length_3d; central_depth_contrast; nose_projection_3d; eye_anchor_spacing_3d; nose_axis_bend_3d; midface_ratio   2007_11_20__c27cb3b07a3c.png
+2009-09-19 2009-09-24 2009-10-19            0.875622                      5                                     nose_base_asym; eye_level_asym; midface_ratio; nose_projection_3d; nose_base_width_3d   2009_09_24__a781e62958f6.png
+2011-05-05 2011-06-21 2011-07-20            0.789497                      5                               brow_height_asym; brow_eye_right_3d; brow_eye_asym; brow_eye_left_3d; eye_anchor_spacing_3d   2011_06_21__0d8e18daf476.png
+2006-08-03 2006-10-11 2006-11-10            0.769869                      5                                    brow_height_asym; mouth_height_3d; brow_eye_asym; eye_level_asym; nose_ridge_length_3d   2006_10_11__cb83f4b73aca.png
+2006-01-07 2006-04-24 2006-06-02            0.717475                      2                                                                                  mouth_nose_offset; eye_anchor_spacing_3d 2006_04_24_2__d9392a8c6bb9.png
+
+CLUSTERS
+ k  silhouette            sizes
+ 2    0.457883           21,123
+ 3    0.250889         38,85,21
+ 4    0.203611      21,36,26,61
+ 5    0.210753    37,19,58,28,2
+ 6    0.188448 34,26,19,33,3,29
