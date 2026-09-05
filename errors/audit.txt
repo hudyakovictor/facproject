@@ -1,0 +1,1181 @@
+Экспертное заключение и техническое переделывание проекта facproject
+
+Сразу оговорю рамки честно, как и положено эксперту, а не подрядчику:
+
+    Я не могу открыть репозиторий из этой среды напрямую. Работаю по вашему резюме, по описанной структуре (app6/stage1…stage3, atlas, docs/final/*, audit/), и по общепринятым контрактам таких пайплайнов. Там, где я предполагаю имя поля или файла, это помечено # ADAPT: в коде — новому инженеру нужно будет за 1–2 дня сопоставить это с реальными выгрузками stage1/stage2.
+    Пайплайн на нейросети здесь не запускается. Поэтому всё, что я реализую, спроектировано как отдельный слой поверх уже готовых выгрузок stage1/stage2, на чистом Python без torch. Он запускается на синтетических данных для самопроверки, и на реальных — после прогона старых стадий.
+    Всё ниже — одна связная поставка: (1) что фиксируем из подтверждённых ошибок, (2) что сохраняем, (3) 25 моих дополнений, (4) полный код нового слоя stage4_chrono, (5) патчи в старые стадии, (6) тесты и критерии приёмки.
+
+1. Что было подтверждено как ошибка и как это исправляется в этой итерации
+
+Я беру только те пункты, которые в вашем аудите подтверждены или подтверждаются логикой описанного кода. Неподтверждённые (из папки audit) не трогаю — они помечены как «проверить на реальных данных» в чек-листе раздела 6.
+№	Ошибка	Почему давала ложный результат	Что делаю
+E1	Детектор «возврата к прежнему лицу» делил на почти ноль	Стабильная серия давала сигнал	Абсолютный порог + относительный + минимальный знаменатель (fixes/regression_fix.py)
+E2	Битый массив весов ландмарков (NaN → 53 точки вместо 91)	Качество падало до случайного	Жёсткая валидация при загрузке: длина, NaN, сумма, диапазон; отказ запуска, а не тихое отбрасывание
+E3	Тысячи пар считались независимыми	Завышенная уверенность	Единица независимости = событие съёмки × источник; пары агрегируются, а не суммируются (independence.py)
+E4	Сравнение через ракурсы	Поза объясняет ~46% дисперсии против ~5,5% на личность	Жёсткие ворота: один из 9 бинов + максимальное угловое расхождение по бину; пары вне ворот физически не попадают в отчёт
+E5	Загрязнение калибровочной выборки	Чувствительность 0,96 → 0,51 при 10% примеси	Негативный контроль обязателен перед сборкой отчёта; вне коридора 0,45–0,55 — сборка «публикационной» версии запрещена
+E6	Разрыв «рекламные формулировки vs допустимые выводы»	Юридический риск	Запрещённый словарь проверяется на рендере; сборка падает, если запрещённое слово попало в текст
+E7	Дата из EXIF/источника конкурировала с именем файла	Хронология ломалась	Имя файла — единственный авторитет; конфликт → date_conflict, фото исключается из хронологических выводов, остаётся в «контексте»
+E8	Дубли и перепубликации считались подтверждениями	Один кадр = десять «доказательств»	Кластеризация дублей (побайтовые, рекропы, зеркальные) до подсчёта независимости
+E9	Отчёт = приборная панель	Нечитаемо для журналиста	Новая единица вывода — наблюдение с историей; четыре уровня страниц по хронологии
+E10	Числа из симуляций не отделены от чисел на реальных фото	Риск процитировать модель вместо факта	Каждый артефакт несёт `provenance: real
+2. Что сохраняется без изменений (несущие стены)
+
+Ни один пункт ниже я не переписывал — только упаковал в константы, чтобы был один источник истины:
+
+    Девять ракурсов как жёсткая сетка.
+    Сравнение только внутри бина + допуск по углу (профиль ≤2°, фронт ≤12°, свыше 20° — бессмыслица).
+    Приоритет кости над мягкими тканями; исключение зон при открытом рте/широкой улыбке.
+    Учёт видимости: только пересечение видимых зон.
+    Дата из имени файла ГГГГ_ММ_ДД как единственный авторитет.
+    Дубли не считаются подтверждениями.
+    Калибровка на 7 людях × 9 ракурсов с leave-one-person-out.
+    Поправка на множественные сравнения; <20 калиброванных точек — только диагностика.
+    Негативный контроль в коридоре 0,45–0,55.
+    Четыре контрольные суммы (данные, код, модель, конфиг).
+    Статусы принято / предупреждение / исключено / неопределённо / нужна перепроверка.
+    Атлас 21 зоны и политика ракурсов из app6/atlas/ как единый источник (адаптер читает оттуда, мои дефолты — только fallback).
+
+3. Мои дополнения (25 пунктов)
+
+Всё это реализовано или заложено в коде ниже.
+
+Про доказательность
+
+    Событие съёмки как единица независимости: автокластеризация фото по (дата ±1 день, источник, ракурс, схожесть фона/освещения). Одна сессия у фотографа — одно свидетельство, сколько бы кадров ни было.
+    Дневник наблюдения: каждый переход статуса (слабый → усиленный → устойчивый → оспорен → опровергнут) записывается с датой, парой-причиной и правилом, которое сработало.
+    Раздельные каналы: геометрия (кость) и текстура (кожа) — два независимых наблюдения на одну зону, никогда не сливаются в один балл.
+    Скачок vs тренд: простой тест монотонности по хронологии. Постепенное монотонное изменение — «возрастная динамика, низкий интерес»; ступенька между соседними эпохами — «требует объяснения».
+    Симметрия: если левая и правая парные зоны меняются одинаково по знаку и величине — это, скорее всего, возраст/вес, интерес понижается. Асимметричное изменение — интерес повышается.
+    Проверка альтернатив на каждое наблюдение: возраст, вес (сопутствующие мягкие ткани), мимика, качество кадра, ракурс, освещение, ретушь — каждая альтернатива получает статус «исключена / возможна / не проверялась».
+    Тест перестановки дат: отчёт собирается второй раз со случайно перемешанными датами. Наблюдения, которые «выживают» без реальной хронологии, — артефакт метода, а не факт.
+    Ловушки-контроли внутри отчёта: пары «кадр — его рекроп» вшиваются в каждую эпоху; если система на них видит «изменение» — вся эпоха получает стоп-флаг.
+    Зеркальные дубли: детекция горизонтально отражённых перепубликаций. Без этого любое асимметричное наблюдение (п. 5) ненадёжно.
+    Тень ретуши: индикаторы (аномальная гладкость при высоком разрешении, отсутствие микрорельефа) → зона исключается из текстурного канала, фото помечается.
+
+Про структуру отчёта
+11. Базовая линия только из ≥3 фото и ≥2 ракурсов; иначе baseline_weak, и все последующие уровни уверенности принудительно понижаются на ступень.
+12. Матрица покрытия эпоха × ракурс на каждой странице эпохи — показывает слепые пятна («в 2006 нет ни одного правого профиля»).
+13. Карта пробелов и «что закроет вопрос» генерируется автоматически: недостающий (ракурс × эпоха × независимый источник) на каждое открытое наблюдение.
+14. Маршрутный лист для редакции: упорядоченный по приоритету список ручных проверок, сквозной по всем эпохам.
+15. Блок «что мы НЕ можем сказать» обязателен на каждой странице.
+16. Наблюдение ≠ интерпретация: система печатает только наблюдения; поле «интерпретация» пустое и подписано «заполняет редакция».
+17. Словарь зон для журналистов: каждая зона имеет обиходное имя и одну фразу «почему это важно / насколько стабильно в жизни».
+18. Стоп-правило эпохи: если >30% пар эпохи не прошли ворота ракурса или качества — страница эпохи помечается «выводы недопустимы», а не просто «мало данных».
+19. Трассируемость: каждое утверждение несёт список photo_id/pair_id; редакция может за минуту найти исходные файлы.
+20. Порог качества фото (межзрачковое расстояние в пикселях, размытость, артефакты сжатия): ниже порога фото — только контекст, не доказательство.
+
+Про процесс
+21. Fail-closed сборка: нет весов, нет контрольных сумм, негативный контроль не пройден — генератор отказывается собирать публикационную версию и собирает черновик с водяным знаком в каждом блоке.
+22. Human-in-the-loop: файл editorial_marks.json, где редакция помечает наблюдения accepted/rejected/needs_source; при следующей сборке это учитывается и логируется.
+23. Версионирование отчёта: любая правка датировки/добавление фото → новая версия и diff «какие наблюдения изменили статус».
+24. Правила статусов — только явные пороги, никакого ML: журналист может проверить статус наблюдения вручную по таблице правил.
+25. Бюджет сравнений на эпоху: поправка Бенджамини–Хохберга применяется по эпохе, и число проверенных сравнений печатается рядом с каждым наблюдением.
+4. Реализация: app6/stage4_chrono/
+
+Структура:
+
+text
+
+app6/stage4_chrono/
+  __init__.py
+  contracts.py      # зоны, ракурсы, словари, пороги, dataclass'ы
+  vocabulary.py     # запрещённые формулировки, шкала уверенности
+  gates.py          # ворота: ракурс, дата, качество, дубли, ретушь
+  independence.py   # события съёмки и подсчёт независимых свидетельств
+  epochs.py         # разбиение на эпохи, матрица покрытия
+  observations.py   # нити наблюдений: статус-машина, альтернативы, дневник
+  baseline.py       # уровень 0
+  controls.py       # негативный контроль, перестановка дат, ловушки
+  render_md.py      # четыре уровня страниц + маршрутный лист
+  run.py            # CLI
+app6/fixes/
+  regression_fix.py
+  landmark_weights_check.py
+tests/test_stage4_synthetic.py
+
+4.1 contracts.py
+
+Python
+
+# app6/stage4_chrono/contracts.py
+from __future__ import annotations
+from dataclasses import dataclass, field, asdict
+from typing import Optional
+import json, re
+from pathlib import Path
+
+# ---------- Ракурсы (сохранено из проекта) ----------
+POSE_BINS = ["L_profile", "L_deep", "L_mid", "L_light", "frontal",
+             "R_light", "R_mid", "R_deep", "R_profile"]
+# Допустимое угловое расхождение внутри бина, градусы (сохранено)
+MAX_DELTA_DEG = {"L_profile": 2, "R_profile": 2, "L_deep": 4, "R_deep": 4,
+                 "L_mid": 6, "R_mid": 6, "L_light": 9, "R_light": 9, "frontal": 12}
+HARD_DELTA_LIMIT = 20  # выше — результат бессмысленен
+
+# ---------- Зоны (fallback; ADAPT: читать из app6/atlas/) ----------
+ZONES = {
+ # id: (обиходное имя, канал-приоритет, стабильность в жизни)
+ "forehead":      ("лоб",                   "bone", "стабилен; меняется только при значительном изменении веса"),
+ "glabella":      ("межбровье",             "bone", "стабилен; мимика может дать ложное изменение"),
+ "nasal_bridge":  ("переносица",            "bone", "один из самых стабильных ориентиров десятилетиями"),
+ "l_orbit":       ("левая глазница",        "bone", "костная рамка глаза, стабильна"),
+ "r_orbit":       ("правая глазница",       "bone", "костная рамка глаза, стабильна"),
+ "l_zygoma":      ("левая скула",           "bone", "стабильна; мягкие ткани поверх — нет"),
+ "r_zygoma":      ("правая скула",          "bone", "стабильна; мягкие ткани поверх — нет"),
+ "l_temple":      ("левый висок",           "bone", "стабилен; западает при потере веса"),
+ "r_temple":      ("правый висок",          "bone", "стабилен; западает при потере веса"),
+ "chin":          ("подбородок",            "bone", "стабилен; чувствителен к наклону головы"),
+ "l_mandible":    ("левая ветвь челюсти",   "bone", "стабильна; контур маскируется весом"),
+ "r_mandible":    ("правая ветвь челюсти",  "bone", "стабильна; контур маскируется весом"),
+ "nose_tip":      ("кончик носа",           "soft", "меняется с возрастом (опускается)"),
+ "l_ala":         ("левое крыло носа",      "soft", "меняется с возрастом и мимикой"),
+ "r_ala":         ("правое крыло носа",     "soft", "меняется с возрастом и мимикой"),
+ "philtrum":      ("желобок над губой",     "soft", "удлиняется с возрастом"),
+ "upper_lip":     ("верхняя губа",          "soft", "мимика, возраст, косметика"),
+ "lower_lip":     ("нижняя губа",           "soft", "мимика, возраст, косметика"),
+ "l_cheek":       ("левая щека",            "soft", "вес, возраст"),
+ "r_cheek":       ("правая щека",           "soft", "вес, возраст"),
+ "submental":     ("подподбородочная зона", "soft", "вес, наклон головы"),
+}
+BONE_ZONES = {z for z, v in ZONES.items() if v[1] == "bone"}
+SOFT_ZONES = {z for z, v in ZONES.items() if v[1] == "soft"}
+MIRROR = {"l_orbit": "r_orbit", "l_zygoma": "r_zygoma", "l_temple": "r_temple",
+          "l_mandible": "r_mandible", "l_ala": "r_ala", "l_cheek": "r_cheek"}
+MIRROR.update({v: k for k, v in MIRROR.items()})
+# Зоны, исключаемые при открытом рте / широкой улыбке (сохранено)
+MOUTH_EXCLUDE = {"upper_lip", "lower_lip", "philtrum", "l_cheek", "r_cheek", "submental", "chin"}
+
+# ---------- Пороги качества (моё дополнение №20) ----------
+MIN_IPD_PX = 60        # межзрачковое расстояние
+MAX_BLUR_SCORE = 0.35  # 0 — резко, 1 — мыло (ADAPT: шкала stage1)
+MIN_JPEG_Q = 60
+MIN_CALIBRATED_LANDMARKS = 20  # сохранено: меньше — только диагностика
+
+# ---------- Эффекты ----------
+EFFECT_WEAK = 1.5    # |z| относительно калибровки: слабый сигнал
+EFFECT_STRONG = 2.5  # сильный сигнал
+BH_Q = 0.10          # FDR по эпохе
+
+DATE_RE = re.compile(r"(?P<y>19\d{2}|20\d{2})_(?P<m>\d{2})_(?P<d>\d{2})")
+
+def date_from_filename(name: str) -> Optional[str]:
+    """Единственный авторитет датировки — имя файла ГГГГ_ММ_ДД (сохранено)."""
+    m = DATE_RE.search(name)
+    if not m:
+        return None
+    y, mo, d = int(m["y"]), int(m["m"]), int(m["d"])
+    if not (1 <= mo <= 12 and 1 <= d <= 31):
+        return None
+    return f"{y:04d}-{mo:02d}-{d:02d}"
+
+# ---------- Записи ----------
+@dataclass
+class PhotoRecord:
+    photo_id: str
+    file_name: str
+    source: str
+    pose_bin: str
+    yaw: float
+    pitch: float
+    roll: float
+    ipd_px: float
+    blur: float
+    jpeg_q: int
+    visible_zones: list
+    mouth_open: bool
+    checksum: str
+    exif_date: Optional[str] = None
+    claimed_date: Optional[str] = None
+    retouch_score: float = 0.0        # ADAPT: индикатор гладкости из stage1 текстуры
+    mirror_of: Optional[str] = None    # заполняется gates.collapse_duplicates
+    dup_group: Optional[str] = None
+    date: Optional[str] = None
+    date_status: str = "missing"       # ok | conflict | missing
+    quality_status: str = "unknown"    # evidence | context | rejected
+    shoot_event: Optional[str] = None
+    provenance: str = "real"           # real | synthetic
+
+    def finalize_date(self):
+        fn = date_from_filename(self.file_name)
+        self.date = fn
+        if fn is None:
+            self.date_status = "missing"
+        elif (self.exif_date and self.exif_date[:7] != fn[:7]) or \
+             (self.claimed_date and self.claimed_date[:4] != fn[:4]):
+            self.date_status = "conflict"
+        else:
+            self.date_status = "ok"
+
+@dataclass
+class ZoneDelta:
+    geom_z: Optional[float]   # z-score относительно калибровки того же бина
+    tex_z: Optional[float]
+    geom_p: Optional[float]
+    tex_p: Optional[float]
+    n_landmarks: int
+    direction: str            # словесное направление, напр. "вверх-наружу"
+
+@dataclass
+class PairRecord:
+    pair_id: str
+    photo_a: str
+    photo_b: str
+    pose_bin: str
+    delta_deg: float
+    zone_deltas: dict          # zone_id -> ZoneDelta
+    gate_status: str = "unknown"   # pass | pose_fail | date_fail | quality_fail | dup
+    gate_reasons: list = field(default_factory=list)
+    is_control: bool = False       # ловушка «кадр — рекроп» (дополнение №8)
+
+def load_jsonl(path: Path):
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+def dump_json(obj, path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2, default=str)
+
+4.2 vocabulary.py — запрещённый словарь и шкала уверенности
+
+Python
+
+# app6/stage4_chrono/vocabulary.py
+import re
+
+# Формулировки, которые код не имеет права печатать (исправление E6).
+FORBIDDEN = [
+    r"\bмаск[аиуе]\b", r"\bдипфейк", r"deepfake", r"\bподмен[аыу]\b",
+    r"\bдвойник", r"\bдруго[йе] челове[кч]", r"\bпластическ", r"\bоперац",
+    r"\bсинтетическ", r"\bподделк", r"\bфальшив", r"\bдоказано\b",
+    r"\bоднозначно\b", r"\bбесспорно\b", r"\bне вызывает сомнений",
+]
+_FORBIDDEN_RE = [re.compile(p, re.IGNORECASE) for p in FORBIDDEN]
+
+class ForbiddenVocabulary(Exception):
+    pass
+
+def assert_allowed(text: str, where: str = ""):
+    for rx in _FORBIDDEN_RE:
+        m = rx.search(text)
+        if m:
+            raise ForbiddenVocabulary(
+                f"Запрещённая формулировка «{m.group(0)}» в {where}. "
+                f"Отчёт не собран. Замените на описание наблюдения.")
+
+# Допустимые статусы пары (сохранено из методики)
+PAIR_STATUS = {"accepted": "принято", "warning": "предупреждение",
+               "excluded": "исключено", "undetermined": "неопределённо",
+               "recheck": "нужна перепроверка"}
+
+# Статусы наблюдения (моё, явные правила — дополнение №24)
+OBS_STATUS = {
+    "insufficient":  "недостаточно данных",
+    "weak":          "слабый сигнал",
+    "reinforced":    "усиленный сигнал",
+    "stable":        "устойчивый маркер",
+    "contested":     "оспаривается",
+    "refuted":       "не подтвердилось",
+    "recheck":       "нужна перепроверка",
+    "age_trend":     "возрастная динамика (низкий интерес)",
+}
+
+# Единая шкала уверенности (5.6 ТЗ, доведена до правил)
+CONFIDENCE = {
+    "none":   "нет оснований",
+    "low":    "низкая — одно событие съёмки или один ракурс, или слабое качество",
+    "medium": "средняя — ≥2 независимых события, ≥2 ракурса ИЛИ ≥2 источника, альтернативы частично исключены",
+    "high":   "высокая — ≥3 независимых даты, ≥2 ракурса И ≥2 источника, сильный эффект, альтернативы исключены, пережил перестановку дат",
+}
+CONF_ORDER = ["none", "low", "medium", "high"]
+
+def downgrade(conf: str) -> str:
+    i = CONF_ORDER.index(conf)
+    return CONF_ORDER[max(0, i - 1)]
+
+4.3 gates.py — ворота (ракурс, дата, качество, дубли, ретушь)
+
+Python
+
+# app6/stage4_chrono/gates.py
+from .contracts import (PhotoRecord, PairRecord, MAX_DELTA_DEG, HARD_DELTA_LIMIT,
+                        MIN_IPD_PX, MAX_BLUR_SCORE, MIN_JPEG_Q, MOUTH_EXCLUDE,
+                        MIN_CALIBRATED_LANDMARKS)
+
+RETOUCH_LIMIT = 0.7  # ADAPT: калибровать на известных ретушированных фото
+
+def grade_photo(p: PhotoRecord) -> PhotoRecord:
+    """evidence — можно строить выводы; context — только упоминание; rejected — не использовать."""
+    p.finalize_date()
+    reasons = []
+    if p.date_status != "ok":
+        reasons.append(f"дата:{p.date_status}")
+    if p.ipd_px < MIN_IPD_PX:
+        reasons.append(f"низкое разрешение лица ({p.ipd_px:.0f}px)")
+    if p.blur > MAX_BLUR_SCORE:
+        reasons.append("размытие")
+    if p.jpeg_q < MIN_JPEG_Q:
+        reasons.append("артефакты сжатия")
+    if p.date_status == "missing" or p.ipd_px < MIN_IPD_PX * 0.5:
+        p.quality_status = "rejected"
+    elif reasons:
+        p.quality_status = "context"
+    else:
+        p.quality_status = "evidence"
+    p.quality_reasons = reasons  # динамический атрибут для рендера
+    return p
+
+def effective_visible_zones(p: PhotoRecord) -> set:
+    z = set(p.visible_zones)
+    if p.mouth_open:
+        z -= MOUTH_EXCLUDE          # сохранено: исключение при открытом рте
+    if p.retouch_score >= RETOUCH_LIMIT:
+        p.retouch_flag = True       # дополнение №10: текстурный канал зон не используется
+    return z
+
+def collapse_duplicates(photos: dict, near_dup_pairs: list, mirror_pairs: list):
+    """
+    near_dup_pairs: [(a,b)] из stage1 (рекропы/перепубликации) — ADAPT
+    mirror_pairs:   [(a,b)] горизонтально отражённые (дополнение №9) — ADAPT
+    Побайтовые дубли (равный checksum) схлопываются здесь же.
+    """
+    parent = {pid: pid for pid in photos}
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]; x = parent[x]
+        return x
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb: parent[rb] = ra
+    by_sum = {}
+    for pid, p in photos.items():
+        by_sum.setdefault(p.checksum, []).append(pid)
+    for ids in by_sum.values():
+        for other in ids[1:]:
+            union(ids[0], other)
+    for a, b in near_dup_pairs:
+        union(a, b)
+    for a, b in mirror_pairs:
+        union(a, b)
+        photos[b].mirror_of = a
+    for pid, p in photos.items():
+        p.dup_group = f"dup_{find(pid)}"
+    return photos
+
+def gate_pair(pair: PairRecord, photos: dict) -> PairRecord:
+    a, b = photos[pair.photo_a], photos[pair.photo_b]
+    reasons = []
+    if a.dup_group == b.dup_group:
+        pair.gate_status = "dup"; pair.gate_reasons = ["один и тот же кадр/перепубликация"]
+        return pair
+    if a.pose_bin != b.pose_bin or a.pose_bin != pair.pose_bin:
+        reasons.append("разные ракурсы")
+    if pair.delta_deg > HARD_DELTA_LIMIT:
+        reasons.append(f"расхождение углов {pair.delta_deg:.1f}° > {HARD_DELTA_LIMIT}°")
+    elif pair.delta_deg > MAX_DELTA_DEG.get(pair.pose_bin, 0):
+        reasons.append(f"расхождение углов {pair.delta_deg:.1f}° > допуска бина")
+    if reasons:
+        pair.gate_status = "pose_fail"; pair.gate_reasons = reasons; return pair
+    if "ok" not in (a.date_status, b.date_status) or a.date_status != b.date_status:
+        pair.gate_status = "date_fail"; pair.gate_reasons = ["конфликт/отсутствие даты"]; return pair
+    if a.quality_status == "rejected" or b.quality_status == "rejected":
+        pair.gate_status = "quality_fail"; pair.gate_reasons = ["фото отклонено по качеству"]; return pair
+    # пересечение видимых зон (сохранено): всё вне — вычёркиваем
+    vis = effective_visible_zones(a) & effective_visible_zones(b)
+    pair.zone_deltas = {z: d for z, d in pair.zone_deltas.items() if z in vis}
+    # текстурный канал недоступен, если хотя бы одно фото с ретушью
+    if getattr(a, "retouch_flag", False) or getattr(b, "retouch_flag", False):
+        for d in pair.zone_deltas.values():
+            d.tex_z, d.tex_p = None, None
+        reasons.append("текстура исключена: признаки ретуши")
+    # диагностический режим при малом числе точек (сохранено)
+    for z, d in pair.zone_deltas.items():
+        if d.n_landmarks < MIN_CALIBRATED_LANDMARKS:
+            d.diagnostic_only = True
+    pair.gate_status = "pass"
+    pair.gate_reasons = reasons
+    pair.evidence_grade = "evidence" if (a.quality_status == b.quality_status == "evidence") else "context"
+    return pair
+
+4.4 independence.py — события съёмки
+
+Python
+
+# app6/stage4_chrono/independence.py
+from datetime import date
+from itertools import combinations
+
+def _d(s): 
+    y, m, d = map(int, s.split("-")); return date(y, m, d)
+
+def assign_shoot_events(photos: dict, background_sim: dict | None = None):
+    """
+    Дополнение №1. Событие съёмки = один источник, даты в пределах ±1 дня,
+    один ракурс-бин (или схожий фон, если stage1 даёт background_sim[(a,b)] в [0,1]).
+    Пары внутри события НЕ являются независимыми свидетельствами.
+    """
+    ids = [p for p in photos.values() if p.date_status == "ok"]
+    ids.sort(key=lambda p: (p.source, p.date))
+    parent = {p.photo_id: p.photo_id for p in ids}
+    def find(x):
+        while parent[x] != x: parent[x] = parent[parent[x]]; x = parent[x]
+        return x
+    for a, b in combinations(ids, 2):
+        if a.source != b.source: continue
+        if abs((_d(a.date) - _d(b.date)).days) > 1: continue
+        same_bg = background_sim.get((a.photo_id, b.photo_id), 0) > 0.8 if background_sim else False
+        if a.pose_bin == b.pose_bin or same_bg or a.dup_group == b.dup_group:
+            ra, rb = find(a.photo_id), find(b.photo_id)
+            if ra != rb: parent[rb] = ra
+    for p in ids:
+        p.shoot_event = f"ev_{find(p.photo_id)}"
+    for p in photos.values():
+        if p.shoot_event is None:
+            p.shoot_event = f"ev_{p.photo_id}"
+    return photos
+
+def independent_support(pairs, photos):
+    """Считает независимые свидетельства (исправление E3): события, даты, источники, ракурсы."""
+    events, dates, sources, poses = set(), set(), set(), set()
+    for pr in pairs:
+        for pid in (pr.photo_a, pr.photo_b):
+            p = photos[pid]
+            events.add(p.shoot_event); dates.add(p.date); sources.add(p.source); poses.add(p.pose_bin)
+    return {"events": len(events), "dates": len(dates), "sources": len(sources), "poses": len(poses)}
+
+4.5 epochs.py
+
+Python
+
+# app6/stage4_chrono/epochs.py
+from collections import defaultdict
+from .contracts import POSE_BINS
+
+def build_epochs(photos: dict, years_per_epoch: int = 2, manual_bounds: list | None = None):
+    """
+    Возвращает список эпох [{id, start, end, photo_ids}] по хронологии.
+    manual_bounds: список годов-границ, напр. [2003, 2006, 2010].
+    """
+    dated = sorted([p for p in photos.values() if p.date_status == "ok"], key=lambda p: p.date)
+    if not dated: return []
+    years = [int(p.date[:4]) for p in dated]
+    if manual_bounds:
+        bounds = sorted(set([years[0]] + manual_bounds + [years[-1] + 1]))
+    else:
+        bounds = list(range(years[0], years[-1] + 1 + years_per_epoch, years_per_epoch))
+    epochs = []
+    for i in range(len(bounds) - 1):
+        s, e = bounds[i], bounds[i + 1]
+        ids = [p.photo_id for p in dated if s <= int(p.date[:4]) < e]
+        if ids:
+            epochs.append({"id": f"E{i+1:02d}", "start": s, "end": e - 1, "photo_ids": ids})
+    return epochs
+
+def coverage_matrix(epochs, photos):
+    """Дополнение №12: эпоха × ракурс → число фото класса evidence / context."""
+    mat = {}
+    for ep in epochs:
+        row = {b: [0, 0] for b in POSE_BINS}
+        for pid in ep["photo_ids"]:
+            p = photos[pid]
+            row[p.pose_bin][0 if p.quality_status == "evidence" else 1] += 1
+        mat[ep["id"]] = row
+    return mat
+
+def epoch_of(photo, epochs):
+    y = int(photo.date[:4])
+    for ep in epochs:
+        if ep["start"] <= y <= ep["end"]: return ep["id"]
+    return None
+
+def epoch_stop_rule(epoch, pairs_in_epoch):
+    """Дополнение №18: >30% пар не прошли ворота — выводы по эпохе недопустимы."""
+    if not pairs_in_epoch: return "no_pairs"
+    failed = sum(1 for p in pairs_in_epoch if p.gate_status != "pass")
+    return "blocked" if failed / len(pairs_in_epoch) > 0.30 else "ok"
+
+4.6 observations.py — сердце нового слоя
+
+Python
+
+# app6/stage4_chrono/observations.py
+from __future__ import annotations
+from dataclasses import dataclass, field
+from collections import defaultdict
+from .contracts import (ZONES, BONE_ZONES, MIRROR, EFFECT_WEAK, EFFECT_STRONG, BH_Q, POSE_BINS)
+from .vocabulary import downgrade
+from .independence import independent_support
+
+@dataclass
+class Observation:
+    obs_id: str
+    zone: str
+    channel: str               # geom | tex
+    direction: str             # знак/направление изменения
+    first_epoch: str
+    support_pairs: list = field(default_factory=list)
+    counter_pairs: list = field(default_factory=list)
+    diary: list = field(default_factory=list)        # дополнение №2
+    status: str = "insufficient"
+    confidence: str = "none"
+    alternatives: dict = field(default_factory=dict)  # дополнение №6
+    shape: str = "unknown"      # step | trend | flat (дополнение №4)
+    symmetric_with: str | None = None                 # дополнение №5
+    survived_permutation: bool | None = None          # дополнение №7
+    closing_request: str = ""                         # дополнение №13
+    n_comparisons_in_epoch: int = 0                   # дополнение №25
+    interpretation: str = "(заполняет редакция — система не интерпретирует)"  # №16
+    editorial_mark: str | None = None                 # дополнение №22
+
+def bh_survivors(pvals: dict, q=BH_Q) -> set:
+    """Бенджамини–Хохберг; pvals: key -> p. Возвращает ключи, пережившие поправку."""
+    items = sorted([(p, k) for k, p in pvals.items() if p is not None])
+    m = len(items); keep = set(); thresh = 0
+    for i, (p, k) in enumerate(items, 1):
+        if p <= q * i / m: thresh = i
+    for i, (p, k) in enumerate(items, 1):
+        if i <= thresh: keep.add(k)
+    return keep
+
+def _sign_dir(z: float, d: str) -> str:
+    return d if d else ("увеличение" if z > 0 else "уменьшение")
+
+def build_observations(pairs, photos, epochs, epoch_of) -> dict:
+    """
+    Из пар, прошедших ворота, строим нити наблюдений zone×channel×direction.
+    Пара «рождает» сигнал, если |z| ≥ EFFECT_WEAK и p пережил BH внутри эпохи.
+    """
+    passed = [p for p in pairs if p.gate_status == "pass" and not p.is_control]
+    # BH по эпохе, отдельно по каналам
+    by_epoch = defaultdict(list)
+    for pr in passed:
+        ep = epoch_of(photos[pr.photo_b], epochs)  # эпоха более позднего фото
+        by_epoch[ep].append(pr)
+    survivors = {}
+    n_comp = {}
+    for ep, prs in by_epoch.items():
+        pv = {}
+        for pr in prs:
+            for z, d in pr.zone_deltas.items():
+                if getattr(d, "diagnostic_only", False): continue
+                if d.geom_p is not None: pv[(pr.pair_id, z, "geom")] = d.geom_p
+                if d.tex_p is not None:  pv[(pr.pair_id, z, "tex")] = d.tex_p
+        survivors[ep] = bh_survivors(pv); n_comp[ep] = len(pv)
+
+    threads: dict[tuple, Observation] = {}
+    counter = 0
+    for ep, prs in sorted(by_epoch.items(), key=lambda kv: kv[0] or ""):
+        for pr in prs:
+            for z, d in pr.zone_deltas.items():
+                for ch, zval in (("geom", d.geom_z), ("tex", d.tex_z)):
+                    if zval is None: continue
+                    strong = abs(zval) >= EFFECT_WEAK and (pr.pair_id, z, ch) in survivors[ep]
+                    direction = _sign_dir(zval, d.direction)
+                    key = (z, ch, "+" if zval > 0 else "-")
+                    anti = (z, ch, "-" if zval > 0 else "+")
+                    if strong:
+                        if key not in threads:
+                            counter += 1
+                            threads[key] = Observation(f"НАБЛ-{counter:03d}", z, ch, direction, ep)
+                            threads[key].diary.append(
+                                {"epoch": ep, "event": "родилось", "pair": pr.pair_id,
+                                 "rule": f"|z|={abs(zval):.2f}≥{EFFECT_WEAK}, пережил BH(q={BH_Q})"})
+                        threads[key].support_pairs.append(pr.pair_id)
+                        threads[key].n_comparisons_in_epoch = n_comp[ep]
+                        if anti in threads:
+                            threads[anti].counter_pairs.append(pr.pair_id)
+                            threads[anti].diary.append({"epoch": ep, "event": "противоречие",
+                                                        "pair": pr.pair_id, "rule": "обратный знак ≥ порога"})
+                    else:
+                        # слабое или нулевое изменение в той же зоне = контр-свидетельство для существующей нити,
+                        # если ожидали устойчивое отклонение
+                        if key in threads and abs(zval) < EFFECT_WEAK * 0.5:
+                            threads[key].counter_pairs.append(pr.pair_id)
+                            threads[key].diary.append({"epoch": ep, "event": "не воспроизвелось",
+                                                       "pair": pr.pair_id, "rule": f"|z|={abs(zval):.2f}<{EFFECT_WEAK*0.5}"})
+    pairs_by_id = {p.pair_id: p for p in pairs}
+    for obs in threads.values():
+        _finalize(obs, pairs_by_id, photos, epochs, epoch_of, threads)
+    return {o.obs_id: o for o in threads.values()}
+
+def _finalize(obs, pairs_by_id, photos, epochs, epoch_of, threads):
+    sup = [pairs_by_id[i] for i in obs.support_pairs]
+    con = [pairs_by_id[i] for i in obs.counter_pairs]
+    s = independent_support(sup, photos)
+    c = independent_support(con, photos)
+
+    # --- форма во времени (дополнение №4) ---
+    pts = sorted((photos[p.photo_b].date, _z(p, obs)) for p in sup if _z(p, obs) is not None)
+    obs.shape = _shape([z for _, z in pts])
+
+    # --- симметрия (дополнение №5) ---
+    mz = MIRROR.get(obs.zone)
+    if mz:
+        for key, other in threads.items():
+            if other.zone == mz and other.channel == obs.channel and key[2] == ("+" if obs.direction.startswith("увел") or key[2]=="+" else "-"):
+                obs.symmetric_with = other.obs_id
+
+    # --- статус (дополнение №24, явные правила) ---
+    if s["events"] == 0:
+        obs.status = "insufficient"
+    elif c["events"] > s["events"]:
+        obs.status = "refuted"
+    elif c["events"] * 2 >= s["events"] and c["events"] > 0:
+        obs.status = "contested"
+    elif s["dates"] >= 3 and s["poses"] >= 2 and s["sources"] >= 2:
+        obs.status = "stable"
+    elif s["events"] >= 2:
+        obs.status = "reinforced"
+    else:
+        obs.status = "weak"
+    if obs.shape == "trend" and obs.zone not in BONE_ZONES and obs.status in ("reinforced", "stable"):
+        obs.status = "age_trend"
+    if obs.symmetric_with and obs.shape == "trend":
+        obs.status = "age_trend"
+
+    # --- уверенность ---
+    strong_eff = any(abs(_z(p, obs) or 0) >= EFFECT_STRONG for p in sup)
+    if obs.status in ("insufficient", "refuted"):
+        obs.confidence = "none"
+    elif obs.status == "stable" and strong_eff and c["events"] == 0:
+        obs.confidence = "high"
+    elif obs.status in ("stable", "reinforced"):
+        obs.confidence = "medium"
+    else:
+        obs.confidence = "low"
+    if any(getattr(p, "evidence_grade", "context") == "context" for p in sup):
+        obs.confidence = downgrade(obs.confidence)
+
+    # --- альтернативы (дополнение №6) ---
+    obs.alternatives = {
+        "возраст": "возможна" if obs.shape == "trend" or obs.symmetric_with else "маловероятна (ступенька/асимметрия)",
+        "вес": "возможна" if obs.zone not in BONE_ZONES or obs.zone in {"l_temple","r_temple","chin","l_mandible","r_mandible"} else "не объясняет костную зону",
+        "мимика": "исключена (зоны рта вычеркнуты при открытом рте)" if obs.zone in BONE_ZONES else "возможна",
+        "ракурс": f"ограничена воротами (Δ≤{max(p.delta_deg for p in sup):.1f}°)",
+        "качество": "исключена" if all(getattr(p,'evidence_grade','')=='evidence' for p in sup) else "возможна",
+        "освещение": "не проверялась (нужна ручная оценка)" if obs.channel == "tex" else "не влияет на геометрический канал",
+        "ретушь": "текстура отфильтрована" if obs.channel == "tex" else "не влияет на геометрический канал",
+    }
+
+    # --- что закроет вопрос (дополнение №13) ---
+    have_poses = set()
+    have_sources = set()
+    for p in sup:
+        for pid in (p.photo_a, p.photo_b):
+            have_poses.add(photos[pid].pose_bin); have_sources.add(photos[pid].source)
+    missing_pose = next((b for b in POSE_BINS if b not in have_poses and b in _relevant_poses(obs.zone)), None)
+    obs.closing_request = (
+        f"кадр эпохи {obs.first_epoch} или следующей в ракурсе {missing_pose or 'любом другом'} "
+        f"из источника, отличного от {', '.join(sorted(have_sources)) or '—'}")
+
+def _z(pair, obs):
+    d = pair.zone_deltas.get(obs.zone)
+    if d is None: return None
+    return d.geom_z if obs.channel == "geom" else d.tex_z
+
+def _shape(zs):
+    if len(zs) < 3: return "unknown"
+    diffs = [b - a for a, b in zip(zs, zs[1:])]
+    mono = sum(1 for d in diffs if d > 0), sum(1 for d in diffs if d < 0)
+    if max(mono) >= 0.8 * len(diffs): return "trend"
+    if max(abs(d) for d in diffs) >= 2 * (sum(abs(d) for d in diffs) / len(diffs)): return "step"
+    return "flat"
+
+def _relevant_poses(zone):
+    if zone.startswith("l_"): return {"L_profile","L_deep","L_mid","L_light","frontal"}
+    if zone.startswith("r_"): return {"R_profile","R_deep","R_mid","R_light","frontal"}
+    return set(POSE_BINS)
+
+4.7 baseline.py — уровень 0
+
+Python
+
+# app6/stage4_chrono/baseline.py
+from .contracts import ZONES, BONE_ZONES
+
+def build_baseline(epochs, photos, pairs):
+    """Базовая линия = самая ранняя эпоха с ≥3 фото класса evidence и ≥2 ракурсами (дополнение №11)."""
+    for ep in epochs:
+        ev = [photos[i] for i in ep["photo_ids"] if photos[i].quality_status == "evidence"]
+        poses = {p.pose_bin for p in ev}
+        if len(ev) >= 3 and len(poses) >= 2:
+            strength = "ok"; break
+    else:
+        ep = epochs[0] if epochs else None
+        ev = [photos[i] for i in ep["photo_ids"]] if ep else []
+        strength = "weak"
+    # внутриэпоховый разброс по зонам = «погрешность отсчёта»
+    intra = [p for p in pairs if p.gate_status == "pass" and ep and
+             p.photo_a in ep["photo_ids"] and p.photo_b in ep["photo_ids"]]
+    noise = {}
+    for z in ZONES:
+        vals = [abs(pr.zone_deltas[z].geom_z) for pr in intra if z in pr.zone_deltas and pr.zone_deltas[z].geom_z is not None]
+        noise[z] = (sum(vals) / len(vals)) if vals else None
+    reliable = [z for z, v in noise.items() if v is not None and v < 1.0 and z in BONE_ZONES]
+    unreliable = [z for z, v in noise.items() if v is None or v >= 1.0]
+    return {"epoch": ep["id"] if ep else None, "strength": strength,
+            "photos": [p.photo_id for p in ev], "poses": sorted({p.pose_bin for p in ev}),
+            "noise_by_zone": noise, "reliable_zones": reliable, "unreliable_zones": unreliable}
+
+4.8 controls.py — негативный контроль, перестановка дат, ловушки
+
+Python
+
+# app6/stage4_chrono/controls.py
+import random, copy
+from .observations import build_observations
+from .epochs import build_epochs, epoch_of
+
+def negative_control(auc: float) -> dict:
+    """Сохранено: на однородных данных должно быть 0,45–0,55."""
+    ok = 0.45 <= auc <= 0.55
+    return {"auc": auc, "passed": ok,
+            "note": "система что-то додумывает" if not ok else "в коридоре"}
+
+def control_traps(pairs) -> dict:
+    """Дополнение №8: пары «кадр — рекроп» должны давать |z|<0.5 по всем зонам."""
+    bad = []
+    for p in pairs:
+        if not p.is_control: continue
+        for z, d in p.zone_deltas.items():
+            if d.geom_z is not None and abs(d.geom_z) >= 0.5:
+                bad.append((p.pair_id, z, round(d.geom_z, 2)))
+    return {"n_controls": sum(1 for p in pairs if p.is_control), "violations": bad,
+            "passed": not bad}
+
+def date_permutation(pairs, photos, observations, n_rounds=20, seed=7):
+    """
+    Дополнение №7. Перемешиваем даты между фото (в пределах пула фото с датами),
+    пересобираем нити. Наблюдение «пережило», если при случайных датах
+    его статус stable/reinforced встречается реже, чем в 20% раундов.
+    """
+    rnd = random.Random(seed)
+    dated = [p for p in photos.values() if p.date_status == "ok"]
+    hits = {oid: 0 for oid in observations}
+    for _ in range(n_rounds):
+        ph = copy.deepcopy(photos)
+        dates = [p.date for p in dated]; rnd.shuffle(dates)
+        for p, d in zip([ph[p.photo_id] for p in dated], dates): p.date = d
+        eps = build_epochs(ph)
+        obs2 = build_observations(copy.deepcopy(pairs), ph, eps, epoch_of)
+        keyed = {(o.zone, o.channel, o.direction): o for o in obs2.values()}
+        for oid, o in observations.items():
+            o2 = keyed.get((o.zone, o.channel, o.direction))
+            if o2 and o2.status in ("stable", "reinforced"): hits[oid] += 1
+    for oid, o in observations.items():
+        o.survived_permutation = (hits[oid] / n_rounds) < 0.2
+        if o.status in ("stable", "reinforced") and not o.survived_permutation:
+            o.status = "recheck"
+            o.diary.append({"epoch": "-", "event": "понижено", "pair": "-",
+                            "rule": f"воспроизводится при случайных датах в {hits[oid]}/{n_rounds} раундах"})
+    return observations
+
+4.9 render_md.py — четыре уровня + маршрутный лист
+
+Python
+
+# app6/stage4_chrono/render_md.py
+from pathlib import Path
+from .contracts import ZONES, POSE_BINS
+from .vocabulary import assert_allowed, OBS_STATUS, CONFIDENCE, PAIR_STATUS
+
+def _zn(z): return ZONES.get(z, (z,))[0]
+
+def _wm(draft: bool) -> str:
+    return "> **ЧЕРНОВИК. Не для публикации.** Не все контроли пройдены или данные синтетические.\n\n" if draft else ""
+
+def render_all(out: Path, ctx: dict):
+    out.mkdir(parents=True, exist_ok=True)
+    draft = ctx["draft"]
+    pages = {}
+    pages["00_baseline.md"] = _baseline(ctx, draft)
+    for ep in ctx["epochs"]:
+        pages[f"10_epoch_{ep['id']}.md"] = _epoch(ep, ctx, draft)
+        for pid in ep["photo_ids"]:
+            pages[f"20_photo_{pid}.md"] = _photo(pid, ctx, draft)
+    for pr in ctx["pairs"]:
+        if pr.gate_status == "pass":
+            pages[f"30_pair_{pr.pair_id}.md"] = _pair(pr, ctx, draft)
+    for o in ctx["observations"].values():
+        pages[f"40_obs_{o.obs_id}.md"] = _observation(o, ctx, draft)
+    pages["90_route_sheet.md"] = _route(ctx, draft)
+    pages["91_cannot_say.md"] = _cannot_say(ctx)
+    for name, text in pages.items():
+        assert_allowed(text, name)          # исправление E6: fail на запрещённом словаре
+        (out / name).write_text(text, encoding="utf-8")
+    return list(pages)
+
+def _baseline(ctx, draft):
+    b = ctx["baseline"]
+    lines = [_wm(draft), "# Уровень 0. Базовая линия", ""]
+    lines.append(f"- Эпоха отсчёта: **{b['epoch']}**; надёжность базы: **{'достаточная' if b['strength']=='ok' else 'СЛАБАЯ — все дальнейшие уровни уверенности понижены на ступень'}**")
+    lines.append(f"- Фото в базе: {', '.join(b['photos'])}")
+    lines.append(f"- Ракурсы в базе: {', '.join(b['poses'])}")
+    lines.append("- Зоны, по которым отсчёт надёжен: " + (", ".join(_zn(z) for z in b['reliable_zones']) or "нет"))
+    lines.append("- Зоны, по которым отсчёт ненадёжен: " + (", ".join(_zn(z) for z in b['unreliable_zones']) or "нет"))
+    lines.append("")
+    lines.append("## Что мы принимаем за «лицо в начале»")
+    lines.append("Тезис: описание строится только по надёжным зонам; всё остальное в базе — контекст.")
+    lines.append("")
+    lines.append("## Что мы НЕ можем сказать на этом уровне")
+    lines.append("- Ничего о личности. Только «такова геометрия/текстура на этих снимках с такой погрешностью».")
+    return "\n".join(lines)
+
+def _epoch(ep, ctx, draft):
+    photos, obs = ctx["photos"], ctx["observations"]
+    cov = ctx["coverage"][ep["id"]]
+    prs = [p for p in ctx["pairs"] if p.gate_status == "pass" and ctx["epoch_of"](photos[p.photo_b], ctx["epochs"]) == ep["id"]]
+    stop = ctx["stop_rules"][ep["id"]]
+    L = [_wm(draft), f"# Уровень 1. Эпоха {ep['id']}: {ep['start']}–{ep['end']}", ""]
+    if stop != "ok":
+        L.append(f"> **СТОП-ПРАВИЛО: {('нет пар для сравнения' if stop=='no_pairs' else 'более 30% пар не прошли ворота ракурса/качества')}. Выводы по эпохе недопустимы.**\n")
+    L += ["## Что есть в эпохе",
+          f"- Фото: {len(ep['photo_ids'])}, из них пригодных как доказательство: {sum(1 for i in ep['photo_ids'] if photos[i].quality_status=='evidence')}",
+          f"- Пар, прошедших ворота: {len(prs)}",
+          "", "## Покрытие по ракурсам (доказательство / контекст)",
+          "| " + " | ".join(POSE_BINS) + " |", "|" + "---|" * len(POSE_BINS),
+          "| " + " | ".join(f"{cov[b][0]}/{cov[b][1]}" for b in POSE_BINS) + " |",
+          "- Слепые пятна: " + (", ".join(b for b in POSE_BINS if sum(cov[b]) == 0) or "нет"), ""]
+    born = [o for o in obs.values() if o.first_epoch == ep["id"]]
+    alive = [o for o in obs.values() if any(d["epoch"] == ep["id"] for d in o.diary) and o.first_epoch != ep["id"]]
+    L += ["## Что изменилось относительно предыдущей эпохи (тезисы)"]
+    for o in born:
+        L.append(f"- **{o.obs_id}** {_zn(o.zone)} ({'геометрия' if o.channel=='geom' else 'текстура кожи'}): {o.direction}. "
+                 f"Статус: {OBS_STATUS[o.status]}; уверенность: {o.confidence}. Форма: {o.shape}."
+                 + (f" Симметрично с {o.symmetric_with} → скорее возраст." if o.symmetric_with else ""))
+    L += ["", "## Наблюдения из прошлых эпох, которые здесь повторились или рассыпались"]
+    for o in alive:
+        ev = [d["event"] for d in o.diary if d["epoch"] == ep["id"]]
+        L.append(f"- {o.obs_id} {_zn(o.zone)}: {', '.join(ev)} → текущий статус {OBS_STATUS[o.status]}")
+    L += ["", "## Что проверить руками в этой эпохе"]
+    for o in born + alive:
+        if o.status in ("weak", "reinforced", "contested", "recheck"):
+            L.append(f"- {o.obs_id}: {o.closing_request}")
+    L += ["", "## Что мы НЕ можем сказать", "- Причину изменений. Только факт, направление, повторяемость, альтернативы."]
+    return "\n".join(L)
+
+def _photo(pid, ctx, draft):
+    p = ctx["photos"][pid]
+    L = [_wm(draft), f"# Уровень 2. Фото {pid}", "",
+         f"- Файл: `{p.file_name}`; дата (из имени): **{p.date}**; статус даты: {p.date_status}",
+         f"- Источник: {p.source}; событие съёмки: {p.shoot_event}; группа дублей: {p.dup_group}"
+         + (f"; зеркальная копия {p.mirror_of}" if p.mirror_of else ""),
+         f"- Ракурс: {p.pose_bin} (yaw {p.yaw:.1f}°, pitch {p.pitch:.1f}°, roll {p.roll:.1f}°)",
+         f"- Пригодность: **{ {'evidence':'доказательство','context':'только контекст','rejected':'отклонено'}[p.quality_status] }**"
+         + (f" — причины: {', '.join(getattr(p,'quality_reasons',[]))}" if getattr(p,'quality_reasons',[]) else ""),
+         f"- Видимые зоны: {', '.join(_zn(z) for z in p.visible_zones)}",
+         f"- Рот открыт/улыбка: {'да — зоны рта исключены' if p.mouth_open else 'нет'}",
+         f"- Признаки ретуши: {'да — текстура не используется' if getattr(p,'retouch_flag',False) else 'не выявлены'}",
+         f"- Контрольная сумма: `{p.checksum}`",
+         "", "## В каких парах участвует",
+         ] + [f"- {pr.pair_id} ↔ {pr.photo_b if pr.photo_a==pid else pr.photo_a} ({PAIR_STATUS['accepted'] if pr.gate_status=='pass' else PAIR_STATUS['excluded']}: {'; '.join(pr.gate_reasons) or 'ворота пройдены'})"
+              for pr in ctx["pairs"] if pid in (pr.photo_a, pr.photo_b)]
+    return "\n".join(L)
+
+def _pair(pr, ctx, draft):
+    ph = ctx["photos"]; a, b = ph[pr.photo_a], ph[pr.photo_b]
+    L = [_wm(draft), f"# Уровень 3. Переход {pr.pair_id}: {a.date} → {b.date}", "",
+         f"- Ракурс: {pr.pose_bin}; расхождение углов {pr.delta_deg:.1f}° (допуск соблюдён)",
+         f"- Класс доказательства: {getattr(pr,'evidence_grade','context')}",
+         f"- Независимость: события {a.shoot_event} vs {b.shoot_event}; источники {a.source} vs {b.source}",
+         "", "## Что видно по зонам (только пересечение видимых)",
+         "| зона | геометрия z | текстура z | направление | режим |", "|---|---|---|---|---|"]
+    for z, d in sorted(pr.zone_deltas.items()):
+        mode = "диагностика (<20 точек)" if getattr(d, "diagnostic_only", False) else "доказательство"
+        L.append(f"| {_zn(z)} | {'' if d.geom_z is None else f'{d.geom_z:+.2f}'} | {'' if d.tex_z is None else f'{d.tex_z:+.2f}'} | {d.direction} | {mode} |")
+    L += ["", "## Чем ещё это объясняется",
+          "- Ракурс: ограничено воротами, но остаточный вклад не нулевой при Δ>0.",
+          "- Мимика: " + ("зоны рта исключены" if a.mouth_open or b.mouth_open else "рот закрыт на обоих кадрах"),
+          "- Качество: " + ("оба кадра класса доказательство" if getattr(pr,'evidence_grade','')=='evidence' else "хотя бы один кадр — контекст"),
+          "", "## К каким наблюдениям относится"]
+    L += [f"- {o.obs_id} ({'подтверждает' if pr.pair_id in o.support_pairs else 'противоречит'})"
+          for o in ctx["observations"].values() if pr.pair_id in o.support_pairs or pr.pair_id in o.counter_pairs] or ["- ни к каким (изменений выше порога нет)"]
+    return "\n".join(L)
+
+def _observation(o, ctx, draft):
+    ph = ctx["photos"]; pb = {p.pair_id: p for p in ctx["pairs"]}
+    L = [_wm(draft), f"# Нить наблюдения {o.obs_id}", "",
+         f"| поле | значение |", "|---|---|",
+         f"| Зона | {_zn(o.zone)} — {ZONES[o.zone][2]} |",
+         f"| Канал | {'геометрия (кость/форма)' if o.channel=='geom' else 'текстура кожи'} |",
+         f"| Впервые зафиксировано | эпоха {o.first_epoch}, {len([p for p in o.support_pairs if ctx['epoch_of'](ph[pb[p].photo_b], ctx['epochs'])==o.first_epoch])} пар |",
+         f"| Характер | {o.direction}; форма во времени: {o.shape} |",
+         f"| Подтверждения | {len(o.support_pairs)} пар; независимых событий съёмки: {_ind(o.support_pairs, pb, ph)} |",
+         f"| Опровергающие данные | {len(o.counter_pairs)} пар |",
+         f"| Текущий статус | **{OBS_STATUS[o.status]}** |",
+         f"| Уровень уверенности | **{o.confidence}** — {CONFIDENCE[o.confidence]} |",
+         f"| Перестановка дат | {'пережило' if o.survived_permutation else ('НЕ пережило' if o.survived_permutation is False else 'не проводилась')} |",
+         f"| Сравнений в эпохе (бюджет) | {o.n_comparisons_in_epoch} |",
+         f"| Симметричная зона | {o.symmetric_with or '—'} |",
+         f"| Что закроет вопрос | {o.closing_request} |",
+         f"| Отметка редакции | {o.editorial_mark or '—'} |",
+         f"| Интерпретация | {o.interpretation} |",
+         "", "## Альтернативные объяснения"]
+    L += [f"- {k}: {v}" for k, v in o.alternatives.items()]
+    L += ["", "## Дневник наблюдения"]
+    L += [f"- [{d['epoch']}] {d['event']} — пара {d['pair']} — правило: {d['rule']}" for d in o.diary]
+    L += ["", "## Источники (трассируемость)"]
+    L += [f"- {pid}: {pb[pid].photo_a} ({ph[pb[pid].photo_a].file_name}) → {pb[pid].photo_b} ({ph[pb[pid].photo_b].file_name})" for pid in o.support_pairs + o.counter_pairs]
+    return "\n".join(L)
+
+def _ind(pair_ids, pb, ph):
+    from .independence import independent_support
+    s = independent_support([pb[i] for i in pair_ids], ph)
+    return f"{s['events']} (дат {s['dates']}, ракурсов {s['poses']}, источников {s['sources']})"
+
+def _route(ctx, draft):
+    prio = {"contested": 0, "recheck": 1, "reinforced": 2, "weak": 3, "stable": 4}
+    obs = sorted(ctx["observations"].values(), key=lambda o: prio.get(o.status, 9))
+    L = [_wm(draft), "# Маршрутный лист редакции (что проверить руками, по приоритету)", ""]
+    for o in obs:
+        if o.status in prio:
+            L.append(f"1. **{o.obs_id}** {_zn(o.zone)} [{OBS_STATUS[o.status]}] → {o.closing_request}")
+    L += ["", "## Контроли", f"- Негативный контроль: {ctx['controls']['negative']}",
+          f"- Ловушки рекроп: {ctx['controls']['traps']}",
+          f"- Контрольные суммы: {ctx['checksums']}"]
+    return "\n".join(L)
+
+def _cannot_say(ctx):
+    return "\n".join(["# Что этот отчёт не утверждает и не может утверждать", "",
+        "- Кто изображён на фото и один ли это человек. Метод сравнивает геометрию и текстуру, а не личность.",
+        "- Причины изменений (возраст, вес, вмешательства, ретушь). Система только перечисляет альтернативы.",
+        "- Что-либо по парам, не прошедшим ворота ракурса/даты/качества. Они существуют только как контекст.",
+        "- Что-либо на основании одной фотосессии, сколько бы кадров в ней ни было.",
+        f"- Числа из синтетических прогонов: {'присутствуют, помечены водяным знаком' if ctx['draft'] else 'отсутствуют'}."])
+
+4.10 run.py — сборка
+
+Python
+
+# app6/stage4_chrono/run.py
+import argparse, json, hashlib
+from pathlib import Path
+from .contracts import PhotoRecord, PairRecord, ZoneDelta, load_jsonl, dump_json
+from .gates import grade_photo, collapse_duplicates, gate_pair
+from .independence import assign_shoot_events
+from .epochs import build_epochs, coverage_matrix, epoch_of, epoch_stop_rule
+from .observations import build_observations
+from .baseline import build_baseline
+from .controls import negative_control, control_traps, date_permutation
+from .render_md import render_all
+
+def _sha(path: Path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16] if path.exists() else "MISSING"
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--photos", required=True)      # stage1 выгрузка .jsonl  (ADAPT)
+    ap.add_argument("--pairs", required=True)       # stage2 выгрузка .jsonl  (ADAPT)
+    ap.add_argument("--dups", default=None)         # json {"near":[[a,b]], "mirror":[[a,b]]}
+    ap.add_argument("--neg-auc", type=float, default=None)   # из stage2 calibration
+    ap.add_argument("--weights", default="3ddfa_v3/net_recon.pth")
+    ap.add_argument("--editorial", default=None)    # editorial_marks.json
+    ap.add_argument("--epoch-years", type=int, default=2)
+    ap.add_argument("--bounds", default=None)       # "2003,2006,2010"
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args()
+
+    photos = {}
+    for r in load_jsonl(Path(a.photos)):
+        photos[r["photo_id"]] = grade_photo(PhotoRecord(**r))
+    pairs = []
+    for r in load_jsonl(Path(a.pairs)):
+        r["zone_deltas"] = {z: ZoneDelta(**d) for z, d in r["zone_deltas"].items()}
+        pairs.append(PairRecord(**r))
+    dups = json.loads(Path(a.dups).read_text()) if a.dups else {"near": [], "mirror": []}
+    collapse_duplicates(photos, [tuple(x) for x in dups["near"]], [tuple(x) for x in dups["mirror"]])
+    assign_shoot_events(photos)
+    pairs = [gate_pair(p, photos) for p in pairs]
+
+    bounds = [int(x) for x in a.bounds.split(",")] if a.bounds else None
+    epochs = build_epochs(photos, a.epoch_years, bounds)
+    cov = coverage_matrix(epochs, photos)
+    stop = {ep["id"]: epoch_stop_rule(ep, [p for p in pairs if epoch_of(photos[p.photo_b], epochs) == ep["id"]
+                                          if photos[p.photo_b].date_status == "ok"]) for ep in epochs}
+    baseline = build_baseline(epochs, photos, pairs)
+    observations = build_observations(pairs, photos, epochs, epoch_of)
+    if baseline["strength"] == "weak":
+        from .vocabulary import downgrade
+        for o in observations.values(): o.confidence = downgrade(o.confidence)
+    observations = date_permutation(pairs, photos, observations)
+
+    if a.editorial and Path(a.editorial).exists():           # дополнение №22
+        marks = json.loads(Path(a.editorial).read_text())
+        for o in observations.values():
+            if o.obs_id in marks:
+                o.editorial_mark = marks[o.obs_id]
+                o.diary.append({"epoch": "-", "event": "отметка редакции", "pair": "-", "rule": marks[o.obs_id]})
+
+    neg = negative_control(a.neg_auc) if a.neg_auc is not None else {"passed": False, "note": "не предоставлен"}
+    traps = control_traps(pairs)
+    checksums = {"data": _sha(Path(a.photos)), "pairs": _sha(Path(a.pairs)),
+                 "model": _sha(Path(a.weights)), "code": _sha(Path(__file__))}
+    synthetic = any(p.provenance == "synthetic" for p in photos.values())
+    draft = (not neg["passed"]) or (not traps["passed"]) or checksums["model"] == "MISSING" or synthetic  # fail-closed №21
+
+    ctx = dict(photos=photos, pairs=pairs, epochs=epochs, coverage=cov, stop_rules=stop, baseline=baseline,
+               observations=observations, epoch_of=epoch_of, draft=draft,
+               controls={"negative": neg, "traps": traps}, checksums=checksums)
+    out = Path(a.out)
+    pages = render_all(out / "report", ctx)
+    dump_json({"version": checksums, "draft": draft, "baseline": baseline,
+               "observations": {k: v.__dict__ for k, v in observations.items()},
+               "stop_rules": stop, "coverage": cov}, out / "report.json")   # дополнение №23: версия = checksums
+    print(f"Собрано {len(pages)} страниц. Режим: {'ЧЕРНОВИК' if draft else 'публикационный'}.")
+
+if __name__ == "__main__":
+    main()
+
+5. Патчи в старые стадии
+5.1 app6/fixes/regression_fix.py (исправление E1)
+
+Python
+
+# Замена детектора «возврата к прежнему лицу».
+# Было: ratio = |delta_now| / |delta_prev| → взрыв при delta_prev→0.
+ABS_MIN_DELTA = 1.0     # в z-единицах калибровки; ниже — «ничего не происходило»
+MIN_DENOM = 0.5
+REL_REVERSAL = 0.6
+
+def reversal_flag(delta_prev: float, delta_now: float) -> tuple[bool, str]:
+    """
+    Возврат фиксируется только если: (1) было реальное отклонение ≥ ABS_MIN_DELTA,
+    (2) знак сменился, (3) величина возврата ≥ REL_REVERSAL от прежнего отклонения,
+    (4) знаменатель не меньше MIN_DENOM.
+    """
+    if abs(delta_prev) < ABS_MIN_DELTA:
+        return False, "нет исходного отклонения"
+    if delta_prev * delta_now >= 0:
+        return False, "знак не сменился"
+    denom = max(abs(delta_prev), MIN_DENOM)
+    ratio = abs(delta_now) / denom
+    return ratio >= REL_REVERSAL, f"ratio={ratio:.2f}"
+
+5.2 app6/fixes/landmark_weights_check.py (исправление E2)
+
+Python
+
+import math, json
+EXPECTED_N = 91  # ADAPT: из атласа
+
+class BrokenWeights(Exception): pass
+
+def load_landmark_weights(path) -> list[float]:
+    w = json.load(open(path))
+    if len(w) != EXPECTED_N:
+        raise BrokenWeights(f"ожидалось {EXPECTED_N} весов, получено {len(w)}")
+    bad = [i for i, x in enumerate(w) if x is None or (isinstance(x, float) and math.isnan(x)) or x < 0]
+    if bad:
+        raise BrokenWeights(f"пустые/NaN/отрицательные веса в позициях {bad[:10]}… — запуск остановлен, а не «53 точки вместо 91»")
+    s = sum(w)
+    if not (0.5 < s < 2.0 * EXPECTED_N):
+        raise BrokenWeights(f"подозрительная сумма весов {s}")
+    return w
+
+Точка встраивания: в stage2 там, где веса читаются, заменить прямое чтение на load_landmark_weights; в stage2 detector регрессии — на reversal_flag. Если stage2 не даёт geom_p/tex_p per zone, а даёт только z — адаптер вычисляет двусторонний p из нормального приближения (p = erfc(|z|/√2)), это честно при калибровке ≥20 точек.
+6. Тесты на синтетике и критерии приёмки
+
+Python
+
+# tests/test_stage4_synthetic.py
+import random
+from app6.stage4_chrono.contracts import PhotoRecord, PairRecord, ZoneDelta, ZONES, POSE_BINS
+from app6.stage4_chrono.gates import grade_photo, collapse_duplicates, gate_pair
+from app6.stage4_chrono.independence import assign_shoot_events
+from app6.stage4_chrono.epochs import build_epochs, epoch_of
+from app6.stage4_chrono.observations import build_observations
+from app6.stage4_chrono.controls import date_permutation, control_traps
+from app6.stage4_chrono.vocabulary import assert_allowed, ForbiddenVocabulary
+import math, pytest
+
+def _p(z): return math.erfc(abs(z) / math.sqrt(2))
+
+def make_dataset(step_zone=None, step_year=2007, seed=1):
+    rnd = random.Random(seed)
+    photos, pairs = {}, []
+    k = 0
+    for year in range(2003, 2012):
+        for src in ("A", "B"):
+            for pose in ("frontal", "R_mid"):
+                k += 1
+                pid = f"p{k}"
+                photos[pid] = PhotoRecord(pid, f"{year}_05_1{rnd.randint(0,9)}_{src}.jpg", src, pose,
+                    yaw=0.0 if pose == "frontal" else 30.0, pitch=0, roll=0, ipd_px=120, blur=0.1, jpeg_q=90,
+                    visible_zones=list(ZONES), mouth_open=False, checksum=f"sum{k}", provenance="synthetic")
+    grade = {p: grade_photo(r) for p, r in photos.items()}
+    ids = list(photos)
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            a, b = photos[ids[i]], photos[ids[j]]
+            if a.pose_bin != b.pose_bin or a.date >= b.date: continue
+            zd = {}
+            for z in ZONES:
+                base = rnd.gauss(0, 0.5)
+                if step_zone == z and int(a.date[:4]) < step_year <= int(b.date[:4]):
+                    base += 3.0
+                zd[z] = ZoneDelta(base, rnd.gauss(0, 0.5), _p(base), 0.5, 40, "вверх-наружу" if base > 0 else "вниз-внутрь")
+            pairs.append(PairRecord(f"{a.photo_id}_{b.photo_id}", a.photo_id, b.photo_id, a.pose_bin, 1.0, zd))
+    collapse_duplicates(photos, [], [])
+    assign_shoot_events(photos)
+    pairs = [gate_pair(p, photos) for p in pairs]
+    return photos, pairs
+
+def test_stable_series_yields_no_markers():
+    photos, pairs = make_dataset()
+    eps = build_epochs(photos)
+    obs = build_observations(pairs, photos, eps, epoch_of)
+    assert not any(o.status == "stable" for o in obs.values())
+
+def test_step_change_becomes_marker_and_survives_permutation():
+    photos, pairs = make_dataset(step_zone="r_zygoma")
+    eps = build_epochs(photos)
+    obs = build_observations(pairs, photos, eps, epoch_of)
+    obs = date_permutation(pairs, photos, obs, n_rounds=10)
+    hits = [o for o in obs.values() if o.zone == "r_zygoma" and o.channel == "geom"]
+    assert hits and hits[0].status in ("stable", "reinforced") and hits[0].survived_permutation
+
+def test_cross_pose_pairs_are_blocked():
+    photos, pairs = make_dataset()
+    a = next(p for p in photos.values() if p.pose_bin == "frontal")
+    b = next(p for p in photos.values() if p.pose_bin == "R_mid")
+    pr = gate_pair(PairRecord("x", a.photo_id, b.photo_id, "frontal", 30.0, {}), photos)
+    assert pr.gate_status == "pose_fail"
+
+def test_forbidden_vocabulary_blocks_render():
+    with pytest.raises(ForbiddenVocabulary):
+        assert_allowed("Система обнаружила маску на лице", "test")
+
+def test_duplicates_do_not_count_as_independent():
+    photos, pairs = make_dataset()
+    ids = list(photos)[:2]
+    photos[ids[1]].checksum = photos[ids[0]].checksum
+    collapse_duplicates(photos, [], [])
+    assert photos[ids[0]].dup_group == photos[ids[1]].dup_group
+
+Критерии приёмки первой полной выгрузки на реальном датасете:
+
+    Все пять тестов зелёные; веса net_recon.pth на месте; report.json содержит 4 непустые контрольные суммы.
+    Негативный контроль в коридоре 0,45–0,55 — иначе отчёт собран только как черновик (и это нормально для первой итерации).
+    Ловушки-рекропы: ноль нарушений.
+    Ни одной страницы с запрещённым словарём (сборка падает, если есть).
+    Для каждого наблюдения со статусом stable — ≥3 даты, ≥2 ракурса, ≥2 источника, пережило перестановку дат.
+    Повторный прогон на тех же входах даёт побайтово те же report/*.md.
+
+7. Что осталось «проверить на реальных данных», а не чинить вслепую
+
+Пункты из аудита, которые я не подтверждаю и не опровергаю без прогона:
+
+    фактические значения порогов ретуши (RETOUCH_LIMIT) и размытия (MAX_BLUR_SCORE) — калибровать на 20–30 заведомо ретушированных/нерезких фото из архива;
+    согласованность pose_bin из stage1 с политикой 9 ракурсов в atlas/ при yaw около границ бинов (риск «дрожания» бина между соседними кадрами одной сессии);
+    достаточность 20 калиброванных точек как порога для профильных бинов, где видимых точек физически меньше;
+    корректность p-значений stage2 после поправки: если stage2 уже применяет свою поправку, вторая BH по эпохе будет излишне консервативной — тогда адаптер должен брать «сырые» p.
+
+8. Как это читает редакция
+
+Итоговая папка report/ открывается в любом редакторе Markdown и читается сверху вниз: 00_baseline → 10_epoch_E01 → … → 90_route_sheet. Каждая страница эпохи — это готовый черновик раздела расследования: что было, что появилось, насколько верить, чем ещё объясняется, что проверить. Нити 40_obs_* — это карточки, которые можно положить рядом со статьёй как доказательную базу. Файл 91_cannot_say — обязательная врезка «ограничения метода», без которой публиковать нельзя.
+
+Система не пишет текст статьи и не даёт вердиктов. Она даёт скелет, цифры с трассировкой до файлов и список того, что редакции нужно добыть, чтобы слабый сигнал стал устойчивым маркером — или рассыпался.
