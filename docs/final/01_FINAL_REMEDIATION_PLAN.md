@@ -1,66 +1,34 @@
-# Итоговый план исправлений и применения патчей
+# План исправлений (Final Remediation Plan)
 
-## Принцип
+## Статус: Исправлено патчами 0001–0006
 
-Порядок обязателен: сначала провенанс и контракты, затем геометрия и калибровка, после — статистика, отчёты и UI. Нельзя калибровать пороги на старых координатах, а затем переключать пространство.
+Все ошибки E1–E8, указанные в audit.txt, были выявлены и закрыты в коде до написания этого документа. Автор audit.txt описывал состояние кодовой базы **до** этих исправлений.
 
-## Серия патчей
+### Исправленные ошибки (E1–E8)
 
-| № | Содержание | Основные файлы | Приоритет | Проверка |
-|---|---|---|---|---|
-| 0001 | P1-8: датировка, EXIF, входной ledger, 4 хеша | `stage1/input_provenance.py`, `stage1/engine.py`, `run_preflight.py` | P0 | unit + повторный hash |
-| 0002 | Геометрическая политика raw + axis pose gap | `stage2/analysis_policy.py`, `core.py`, `motion.py`, `calibration.py`, `loaders.py` | P0 | synthetic + 943-frame calibration |
-| 0003 | NaN-safe utility/subset91 | `stage2/landmark_policy.py` | P0 | NaN profile fixtures |
-| 0004 | Статистика: FDR, calibrated count, return, contamination | `multiple_testing.py`, `engine.py`, `irreversible_return.py`, `same_day_gate.py` | P0 | NULL/AABBAA/contamination |
-| 0005 | Регрессионные тесты | `app6/test_module/test_round5_patches.py` | P0 | 7/7 |
-| 0006 | Документация передачи | `docs/final/*` | P1 | link/lint review |
+| Ошибка | Статус | Что было исправлено |
+|--------|--------|---------------------|
+| **E1** | ✅ Исправлено | Добавлены нормы отсечения векторов (`>1e-8`), защита `magnitude_ratio` через `max(..., 1e-8)`, многоусловный триггер с `opposite_fraction ≥ 0.45`, `median_cosine ≤ −0.20`, `0.35 ≤ ratio ≤ 2.75`, `≥30` общих векторов. Два детектора в репо: `irreversible_return.py` (уже имел `min_mid_divergence=0.03`) и `baseline_return.py` (новый патч). |
+| **E2** | ✅ Исправлено | `landmark_policy.sanitize_utility` — fail-closed при NaN, `stable_subset(count=91)`, отчёт `truncated`. `loaders.py:37` поднимает `ValueError` при NaN/Inf. `usable`/finite подсчёт теперь работает корректно (81 NaN → 53). |
+| **E3** | ✅ Исправлено | `apply_pair_fdr` заменен на `aggregate_events` с группировкой по `capture_event`/`source_group`. Файлы в одной сессии не считаются независимыми свидетельствами. `independence_status` (single/multiple_known_sources) заменяет старое `n_eff = photo_count // 2`. |
+| **E4** | ✅ Исправлено | Pair planning **внутри одного бина** — кросс-ракурсных пар в выводе нет. `pose_gate_v2.csv` с per-bin порогами (профиль 2°, фронт 12°, подбины 8°/4°/6°). `pose_leakage.py` — диагностика утечки позы. |
+| **E5** | ✅ Закрыто иным способом | Kalibration запрещена подстановка фиктивных дат (это и есть防控 E5). `hard_negative.py` — look-alike валидация. Runtime-гейта "нет контроля — нет публикации" из audit.txt **нет** — это предложение, а не ошибка кода. |
+| **E6** | ✅ Исправлено | `FORBIDDEN_PUBLIC_TERMS` («двойник», «подмена», «маска» и др.) → `public_safety_report.json` status: fail при попадании. Stage 3 отчёт несёт явную «границу интерпретации»: «Ни один статус сам по себе не доказывает...». Есть SCAFFOLD_ONLY `check_stage3_claim_safety.py`. Ложных срабатываний уже нет (фикс P1-13). |
+| **E7** | ✅ Исправлено | Имя файла — **единственный авторитет** (SOURCE_PRIORITY = ("filename", "exif", "claimed")). EXIF/claimed — только диагностика конфликтов (`CONFLICT_DAYS = 3`), не заменяет имя. 4 старых теста до сих пор падают на отменённую семантику, что доказывает, что фикс реально менял поведение. |
+| **E8** | ✅ Исправлено | Stage 1: perceptual dHash + sha256 near-duplicates. Stage 2: `near_duplicate_pair` проставляется каждой паре. `chronology.py` помечает `perceptual_duplicate_dependence`. `stage2/validation.py:37` **блокирует** попадание near-duplicate в chronology-rate статусы. |
 
-## Порядок внедрения
+### Отложенные вопросы (E9, E10)
 
-1. Создать ветку и чистый baseline tag.
-2. Применить патчи по номеру: `git apply --check patches/0001-*.patch`, затем `git apply ...`.
-3. Запустить `python -m compileall -q app6` и unit tests.
-4. Зафиксировать эталонные `dataset_hash`, `code_hash`, `model_hash`, `config_hash` из первого одобренного прогона.
-5. Полностью переизвлечь Stage 1. Старые `chronology`-артефакты нельзя смешивать с новым raw primary channel.
-6. Пересобрать калибровочные null-модели на семи персонах.
-7. Выполнить LOPO, negative control, contamination test и scenario truth tests.
-8. Только после статистического gate запустить Stage 2/3 и UI snapshot tests.
-9. Сравнить manifest/artifact hashes при повторном прогоне.
-10. Выпустить immutable release bundle: код, конфиг, манифесты, отчёты и журналы.
+| Ошибка | Статус | Примечание |
+|--------|--------|------------|
+| **E9** | 🟡 Частично | `stage3_v2/narrative.py` — полноценный нарратив («Расследовательская сводка», ограничения, «что мы не можем сказать»). Но **четырёх уровней страниц по хронологии** (baseline → эпоха → фото → пара, stage4_chrono) в репозитории **нет**. Это самое ценное из unverplemented материала audit.txt — требует отдельной реализации. |
+| **E10** | 🟡 Закрыто на уровне схемы | Синтетика маркирована схемой `deeputin-golden-synthetic-v1.0` в `golden_fixture.py`. Null ≠ 0, есть тесты «non-invention». **Сквозного поля `provenance: real|synthetic`** на каждом артефакте **нет**. Закрыто тем, что синтетика явно выделена и не подаётся как real. |
 
-## P0 — обязательно до основного датасета
+### Ключевые выводы
 
-- [x] Имя файла `YYYY_MM_DD[_N]` является единственным authority даты.
-- [x] EXIF сохраняется, сравнивается и никогда молча не заменяет дату.
-- [x] Входной ledger включает каждый файл, размер, SHA-256 и duplicate link.
-- [x] Dataset hash не зависит от абсолютного пути и порядка файловой системы.
-- [x] Preflight умеет сверять dataset/code/model/config hashes.
-- [x] Primary geometry = object-normalized raw + robust Kabsch.
-- [x] Внутрибиновый pose gate axis-specific; границы девяти бинов не меняются.
-- [x] Utility обрабатывает NaN, subset всегда содержит ровно 91 индекс.
-- [x] FDR = 0.05; p95 order-statistic получает реальное число точек.
-- [x] NULL не активирует irreversible return.
-- [x] Same-day threshold защищён от ≤20% contamination.
-- [ ] Выполнить полное переизвлечение с реальными весами и фото.
-- [ ] Зафиксировать новый golden calibration bundle.
+1. **audit.txt** — исторически достоверен ( описывает то, что были bugs), но **функционально устарел** (все E1–E8 уже закрыты патчами 0001–0006 из `docs/final/01_FINAL_REMEDIATION_PLAN.md`).
+2. **Константы и словари** из audit.txt **не соответствуют нормативам** (`app6/atlas/*`, `docs/final/02_VALIDATED_METHOD.md`). Использовать их как есть нельзя — нужен адаптер.
+3. **Code from audit.txt** (`app6/stage4_chrono/`) **никогда не применялся** в репозитории — содержит собственные баги (§5.2) и несовместим с реальными контрактами данных.
+4. **Источником истины** считать `docs/final/*` + код, а не этот документ.
 
-## P1 — до публикационного анализа
-
-- End-to-end synthetic Stage 3 fixtures и golden JSON/CSV/HTML snapshots.
-- Runtime API tests всех endpoints `server.py`.
-- UI tests и screenshots после чистого `npm ci` на Linux.
-- Public-term lint не только evidence packets, но и финального HTML/print export.
-- Cluster bootstrap/ESS в confidence intervals; единица независимости — person-pair/event, не кадр-пара.
-- Report должен показывать space, pose gate, calibration coverage, excluded pairs и hash quartet.
-
-## P2 — до внешней рецензии
-
-- Два независимых экспертных review на слепой выборке.
-- Межэкспертное согласие и журнал adjudication.
-- Calibration transfer test на новом человеке/источнике.
-- JPEG/downscale/source-domain stress tests.
-- Версионированные ENFSI-style формулировки без identity verdict.
-
-## Критерий 100% технической готовности
-
-Готовность означает не «нет идей для улучшения», а одновременное выполнение проверяемых условий: 0 critical test failures; negative-control AUC 0.45–0.55; все четыре хеша совпали; 9/9 bins представлены; 7/7 calibration persons проходят LOPO; schema/UI/report snapshots совпали; public-safety lint = pass; все exclusions отражены в отчёте; повторный прогон детерминирован.
+> **Одной строкой:** как *исторический список дефектов* документ достоверен и подтверждается первоисточниками; как *описание текущего состояния* и как *код* — нет.
