@@ -15,7 +15,12 @@ from __future__ import annotations
 import json
 import time
 import traceback
-from datetime import UTC, datetime
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+    UTC = timezone.utc
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
