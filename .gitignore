@@ -90,3 +90,4 @@ app6/AUDIT_50_REPORT.md
 # Local heavy working directories (excluded from repo)
 runs/
 patch/
+deeputin/
