@@ -1,0 +1,908 @@
+{
+  "schema": "deeputin-stage2-journalist-draft-v1",
+  "context": {
+    "subject_label": "the subject",
+    "dataset_label": "synthetic fixture, under-powered",
+    "synthetic": true,
+    "synthetic_note": "",
+    "analyst": ""
+  },
+  "manifest": {
+    "schema": "deeputin-stage2-v2.0-rebuild",
+    "config_hash": "e7731a3048502ee48a4a943d971aefb7ec9301726643c7d724057974c063a628",
+    "resume_hash": "ae845b69142a17069c2b83150cac6c3de5bfd4a86e2755b28c8642a3f8183809",
+    "generated_at": "2026-09-08T12:19:57+0000",
+    "elapsed_seconds": 1.142,
+    "stage1": {
+      "root": "/data/fixture_s1",
+      "loaded": 36,
+      "failed": 0,
+      "dated": 36,
+      "distinct_dates": 6,
+      "pose_bins": {
+        "frontal": 12,
+        "left_quarter": 12,
+        "right_quarter": 12
+      },
+      "failure_reasons": {}
+    },
+    "temporal_axis": {
+      "admitted": true,
+      "evidence_class": "primary",
+      "skip_reason": null,
+      "limits": [],
+      "trace": [
+        {
+          "gate": "temporal_axis",
+          "outcome": "pass",
+          "dated": 36,
+          "distinct_dates": 6,
+          "span": "1999-01-11 .. 2022-04-08"
+        }
+      ]
+    },
+    "zone_map": {
+      "source": "measured",
+      "origin": "/vercel/sandbox/data/proj/app6/stage2/mesh_zone_indices.json",
+      "anatomical": true,
+      "zone_count": 6
+    },
+    "pairs": {
+      "planned": 45,
+      "measured": 45,
+      "skipped": 0,
+      "scored": 45,
+      "significant_global": 0,
+      "significant_zone": 0,
+      "significant_any": 0,
+      "by_evidence_class": {
+        "primary": 45
+      },
+      "by_status": {
+        "measured": 18,
+        "within_noise": 27
+      },
+      "skip_reasons": {}
+    },
+    "noise_model": {
+      "policy": "same_day_pairs_as_null_v1",
+      "source": "same-day photo pairs (zero true change by construction)",
+      "quantile": 0.95,
+      "same_day_pairs": 18,
+      "per_pose_bin": {
+        "frontal": {
+          "status": "ok",
+          "n": 6,
+          "median": 0.004801167870837595,
+          "mad_sigma": 8.963589139864296e-05,
+          "p95": 0.005009704493857765
+        },
+        "left_quarter": {
+          "status": "ok",
+          "n": 6,
+          "median": 0.004441499996477049,
+          "mad_sigma": 0.00016452027936275534,
+          "p95": 0.004801457449192292
+        },
+        "right_quarter": {
+          "status": "ok",
+          "n": 6,
+          "median": 0.004274545188010342,
+          "mad_sigma": 0.00015104557784761304,
+          "p95": 0.00450250972426624
+        }
+      },
+      "usable_bins": 3,
+      "status": "ok"
+    },
+    "multiple_testing": {
+      "method": "benjamini_hochberg",
+      "level": 0.05,
+      "n_tests": 27,
+      "n_rejected": 0,
+      "min_q_value": 0.2244723439794814,
+      "status": "ok",
+      "significance_note": "q-values are corrected across all scored pairs in this run; an uncorrected p-value is not a finding"
+    },
+    "zone_noise_model": {
+      "policy": "per_zone_same_day_null_v1",
+      "rationale": "a change confined to one region is averaged away by the global residual, so each zone is scored against its own null",
+      "per_pose_bin": {
+        "frontal": {
+          "brow_ridge_L": {
+            "status": "insufficient_reference",
+            "n": 6,
+            "required": 20,
+            "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+          },
+          "orbit_L": {
+            "status": "insufficient_reference",
+            "n": 6,
+            "required": 20,
+            "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+          }
+        },
+        "left_quarter": {
+          "brow_ridge_L": {
+            "status": "insufficient_reference",
+            "n": 6,
+            "required": 20,
+            "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+          },
+          "orbit_L": {
+            "status": "insufficient_reference",
+            "n": 6,
+            "required": 20,
+            "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+          }
+        },
+        "right_quarter": {
+          "brow_ridge_L": {
+            "status": "insufficient_reference",
+            "n": 6,
+            "required": 20,
+            "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+          },
+          "orbit_L": {
+            "status": "insufficient_reference",
+            "n": 6,
+            "required": 20,
+            "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+          }
+        }
+      },
+      "usable_zone_nulls": 0,
+      "status": "no_reference"
+    },
+    "zone_multiple_testing": {
+      "status": "skipped_no_zone_reference"
+    },
+    "warnings": []
+  },
+  "bottom_line": {
+    "verdict": "no_change_detected",
+    "text": "SYNTHETIC DEMONSTRATION DATA - NOT A FINDING ABOUT ANY REAL PERSON. Across 9 intervals covering 45 scored comparisons, no change exceeded the measurement noise of the method. The honest summary is that nothing was found."
+  },
+  "chapters": [
+    {
+      "period": "1999-01-11 and 2003-06-02",
+      "start": "1999-01-11",
+      "end": "2003-06-02",
+      "days": 1603,
+      "years": 4.39,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "1999-01-11 and 2003-06-02",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 1999-01-11 and 2003-06-02.",
+        "magnitude_ioc": 0.004636,
+        "reasons": [
+          "q = 0.224 after correction, above the 0.05 level",
+          "interval spans 4.4 years"
+        ],
+        "sources": [
+          "adjacent__1999_01_11__frontal__2003_06_02__frontal",
+          "adjacent__1999_01_11__left_quarter__2003_06_02__left_quarter",
+          "adjacent__1999_01_11__right_quarter__2003_06_02__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "adjacent__1999_01_11__frontal__2003_06_02__frontal",
+          "photo_a": "1999_01_11__frontal",
+          "photo_b": "2003_06_02__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00493359,
+          "coherence": 0.0427,
+          "z_score": 1.4774,
+          "q_value": 0.94214425,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__1999_01_11__left_quarter__2003_06_02__left_quarter",
+          "photo_a": "1999_01_11__left_quarter",
+          "photo_b": "2003_06_02__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00446538,
+          "coherence": 0.1034,
+          "z_score": 0.1451,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__1999_01_11__right_quarter__2003_06_02__right_quarter",
+          "photo_a": "1999_01_11__right_quarter",
+          "photo_b": "2003_06_02__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00463628,
+          "coherence": 0.0526,
+          "z_score": 2.3948,
+          "q_value": 0.22447234,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "1999-01-11 and 2008-09-14",
+      "start": "1999-01-11",
+      "end": "2008-09-14",
+      "days": 3534,
+      "years": 9.68,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "1999-01-11 and 2008-09-14",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 1999-01-11 and 2008-09-14.",
+        "magnitude_ioc": 0.004247,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 9.7 years"
+        ],
+        "sources": [
+          "anchor__1999_01_11__frontal__2008_09_14__frontal",
+          "anchor__1999_01_11__left_quarter__2008_09_14__left_quarter",
+          "anchor__1999_01_11__right_quarter__2008_09_14__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "anchor__1999_01_11__frontal__2008_09_14__frontal",
+          "photo_a": "1999_01_11__frontal",
+          "photo_b": "2008_09_14__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00457972,
+          "coherence": 0.0961,
+          "z_score": -2.4706,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__left_quarter__2008_09_14__left_quarter",
+          "photo_a": "1999_01_11__left_quarter",
+          "photo_b": "2008_09_14__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00424709,
+          "coherence": 0.0899,
+          "z_score": -1.1817,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__right_quarter__2008_09_14__right_quarter",
+          "photo_a": "1999_01_11__right_quarter",
+          "photo_b": "2008_09_14__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.003797,
+          "coherence": 0.0234,
+          "z_score": -3.1616,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "1999-01-11 and 2012-03-05",
+      "start": "1999-01-11",
+      "end": "2012-03-05",
+      "days": 4802,
+      "years": 13.15,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "1999-01-11 and 2012-03-05",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 1999-01-11 and 2012-03-05.",
+        "magnitude_ioc": 0.004432,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 13.1 years"
+        ],
+        "sources": [
+          "anchor__1999_01_11__frontal__2012_03_05__frontal",
+          "anchor__1999_01_11__left_quarter__2012_03_05__left_quarter",
+          "anchor__1999_01_11__right_quarter__2012_03_05__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "anchor__1999_01_11__frontal__2012_03_05__frontal",
+          "photo_a": "1999_01_11__frontal",
+          "photo_b": "2012_03_05__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.0044388,
+          "coherence": 0.0643,
+          "z_score": -4.0426,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__left_quarter__2012_03_05__left_quarter",
+          "photo_a": "1999_01_11__left_quarter",
+          "photo_b": "2012_03_05__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00443226,
+          "coherence": 0.0858,
+          "z_score": -0.0562,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__right_quarter__2012_03_05__right_quarter",
+          "photo_a": "1999_01_11__right_quarter",
+          "photo_b": "2012_03_05__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00384828,
+          "coherence": 0.0627,
+          "z_score": -2.8221,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "1999-01-11 and 2017-11-21",
+      "start": "1999-01-11",
+      "end": "2017-11-21",
+      "days": 6889,
+      "years": 18.86,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "1999-01-11 and 2017-11-21",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 1999-01-11 and 2017-11-21.",
+        "magnitude_ioc": 0.004081,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 18.9 years"
+        ],
+        "sources": [
+          "anchor__1999_01_11__frontal__2017_11_21__frontal",
+          "anchor__1999_01_11__left_quarter__2017_11_21__left_quarter",
+          "anchor__1999_01_11__right_quarter__2017_11_21__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "anchor__1999_01_11__frontal__2017_11_21__frontal",
+          "photo_a": "1999_01_11__frontal",
+          "photo_b": "2017_11_21__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00408142,
+          "coherence": 0.0606,
+          "z_score": -8.0296,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__left_quarter__2017_11_21__left_quarter",
+          "photo_a": "1999_01_11__left_quarter",
+          "photo_b": "2017_11_21__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00397873,
+          "coherence": 0.0306,
+          "z_score": -2.8128,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__right_quarter__2017_11_21__right_quarter",
+          "photo_a": "1999_01_11__right_quarter",
+          "photo_b": "2017_11_21__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00419894,
+          "coherence": 0.0183,
+          "z_score": -0.5005,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "1999-01-11 and 2022-04-08",
+      "start": "1999-01-11",
+      "end": "2022-04-08",
+      "days": 8488,
+      "years": 23.24,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "1999-01-11 and 2022-04-08",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 1999-01-11 and 2022-04-08.",
+        "magnitude_ioc": 0.004459,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 23.2 years"
+        ],
+        "sources": [
+          "anchor__1999_01_11__frontal__2022_04_08__frontal",
+          "anchor__1999_01_11__left_quarter__2022_04_08__left_quarter",
+          "anchor__1999_01_11__right_quarter__2022_04_08__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "anchor__1999_01_11__frontal__2022_04_08__frontal",
+          "photo_a": "1999_01_11__frontal",
+          "photo_b": "2022_04_08__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.0048317,
+          "coherence": 0.0743,
+          "z_score": 0.3406,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__left_quarter__2022_04_08__left_quarter",
+          "photo_a": "1999_01_11__left_quarter",
+          "photo_b": "2022_04_08__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00445865,
+          "coherence": 0.0342,
+          "z_score": 0.1043,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "anchor__1999_01_11__right_quarter__2022_04_08__right_quarter",
+          "photo_a": "1999_01_11__right_quarter",
+          "photo_b": "2022_04_08__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.0042516,
+          "coherence": 0.0892,
+          "z_score": -0.1519,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "2003-06-02 and 2008-09-14",
+      "start": "2003-06-02",
+      "end": "2008-09-14",
+      "days": 1931,
+      "years": 5.29,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "2003-06-02 and 2008-09-14",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 2003-06-02 and 2008-09-14.",
+        "magnitude_ioc": 0.004207,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 5.3 years"
+        ],
+        "sources": [
+          "adjacent__2003_06_02__frontal__2008_09_14__frontal",
+          "adjacent__2003_06_02__left_quarter__2008_09_14__left_quarter",
+          "adjacent__2003_06_02__right_quarter__2008_09_14__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "adjacent__2003_06_02__frontal__2008_09_14__frontal",
+          "photo_a": "2003_06_02__frontal",
+          "photo_b": "2008_09_14__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00470229,
+          "coherence": 0.0485,
+          "z_score": -1.1031,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2003_06_02__left_quarter__2008_09_14__left_quarter",
+          "photo_a": "2003_06_02__left_quarter",
+          "photo_b": "2008_09_14__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00420653,
+          "coherence": 0.0858,
+          "z_score": -1.4282,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2003_06_02__right_quarter__2008_09_14__right_quarter",
+          "photo_a": "2003_06_02__right_quarter",
+          "photo_b": "2008_09_14__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00404356,
+          "coherence": 0.0644,
+          "z_score": -1.5292,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "2008-09-14 and 2012-03-05",
+      "start": "2008-09-14",
+      "end": "2012-03-05",
+      "days": 1268,
+      "years": 3.47,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "2008-09-14 and 2012-03-05",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 2008-09-14 and 2012-03-05.",
+        "magnitude_ioc": 0.004395,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 3.5 years"
+        ],
+        "sources": [
+          "adjacent__2008_09_14__frontal__2012_03_05__frontal",
+          "adjacent__2008_09_14__left_quarter__2012_03_05__left_quarter",
+          "adjacent__2008_09_14__right_quarter__2012_03_05__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "adjacent__2008_09_14__frontal__2012_03_05__frontal",
+          "photo_a": "2008_09_14__frontal",
+          "photo_b": "2012_03_05__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00475505,
+          "coherence": 0.061,
+          "z_score": -0.5145,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2008_09_14__left_quarter__2012_03_05__left_quarter",
+          "photo_a": "2008_09_14__left_quarter",
+          "photo_b": "2012_03_05__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00439537,
+          "coherence": 0.092,
+          "z_score": -0.2804,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2008_09_14__right_quarter__2012_03_05__right_quarter",
+          "photo_a": "2008_09_14__right_quarter",
+          "photo_b": "2012_03_05__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00386765,
+          "coherence": 0.0769,
+          "z_score": -2.6939,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "2012-03-05 and 2017-11-21",
+      "start": "2012-03-05",
+      "end": "2017-11-21",
+      "days": 2087,
+      "years": 5.71,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "2012-03-05 and 2017-11-21",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 2012-03-05 and 2017-11-21.",
+        "magnitude_ioc": 0.004362,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 5.7 years"
+        ],
+        "sources": [
+          "adjacent__2012_03_05__frontal__2017_11_21__frontal",
+          "adjacent__2012_03_05__left_quarter__2017_11_21__left_quarter",
+          "adjacent__2012_03_05__right_quarter__2017_11_21__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "adjacent__2012_03_05__frontal__2017_11_21__frontal",
+          "photo_a": "2012_03_05__frontal",
+          "photo_b": "2017_11_21__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00436227,
+          "coherence": 0.0538,
+          "z_score": -4.8965,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2012_03_05__left_quarter__2017_11_21__left_quarter",
+          "photo_a": "2012_03_05__left_quarter",
+          "photo_b": "2017_11_21__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00451209,
+          "coherence": 0.0258,
+          "z_score": 0.4291,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2012_03_05__right_quarter__2017_11_21__right_quarter",
+          "photo_a": "2012_03_05__right_quarter",
+          "photo_b": "2017_11_21__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00419024,
+          "coherence": 0.0319,
+          "z_score": -0.5581,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    },
+    {
+      "period": "2017-11-21 and 2022-04-08",
+      "start": "2017-11-21",
+      "end": "2022-04-08",
+      "days": 1599,
+      "years": 4.38,
+      "pair_count": 3,
+      "headline": {
+        "subject": "face",
+        "period": "2017-11-21 and 2022-04-08",
+        "strength": "none",
+        "reportable": true,
+        "usage": "reportable as a negative result",
+        "sentence": "The face shows no measurable change between 2017-11-21 and 2022-04-08.",
+        "magnitude_ioc": 0.004429,
+        "reasons": [
+          "q = 1.000 after correction, above the 0.05 level",
+          "interval spans 4.4 years"
+        ],
+        "sources": [
+          "adjacent__2017_11_21__frontal__2022_04_08__frontal",
+          "adjacent__2017_11_21__left_quarter__2022_04_08__left_quarter",
+          "adjacent__2017_11_21__right_quarter__2022_04_08__right_quarter"
+        ]
+      },
+      "zones": [],
+      "pairs": [
+        {
+          "pair_id": "adjacent__2017_11_21__frontal__2022_04_08__frontal",
+          "photo_a": "2017_11_21__frontal",
+          "photo_b": "2022_04_08__frontal",
+          "pose_bin": "frontal",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00462463,
+          "coherence": 0.0909,
+          "z_score": -1.9695,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2017_11_21__left_quarter__2022_04_08__left_quarter",
+          "photo_a": "2017_11_21__left_quarter",
+          "photo_b": "2022_04_08__left_quarter",
+          "pose_bin": "left_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00442941,
+          "coherence": 0.0937,
+          "z_score": -0.0735,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        },
+        {
+          "pair_id": "adjacent__2017_11_21__right_quarter__2022_04_08__right_quarter",
+          "photo_a": "2017_11_21__right_quarter",
+          "photo_b": "2022_04_08__right_quarter",
+          "pose_bin": "right_quarter",
+          "evidence_class": "primary",
+          "limits": [],
+          "rmse_ioc": 0.00426203,
+          "coherence": 0.0303,
+          "z_score": -0.0828,
+          "q_value": 1.0,
+          "significant": false,
+          "status": "within_noise"
+        }
+      ]
+    }
+  ],
+  "tally": {
+    "periods": 9,
+    "reportable": 0,
+    "localized_or_weak": 0,
+    "no_change": 9,
+    "unusable": 0
+  },
+  "counter_explanations": [
+    {
+      "factor": "Head pose",
+      "why_it_matters": "Two photos taken at different angles produce a residual that looks exactly like a shape change.",
+      "control": "pose_gate",
+      "how_handled": "Pairs outside the yaw/pitch/roll budget are rejected before scoring, not corrected afterwards.",
+      "controlled": true
+    },
+    {
+      "factor": "Expression",
+      "why_it_matters": "A smile moves the mid-face by more than a decade of ageing does.",
+      "control": "expression_gate",
+      "how_handled": "Expression is classified from landmark geometry and mismatched pairs are excluded.",
+      "controlled": true
+    },
+    {
+      "factor": "Image quality",
+      "why_it_matters": "A low-resolution or soft photo yields noisier landmarks, inflating the residual.",
+      "control": "quality_gate",
+      "how_handled": "Low-quality pairs keep their measurement but their significance threshold is inflated.",
+      "controlled": true
+    },
+    {
+      "factor": "Reconstruction error",
+      "why_it_matters": "The 3D model itself is an estimate and differs slightly every time.",
+      "control": "noise_floor",
+      "how_handled": "The null distribution is built from same-day pairs, which contain only this error and no real change.",
+      "controlled": true
+    },
+    {
+      "factor": "Multiple comparisons",
+      "why_it_matters": "Testing thousands of points and pairs guarantees some will look significant by chance.",
+      "control": "fdr",
+      "how_handled": "All p-values are corrected across the run; only corrected q-values are reported.",
+      "controlled": true
+    },
+    {
+      "factor": "Dating",
+      "why_it_matters": "A change attributed to the wrong year is not evidence of anything.",
+      "control": "provenance_gate",
+      "how_handled": "Photos with conflicting date sources are flagged and downgraded.",
+      "controlled": true
+    },
+    {
+      "factor": "Ageing",
+      "why_it_matters": "Faces change over time on their own.",
+      "control": "not_controlled",
+      "how_handled": "NOT CONTROLLED BY THIS PIPELINE. Ageing is a real and expected cause of geometric change. Nothing here distinguishes it from any other cause, and no result should be read as excluding it.",
+      "controlled": false
+    },
+    {
+      "factor": "Weight and health",
+      "why_it_matters": "Weight change, illness, and medication visibly alter facial soft tissue.",
+      "control": "not_controlled",
+      "how_handled": "NOT CONTROLLED BY THIS PIPELINE. These are ordinary explanations for soft-tissue change and remain fully available for any finding.",
+      "controlled": false
+    }
+  ],
+  "limitations": [
+    "This draft was generated from synthetic data produced by the project's own fixture generator. It demonstrates the report format. It is not evidence about any person.",
+    "The noise floor comes from 18 same-day photo pairs. Same-day pairs contain no real change by construction, so they measure the method's own error. If the photo set has few same-day pairs, this floor is poorly estimated and every significance claim inherits that weakness.",
+    "Photographs are compressed, retouched, and reproduced at different resolutions. This pipeline measures what is in the file it was given, and cannot distinguish a change in a face from a change in how that face was photographed or processed.",
+    "No zone-level null could be built, so no localised change was testable. Since the whole-face residual averages a local change away, this run could not have detected a regional change even if one were present."
+  ],
+  "cannot_conclude": [
+    "That two photographs show different people. That requires a validated discrimination threshold measured on a reference population with known ground truth. No such threshold exists in this pipeline, and a large residual is not a substitute for one.",
+    "That any change was caused by surgery, illness, or any specific intervention. The method measures geometry, not causes.",
+    "That an absence of detected change means no change occurred. It means no change was detected above this method's noise, with these photos.",
+    "Anything at all about a photograph that was excluded by the gates. An excluded photo was not measured and carries no information.",
+    "Which part of the face changed. Tested on synthetic data with a change injected at a known location, this pipeline dated the change correctly but named an adjoining zone rather than the one containing it. Alignment is global, so a local displacement leaks residual into neighbouring zones. Zone labels here indicate roughly where to look, never where a change is.",
+    "Anything from a run whose noise floor rests on few same-day pairs. On the same signal, this code produced a confident false positive at two photos per day and a correct result at eight. A small q-value from an under-powered null is not weak evidence, it is an artefact."
+  ],
+  "method_plain": [
+    {
+      "step": "Reconstruct",
+      "text": "Each photograph is turned into a 3D model of the face. This is an estimate, and it differs slightly every time - which is why the next steps exist."
+    },
+    {
+      "step": "Group by head angle",
+      "text": "Photos are sorted by which way the head is turned. Comparing a face turned 30 degrees to one facing forward produces a difference that looks exactly like a change in the face itself, so only similar angles are compared."
+    },
+    {
+      "step": "Align",
+      "text": "Two faces are rotated into a common position. The alignment deliberately ignores the worst-matching points, so that one changed region cannot drag the whole fit and hide itself. Size is never adjusted, because a change in size is one of the things being measured."
+    },
+    {
+      "step": "Measure the noise floor",
+      "text": "Photos taken on the same day contain no real change, so whatever difference they show is the method's own error. That floor was built from 18 same-day pairs across 3 head-angle group(s). Anything smaller than it is not evidence of anything."
+    },
+    {
+      "step": "Compare and correct",
+      "text": "Each cross-date pair is compared against that floor. Because many comparisons are run at once, the results are corrected for multiple testing: without that correction, testing thousands of points guarantees false hits."
+    }
+  ]
+}

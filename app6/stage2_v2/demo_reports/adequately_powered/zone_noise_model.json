@@ -1,0 +1,74 @@
+{
+  "policy": "per_zone_same_day_null_v1",
+  "rationale": "a change confined to one region is averaged away by the global residual, so each zone is scored against its own null",
+  "per_pose_bin": {
+    "frontal": {
+      "brow_ridge_L": {
+        "status": "ok",
+        "n": 165,
+        "median": 0.00372309,
+        "mad_sigma": 0.0003064682460000002,
+        "sigma_used": 0.0003325875067199998,
+        "sigma_percentile": 84.0,
+        "sigma_to_median_ratio": 0.08231556207343906,
+        "p95": 0.0041557239999999995
+      },
+      "orbit_L": {
+        "status": "ok",
+        "n": 165,
+        "median": 0.00369218,
+        "mad_sigma": 0.0002712564959999997,
+        "sigma_used": 0.00031165734600000026,
+        "sigma_percentile": 84.0,
+        "sigma_to_median_ratio": 0.07346784176286088,
+        "p95": 0.00415951
+      }
+    },
+    "left_quarter": {
+      "brow_ridge_L": {
+        "status": "ok",
+        "n": 166,
+        "median": 0.00365124,
+        "mad_sigma": 0.00027940338299999983,
+        "sigma_used": 0.0003025263091199999,
+        "sigma_percentile": 84.0,
+        "sigma_to_median_ratio": 0.07652287524238337,
+        "p95": 0.004073195
+      },
+      "orbit_L": {
+        "status": "ok",
+        "n": 166,
+        "median": 0.003561485,
+        "mad_sigma": 0.000351428091,
+        "sigma_used": 0.0003783150420000001,
+        "sigma_percentile": 84.0,
+        "sigma_to_median_ratio": 0.09867459528820141,
+        "p95": 0.0040775725
+      }
+    },
+    "right_quarter": {
+      "brow_ridge_L": {
+        "status": "ok",
+        "n": 161,
+        "median": 0.00354909,
+        "mad_sigma": 0.0002452665179999997,
+        "sigma_used": 0.00026601283631999995,
+        "sigma_percentile": 84.0,
+        "sigma_to_median_ratio": 0.06910687471999857,
+        "p95": 0.0039979
+      },
+      "orbit_L": {
+        "status": "ok",
+        "n": 161,
+        "median": 0.00358022,
+        "mad_sigma": 0.000337573194,
+        "sigma_used": 0.0003627625680000002,
+        "sigma_percentile": 84.0,
+        "sigma_to_median_ratio": 0.09428839400930669,
+        "p95": 0.00409968
+      }
+    }
+  },
+  "usable_zone_nulls": 6,
+  "status": "ok"
+}

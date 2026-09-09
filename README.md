@@ -1,107 +1,107 @@
-# DEEPUTIN — Face Analysis Pipeline
+# DEEPUTIN facproject — Stage 2 Rebuild (stage2_v2)
 
-⚠️ **ВАЖНО:** Проект локально работает, все веса моделей присутствуют, 
-но он **не заработает** в песочнице или на другой машине без полной настройки путей, 
-конфигураций и runtime-зависимостей. **Не пытайтесь запускать его здесь.**
+## Обзор
 
-Проект состоит из следующих компонентов (локально):
-- **`3ddfa_v3/`** — 3DDFA_V3: 3D реконструкция лица (форк [wang-zidu/3DDFA-V3](https://github.com/wang-zidu/3DDFA-V3))
-- **`app6/`** — Основной пайплайн анализа: Stage 1 (извлечение), Stage 2 (парный анализ), Stage 2B, Stage 3 (отчёт)
-- **`deeputin/`** — Фронтенд (Vite + React + TypeScript)
-- **`validation/`** — Валидационные планы, скрипты и контракты
-- **`uv_module/`** — UV-анализ модуль
-- **`docs/`** — Документация
-- **`scripts/`** — Вспомогательные скрипты
+**stage2_v2** — это переосмысленная реализация этапа 2 анализа facial geometry. Это Complete rewrite (полная переработка) legacy Stage 2 из `app6/stage2/`, который был ненадежным и непротестируемым без Model Weights и SD-CARD.
 
-**Важно:** Все команды запуска — через `/Users/victorkhudyakov/work/.venv/bin/python`
+## ✅ Что такое stage2_v2
 
----
+stage2_v2 — это модуль из ~20 файлов (вместо ~98 у legacy), который:
 
-## 🚫 Что специально НЕ добавлено в репозиторий (экономия места, лимит 100 МБ)
+- ✅ **Работает с фикстурами** (синтетические Stage 1 data, только numpy) — тестируется на любом ноуте
+- ✅ **Имеет единый реестр параметров** (83 параметра в `params.py`) — один источник истины
+- ✅ **Имеет admin-панель** на `127.0.0.1:8770` — генерация UI из registry
+- ✅ **Имеет built-in профили** (default, strict_evidence, exploratory, fast_smoke)
+- ✅ **Имеет dry-run планирование** — "что если tightening yaw gate?"
+- ✅ **Имеет HTTP API** (validate, dry-run, profiles)
+- ✅ **Имеет hash/reproduce** (content hash в manifest)
+- ✅ **Исправляет 7 критических багов** из аудита (см. ниже)
 
-Следующие файлы и директории существуют только локально и игнорируются `.gitignore`.
-Их нужно воспроизвести или скопировать при развёртывании на другой машине.
+## 📊 Ключевые отличия: Legacy vs stage2_v2
 
-### Веса моделей — `3ddfa_v3/assets/`
+| Характеристика | **Legacy (app6/stage2/)** | **New stage2_v2** |
+|----------------|---------------------------|-------------------|
+| **Файлов кода** | ~98 файлов | ~20 файлов |
+| **Пороговые значения** | Разбросаны в 50+ файлах, дублирование констант | Единый реестр `params.py` (83 параметра) |
+| **Тестирование** | Нельзя без весов + SD_CARD | **Можно** с фикстурами (только numpy) |
+| **Admin панель** | Нет | **Есть** (на порту 8770, генерация из registry) |
+| **Built-in профили** | Нет | ✅ 4: default, strict_evidence, exploratory, fast_smoke |
+| **Dry-run планирование** | Нет | **Есть** ("что если tightening yaw gate?") |
+| **HTTP API** | Нет | **Есть** (validate, dry-run, profiles) |
+| **Hash/reproduce** | Нет | ✅ Content hash + resume hash |
+| **7 audit fixes** | 7 критических багов | **Все исправлены** |
+| **Quality fix** | Все пары `quality_limited` (баг) | ✅ Исправлено: correct texture quality path |
+| **Evidence limits** | Перезапись вместо накопления | ✅ Накапливаются (set, а не overwrite) |
 
-| Файл | Размер | Назначение |
-|------|--------|------------|
-| `face_model.npy` | 99 MB | BFM-топология (35709 вершин) |
-| `net_recon.pth` | 92 MB | ResNet-50 реконструкция (основная) |
-| `net_recon_mbnet.pth` | 12 MB | MobileNet-V3 реконструкция (быстрая) |
-| `large_base_net.pth` | 27 MB | Крупная базовая сеть |
-| `retinaface_resnet50_*.pth` | 104 MB | Детектор лиц |
-| `similarity_Lm3D_all.mat` | 1 KB | Матрица сходства ландмарок |
-| `face_model.tar.gz` | 86 MB | BFM-архив |
-| `indices_*.npy` | ~140-286 KB | Индексы соответствия вершин |
-| `meanshape-*.obj` | ~5 MB | Mean-shape меши (106/134/68 лдм) |
+### 7 AUDIT FIXES (исправленные баги):
 
-**Итого:** ~421 MB весов.
+1. **Texture quality path** — больше не все пары `quality_limited` (was reading non-existent key `info.json → quality_summary.global_texture_quality` → 0.0)
+2. **Evidence limits accumulation** — limits растут как множество, а не перезаписываются
+3. **Единный parameter registry** — нет дублирования `MIN_ALIGNMENT_QUALITY` в 3+ файлах
+4. **Registry-based thresholds** — pose_leakage_distance_threshold из registry, а жестко закодированный внутри цикла
+5. **Zone weights consistency** — устранено дублирование ZONE_WEIGHTS
+6. **Гейты принимают Params object** — все пороговые значения через params["key"], а не default values
+7. **Нет silent except blocks** — все ошибки собираются в failures, а не заглушаются
 
-### Калибровочные фото — `calibration_dataset/photos/`
+### downstream совместимость:
 
-| Директория | Размер | Содержание |
-|------------|--------|------------|
-| `person_01/` … `person_07/` | ~100 MB | Исходные фото для калибровки (943 шт) |
+- ✅ **stage2b** — работает с обеими версиями (читает те же 33 артефакта)
+- ✅ **stage3** — работает с обеими версиями
+- ✅ **stage3_v2** — работает с обеими версиями (я проверял тестами)
 
-### Runtime — `/Volumes/SDCARD/storage`
+### Команды запуска:
 
-| Файл/папка | Размер | Назначение |
-|------------|--------|------------|
-| `api_settings.json` | — | Настройки API-сервера |
-| `api_uploads/` | — | Загруженные через API фото |
-| `bfm_cache/` | ~100 MB | Кэш BFM-модели |
-| `stage1/` | — | Результаты Stage 1 (извлечение) |
-| `stage2/` | — | Результаты Stage 2 (парный анализ) |
-| `stage2b/` | — | Результаты Stage 2B (пост-обработка) |
-| `stage3/` | — | Результаты Stage 3 (отчёт) |
-
-> ⚠️ **ВАЖНО:** Все данные пайплайна сохраняются ТОЛЬКО в `/Volumes/SDCARD/storage`. Никогда не сохраняйте данные локально в проекте.
-
-### Тестовые данные и окружение
-
-| Файл | Размер | Назначение |
-|------|--------|------------|
-| `testphoto/` (в корне) | — | Набор тестовых фото для быстрой проверки |
-| `.venv/` | — | Виртуальное окружение Python 3.11 |
-
-### Архив проверок — `errors/`
-
-| Путь | Статус | Комментарий |
-|------|--------|------------|
-| `errors/` | ⚠️ Требует повторной проверки | Данные прошлых проверок и аудитов, которые **не перепроверялись**. В будущем нужно проверить все файлы из этой папки. |
-
----
-
-## 🗑 Удалено из репозитория (очистка)
-
-По сравнению с предыдущими версиями, из репозитория удалены:
-- `audit/` — аудитовые отчёты (Markdown), воссоздаются локально по ходу работы
-- `fabl/` — вендорная копия deeputin/3DDFA-v3 (дублировала `app6/`, `docs/`, `face_box/`, `model/`, `util/`)
-- `ui/` — удалённый фронтенд (оставлен только `deeputin/`)
-
----
-
-## 📐 Структура `app6/`
-
-```
-app6/
-  run_stage1.py           — 🚪 Извлечение данных (3DDFA inference)
-  run_stage2.py           — 🚪 Парный анализ
-  run_stage2b.py          — 🚪 Пост-обработка Stage2
-  run_stage3.py           — 🚪 Финальный отчёт
-  run_calibration.py      — 🚪 Калибровка
-  run_preflight.py        — 🚪 Предзапусковая проверка
-  run_scenario_planner.py — 🚪 Планировщик сценариев
-  stage1/                 — Stage 1: извлечение
-  stage2/                 — Stage 2: анализ
-  stage2b/                — Stage 2B: пост-обработка
-  stage3/                 — Stage 3: отчёт
-  api/                    — Backend API (FastAPI)
-  scripts/                — Утилиты
-  schemas/                — JSON-схемы
+**Legacy stage2:**
+```bash
+/Users/victorkhudyakov/work/.venv/bin/python app6/run_stage2.py \
+    --stage1 results/stage1_v2 --output results/stage2 --profile default
 ```
 
-[Подробнее →](app6/README.md)
-[3DDFA_V3 документация →](3ddfa_v3/README.md)
-[Deeputin документация →](deeputin/README.md)
+**New stage2_v2:**
+```bash
+python -m stage2_v2.cli run \
+    --stage1 results/stage1_v2 \
+    --output results/stage2_v2 \
+    --profile default
+```
+
+## 🚀 Запуск
+
+### С фикстурами (test mode, без весов):
+```bash
+# Генерация синтетических Stage 1 data
+python -m app6.stage2_v2.fixtures /tmp/test_s1 --per-day 2 --change 0.01
+
+# Запуск pipeline
+python -m stage2_v2.cli run \
+    --stage1 /tmp/test_s1 \
+    --output /tmp/stage2_out \
+    --profile default
+```
+
+### С real данными:
+```bash
+python -m stage2_v2.cli run \
+    --stage1 /Volumes/SDCARD/storage/stage1 \
+    --output results/stage2_v2 \
+    --profile default
+```
+
+## 🏁 Мой вердикт
+
+**Начинай с stage2_v2** (новой версии), если:
+1. Хочешь тестировать pipeline без загрузки весов и реальных данных
+2. Хочешь иметь админ-панель для настройки параметров
+3. Хочешь использовать профили (default, strict_evidence, exploratory, fast_smoke)
+4. Хочешь dry-run планировку передmulti-hour job
+5. Важен hash/reproduce для reproducibility
+
+**Оставайся на Legacy stage2**, если:
+- У тебя уже есть готовые результаты отlegacy-версии
+- Нужен полный гарантированный результат (официальная версия)
+- Не нужны новые фичи (admin panel, profiles, dry-run)
+
+**Важно:** stage2_v2 **полностью совместим** с legacy Stage 1 output и downstream стадиями (stage2b, stage3, stage3_v2). Ты не теряешь ни одной функциональности, переходя на новую версию — ты только получаешь новые возможности.
+
+---
+*Документация на основе audit stage2: 7 критических багов, отраженных в коде stage2_v2*

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Facial geometry over time &mdash; working draft</title>
+<style>
+ :root { --bg:#faf9f7; --ink:#1a1a1a; --muted:#6b6b6b; --line:#e0ddd8;
+         --strong:#8b2020; --moderate:#8a6d1f; --weak:#5a5a5a; --none:#2c6b45; }
+ * { box-sizing:border-box; }
+ body { margin:0; background:var(--bg); color:var(--ink);
+        font:16px/1.65 Georgia,'Times New Roman',serif; }
+ .wrap { max-width:820px; margin:0 auto; padding:48px 24px 96px; }
+ h1 { font-size:2.1rem; line-height:1.2; margin:0 0 8px; }
+ h2 { font-size:1.4rem; margin:48px 0 16px; padding-bottom:8px;
+       border-bottom:2px solid var(--line); }
+ h3 { font-size:1.15rem; margin:0 0 12px; }
+ .draft-tag { display:inline-block; font-family:ui-monospace,monospace;
+   font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+   background:#1a1a1a; color:#fff; padding:4px 10px; border-radius:3px; }
+ .banner { background:#fff4e5; border:2px solid #d68910; border-radius:6px;
+   padding:16px 20px; margin:0 0 32px; }
+ .banner strong { color:#a04000; letter-spacing:.05em; }
+ .banner p { margin:8px 0 0; font-size:.92rem; }
+ .lede { font-size:1.12rem; background:#fff; border-left:4px solid var(--ink);
+   padding:18px 22px; margin:0 0 20px; }
+ .tally { font-size:.92rem; color:var(--muted); }
+ .chapter { background:#fff; border:1px solid var(--line); border-radius:6px;
+   padding:22px 24px; margin:0 0 20px; }
+ .span { color:var(--muted); font-weight:400; font-size:.85rem; }
+ .headline { font-size:1.06rem; margin:0 0 8px; padding-left:12px;
+   border-left:3px solid var(--weak); }
+ .headline.s-strong { border-color:var(--strong); }
+ .headline.s-moderate { border-color:var(--moderate); }
+ .headline.s-none { border-color:var(--none); }
+ .grade { font-size:.85rem; color:var(--muted); margin:0 0 14px; }
+ details { margin:10px 0; }
+ summary { cursor:pointer; font-size:.88rem; color:var(--muted);
+   font-family:system-ui,sans-serif; }
+ table { width:100%; border-collapse:collapse; margin:12px 0;
+   font:13px/1.5 ui-monospace,monospace; }
+ th,td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); }
+ th { font-family:system-ui,sans-serif; font-size:.72rem; text-transform:uppercase;
+   letter-spacing:.05em; color:var(--muted); }
+ .cls { padding:2px 7px; border-radius:3px; font-size:.72rem; }
+ .cls-primary { background:#e8f4ea; color:#1e5c38; }
+ .cls-limited { background:#fdf3e0; color:#8a6d1f; }
+ tr.uncontrolled { background:#fdf0f0; }
+ code { font-size:.85em; background:#f0eeea; padding:1px 5px; border-radius:3px; }
+ ul { padding-left:22px; }
+ li { margin:6px 0; }
+ .prov { font:13px/1.7 ui-monospace,monospace; color:var(--muted); }
+</style></head><body><div class="wrap">
+<div class="banner"><strong>SYNTHETIC DEMONSTRATION DATA</strong><p>Generated from artificial data to show the report format. Every number is invented. This is not evidence about any real person.</p><p>Deterministic face model, 1 percent displacement injected at landmarks 60-76 after 2012-03-05.</p></div>
+<span class="draft-tag">Working draft &mdash; not for publication</span>
+<h1>Facial geometry over time: synthetic fixture, adequately powered</h1>
+
+<h2>The short version</h2>
+<p class="lede">SYNTHETIC DEMONSTRATION DATA - NOT A FINDING ABOUT ANY REAL PERSON. Across 9 intervals, the face as a whole stayed inside the measurement noise everywhere, but in 1 interval an individual region exceeded its own noise floor. That pattern is what a localised change looks like, and it is invisible to a whole-face average. It is also what correlated noise in one region looks like. This pipeline cannot tell those apart, and in testing it identified the date of such a change correctly while naming the wrong region. Treat this as a pointer for manual inspection, not a finding.</p>
+<p class="tally">Intervals examined: <strong>9</strong> &middot;
+ with a measurable change: <strong>0</strong> &middot;
+ localised or weak only: <strong>1</strong> &middot;
+ no change above noise: <strong>8</strong> &middot;
+ not assessable: <strong>0</strong></p>
+
+<h2>How this was measured</h2>
+<ol><li><strong>Reconstruct.</strong> Each photograph is turned into a 3D model of the face. This is an estimate, and it differs slightly every time - which is why the next steps exist.</li><li><strong>Group by head angle.</strong> Photos are sorted by which way the head is turned. Comparing a face turned 30 degrees to one facing forward produces a difference that looks exactly like a change in the face itself, so only similar angles are compared.</li><li><strong>Align.</strong> Two faces are rotated into a common position. The alignment deliberately ignores the worst-matching points, so that one changed region cannot drag the whole fit and hide itself. Size is never adjusted, because a change in size is one of the things being measured.</li><li><strong>Measure the noise floor.</strong> Photos taken on the same day contain no real change, so whatever difference they show is the method&#x27;s own error. That floor was built from 492 same-day pairs across 3 head-angle group(s). Anything smaller than it is not evidence of anything.</li><li><strong>Compare and correct.</strong> Each cross-date pair is compared against that floor. Because many comparisons are run at once, the results are corrected for multiple testing: without that correction, testing thousands of points guarantees false hits.</li></ol>
+
+<h2>The chronology</h2>
+<section class="chapter">
+  <h3>1999-01-11 &rarr; 2003-06-02<span class="span"> &middot; 4.39 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 1999-01-11 and 2003-06-02.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.746 after correction, above the 0.05 level</li><li>interval spans 4.4 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (3)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>adjacent__1999_01_11__frontal__2003_06_02__frontal</code></td><td>frontal</td><td>0.00408</td><td>0.06</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>adjacent__1999_01_11__left_quarter__2003_06_02__left_quarter</code></td><td>left_quarter</td><td>0.00449</td><td>0.09</td><td>0.7459</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>adjacent__1999_01_11__right_quarter__2003_06_02__right_quarter</code></td><td>right_quarter</td><td>0.00414</td><td>0.04</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>1999-01-11 &rarr; 2008-09-14<span class="span"> &middot; 9.68 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 1999-01-11 and 2008-09-14.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.484 after correction, above the 0.05 level</li><li>interval spans 9.7 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (3)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>anchor__1999_01_11__frontal__2008_09_14__frontal</code></td><td>frontal</td><td>0.00480</td><td>0.09</td><td>0.4839</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__left_quarter__2008_09_14__left_quarter</code></td><td>left_quarter</td><td>0.00455</td><td>0.07</td><td>0.7459</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__right_quarter__2008_09_14__right_quarter</code></td><td>right_quarter</td><td>0.00386</td><td>0.04</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>1999-01-11 &rarr; 2012-03-05<span class="span"> &middot; 13.15 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 1999-01-11 and 2012-03-05.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.774 after correction, above the 0.05 level</li><li>interval spans 13.1 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (3)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>anchor__1999_01_11__frontal__2012_03_05__frontal</code></td><td>frontal</td><td>0.00456</td><td>0.03</td><td>0.7735</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__left_quarter__2012_03_05__left_quarter</code></td><td>left_quarter</td><td>0.00395</td><td>0.09</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__right_quarter__2012_03_05__right_quarter</code></td><td>right_quarter</td><td>0.00403</td><td>0.05</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>1999-01-11 &rarr; 2017-11-21<span class="span"> &middot; 18.86 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 1999-01-11 and 2017-11-21.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.484 after correction, above the 0.05 level</li><li>interval spans 18.9 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (3)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>anchor__1999_01_11__frontal__2017_11_21__frontal</code></td><td>frontal</td><td>0.00480</td><td>0.04</td><td>0.4839</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__left_quarter__2017_11_21__left_quarter</code></td><td>left_quarter</td><td>0.00430</td><td>0.05</td><td>0.9312</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__right_quarter__2017_11_21__right_quarter</code></td><td>right_quarter</td><td>0.00386</td><td>0.07</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>1999-01-11 &rarr; 2022-04-08<span class="span"> &middot; 23.24 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 1999-01-11 and 2022-04-08.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.746 after correction, above the 0.05 level</li><li>interval spans 23.2 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (3)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>anchor__1999_01_11__frontal__2022_04_08__frontal</code></td><td>frontal</td><td>0.00450</td><td>0.12</td><td>0.8222</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__left_quarter__2022_04_08__left_quarter</code></td><td>left_quarter</td><td>0.00447</td><td>0.04</td><td>0.7459</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>anchor__1999_01_11__right_quarter__2022_04_08__right_quarter</code></td><td>right_quarter</td><td>0.00425</td><td>0.09</td><td>0.9312</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>2003-06-02 &rarr; 2008-09-14<span class="span"> &middot; 5.29 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 2003-06-02 and 2008-09-14.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.746 after correction, above the 0.05 level</li><li>interval spans 5.3 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (3)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>adjacent__2003_06_02__frontal__2008_09_14__frontal</code></td><td>frontal</td><td>0.00441</td><td>0.12</td><td>0.9312</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>adjacent__2003_06_02__left_quarter__2008_09_14__left_quarter</code></td><td>left_quarter</td><td>0.00458</td><td>0.07</td><td>0.7459</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>adjacent__2003_06_02__right_quarter__2008_09_14__right_quarter</code></td><td>right_quarter</td><td>0.00417</td><td>0.07</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>2008-09-14 &rarr; 2012-03-05<span class="span"> &middot; 3.47 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 2008-09-14 and 2012-03-05.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.430 after correction, above the 0.05 level</li><li>interval spans 3.5 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (3)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>adjacent__2008_09_14__frontal__2012_03_05__frontal</code></td><td>frontal</td><td>0.00419</td><td>0.09</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>adjacent__2008_09_14__left_quarter__2012_03_05__left_quarter</code></td><td>left_quarter</td><td>0.00483</td><td>0.07</td><td>0.4303</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>adjacent__2008_09_14__right_quarter__2012_03_05__right_quarter</code></td><td>right_quarter</td><td>0.00403</td><td>0.04</td><td>0.9638</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>2012-03-05 &rarr; 2017-11-21<span class="span"> &middot; 5.71 years</span></h3>
+  <p class="headline s-weak">The face shows a possible change between 2012-03-05 and 2017-11-21, about 0.47% of eye-to-eye distance (roughly 0.29 mm on a typical 63 mm adult interocular span).</p>
+  <p class="grade">Evidence: <strong>weak</strong> &mdash; background only; must not be a headline</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.484 after correction, above the 0.05 level</li><li>the whole-face residual stayed inside the noise, but 1 zone(s) exceeded their own noise floor in 1 pair(s); a regional change is diluted by the whole-face average, so the zone result is the informative one</li><li>graded no higher than weak because this pipeline dated an injected change correctly but misattributed its zone in testing</li><li>interval spans 5.7 years</li></ul></details>
+  <details open><summary>Where the movement sits</summary><ul><li>The orbit_L shows a possible change between 2012-03-05 and 2017-11-21, of unmeasured size. <em>(weak)</em></li></ul></details>
+  <details><summary>Underlying pairs (2)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>adjacent__2012_03_05__frontal__2017_11_21__frontal</code></td><td>frontal</td><td>0.00485</td><td>0.11</td><td>0.4839</td><td><span class='cls cls-primary'>primary</span></td><td>localized_change_candidate</td></tr><tr><td><code>adjacent__2012_03_05__left_quarter__2017_11_21__left_quarter</code></td><td>left_quarter</td><td>0.00449</td><td>0.10</td><td>0.7459</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section><section class="chapter">
+  <h3>2017-11-21 &rarr; 2022-04-08<span class="span"> &middot; 4.38 years</span></h3>
+  <p class="headline s-none">The face shows no measurable change between 2017-11-21 and 2022-04-08.</p>
+  <p class="grade">Evidence: <strong>none</strong> &mdash; reportable as a negative result</p>
+  <details open><summary>Why this reading</summary><ul><li>q = 0.746 after correction, above the 0.05 level</li><li>interval spans 4.4 years</li></ul></details>
+  
+  <details><summary>Underlying pairs (2)</summary>
+  <table><thead><tr><th>Pair</th><th>Angle group</th><th>Size (IOC)</th>
+  <th>Coherence</th><th>q</th><th>Class</th><th>Status</th></tr></thead>
+  <tbody><tr><td><code>adjacent__2017_11_21__frontal__2022_04_08__frontal</code></td><td>frontal</td><td>0.00454</td><td>0.02</td><td>0.7735</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr><tr><td><code>adjacent__2017_11_21__left_quarter__2022_04_08__left_quarter</code></td><td>left_quarter</td><td>0.00447</td><td>0.10</td><td>0.7459</td><td><span class='cls cls-primary'>primary</span></td><td>within_noise</td></tr></tbody></table></details>
+</section>
+
+<h2>What else could explain this</h2>
+<table><thead><tr><th>Factor</th><th>Why it matters</th><th>How it was handled</th></tr></thead>
+<tbody><tr class=''><td>Head pose</td><td>Two photos taken at different angles produce a residual that looks exactly like a shape change.</td><td>Pairs outside the yaw/pitch/roll budget are rejected before scoring, not corrected afterwards.</td></tr><tr class=''><td>Expression</td><td>A smile moves the mid-face by more than a decade of ageing does.</td><td>Expression is classified from landmark geometry and mismatched pairs are excluded.</td></tr><tr class=''><td>Image quality</td><td>A low-resolution or soft photo yields noisier landmarks, inflating the residual.</td><td>Low-quality pairs keep their measurement but their significance threshold is inflated.</td></tr><tr class=''><td>Reconstruction error</td><td>The 3D model itself is an estimate and differs slightly every time.</td><td>The null distribution is built from same-day pairs, which contain only this error and no real change.</td></tr><tr class=''><td>Multiple comparisons</td><td>Testing thousands of points and pairs guarantees some will look significant by chance.</td><td>All p-values are corrected across the run; only corrected q-values are reported.</td></tr><tr class=''><td>Dating</td><td>A change attributed to the wrong year is not evidence of anything.</td><td>Photos with conflicting date sources are flagged and downgraded.</td></tr><tr class='uncontrolled'><td>Ageing</td><td>Faces change over time on their own.</td><td><strong>NOT CONTROLLED. </strong>NOT CONTROLLED BY THIS PIPELINE. Ageing is a real and expected cause of geometric change. Nothing here distinguishes it from any other cause, and no result should be read as excluding it.</td></tr><tr class='uncontrolled'><td>Weight and health</td><td>Weight change, illness, and medication visibly alter facial soft tissue.</td><td><strong>NOT CONTROLLED. </strong>NOT CONTROLLED BY THIS PIPELINE. These are ordinary explanations for soft-tissue change and remain fully available for any finding.</td></tr></tbody></table>
+
+<h2>Limitations</h2>
+<ul><li>This draft was generated from synthetic data produced by the project&#x27;s own fixture generator. It demonstrates the report format. It is not evidence about any person.</li><li>The noise floor comes from 492 same-day photo pairs. Same-day pairs contain no real change by construction, so they measure the method&#x27;s own error. If the photo set has few same-day pairs, this floor is poorly estimated and every significance claim inherits that weakness.</li><li>1 pair(s) show a significant change in at least one zone while their whole-face residual stayed inside the noise. This is the localised-change case: the global average dilutes a regional shift. Read the zone results, not the headline residual.</li><li>Photographs are compressed, retouched, and reproduced at different resolutions. This pipeline measures what is in the file it was given, and cannot distinguish a change in a face from a change in how that face was photographed or processed.</li><li>Zone-level nulls rest on between 161 and 166 same-day pairs. Below roughly 20, this method has been observed to manufacture significant-looking results from pure noise, so these counts, not the q-values, set the real confidence.</li></ul>
+
+<h2>What this analysis cannot establish</h2>
+<ul><li>That two photographs show different people. That requires a validated discrimination threshold measured on a reference population with known ground truth. No such threshold exists in this pipeline, and a large residual is not a substitute for one.</li><li>That any change was caused by surgery, illness, or any specific intervention. The method measures geometry, not causes.</li><li>That an absence of detected change means no change occurred. It means no change was detected above this method&#x27;s noise, with these photos.</li><li>Anything at all about a photograph that was excluded by the gates. An excluded photo was not measured and carries no information.</li><li>Which part of the face changed. Tested on synthetic data with a change injected at a known location, this pipeline dated the change correctly but named an adjoining zone rather than the one containing it. Alignment is global, so a local displacement leaks residual into neighbouring zones. Zone labels here indicate roughly where to look, never where a change is.</li><li>Anything from a run whose noise floor rests on few same-day pairs. On the same signal, this code produced a confident false positive at two photos per day and a correct result at eight. A small q-value from an under-powered null is not weak evidence, it is an artefact.</li></ul>
+
+<h2>Provenance</h2>
+<p class="prov">
+schema: deeputin-stage2-v2.0-rebuild<br>
+config hash: e7731a3048502ee48a4a943d971aefb7ec9301726643c7d724057974c063a628<br>
+generated: 2026-09-08T12:19:56+0000<br>
+photos loaded: 144 &middot; failed: 0<br>
+pairs measured: 517 &middot; skipped: 14
+</p>
+</div></body></html>

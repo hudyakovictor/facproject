@@ -1,0 +1,190 @@
+{
+  "schema": "deeputin-stage2-v2.0-rebuild",
+  "config_hash": "e7731a3048502ee48a4a943d971aefb7ec9301726643c7d724057974c063a628",
+  "resume_hash": "ae845b69142a17069c2b83150cac6c3de5bfd4a86e2755b28c8642a3f8183809",
+  "generated_at": "2026-09-08T12:19:56+0000",
+  "elapsed_seconds": 13.22,
+  "stage1": {
+    "root": "/data/fixture_pow",
+    "loaded": 144,
+    "failed": 0,
+    "dated": 144,
+    "distinct_dates": 6,
+    "pose_bins": {
+      "frontal": 48,
+      "left_quarter": 48,
+      "right_quarter": 48
+    },
+    "failure_reasons": {}
+  },
+  "temporal_axis": {
+    "admitted": true,
+    "evidence_class": "primary",
+    "skip_reason": null,
+    "limits": [],
+    "trace": [
+      {
+        "gate": "temporal_axis",
+        "outcome": "pass",
+        "dated": 144,
+        "distinct_dates": 6,
+        "span": "1999-01-11 .. 2022-04-08"
+      }
+    ]
+  },
+  "zone_map": {
+    "source": "measured",
+    "origin": "/vercel/sandbox/data/proj/app6/stage2/mesh_zone_indices.json",
+    "anatomical": true,
+    "zone_count": 6
+  },
+  "pairs": {
+    "planned": 531,
+    "measured": 517,
+    "skipped": 14,
+    "scored": 517,
+    "significant_global": 0,
+    "significant_zone": 1,
+    "significant_any": 1,
+    "by_evidence_class": {
+      "primary": 517
+    },
+    "by_status": {
+      "localized_change_candidate": 1,
+      "measured": 492,
+      "within_noise": 24
+    },
+    "skip_reasons": {
+      "pitch_gap_exceeded": 11,
+      "roll_gap_exceeded": 1,
+      "yaw_gap_exceeded": 2
+    }
+  },
+  "noise_model": {
+    "policy": "same_day_pairs_as_null_v1",
+    "source": "same-day photo pairs (zero true change by construction)",
+    "quantile": 0.95,
+    "same_day_pairs": 492,
+    "per_pose_bin": {
+      "frontal": {
+        "status": "ok",
+        "n": 165,
+        "median": 0.004460213994997502,
+        "mad_sigma": 0.00023534721956833545,
+        "p95": 0.004812325203330069
+      },
+      "left_quarter": {
+        "status": "ok",
+        "n": 166,
+        "median": 0.004350176238273838,
+        "mad_sigma": 0.00022784063196962633,
+        "p95": 0.004744746814770409
+      },
+      "right_quarter": {
+        "status": "ok",
+        "n": 161,
+        "median": 0.00431171583117116,
+        "mad_sigma": 0.0002540708320399964,
+        "p95": 0.004699097155137779
+      }
+    },
+    "usable_bins": 3,
+    "status": "ok"
+  },
+  "multiple_testing": {
+    "method": "benjamini_hochberg",
+    "level": 0.05,
+    "n_tests": 25,
+    "n_rejected": 0,
+    "min_q_value": 0.4303226009181607,
+    "status": "ok",
+    "significance_note": "q-values are corrected across all scored pairs in this run; an uncorrected p-value is not a finding"
+  },
+  "zone_noise_model": {
+    "policy": "per_zone_same_day_null_v1",
+    "rationale": "a change confined to one region is averaged away by the global residual, so each zone is scored against its own null",
+    "per_pose_bin": {
+      "frontal": {
+        "brow_ridge_L": {
+          "status": "ok",
+          "n": 165,
+          "median": 0.00372309,
+          "mad_sigma": 0.0003064682460000002,
+          "sigma_used": 0.0003325875067199998,
+          "sigma_percentile": 84.0,
+          "sigma_to_median_ratio": 0.08231556207343906,
+          "p95": 0.0041557239999999995
+        },
+        "orbit_L": {
+          "status": "ok",
+          "n": 165,
+          "median": 0.00369218,
+          "mad_sigma": 0.0002712564959999997,
+          "sigma_used": 0.00031165734600000026,
+          "sigma_percentile": 84.0,
+          "sigma_to_median_ratio": 0.07346784176286088,
+          "p95": 0.00415951
+        }
+      },
+      "left_quarter": {
+        "brow_ridge_L": {
+          "status": "ok",
+          "n": 166,
+          "median": 0.00365124,
+          "mad_sigma": 0.00027940338299999983,
+          "sigma_used": 0.0003025263091199999,
+          "sigma_percentile": 84.0,
+          "sigma_to_median_ratio": 0.07652287524238337,
+          "p95": 0.004073195
+        },
+        "orbit_L": {
+          "status": "ok",
+          "n": 166,
+          "median": 0.003561485,
+          "mad_sigma": 0.000351428091,
+          "sigma_used": 0.0003783150420000001,
+          "sigma_percentile": 84.0,
+          "sigma_to_median_ratio": 0.09867459528820141,
+          "p95": 0.0040775725
+        }
+      },
+      "right_quarter": {
+        "brow_ridge_L": {
+          "status": "ok",
+          "n": 161,
+          "median": 0.00354909,
+          "mad_sigma": 0.0002452665179999997,
+          "sigma_used": 0.00026601283631999995,
+          "sigma_percentile": 84.0,
+          "sigma_to_median_ratio": 0.06910687471999857,
+          "p95": 0.0039979
+        },
+        "orbit_L": {
+          "status": "ok",
+          "n": 161,
+          "median": 0.00358022,
+          "mad_sigma": 0.000337573194,
+          "sigma_used": 0.0003627625680000002,
+          "sigma_percentile": 84.0,
+          "sigma_to_median_ratio": 0.09428839400930669,
+          "p95": 0.00409968
+        }
+      }
+    },
+    "usable_zone_nulls": 6,
+    "status": "ok"
+  },
+  "zone_multiple_testing": {
+    "method": "benjamini_hochberg",
+    "level": 0.05,
+    "n_tests": 50,
+    "n_rejected": 1,
+    "min_q_value": 0.028723379652472097,
+    "status": "ok",
+    "zone_tests": 50,
+    "note": "zone tests are corrected in their own family across the run; a zone q-value is not comparable to an uncorrected p-value"
+  },
+  "warnings": [
+    "1 pair(s) show a significant change in at least one zone while their whole-face residual stayed inside the noise. This is the localised-change case: the global average dilutes a regional shift. Read the zone results, not the headline residual."
+  ]
+}

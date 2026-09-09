@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stage 2 admin panel</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2b3140;
+    --text: #e6e9ef; --muted: #98a0b3; --accent: #4c8dff; --ok: #3fb950;
+    --warn: #d29922; --bad: #f85149; --crit: #ff7b72;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { position: sticky; top: 0; z-index: 10; background: var(--panel);
+    border-bottom: 1px solid var(--line); padding: 12px 20px;
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0 12px 0 0; font-weight: 600; }
+  .layout { display: grid; grid-template-columns: 230px 1fr 340px; gap: 0;
+    min-height: calc(100vh - 58px); }
+  nav { border-right: 1px solid var(--line); padding: 16px 0; background: var(--panel); }
+  nav a { display: block; padding: 7px 20px; color: var(--muted);
+    text-decoration: none; cursor: pointer; border-left: 2px solid transparent; }
+  nav a:hover { color: var(--text); background: var(--panel2); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent);
+    background: var(--panel2); }
+  main { padding: 20px 24px 80px; min-width: 0; }
+  aside { border-left: 1px solid var(--line); padding: 16px; background: var(--panel);
+    overflow-y: auto; max-height: calc(100vh - 58px); position: sticky; top: 58px; }
+  .group { margin-bottom: 34px; }
+  .group h2 { font-size: 15px; margin: 0 0 14px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--line); }
+  .param { background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .param.changed { border-color: var(--accent); }
+  .param.invalid { border-color: var(--bad); }
+  .prow { display: flex; gap: 12px; align-items: center; }
+  .plabel { flex: 1; min-width: 0; }
+  .plabel .t { font-weight: 600; }
+  .plabel .k { color: var(--muted); font-family: ui-monospace, monospace;
+    font-size: 11px; }
+  .desc { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  .prov { color: var(--muted); font-size: 11.5px; margin-top: 4px; font-style: italic; }
+  input[type=text], input[type=number], select, textarea {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 8px; font: inherit; }
+  input[type=number], input[type=text] { width: 150px; }
+  select { min-width: 190px; }
+  input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accent); }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 6px;
+    padding: 7px 13px; font: inherit; font-weight: 500; cursor: pointer; }
+  button.ghost { background: var(--panel2); color: var(--text);
+    border: 1px solid var(--line); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+    padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .impact-low { background: #21262d; color: var(--muted); }
+  .impact-medium { background: #1f3247; color: #79c0ff; }
+  .impact-high { background: #3d2f12; color: var(--warn); }
+  .impact-critical { background: #4a1f1c; color: var(--crit); }
+  .unit { color: var(--muted); font-size: 12px; }
+  .bound { color: var(--muted); font-size: 11px; margin-top: 4px; }
+  aside h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted); margin: 0 0 10px; }
+  .diff { font-family: ui-monospace, monospace; font-size: 12px;
+    border-bottom: 1px solid var(--line); padding: 7px 0; }
+  .diff .from { color: var(--bad); }
+  .diff .to { color: var(--ok); }
+  .msg { padding: 9px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+  .msg.ok { background: #12301c; color: #7ee787; }
+  .msg.err { background: #3d1618; color: #ffa198; white-space: pre-wrap; }
+  .msg.warn { background: #3d2f12; color: #e3b341; }
+  pre { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px; overflow: auto; font-size: 12px; max-height: 420px; }
+  .kv { display: flex; justify-content: space-between; gap: 10px;
+    padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .kv span:last-child { color: var(--muted); font-family: ui-monospace, monospace; }
+  .hidden { display: none; }
+  .searchbox { flex: 1; max-width: 300px; }
+  .searchbox input { width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stage 2 admin</h1>
+  <label class="unit">Profile
+    <select id="profileSelect"></select>
+  </label>
+  <input type="text" id="newName" placeholder="save as..." style="width:150px" />
+  <button id="saveBtn">Save</button>
+  <button class="ghost" id="validateBtn">Validate</button>
+  <button class="ghost" id="dryRunBtn">Dry run</button>
+  <button class="ghost" id="resetBtn">Reset to defaults</button>
+  <div class="searchbox"><input type="text" id="search" placeholder="filter parameters..." /></div>
+</header>
+
+<div class="layout">
+  <nav id="nav"></nav>
+  <main>
+    <div id="messages"></div>
+    <div id="form"></div>
+    <div id="dryRunPanel" class="hidden">
+      <h2>Dry run</h2>
+      <pre id="dryRunOut"></pre>
+    </div>
+  </main>
+  <aside>
+    <h3>Changes vs defaults</h3>
+    <div id="diffPanel"><p class="unit">No changes.</p></div>
+    <h3 style="margin-top:24px">Derived values</h3>
+    <div id="derivedPanel"></div>
+    <h3 style="margin-top:24px">Identity</h3>
+    <div id="identityPanel"></div>
+  </aside>
+</div>
+
+<script>
+let REGISTRY = null;
+let VALUES = {};
+let DEFAULTS = {};
+let activeGroup = null;
+
+const el = (id) => document.getElementById(id);
+
+async function api(path, options) {
+  const res = await fetch(path, options);
+  const data = await res.json().catch(() => ({ ok: false, error: "non-JSON response" }));
+  return data;
+}
+
+function message(kind, text) {
+  el("messages").innerHTML = `<div class="msg ${kind}">${escapeHtml(text)}</div>`;
+}
+function clearMessages() { el("messages").innerHTML = ""; }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+function fmt(v) {
+  if (Array.isArray(v)) return v.join(", ");
+  if (typeof v === "boolean") return v ? "on" : "off";
+  return String(v);
+}
+
+async function boot() {
+  REGISTRY = await api("/api/registry");
+  DEFAULTS = {};
+  REGISTRY.params.forEach((p) => { DEFAULTS[p.key] = p.default; });
+  activeGroup = REGISTRY.groups[0].key;
+  await loadProfiles();
+  await selectProfile(el("profileSelect").value);
+  renderNav();
+  renderForm();
+}
+
+async function loadProfiles() {
+  const data = await api("/api/profiles");
+  const sel = el("profileSelect");
+  sel.innerHTML = data.profiles
+    .map((p) => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}${p.builtin ? " (built-in)" : ""}</option>`)
+    .join("");
+}
+
+async function selectProfile(name) {
+  const data = await api(`/api/profiles/${encodeURIComponent(name)}`);
+  if (!data.ok) { message("err", data.error); return; }
+  VALUES = { ...data.profile.values };
+  el("newName").value = data.builtin ? "" : name;
+  clearMessages();
+  renderForm();
+  await validate(true);
+}
+
+function renderNav() {
+  el("nav").innerHTML = REGISTRY.groups
+    .map((g) => {
+      const n = REGISTRY.params.filter((p) => p.group === g.key).length;
+      return `<a data-group="${g.key}" class="${g.key === activeGroup ? "active" : ""}">${escapeHtml(g.title)} <span class="unit">${n}</span></a>`;
+    })
+    .join("");
+  el("nav").querySelectorAll("a").forEach((a) => {
+    a.onclick = () => { activeGroup = a.dataset.group; renderNav(); renderForm(); };
+  });
+}
+
+function inputFor(p) {
+  const v = VALUES[p.key];
+  const id = `in_${p.key}`;
+  if (p.kind === "bool") {
+    return `<input type="checkbox" id="${id}" data-key="${p.key}" ${v ? "checked" : ""} />`;
+  }
+  if (p.kind === "choice") {
+    return `<select id="${id}" data-key="${p.key}">` +
+      p.choices.map((c) => `<option value="${escapeHtml(c)}" ${c === v ? "selected" : ""}>${escapeHtml(c)}</option>`).join("") +
+      `</select>`;
+  }
+  if (p.kind === "int" || p.kind === "float") {
+    const step = p.kind === "int" ? "1" : "any";
+    return `<input type="number" step="${step}" id="${id}" data-key="${p.key}" value="${escapeHtml(v)}" />`;
+  }
+  return `<input type="text" id="${id}" data-key="${p.key}" value="${escapeHtml(fmt(v))}" />`;
+}
+
+function renderForm() {
+  const filter = el("search").value.trim().toLowerCase();
+  const params = REGISTRY.params.filter((p) => {
+    if (filter) {
+      return (p.key + " " + p.title + " " + p.description).toLowerCase().includes(filter);
+    }
+    return p.group === activeGroup;
+  });
+  const groups = filter ? REGISTRY.groups : REGISTRY.groups.filter((g) => g.key === activeGroup);
+  el("form").innerHTML = groups.map((g) => {
+    const items = params.filter((p) => p.group === g.key);
+    if (!items.length) return "";
+    return `<div class="group"><h2>${escapeHtml(g.title)}</h2>` + items.map((p) => {
+      const changed = JSON.stringify(VALUES[p.key]) !== JSON.stringify(p.default);
+      const bounds = [];
+      if (p.minimum !== null) bounds.push(`min ${p.minimum}`);
+      if (p.maximum !== null) bounds.push(`max ${p.maximum}`);
+      bounds.push(`default ${fmt(p.default)}`);
+      if (!p.breaks_resume) bounds.push("resume-safe");
+      return `<div class="param ${changed ? "changed" : ""}" data-param="${p.key}">
+        <div class="prow">
+          <div class="plabel">
+            <div class="t">${escapeHtml(p.title)} ${p.unit ? `<span class="unit">(${escapeHtml(p.unit)})</span>` : ""}</div>
+            <div class="k">${escapeHtml(p.key)}</div>
+          </div>
+          <span class="tag impact-${p.impact}">${p.impact}</span>
+          ${inputFor(p)}
+        </div>
+        <div class="desc">${escapeHtml(p.description)}</div>
+        ${p.provenance ? `<div class="prov">why: ${escapeHtml(p.provenance)}</div>` : ""}
+        <div class="bound">${bounds.join(" &middot; ")}</div>
+      </div>`;
+    }).join("") + `</div>`;
+  }).join("");
+
+  el("form").querySelectorAll("[data-key]").forEach((input) => {
+    input.onchange = () => {
+      const key = input.dataset.key;
+      const spec = REGISTRY.params.find((p) => p.key === key);
+      let value;
+      if (spec.kind === "bool") value = input.checked;
+      else if (spec.kind === "int") value = parseInt(input.value, 10);
+      else if (spec.kind === "float") value = parseFloat(input.value);
+      else if (spec.kind === "float_list") value = input.value.split(/[,\s]+/).filter(Boolean).map(Number);
+      else if (spec.kind === "str_list") value = input.value.split(",").map((s) => s.trim()).filter(Boolean);
+      else value = input.value;
+      VALUES[key] = value;
+      renderForm();
+      validate(true);
+    };
+  });
+}
+
+function renderDiff(changes) {
+  const keys = Object.keys(changes || {});
+  if (!keys.length) { el("diffPanel").innerHTML = '<p class="unit">No changes.</p>'; return; }
+  const resumeBreak = keys.some((k) => changes[k].breaks_resume);
+  el("diffPanel").innerHTML =
+    (resumeBreak ? '<div class="msg warn">Some changes invalidate an existing checkpoint. The run cannot be resumed.</div>' : "") +
+    keys.map((k) => `<div class="diff">
+        <div><span class="tag impact-${changes[k].impact}">${changes[k].impact}</span> ${escapeHtml(k)}</div>
+        <div><span class="from">${escapeHtml(fmt(changes[k].from))}</span> &rarr; <span class="to">${escapeHtml(fmt(changes[k].to))}</span></div>
+      </div>`).join("");
+}
+
+function renderKv(target, obj) {
+  el(target).innerHTML = Object.entries(obj || {})
+    .map(([k, v]) => `<div class="kv"><span>${escapeHtml(k)}</span><span>${escapeHtml(typeof v === "object" ? JSON.stringify(v) : fmt(v))}</span></div>`)
+    .join("");
+}
+
+async function validate(quiet) {
+  const data = await api("/api/validate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values: VALUES, name: el("profileSelect").value }),
+  });
+  if (!data.valid) {
+    message("err", "Invalid configuration:\n- " + (data.errors || [data.error]).join("\n- "));
+    return false;
+  }
+  if (!quiet) message("ok", "Configuration is valid.");
+  else clearMessages();
+  renderDiff(data.diff_vs_default);
+  renderKv("derivedPanel", data.derived);
+  renderKv("identityPanel", { hash: data.hash.slice(0, 16), resume_hash: data.resume_hash.slice(0, 16) });
+  return true;
+}
+
+el("profileSelect").onchange = (e) => selectProfile(e.target.value);
+el("search").oninput = renderForm;
+el("validateBtn").onclick = () => validate(false);
+el("resetBtn").onclick = () => { VALUES = { ...DEFAULTS }; renderForm(); validate(true); };
+
+el("saveBtn").onclick = async () => {
+  const name = el("newName").value.trim() || el("profileSelect").value;
+  const data = await api(`/api/profiles/${encodeURIComponent(name)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values: VALUES }),
+  });
+  if (!data.ok) { message("err", data.error); return; }
+  await loadProfiles();
+  el("profileSelect").value = name;
+  message("ok", `Saved profile "${name}".`);
+  renderDiff(data.diff_vs_default);
+};
+
+el("dryRunBtn").onclick = async () => {
+  const data = await api("/api/dry-run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values: VALUES, name: el("profileSelect").value }),
+  });
+  el("dryRunPanel").classList.remove("hidden");
+  if (!data.ok) { el("dryRunOut").textContent = data.error; return; }
+  el("dryRunOut").textContent = JSON.stringify(data.dry_run, null, 2);
+  const blocking = data.dry_run.blocking || [];
+  if (blocking.length) message("warn", "Dry run found blocking issues:\n- " + blocking.join("\n- "));
+  else message("ok", `Dry run OK: ${data.dry_run.pairs.planned_total} pairs planned.`);
+};
+
+boot();
+</script>
+</body>
+</html>

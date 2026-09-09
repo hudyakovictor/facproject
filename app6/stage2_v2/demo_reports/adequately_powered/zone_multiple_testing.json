@@ -1,0 +1,10 @@
+{
+  "method": "benjamini_hochberg",
+  "level": 0.05,
+  "n_tests": 50,
+  "n_rejected": 1,
+  "min_q_value": 0.028723379652472097,
+  "status": "ok",
+  "zone_tests": 50,
+  "note": "zone tests are corrected in their own family across the run; a zone q-value is not comparable to an uncorrected p-value"
+}

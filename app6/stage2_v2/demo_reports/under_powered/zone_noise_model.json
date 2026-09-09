@@ -1,0 +1,50 @@
+{
+  "policy": "per_zone_same_day_null_v1",
+  "rationale": "a change confined to one region is averaged away by the global residual, so each zone is scored against its own null",
+  "per_pose_bin": {
+    "frontal": {
+      "brow_ridge_L": {
+        "status": "insufficient_reference",
+        "n": 6,
+        "required": 20,
+        "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+      },
+      "orbit_L": {
+        "status": "insufficient_reference",
+        "n": 6,
+        "required": 20,
+        "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+      }
+    },
+    "left_quarter": {
+      "brow_ridge_L": {
+        "status": "insufficient_reference",
+        "n": 6,
+        "required": 20,
+        "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+      },
+      "orbit_L": {
+        "status": "insufficient_reference",
+        "n": 6,
+        "required": 20,
+        "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+      }
+    },
+    "right_quarter": {
+      "brow_ridge_L": {
+        "status": "insufficient_reference",
+        "n": 6,
+        "required": 20,
+        "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+      },
+      "orbit_L": {
+        "status": "insufficient_reference",
+        "n": 6,
+        "required": 20,
+        "reason": "too few same-day pairs to estimate a noise scale that can support a significance claim"
+      }
+    }
+  },
+  "usable_zone_nulls": 0,
+  "status": "no_reference"
+}
