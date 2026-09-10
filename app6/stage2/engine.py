@@ -239,7 +239,7 @@ class Stage2Engine:
   if not main:raise RuntimeError('no valid stage1 records')
   from .primary_zones import build_anatomical_landmark_zone_map as _build_anat_zones
   z106_coord,m106_coord=build_coordinate_zone_map(cal,106);z134_coord,m134_coord=build_coordinate_zone_map(cal,134)
-  z106,m106=_build_anat_zones(list(cal)+list(main),106);z134,m134=_build_anat_zones(list(cal)+list(main),134)
+  z106,m106=_build_anat_zones(list(cal),106);z134,m134=_build_anat_zones(list(cal),134)
   if m134.get('status')!='ok':z106,m106,z134,m134=z106_coord,m106_coord,z134_coord,m134_coord
   model=CalibrationModel(cal,z106,z134);point_model=PointNoiseModel(cal);descriptor_model=DescriptorNoiseModel(cal);mesh_model=MeshNoiseModel(cal)
   # Differential pose-angle noise is a production input, not a standalone audit helper.

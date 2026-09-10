@@ -60,23 +60,24 @@ def enrich_pair_row(
     photo_a = str(out.get("photo_a") or getattr(record_a, "record_id", "a"))
     photo_b = str(out.get("photo_b") or getattr(record_b, "record_id", "b"))
     qlimited = bool(out.get("quality_limited") or qc_a.get("quality_limited") or qc_b.get("quality_limited"))
-    out["texture_score_0_1"] = min(
-        float(getattr(record_a, "quality_texture_score", 0.0) or 0.0),
-        float(getattr(record_b, "quality_texture_score", 0.0) or 0.0),
-    )
+    def _get_texture_score(rec):
+        val = getattr(rec, "quality_texture_score", None)
+        return float(val) if val is not None and float(val) != 0.0 else None
+
+    out["texture_score_0_1"] = min(_get_texture_score(record_a), _get_texture_score(record_b))
     out = compensate_quality_disparity(
         {**out, "photo_a": photo_a, "photo_b": photo_b},
         {
             photo_a: {
                 "pixels": qc_a.get("pixels"),
-                "texture_score_0_1": getattr(record_a, "quality_texture_score", 0.0),
-                "quality_limited": qlimited,
-            },
-            photo_b: {
-                "pixels": qc_b.get("pixels"),
-                "texture_score_0_1": getattr(record_b, "quality_texture_score", 0.0),
-                "quality_limited": qlimited,
-            },
+"texture_score_0_1": getattr(record_a, "quality_texture_score", None),
+            "quality_limited": qlimited,
+        },
+        photo_b: {
+            "pixels": qc_b.get("pixels"),
+            "texture_score_0_1": getattr(record_b, "quality_texture_score", None),
+            "quality_limited": qlimited,
+        },
         },
     )
     if out.get("texture_conclusions_allowed") is False:

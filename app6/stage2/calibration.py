@@ -142,6 +142,7 @@ class CalibrationModel:
 
     # 📊 Matched-null распределение для пары (same-subject null)
     def matched_null(self, a: Record, b: Record) -> dict[str, list[float]]:
+        self._use_count = Counter()
         values: dict[str, list[float]] = defaultdict(list)
         for dataset in self.datasets:
             ca = self._nearest(a, dataset)

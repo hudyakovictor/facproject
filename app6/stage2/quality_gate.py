@@ -22,7 +22,8 @@ import numpy as np
 QUALITY_GATE_SCHEMA: Final[str] = "deeputin-quality-gate-v1.0"
 
 #: Нейтральное значение текстурного счёта при недостаточном качестве (ТЗ п.8).
-NEUTRAL_TEXTURE_SCORE: Final[float] = 0.5
+#: None означает «данных нет», 0.5 было бы занижением, приводящим к ложным выводам.
+NEUTRAL_TEXTURE_SCORE: Final = None
 
 #: Во сколько раз может отличаться разрешение, прежде чем пара помечается.
 DEFAULT_RESOLUTION_RATIO: Final[float] = 2.0
@@ -94,10 +95,11 @@ def compensate_quality_disparity(
             current_f = float(current) if current is not None else float("nan")
         except (TypeError, ValueError):
             current_f = float("nan")
-        if not np.isfinite(current_f) or current_f < NEUTRAL_TEXTURE_SCORE:
-            out["texture_score_0_1"] = NEUTRAL_TEXTURE_SCORE
+        if not np.isfinite(current_f):
+            out["texture_score_0_1"] = None
             out["texture_score_source"] = "neutral_default_quality_limited"
         else:
+            out["texture_score_0_1"] = current_f
             out["texture_score_source"] = "measured"
         out["texture_conclusions_allowed"] = False
         out["quality_gate_reason"] = ("resolution_disparity" if disparity else "quality_limited")
@@ -162,10 +164,11 @@ def resolution_quality_gate(
             current_f = float(current) if current is not None else float("nan")
         except (TypeError, ValueError):
             current_f = float("nan")
-        if not np.isfinite(current_f) or current_f < NEUTRAL_TEXTURE_SCORE:
-            out["texture_score_0_1"] = NEUTRAL_TEXTURE_SCORE
+        if not np.isfinite(current_f):
+            out["texture_score_0_1"] = None
             out["texture_score_source"] = "neutral_default_quality_limited"
         else:
+            out["texture_score_0_1"] = current_f
             out["texture_score_source"] = "measured"
         out["texture_conclusions_allowed"] = False
         out["quality_gate_reason"] = ("resolution_disparity" if disparity else "quality_limited")
@@ -185,5 +188,5 @@ def quality_gate_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {"schema": QUALITY_GATE_SCHEMA, "pair_count": total,
             "quality_disparity_count": disparity, "quality_limited_count": limited,
             "texture_blocked_count": blocked,
-            "neutral_texture_score": NEUTRAL_TEXTURE_SCORE,
+            "neutral_texture_score": None,
             "policy": "низкое качество источника не может читаться как признак материала"}

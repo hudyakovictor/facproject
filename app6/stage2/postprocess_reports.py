@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import re
 
 from app6.stage1.utils import atomic_json, digest_file, write_csv
 from .candidate_states import CANDIDATE_STATES
@@ -62,23 +63,64 @@ def _write_manual_review_queue(out: Path, rows: list[dict[str, Any]]) -> int:
     return len(queue)
 
 
+DEFORBIDDEN_TERM_FIELDS: Final[tuple[str, ...]] = (
+    "summary", "narrative", "note", "interpretation",
+    "evidence_state", "status", "primary_zone_or_family",
+    "alternative_explanations",
+    "lead_note",
+)
+
+_LATIN_WORD_BOUNDARY = r"\b\b"
+
+def _term_in_text(term: str, text: str) -> bool:
+    """Проверять наличие термина с границами слов для латиницы, суперSTRINGS — для русского."""
+    term_lc = term.lower()
+    # Для латиницы: поиск с границами слов, чтобы mask не ловил face_mask
+    if re.match(r'^[a-zA-Z]+$', term_lc):
+        return bool(re.search(rf'\b{re.escape(term_lc)}\b', text))
+    # Для русского: простая подстрока (термины типа "подмена" есть в служебных фразах,
+    # но мы фильтруем их по полю)
+    return term_lc in text
+
+
+def _field_name(key: str) -> str:
+    """Возвращать человекочитаемое имя поля для отчёта."""
+    return {
+        "summary": "summary",
+        "narrative": "narrative",
+        "note": "note",
+        "interpretation": "interpretation",
+        "evidence_state": "evidence_state",
+        "status": "status",
+        "primary_zone_or_family": "primary_zone_or_family",
+        "alternative_explanations": "alternative_explanations",
+        "lead_note": "lead_note",
+    }.get(key, key)
+
+
 def _write_public_safety(out: Path, evidence_packets: list[dict[str, Any]]) -> dict[str, Any]:
     hits: list[dict[str, Any]] = []
     for pkt in evidence_packets:
-        # 🔧 FIX (audit P1-13): check specific text-bearing fields, not str(pkt)
-        # str(pkt) includes field names like "mask" which trigger false positives.
-        text_fields = []
-        for key in ("evidence_state", "status", "primary_zone_or_family"):
+        text_fields: list[str] = []
+        for key in DEFORBIDDEN_TERM_FIELDS:
             val = pkt.get(key)
             if val is not None:
                 text_fields.append(str(val))
         alt_explanations = pkt.get("alternative_explanations", [])
         if isinstance(alt_explanations, list):
-            text_fields.extend(str(x) for x in alt_explanations)
+            for x in alt_explanations:
+                if x is not None:
+                    text_fields.append(str(x))
         text = " ".join(text_fields).lower()
         for term in FORBIDDEN_PUBLIC_TERMS:
-            if term.lower() in text:
-                hits.append({"pair_id": pkt.get("pair_id"), "term": term, "field": "evidence_text"})
+            if _term_in_text(term, text):
+                hits.append({
+                    "pair_id": pkt.get("pair_id"),
+                    "term": term,
+                    "field": _field_name(
+                        [k for k in DEFORBIDDEN_TERM_FIELDS if pkt.get(k) is not None][0] if any(pkt.get(k) is not None for k in DEFORBIDDEN_TERM_FIELDS) else "unknown",
+                    ),
+                })
     report = {
         "schema": POSTPROCESS_SCHEMA,
         "status": "pass" if not hits else "fail",

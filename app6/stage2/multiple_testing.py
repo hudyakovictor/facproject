@@ -19,7 +19,7 @@ DEFAULT_FDR_LEVEL = 0.05
 def _p_from_z(z: float) -> float:
     try:
         z = abs(float(z))
-        return max(0.0, min(1.0, erfc(z / sqrt(2.0))))
+        return max(0.0, min(1.0, 0.5 * erfc(z / sqrt(2.0))))
     except Exception:
         return 1.0
 
@@ -75,9 +75,9 @@ def apply_pair_fdr(rows: list[dict[str, Any]], *, z_key: str = "p95_point_z",
                    q_threshold: float = DEFAULT_FDR_LEVEL,
                    photo_count: int | None = None) -> dict[str, Any]:
     log_status("apply_pair_fdr", "complete")
-    # Пары одного фото — зависимые наблюдения. Эффективное число независимых
-    # тестов ограничено числом фото: n_eff = photo_count // 2 (пары считаются
-    # попарно, но не более чем по одной «хорошей» паре на два фото).
+# Пары одного фото — зависимые наблюдения. Эффективное число независимых
+# тестов ограничено числом фото: n_eff = photo_count // 2 (пары считаются
+# попарно, но не более чем по одной «хорошей» паре на два фото).
     n_eff = None if photo_count is None else max(1, int(photo_count) // 2)
     tests: list[tuple[int, float]] = []
     for i, r in enumerate(rows):

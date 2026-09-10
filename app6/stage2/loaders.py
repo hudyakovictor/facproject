@@ -95,7 +95,7 @@ def load_main(stage1_root: Path) -> list[Record]:
             claimed_date=(info.get("date_provenance") or {}).get("source_claimed_date"),
             dataset_role="evidence",
         )
-        capture_event = str(Path(relative_source).with_suffix("")) if relative_source else None
+        capture_event = Path(relative_source).stem if relative_source else None
         reconstruction_path = directory / "reconstruction.npz"
         try:
             with np.load(reconstruction_path, allow_pickle=False) as z:
