@@ -1,5 +1,5 @@
 # DEEPUTIN facproject — Stage 2 Rebuild (stage2_v2)
-
+/Users/victorkhudyakov/work/.venv/bin/python
 ## Обзор
 
 **stage2_v2** — это переосмысленная реализация этапа 2 анализа facial geometry. Это Complete rewrite (полная переработка) legacy Stage 2 из `app6/stage2/`, который был ненадежным и непротестируемым без Model Weights и SD-CARD.
