@@ -9,9 +9,21 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "deeputin-stage1-v2.4-chronology-alignment"
-PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.4-chronology-alignment"
-VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.4-chronology-alignment"
+SCHEMA_VERSION = "deeputin-stage1-v2.7-contracts"
+PHOTO_SCHEMA_VERSION = "deeputin-photo-v2.7-contracts"
+VALIDATION_SCHEMA_VERSION = "deeputin-validation-v2.7-contracts"
+
+#: Сквозная версия конвейера (ТЗ: versioned output + pipeline_version).
+#: Меняется при любом изменении научной логики Stage 1.
+PIPELINE_VERSION = "stage1-pipeline-v2.7"
+
+#: Нормативная pose-policy (единственная; смешивание версий запрещено).
+#: Источник: app6/atlas/pose_policy_v3_9bins.csv (конвенция v3: +yaw = правый профиль).
+POSE_POLICY_VERSION = "pose-policy-v3-9bins"
+POSE_POLICY_FILE = "app6/atlas/pose_policy_v3_9bins.csv"
+#: Нормативные центры бинов (должны совпадать с POSE_BINS ниже и с политикой).
+POSE_POLICY_CENTERS = (-70.0, -45.0, -32.5, -17.5, 0.0, 17.5, 32.5, 45.0, 70.0)
+POSE_POLICY_YAW_SIGN = "positive_yaw_is_right_profile"
 SEMANTIC_POLICY = "3ddfa-semantic-skin-plus-nose-v1"
 POSE_BINS = (
     ("left_profile", -95.0, -50.0, -70.0),
@@ -108,6 +120,10 @@ class Stage1Config:
         """Only settings that can change scientific output."""
         return {
             "schema_version": SCHEMA_VERSION,
+            "pipeline_version": PIPELINE_VERSION,
+            "pose_policy_version": POSE_POLICY_VERSION,
+            "pose_policy_centers": list(POSE_POLICY_CENTERS),
+            "pose_policy_yaw_sign": POSE_POLICY_YAW_SIGN,
             "detector": self.detector,
             "backbone": self.backbone,
             "uv_size": int(self.uv_size),

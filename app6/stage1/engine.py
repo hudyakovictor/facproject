@@ -31,6 +31,8 @@ from .assets import save_image_assets, save_uv_and_mesh, technical_quality, save
 from .config import (
     EXPRESSION_MAGNITUDE_THRESHOLD, EXPRESSION_CORNER_LIFT_THRESHOLD, EXPRESSION_JAW_OPEN_THRESHOLD,
     IMAGE_EXTENSIONS, PHOTO_SCHEMA_VERSION, SCHEMA_VERSION, Stage1Config,
+    PIPELINE_VERSION, POSE_POLICY_VERSION, POSE_POLICY_FILE, POSE_POLICY_CENTERS,
+    POSE_POLICY_YAW_SIGN,
 )
 from .geometry import pack_mask, to_original_image
 from .status_logger import log_status, status_warning
@@ -160,6 +162,19 @@ class Stage1Engine:
         if missing:
             raise FileNotFoundError("missing required model assets: " + ", ".join(map(str, missing)))
         self.model_hash = digest_paths(model_files, self.root)
+        # v2.7: fail-closed сверка pose-policy. POSE_BINS (код) обязаны совпадать
+        # с нормативной политикой (центры + знак yaw); смешивание версий в одной
+        # таблице запрещено. Хеш политики пишется в manifest/info.
+        from .config import POSE_BINS as _BINS
+        policy_path = self.root / POSE_POLICY_FILE
+        if not policy_path.is_file():
+            raise FileNotFoundError(f"missing normative pose policy: {policy_path}")
+        self.pose_policy_hash = digest_file(policy_path)
+        code_centers = tuple(float(c) for _, _, _, c in _BINS)
+        if code_centers != tuple(float(c) for c in POSE_POLICY_CENTERS):
+            raise RuntimeError(
+                f"POSE_BINS code centers {code_centers} != normative {POSE_POLICY_VERSION} "
+                f"{list(POSE_POLICY_CENTERS)} — refusing to mix policies")
         self.recon = ReconstructionEngine(self.root, config.device, config.detector, config.backbone)
 
     def run(self) -> dict[str, Any]:
@@ -245,7 +260,10 @@ class Stage1Engine:
             (self.cfg.output_dir / "errors.csv").write_text("", encoding="utf-8")
         self.recon.cleanup()
         manifest = {
-            "schema_version": SCHEMA_VERSION, "status": "complete" if not errors else "complete_with_errors",
+            "schema_version": SCHEMA_VERSION, "pipeline_version": PIPELINE_VERSION,
+            "pose_policy": {"version": POSE_POLICY_VERSION, "sha256": self.pose_policy_hash,
+                            "yaw_sign": POSE_POLICY_YAW_SIGN, "centers": list(POSE_POLICY_CENTERS)},
+            "status": "complete" if not errors else "complete_with_errors",
             "created_at_utc": _utc(), "input_count": len(photos), "success_count": len(rows),
             "error_count":len(errors),"duplicate_count":duplicate_count,"near_duplicate_count":near_duplicate_count,
             "skipped_valid_count": skipped, "elapsed_seconds": time.time() - started,
@@ -386,9 +404,23 @@ class Stage1Engine:
             # Для хронологии используйте ldm*_chronology.csv (полная pose коррекция)
             write_csv(out / "ldm106_aligned.csv", _landmark_rows(ldm["ldm106_bin_canonical"], ldm["ldm106_visible"], rec.ldm106_indices))
             write_csv(out / "ldm106_chronology.csv", _landmark_rows(ldm["ldm106_chronology_aligned"], ldm["ldm106_visible"], rec.ldm106_indices, ldm106_confidence))
+            # v2.5: раздельные identity/object экспорты — точный replay по ТЗ.
+            # identity_raw/normalized воспроизводят chronology; expression_delta =
+            # object - identity (мимика, снятая zero_exp).
+            write_csv(out / "ldm106_identity_raw.csv", _landmark_rows(ldm["ldm106_identity_raw"], ldm["ldm106_visible"], rec.ldm106_indices, ldm106_confidence))
+            write_csv(out / "ldm106_identity_normalized.csv", _landmark_rows(ldm["ldm106_identity_normalized"], ldm["ldm106_visible"], rec.ldm106_indices, ldm106_confidence))
+            write_csv(out / "ldm106_expression_delta.csv", _landmark_rows(ldm["ldm106_expression_delta"], ldm["ldm106_visible"], rec.ldm106_indices, ldm106_confidence))
             write_csv(out / "ldm134_raw.csv", _landmark_rows(ldm["ldm134_object"], ldm["ldm134_visible"], rec.ldm134_indices))
             write_csv(out / "ldm134_aligned.csv", _landmark_rows(ldm["ldm134_bin_canonical"], ldm["ldm134_visible"], rec.ldm134_indices))
             write_csv(out / "ldm134_chronology.csv", _landmark_rows(ldm["ldm134_chronology_aligned"], ldm["ldm134_visible"], rec.ldm134_indices, ldm134_confidence))
+            write_csv(out / "ldm134_identity_raw.csv", _landmark_rows(ldm["ldm134_identity_raw"], ldm["ldm134_visible"], rec.ldm134_indices, ldm134_confidence))
+            write_csv(out / "ldm134_identity_normalized.csv", _landmark_rows(ldm["ldm134_identity_normalized"], ldm["ldm134_visible"], rec.ldm134_indices, ldm134_confidence))
+            write_csv(out / "ldm134_expression_delta.csv", _landmark_rows(ldm["ldm134_expression_delta"], ldm["ldm134_visible"], rec.ldm134_indices, ldm134_confidence))
+            # v2.6: target-only канал (без инверсии actual pose; рекомендуемый
+            # для сравнения) + независимый детектор-канал (до 3DMM).
+            write_csv(out / "ldm106_chronology_targetonly.csv", _landmark_rows(ldm["ldm106_chronology_targetonly"], ldm["ldm106_visible"], rec.ldm106_indices, ldm106_confidence))
+            write_csv(out / "ldm134_chronology_targetonly.csv", _landmark_rows(ldm["ldm134_chronology_targetonly"], ldm["ldm134_visible"], rec.ldm134_indices, ldm134_confidence))
+            write_csv(out / "ldm106_detector2d.csv", _landmark_rows_2d(rec.detector_landmarks106, ldm["ldm106_visible"], rec.ldm106_indices))
             # Landmarks in original image pixel coordinates (224→original)
             write_csv(out / "ldm106_original.csv", _landmark_rows_2d(ldm106_original, ldm["ldm106_visible"], rec.ldm106_indices))
             write_csv(out / "ldm134_original.csv", _landmark_rows_2d(ldm134_original, ldm["ldm134_visible"], rec.ldm134_indices))
@@ -396,10 +428,19 @@ class Stage1Engine:
                 "ldm106_raw": "ldm106_raw.csv",
                 "ldm106_aligned": "ldm106_aligned.csv",  # DEPRECATED: yaw-only
                 "ldm106_chronology": "ldm106_chronology.csv",  # RECOMMENDED
+                "ldm106_identity_raw": "ldm106_identity_raw.csv",  # v2.5: identity (id,0), воспроизводит chronology
+                "ldm106_identity_normalized": "ldm106_identity_normalized.csv",  # v2.5
+                "ldm106_expression_delta": "ldm106_expression_delta.csv",  # v2.5: object - identity
                 "ldm106_original": "ldm106_original.csv",  # original image px
                 "ldm134_raw": "ldm134_raw.csv",
                 "ldm134_aligned": "ldm134_aligned.csv",  # DEPRECATED: yaw-only
                 "ldm134_chronology": "ldm134_chronology.csv",  # RECOMMENDED
+                "ldm134_identity_raw": "ldm134_identity_raw.csv",  # v2.5
+                "ldm134_identity_normalized": "ldm134_identity_normalized.csv",  # v2.5
+                "ldm134_expression_delta": "ldm134_expression_delta.csv",  # v2.5
+                "ldm106_chronology_targetonly": "ldm106_chronology_targetonly.csv",  # v2.6 RECOMMENDED
+                "ldm134_chronology_targetonly": "ldm134_chronology_targetonly.csv",  # v2.6 RECOMMENDED
+                "ldm106_detector2d": "ldm106_detector2d.csv",  # v2.6: pre-3DMM, original px
                 "ldm134_original": "ldm134_original.csv",  # original image px
             })
             # Compute per-vertex visibility confidence
@@ -432,6 +473,30 @@ class Stage1Engine:
                 "rotation_matrix": rec.rotation, "translation": rec.translation, "trans_params": rec.trans_params,
                 "normalization_center": rec.normalization_center,
                 "normalization_scale": np.asarray([rec.normalization_scale], np.float32),
+                # v2.5: раздельные шкалы. identity_* воспроизводят chronology CSV;
+                # object_* — legacy (raw/object_normalized). normalization_* выше =
+                # object, оставлен для совместимости.
+                "identity_normalization_center": rec.identity_normalization_center,
+                "identity_normalization_scale": np.asarray([rec.identity_normalization_scale], np.float32),
+                "object_normalization_center": rec.object_normalization_center,
+                "object_normalization_scale": np.asarray([rec.object_normalization_scale], np.float32),
+                "vertices_identity_normalized": rec.vertices_identity_normalized,
+                "vertices_expression_delta": rec.vertices_expression_delta,
+                "ldm106_identity_normalized": ldm["ldm106_identity_normalized"],
+                "ldm106_expression_delta": ldm["ldm106_expression_delta"],
+                "ldm134_identity_normalized": ldm["ldm134_identity_normalized"],
+                "ldm134_expression_delta": ldm["ldm134_expression_delta"],
+                "chronology_outlier_count": np.asarray([rec.chronology_outlier_count], np.int64),
+                "chronology_outlier_count_legacy_mixed_space": np.asarray([rec.chronology_outlier_count_legacy_mixed_space], np.int64),
+                "correction_rotation_angle_deg": np.asarray([rec.correction_rotation_angle_deg], np.float32),
+                # v2.6: target-only канал + детектор-канал
+                "vertices_chronology_targetonly": rec.vertices_chronology_targetonly,
+                "chronology_targetonly_matrix": rec.chronology_targetonly_matrix,
+                "ldm106_chronology_targetonly": ldm["ldm106_chronology_targetonly"],
+                "ldm134_chronology_targetonly": ldm["ldm134_chronology_targetonly"],
+                "detector_landmarks106_original_px": rec.detector_landmarks106,
+                "detector_face_count": np.asarray([rec.detector_face_count], np.int64),
+                "detector_residual106_px": rec.detector_residual106_px,
                 "canonical_rotation_row_matrix": rec.canonical_rotation,
                 "chronology_correction_matrix": rec.chronology_correction_matrix,
                 "chronology_target_pose": rec.chronology_target_pose,
@@ -471,25 +536,25 @@ class Stage1Engine:
             # - EXPRESSION_CORNER_LIFT_THRESHOLD (0.005) — подъём уголков рта
             # - EXPRESSION_JAW_OPEN_THRESHOLD (0.28) — раскрытие рта
             _ = EXPRESSION_MAGNITUDE_THRESHOLD  # используется stage2/engine.py
-            # Compute alignment quality: how much correction was applied
-            # Lower is better (less correction needed = more reliable)
+            # v2.7: честные имена. Запрошенная коррекция (requested) — это НЕ
+            # измеренный post-alignment residual: оставшаяся поза после поворота
+            # не измеряется, а предполагается нулевой. Старые имена residual_* /
+            # correction_* / alignment_quality оставлены как deprecated-алиасы.
             actual_pose = np.array([float(rec.angles_deg[0]), float(rec.angles_deg[1]), float(rec.angles_deg[2])])
             target_pose = np.array([0.0, float(rec.canonical_yaw), 0.0])
             correction_per_axis = np.abs(actual_pose - target_pose)
-
-            # Compute residual pose after correction
-            # This is the remaining pose difference after applying chronology alignment
-            # Ideally should be close to [0, 0, 0]
-            # Residual = actual - target (what we tried to correct)
-            residual_pose = actual_pose - target_pose
-            residual_pitch = float(residual_pose[0])
-            residual_yaw = float(residual_pose[1])
-            residual_roll = float(residual_pose[2])
+            requested_correction = actual_pose - target_pose
+            requested_correction_pitch = float(requested_correction[0])
+            requested_correction_yaw = float(requested_correction[1])
+            requested_correction_roll = float(requested_correction[2])
             # Weight yaw less (expected to be larger), pitch/roll more (should be near 0)
-            alignment_quality = float(1.0 - np.clip(
+            pose_correction_proximity_score = float(1.0 - np.clip(
                 (correction_per_axis[0] / 15.0 + correction_per_axis[1] / 30.0 + correction_per_axis[2] / 15.0) / 3.0,
                 0.0, 1.0
             ))
+            alignment_quality = pose_correction_proximity_score  # DEPRECATED alias
+            residual_pitch, residual_yaw, residual_roll = (  # DEPRECATED aliases
+                requested_correction_pitch, requested_correction_yaw, requested_correction_roll)
             correction_magnitude_deg = float(np.linalg.norm(correction_per_axis))
             # Compute expression magnitude from alpha_exp
             # alpha_exp is a 64-dim vector representing expression coefficients
@@ -566,7 +631,10 @@ class Stage1Engine:
 
             source_provenance=load_provenance_sidecar(path)
             info = {
-                "schema_version": PHOTO_SCHEMA_VERSION, "photo_id": photo_id,
+                "schema_version": PHOTO_SCHEMA_VERSION, "pipeline_version": PIPELINE_VERSION,
+                "pose_policy": {"version": POSE_POLICY_VERSION, "sha256": self.pose_policy_hash,
+                                "yaw_sign": POSE_POLICY_YAW_SIGN, "centers": list(POSE_POLICY_CENTERS)},
+                "photo_id": photo_id,
                 "source_filename": path.name, "source_relative_path": self._relative(path), "source_digest": source_hash,
                 "date": parsed.date_iso or None, "date_year": parsed.year or None, "date_month": parsed.month or None,
                 "date_day": parsed.day or None, "same_date_sequence": parsed.sequence,
@@ -581,8 +649,22 @@ class Stage1Engine:
                 "chronology": {
                     "alignment_method": "full_pose_correction_v1",
                     "applied_rotation": rec.chronology_correction_matrix.tolist(),
-                    "applied_scale": float(rec.normalization_scale),
-                    "applied_center": rec.normalization_center.tolist(),
+                    # v2.5 FIX: applied_* теперь identity-only — именно они
+                    # воспроизводят CSV через ((V_identity-center)/scale)@R.
+                    # Старые object-значения сохранены как legacy для аудита.
+                    "applied_scale": float(rec.identity_normalization_scale),
+                    "applied_center": rec.identity_normalization_center.tolist(),
+                    "applied_scale_legacy_object": float(rec.object_normalization_scale),
+                    "applied_center_legacy_object": rec.object_normalization_center.tolist(),
+                    "identity_center": rec.identity_normalization_center.tolist(),
+                    "identity_scale": float(rec.identity_normalization_scale),
+                    "object_center": rec.object_normalization_center.tolist(),
+                    "object_scale": float(rec.object_normalization_scale),
+                    "scale_ratio_object_over_identity": float(rec.object_normalization_scale / max(rec.identity_normalization_scale, 1e-12)),
+                    "expression_delta_norm": float(np.linalg.norm(rec.alpha_exp)),
+                    "outlier_count": int(rec.chronology_outlier_count),
+                    "outlier_count_legacy_mixed_space": int(rec.chronology_outlier_count_legacy_mixed_space),
+                    "correction_rotation_angle_deg": float(rec.correction_rotation_angle_deg),
                     "target_pose": rec.chronology_target_pose.tolist(),
                     "actual_pose": rec.angles_deg.tolist(),
                     "pose_bin": rec.pose_bin,
@@ -592,13 +674,18 @@ class Stage1Engine:
                     "alignment_csv_106": "ldm106_chronology.csv",
                     "alignment_csv_134": "ldm134_chronology.csv",
                     "alignment_quality": alignment_quality,
+                    "pose_correction_proximity_score": pose_correction_proximity_score,
                     "correction_magnitude_deg": correction_magnitude_deg,
+                    "requested_correction_pitch_deg": requested_correction_pitch,
+                    "requested_correction_yaw_deg": requested_correction_yaw,
+                    "requested_correction_roll_deg": requested_correction_roll,
                     "correction_pitch_deg": float(correction_per_axis[0]),
                     "correction_yaw_deg": float(correction_per_axis[1]),
                     "correction_roll_deg": float(correction_per_axis[2]),
                     "residual_pitch_deg": residual_pitch,
                     "residual_yaw_deg": residual_yaw,
                     "residual_roll_deg": residual_roll,
+                    "residual_note": "DEPRECATED aliases of requested_correction_*: requested (assumed), not measured post-alignment residual.",
                     "reprojection_p95": reprojection_p95,
                     "reprojection_rmse": reprojection_rmse,
                     "expression_magnitude": expression_magnitude,
@@ -610,16 +697,50 @@ class Stage1Engine:
                     "pose_confidence": pose_confidence,
                     "detection_confidence": detection_confidence,
                     "face_area_ratio": float(face_area_ratio),
-                    "description": "Full pose correction (pitch+yaw+roll) to canonical pose. Use chronology CSVs for within-bin comparison."
+                    "expression_magnitude_note": "Model-estimated expression norm (alpha_exp L2), potentially pose/quality dependent; not an independent mimicry measurement.",
+                    "alignment_quality_note": "DEPRECATED name: function of correction magnitude (pose_correction_proximity_score), not measured alignment quality.",
+                    "description": "Full pose correction (pitch+yaw+roll) to canonical pose. applied_* are identity-only (v2.5) and reproduce chronology CSVs via ((V_identity-center)/scale)@R. SENSITIVITY channel: inverts actual pose into object-space mesh (wrong-space bug); prefer chronology_targetonly."
                 },
+                "chronology_targetonly": {
+                    "alignment_method": "target_only_pose_v1",
+                    "applied_matrix": rec.chronology_targetonly_matrix.tolist(),
+                    "identity_center": rec.identity_normalization_center.tolist(),
+                    "identity_scale": float(rec.identity_normalization_scale),
+                    "target_pose": [0.0, float(rec.canonical_yaw), 0.0],
+                    "pose_bin": rec.pose_bin,
+                    "canonical_yaw": float(rec.canonical_yaw),
+                    "alignment_csv_106": "ldm106_chronology_targetonly.csv",
+                    "alignment_csv_134": "ldm134_chronology_targetonly.csv",
+                    "description": "RECOMMENDED comparison channel (v2.6): identity_normalized @ R_target, no inversion of actual pose, no pose-metadata dependence."
+                },
+                "detector": {
+                    "method": "LargeBaseLmkInfer-106 pre-3DMM",
+                    "independence": "different network and forward than net_recon; shared crop only; residual shared-crop risk noted",
+                    "face_count": int(rec.detector_face_count),
+                    "landmarks_csv": "ldm106_detector2d.csv",
+                    "coordinate_space": "oriented input pixels, top-left origin",
+                    "reprojection": json.loads(json.dumps(rec.detector_reprojection, default=str)),
+                    "description": "Independent 2D channel (exists before 3DMM fit). ldm106: P50/P95/max + thirds; ldm134 has no detector counterpart (honestly unavailable)."
+                },
+                "reprojection_consistency_note": "reprojection.* (ldm106/134_224 p95<=5px) is INTERNAL consistency (3DMM vs itself), not a scientific gate.",
                 "camera": {"projection": "perspective", "focal": 1015.0, "principal_point": [112.0, 112.0],
                            "camera_distance": 10.0, "render_size": [224, 224]},
-                "normalization": {"method": "full_mesh_rms_v1", "center": rec.normalization_center.tolist(),
-                                  "scale": float(rec.normalization_scale)},
+                "normalization": {"method": "full_mesh_rms_v1",
+                                  "center": rec.object_normalization_center.tolist(),
+                                  "scale": float(rec.object_normalization_scale),
+                                  "identity_center": rec.identity_normalization_center.tolist(),
+                                  "identity_scale": float(rec.identity_normalization_scale),
+                                  "object_center": rec.object_normalization_center.tolist(),
+                                  "object_scale": float(rec.object_normalization_scale)},
                 "landmark_contract": {
                     "raw": "object identity+expression",
                     "aligned": "full-mesh RMS normalized then pose-bin canonical yaw (yaw only)",
-                    "chronology": "full pose correction (pitch+yaw+roll) to canonical pose, identity-only vertices"
+                    "chronology": "SENSITIVITY (wrong-space bug): inverts actual pose into object-space mesh; replay: ((V_identity-identity_center)/identity_scale)@R_corr",
+                    "chronology_targetonly": "RECOMMENDED: identity_normalized @ R_target(0,canonical_yaw,0); replay: ((V_identity-identity_center)/identity_scale)@R_target",
+                    "detector2d": "pre-3DMM LargeBaseLmkInfer 106 pts, oriented input px; independent 2D channel",
+                    "identity_raw": "identity-only (id, exp=0), unnormalized object space; reproduces chronology with identity_center/identity_scale + R_corr",
+                    "identity_normalized": "(identity_raw - identity_center)/identity_scale",
+                    "expression_delta": "object - identity (removed by zero_exp)"
                 },
                 "mask": {"status": mask.status, "error": mask.error, **mask.metadata},
                 "uv": {"status": "valid", **uv_meta}, "quality_inputs": quality,

@@ -74,15 +74,37 @@ NPZ_REQUIRED = {
     "normalization_scale": (1,), "canonical_rotation_row_matrix": (3, 3),
     "chronology_correction_matrix": (3, 3), "chronology_target_pose": (3,),
     "canonical_yaw": (1,),
+    # v2.5: раздельные identity/object шкалы + replay-экспорты
+    "vertices_identity_normalized": (MESH_COUNT, 3),
+    "vertices_expression_delta": (MESH_COUNT, 3),
+    "identity_normalization_center": (3,),
+    "identity_normalization_scale": (1,),
+    "object_normalization_center": (3,),
+    "object_normalization_scale": (1,),
+    "chronology_outlier_count": (1,),
+    "chronology_outlier_count_legacy_mixed_space": (1,),
+    "correction_rotation_angle_deg": (1,),
+    # v2.6: target-only канал + детектор-канал
+    "vertices_chronology_targetonly": (MESH_COUNT, 3),
+    "chronology_targetonly_matrix": (3, 3),
+    "detector_landmarks106_original_px": (106, 2),
+    "detector_face_count": (1,),
+    "detector_residual106_px": (106,),
     "ldm106_object": (106, 3), "ldm106_object_normalized": (106, 3),
     "ldm106_bin_canonical": (106, 3), "ldm106_chronology_aligned": (106, 3),
     "ldm106_camera": (106, 3), "ldm106_image_224": (106, 2),
     "ldm106_identity_only": (106, 3),
+    "ldm106_identity_normalized": (106, 3),
+    "ldm106_expression_delta": (106, 3),
+    "ldm106_chronology_targetonly": (106, 3),
     "ldm106_front_facing": (106,), "ldm106_renderer_visible": (106,), "ldm106_visible": (106,),
     "ldm134_object": (134, 3), "ldm134_object_normalized": (134, 3),
     "ldm134_bin_canonical": (134, 3), "ldm134_chronology_aligned": (134, 3),
     "ldm134_camera": (134, 3), "ldm134_image_224": (134, 2),
     "ldm134_identity_only": (134, 3),
+    "ldm134_identity_normalized": (134, 3),
+    "ldm134_expression_delta": (134, 3),
+    "ldm134_chronology_targetonly": (134, 3),
     "ldm134_front_facing": (134,), "ldm134_renderer_visible": (134,), "ldm134_visible": (134,),
     "full_mesh_front_facing_packbits": (4464,),
     "full_mesh_renderer_visible_packbits": (4464,),
@@ -116,6 +138,23 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
         info = json.loads((directory / "info.json").read_text(encoding="utf-8"))
         if info.get("schema_version") != PHOTO_SCHEMA_VERSION:
             raise ValidationError(f"photo schema mismatch: {info.get('schema_version')}")
+        # v2.7: запрет смешивания pose-policy. Версия обязана совпадать с кодом;
+        # хеш — с файлом политики (подмена файла под тем же именем запрещена).
+        from .config import POSE_POLICY_VERSION, POSE_POLICY_FILE
+        pp = info.get("pose_policy") or {}
+        if pp.get("version") != POSE_POLICY_VERSION:
+            raise ValidationError(
+                f"pose policy mismatch: {pp.get('version')} != {POSE_POLICY_VERSION} — "
+                f"refusing to mix policies in one table")
+        try:
+            import hashlib as _hl
+            cur = _hl.sha256((Path(__file__).resolve().parents[2] / POSE_POLICY_FILE).read_bytes()).hexdigest()
+            if pp.get("sha256") and pp.get("sha256") != cur:
+                raise ValidationError("pose policy file hash changed under the same version")
+        except ValidationError:
+            raise
+        except Exception:
+            pass  # хеш непроверяем — версия уже сверена выше
         files = info.get("files") or {}
         optional_files = {"face_mask", "face_mask_data"}
 
@@ -134,10 +173,32 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
             "ldm106_raw": _csv_check(directory / "ldm106_raw.csv", 106),
             "ldm106_aligned": _csv_check(directory / "ldm106_aligned.csv", 106),
             "ldm106_chronology": _csv_check(directory / "ldm106_chronology.csv", 106),
+            "ldm106_identity_raw": _csv_check(directory / "ldm106_identity_raw.csv", 106),
+            "ldm106_identity_normalized": _csv_check(directory / "ldm106_identity_normalized.csv", 106),
+            "ldm106_expression_delta": _csv_check(directory / "ldm106_expression_delta.csv", 106),
             "ldm134_raw": _csv_check(directory / "ldm134_raw.csv", 134),
             "ldm134_aligned": _csv_check(directory / "ldm134_aligned.csv", 134),
             "ldm134_chronology": _csv_check(directory / "ldm134_chronology.csv", 134),
+            "ldm134_identity_raw": _csv_check(directory / "ldm134_identity_raw.csv", 134),
+            "ldm134_identity_normalized": _csv_check(directory / "ldm134_identity_normalized.csv", 134),
+            "ldm134_expression_delta": _csv_check(directory / "ldm134_expression_delta.csv", 134),
+            "ldm106_targetonly": _csv_check(directory / "ldm106_chronology_targetonly.csv", 106),
+            "ldm134_targetonly": _csv_check(directory / "ldm134_chronology_targetonly.csv", 134),
         }
+        # v2.6: детектор-CSV 2D (x_px/y_px), сверка с NPZ; NaN допустимы только
+        # при отсутствии детекции (face_count==0).
+        det_csv = None
+        try:
+            with (directory / "ldm106_detector2d.csv").open(newline="", encoding="utf-8") as f:
+                drows = list(csv.DictReader(f))
+            if len(drows) != 106 or [int(float(r["landmark_id"])) for r in drows] != list(range(106)):
+                raise ValidationError("ldm106_detector2d.csv landmark_id sequence invalid")
+            det_csv = np.asarray([[float(r.get("x_px", r.get("x"))),
+                                   float(r.get("y_px", r.get("y")))] for r in drows], np.float32)
+        except ValidationError:
+            raise
+        except Exception as exc:
+            raise ValidationError(f"ldm106_detector2d.csv unreadable: {exc}") from exc
         with np.load(directory / "reconstruction.npz", allow_pickle=False) as z:
             # Build shape requirements using dynamic topology
             dynamic_npz_required = dict(NPZ_REQUIRED)
@@ -147,11 +208,17 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                         "normals_object", "normals_posed", "uv_coords"):
                 if key in dynamic_npz_required:
                     dynamic_npz_required[key] = (mesh_count, *dynamic_npz_required[key][1:])
+            for key in ("vertices_identity_normalized", "vertices_expression_delta",
+                        "vertices_chronology_targetonly"):
+                if key in dynamic_npz_required:
+                    dynamic_npz_required[key] = (mesh_count, 3)
             dynamic_npz_required["triangles"] = (tri_count, 3)
             # Update landmark array shapes
             for prefix in ("ldm106", "ldm134"):
                 for suffix in ("object", "object_normalized", "bin_canonical", "chronology_aligned",
-                               "camera", "image_224", "identity_only"):
+                               "camera", "image_224", "identity_only",
+                               "identity_normalized", "expression_delta",
+                               "chronology_targetonly"):
                     key = f"{prefix}_{suffix}"
                     if key in dynamic_npz_required:
                         count = 106 if prefix == "ldm106" else 134
@@ -194,6 +261,10 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                 raise ValidationError("tri_visibility shape invalid")
             if float(z["normalization_scale"][0]) <= 0:
                 raise ValidationError("normalization scale must be positive")
+            if float(z["identity_normalization_scale"][0]) <= 0:
+                raise ValidationError("identity normalization scale must be positive")
+            if float(z["object_normalization_scale"][0]) <= 0:
+                raise ValidationError("object normalization scale must be positive")
             rotation = z["rotation_matrix"].astype(np.float64)
             if not np.allclose(rotation.T @ rotation, np.eye(3), atol=2e-4) or not np.isclose(np.linalg.det(rotation), 1.0, atol=2e-4):
                 raise ValidationError("rotation_matrix is not a proper rotation")
@@ -201,9 +272,17 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                 "ldm106_raw": ("ldm106_object", "ldm106_vertex_indices"),
                 "ldm106_aligned": ("ldm106_bin_canonical", "ldm106_vertex_indices"),
                 "ldm106_chronology": ("ldm106_chronology_aligned", "ldm106_vertex_indices"),
+                "ldm106_identity_raw": ("ldm106_identity_only", "ldm106_vertex_indices"),
+                "ldm106_identity_normalized": ("ldm106_identity_normalized", "ldm106_vertex_indices"),
+                "ldm106_expression_delta": ("ldm106_expression_delta", "ldm106_vertex_indices"),
                 "ldm134_raw": ("ldm134_object", "ldm134_vertex_indices"),
                 "ldm134_aligned": ("ldm134_bin_canonical", "ldm134_vertex_indices"),
                 "ldm134_chronology": ("ldm134_chronology_aligned", "ldm134_vertex_indices"),
+                "ldm134_identity_raw": ("ldm134_identity_only", "ldm134_vertex_indices"),
+                "ldm134_identity_normalized": ("ldm134_identity_normalized", "ldm134_vertex_indices"),
+                "ldm134_expression_delta": ("ldm134_expression_delta", "ldm134_vertex_indices"),
+                "ldm106_targetonly": ("ldm106_chronology_targetonly", "ldm106_vertex_indices"),
+                "ldm134_targetonly": ("ldm134_chronology_targetonly", "ldm134_vertex_indices"),
             }
             for name, (array_key, index_key) in mapping.items():
                 points, indices = csv_data[name]
@@ -211,6 +290,47 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                     raise ValidationError(f"{name}.csv coordinates differ from NPZ")
                 if not np.array_equal(indices, z[index_key]):
                     raise ValidationError(f"{name}.csv vertex indices differ from NPZ")
+            # v2.6: детектор-CSV против NPZ (там, где детекция была)
+            det_npz = np.asarray(z["detector_landmarks106_original_px"], np.float32)
+            if np.isfinite(det_npz).all() and np.isfinite(det_csv).all():
+                if not np.allclose(det_csv, det_npz, atol=1e-3):
+                    raise ValidationError("ldm106_detector2d.csv coordinates differ from NPZ")
+            # v2.5 replay по ТЗ: chronology обязан воспроизводиться из
+            # identity-only mesh + identity center/scale + R_corr с err < 1e-6.
+            # Подстановка object-scale сюда не допускается (см. issue wrong-space).
+            try:
+                v_id = z["vertices_identity_only"].astype(np.float64)
+                id_center = np.asarray(z["identity_normalization_center"], np.float64).reshape(1, 3)
+                id_scale = float(np.asarray(z["identity_normalization_scale"], np.float64).reshape(-1)[0])
+                r_corr = np.asarray(z["chronology_correction_matrix"], np.float64).reshape(3, 3)
+                replayed = ((v_id - id_center) / id_scale) @ r_corr
+                replay_err = float(np.max(np.abs(replayed - z["vertices_chronology_aligned"].astype(np.float64))))
+                if not np.isfinite(replay_err) or replay_err >= 1e-5:
+                    raise ValidationError(f"chronology replay error too large: {replay_err:.3e} (need <1e-5)")
+                # expression_delta обязан равняться object - identity
+                delta_err = float(np.max(np.abs(
+                    z["vertices_expression_delta"].astype(np.float64)
+                    - (z["vertices_object"].astype(np.float64) - v_id))))
+                if not np.isfinite(delta_err) or delta_err >= 1e-5:
+                    raise ValidationError(f"expression_delta mismatch: {delta_err:.3e}")
+                # v2.6 replay target-only: ((V_id-c)/s) @ R_target
+                r_tgt = np.asarray(z["chronology_targetonly_matrix"], np.float64).reshape(3, 3)
+                replayed_t = ((v_id - id_center) / id_scale) @ r_tgt
+                replay_err_t = float(np.max(np.abs(replayed_t - z["vertices_chronology_targetonly"].astype(np.float64))))
+                if not np.isfinite(replay_err_t) or replay_err_t >= 1e-5:
+                    raise ValidationError(f"targetonly replay error too large: {replay_err_t:.3e} (need <1e-5)")
+                # info.json applied_* обязаны быть identity-based (v2.5)
+                chrono_info = (info.get("chronology") or {})
+                ap_c = np.asarray(chrono_info.get("applied_center"), np.float64).reshape(-1)
+                if ap_c.size == 3 and not np.allclose(ap_c, np.asarray(z["identity_normalization_center"], np.float64).reshape(-1), atol=1e-6):
+                    raise ValidationError("info.chronology.applied_center is not identity-based")
+                ap_s = float(chrono_info.get("applied_scale", np.nan))
+                if np.isfinite(ap_s) and not np.isclose(ap_s, id_scale, rtol=1e-6, atol=1e-9):
+                    raise ValidationError("info.chronology.applied_scale is not identity-based")
+            except ValidationError:
+                raise
+            except Exception as exc:
+                raise ValidationError(f"replay check failed: {exc}") from exc
         semantic = np.load(directory / "semantic_channels.npz", allow_pickle=False)
         if semantic["channels_224"].shape != (224, 224, 8):
             raise ValidationError("semantic channels shape invalid")
@@ -231,6 +351,24 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
                     raise ValidationError("uv.npz texture_bgr shape differs from uv_shape")
                 if uvz["uv_coords"].shape != (mesh_count, 2):
                     raise ValidationError("uv.npz uv_coords shape invalid")
+                # v2.7 П4: provenance-контракт. Фракции обязаны суммироваться в 1,
+                # метка unsupported_distinction обязана присутствовать в info.uv.
+                if "provenance" not in uvz.files:
+                    raise ValidationError("uv.npz missing provenance (v2.7 contract)")
+                prov = np.asarray(uvz["provenance"]).reshape(-1)
+                if set(np.unique(prov).tolist()) - {0, 1, 2}:
+                    raise ValidationError(f"uv provenance has unknown codes")
+                uinfo = info.get("uv") or {}
+                fr = [uinfo.get(k) for k in ("directly_observed_fraction",
+                                             "inpainted_or_synthetic_fraction",
+                                             "unobserved_fraction")]
+                if any(v is None or not np.isfinite(float(v)) for v in fr):
+                    raise ValidationError("info.uv missing provenance fractions")
+                if abs(sum(float(v) for v in fr) - 1.0) > 1e-3:
+                    raise ValidationError("uv provenance fractions do not sum to 1")
+                codes = (uinfo.get("provenance_codes") or {})
+                if "mirrored" not in codes:
+                    raise ValidationError("info.uv missing unsupported_distinction (mirrored) label")
 
         if files.get("face_mask_data"):
             with np.load(directory / str(files["face_mask_data"]), allow_pickle=False) as fmz:

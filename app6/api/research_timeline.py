@@ -22,7 +22,11 @@ from typing import Any
 
 from .photo_fields import merge_photo_fields
 from .ui_fields import UI_FIELDS_SCHEMA, validate_ui_row
-from datetime import UTC
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+    UTC = timezone.utc
 
 RESEARCH_TIMELINE_SCHEMA = "deeputin-api-research-timeline-v1.0"
 

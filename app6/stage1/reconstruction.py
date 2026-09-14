@@ -21,8 +21,40 @@ from typing import Any
 
 import numpy as np
 
-from .geometry import classify_pose, compute_chronology_alignment, normalize_mesh, reprojection_stats, row_rotation_matrix
+from .geometry import classify_pose, compute_chronology_alignment, correction_rotation_angle_deg, normalize_mesh, reprojection_stats, row_rotation_matrix
 from .status_logger import log_status
+
+
+def _patch_torch_load_for_legacy_torch() -> None:
+    """Совместимость вендорного 3DDFA с torch<2.0.
+
+    Вендорный код вызывает torch.load(..., weights_only=False), а kwarg
+    weights_only появился только в torch 2.x. На torch 1.12 отбрасываем
+    kwarg (поведение = старый default unpickle; грузим только локальные
+    доверенные assets). На torch>=2 ничего не меняем.
+    """
+    try:
+        import inspect as _inspect
+        import torch as _torch
+    except ImportError:
+        return
+    try:
+        params = _inspect.signature(_torch.load).parameters
+    except (TypeError, ValueError):
+        return
+    if "weights_only" in params or getattr(_torch.load, "_deeputin_patched", False):
+        return
+    _orig_load = _torch.load
+
+    def _compat_load(*args: Any, **kwargs: Any) -> Any:
+        kwargs.pop("weights_only", None)
+        return _orig_load(*args, **kwargs)
+
+    _compat_load._deeputin_patched = True  # type: ignore[attr-defined]
+    _torch.load = _compat_load  # type: ignore[method-assign]
+
+
+_patch_torch_load_for_legacy_torch()
 
 
 @dataclass
@@ -58,9 +90,32 @@ class ReconstructionBundle:
     alpha_sh: np.ndarray
     normalization_center: np.ndarray
     normalization_scale: float
+    # v2.5: раздельные identity/object нормировки. normalization_* выше =
+    # object (id+exp), оставлен для обратной совместимости. Истинные
+    # identity-only (id, exp=0) — поля ниже; именно они воспроизводят CSV.
+    identity_normalization_center: np.ndarray
+    identity_normalization_scale: float
+    object_normalization_center: np.ndarray
+    object_normalization_scale: float
+    vertices_identity_normalized: np.ndarray
+    vertices_expression_delta: np.ndarray
     canonical_rotation: np.ndarray
     chronology_correction_matrix: np.ndarray
     chronology_target_pose: np.ndarray
+    # v2.5: outlier gate в одном пространстве (identity). Старый mixed-space
+    # счётчик оставлен как deprecated для сравнения старого/нового отбора.
+    chronology_outlier_count: int
+    chronology_outlier_threshold: float
+    chronology_outlier_count_legacy_mixed_space: int
+    correction_rotation_angle_deg: float
+    # v2.6: target-only chronology (поворот в canonicalyaw без инверсии actual
+    # pose; старый R_corr путь оставлен как sensitivity). И детектор-канал.
+    vertices_chronology_targetonly: np.ndarray
+    chronology_targetonly_matrix: np.ndarray
+    detector_landmarks106: np.ndarray | None
+    detector_face_count: int
+    detector_reprojection: dict[str, Any]
+    detector_residual106_px: np.ndarray
     reprojection: dict[str, dict[str, float]]
     raw_results: dict[str, Any]
 
@@ -75,6 +130,12 @@ class ReconstructionBundle:
             out[f"{key}_chronology_aligned"] = self.vertices_chronology_aligned[idx]
             out[f"{key}_camera"] = self.vertices_camera[idx]
             out[f"{key}_image_224"] = self.vertices_image_224[idx]
+            # v2.5: раздельные identity/object экспорты (replay по ТЗ)
+            out[f"{key}_identity_raw"] = self.vertices_identity_only[idx]
+            out[f"{key}_identity_normalized"] = self.vertices_identity_normalized[idx]
+            out[f"{key}_expression_delta"] = self.vertices_expression_delta[idx]
+            # v2.6: target-only канал сравнения (без инверсии actual pose)
+            out[f"{key}_chronology_targetonly"] = self.vertices_chronology_targetonly[idx]
             out[f"{key}_front_facing"] = self.front_facing[idx].astype(np.uint8)
             out[f"{key}_renderer_visible"] = self.renderer_visible[idx].astype(np.uint8)
             out[f"{key}_visible"] = self.combined_visible[idx].astype(np.uint8)
@@ -106,7 +167,10 @@ class ReconstructionEngine:
                 useTex=True, extractTex=False, use_hd_uv=False,
             )
             self.model = face_model(args)
-            self.detector = face_box(args).detector
+            _fb = face_box(args)
+            self.detector = _fb.detector
+            # v2.6: доступ к impl детектора ради 106 точек до 3DMM
+            self._facebox = _fb
         finally:
             os.chdir(cwd)
 
@@ -184,6 +248,13 @@ class ReconstructionEngine:
         trans, tensor = self.detector(image)
         if tensor is None or trans is None:
             raise RuntimeError("face detector returned no aligned crop")
+        # v2.6: 106 точек детектора ДО 3DMM (независимый 2D-канал, top-left px
+        # ориентированного входа). None только при no-face fallback.
+        impl = getattr(getattr(self, "_facebox", None), "impl", None)
+        detector_lmks_106 = getattr(impl, "last_lmks_106", None)
+        detector_face_count = int(getattr(impl, "last_face_count", 0) or 0)
+        if detector_lmks_106 is not None:
+            detector_lmks_106 = np.asarray(detector_lmks_106, np.float32).reshape(106, 2)
 
         # 🎯 CRITICAL: Sanity check for upside-down photos
         # If the face is upside down, 3DDFA will produce incorrect pose
@@ -257,6 +328,10 @@ class ReconstructionEngine:
         translation = self._np(alpha["trans"])[0].astype(np.float32)
 
         normalized, center, scale = normalize_mesh(vertices_object)
+        # v2.5: истинная identity-only нормировка — именно она внутри chrono.
+        # object center/scale выше оставлены как legacy (не воспроизводят CSV).
+        identity_normalized, identity_center, identity_scale = normalize_mesh(vertices_identity)
+        expression_delta = (vertices_object - vertices_identity).astype(np.float32)
         pose_bin, canonical_yaw = classify_pose(float(angles_deg[1]))
         canonical_rotation = row_rotation_matrix(0.0, canonical_yaw, 0.0)
         canonical = (normalized @ canonical_rotation).astype(np.float32)
@@ -274,16 +349,34 @@ class ReconstructionEngine:
         vertices_chronology_aligned = chrono["vertices_aligned"]
         chronology_correction_matrix = chrono["correction_matrix"]
         chronology_target_pose = chrono["target_pose"]
+        # v2.5: chrono["center"]/chrono["scale"] обязаны совпасть с identity-only
+        # нормировкой выше (одна и та же функция от одного меша). Проверяем.
+        if not np.allclose(chrono["center"], identity_center, atol=1e-6):
+            raise RuntimeError("chronology center diverged from identity normalization")
+        if not np.isclose(float(chrono["scale"]), float(identity_scale), rtol=1e-6, atol=1e-9):
+            raise RuntimeError("chronology scale diverged from identity normalization")
+        correction_rotation_angle = correction_rotation_angle_deg(chronology_correction_matrix)
         # Validate chronology alignment: must be finite (no NaN/Inf from bad reconstruction)
         if not np.isfinite(vertices_chronology_aligned).all():
             raise RuntimeError("chronology alignment produced NaN/Inf vertices — bad 3DDFA reconstruction")
-        # 🎯 CRITICAL: Outlier detection for chronology vertices
-        # Vertices with extreme displacement may indicate bad reconstruction
-        # Compute displacement from normalized (before rotation)
-        displacement = np.linalg.norm(vertices_chronology_aligned - normalized, axis=1)
+        # v2.6: target-only канал (рекомендуемый для сравнения): поворот
+        # нормализованного identity в canonical yaw БЕЗ инверсии actual pose.
+        # Не вносит pose-зависимость через metadata (баг №1). Старый R_corr
+        # путь выше оставлен как sensitivity-канал.
+        targetonly_matrix = row_rotation_matrix(0.0, float(canonical_yaw), 0.0)
+        vertices_chronology_targetonly = (identity_normalized @ targetonly_matrix).astype(np.float32)
+        # v2.5 FIX: outlier gate в одном пространстве (identity).
+        # Старый код сравнивал chronology_aligned (identity-based) с normalized
+        # (object-based, id+exp) — mixed-space displacement, порог смещён.
+        # Новый гейт: displacement от identity_normalized. Старый счётчик
+        # оставлен как deprecated для аудита изменения отбора.
+        displacement = np.linalg.norm(vertices_chronology_aligned - identity_normalized, axis=1)
         outlier_threshold = np.percentile(displacement, 99) * 3
         outlier_mask = displacement > outlier_threshold
         outlier_count = int(outlier_mask.sum())
+        displacement_legacy = np.linalg.norm(vertices_chronology_aligned - normalized, axis=1)
+        outlier_threshold_legacy = np.percentile(displacement_legacy, 99) * 3
+        outlier_count_legacy = int((displacement_legacy > outlier_threshold_legacy).sum())
 
         if outlier_count > 100:  # More than 100 outliers = bad reconstruction
             raise RuntimeError(
@@ -310,6 +403,76 @@ class ReconstructionEngine:
                 f"3DDFA reprojection error too high (p95={reproj_p95:.2f}px > {MAX_REPROJECTION_P95}px) — "
                 f"unreliable reconstruction for {path.name}"
             )
+
+        # v2.6/v2.7: НЕЗАВИСИМЫЙ reprojection-гейт против детектора до 3DMM.
+        # Старый p95-гейт выше — internal consistency (3DMM против самого себя),
+        # не scientific gate. Детектор LargeBaseLmkInfer — другая сеть и другой
+        # forward, чем net_recon (общий только кроп); остаточный риск общей
+        # ошибки кропа зафиксирован, порог щедрый и калибруется (0.35).
+        # ldm134 независимой пары не имеет — честно помечаем недоступность.
+        # Метрики: P50/P95/max + грубые трети по y + поточечные остатки в NPZ.
+        from .geometry import to_original_image as _to_orig
+        detector_residual106_px = np.full((106,), np.nan, np.float32)
+        detector_reprojection: dict[str, Any] = {
+            "status": "no_detector_landmarks",
+            "ldm106": {"rmse_px": float("nan"), "p50_px": float("nan"),
+                       "p95_px": float("nan"), "max_px": float("nan"),
+                       "rmse_ioc": float("nan"), "ioc_px": float("nan"),
+                       "upper_rmse_px": float("nan"), "mid_rmse_px": float("nan"),
+                       "lower_rmse_px": float("nan")},
+            "ldm134": {"status": "unavailable_no_detector_counterpart"},
+        }
+        if detector_lmks_106 is not None:
+            try:
+                det = np.asarray(detector_lmks_106, np.float64)
+                proj_orig = np.asarray(
+                    _to_orig(vertices_image[idx106][:, :2], np.asarray(trans, np.float32)),
+                    np.float64)
+                ioc = float(np.linalg.norm(det[74] - det[77]))
+                if ioc > 1.0:
+                    dd = np.linalg.norm(proj_orig - det, axis=1)
+                    detector_residual106_px = dd.astype(np.float32)
+                    ys = det[:, 1]
+                    q1, q2 = np.quantile(ys, [1 / 3, 2 / 3])
+                    # y растёт вниз (top-left origin): верх/середина/низ лица
+                    up, mid, lo = dd[ys <= q1], dd[(ys > q1) & (ys <= q2)], dd[ys > q2]
+                    rmse = float(np.sqrt(np.mean(dd * dd)))
+                    yaw_abs = abs(float(angles_deg[1]))
+                    # Калибровка 53 фото: все 17 превышений — профили |yaw|>45.
+                    # Hard-fail только frontal/near-frontal (|yaw|<=25), где
+                    # расхождение = плохой фит. Профили: измеряем, не валим.
+                    gated = yaw_abs <= 25.0
+                    detector_reprojection = {
+                        "status": "measured" if gated else "measured_profile_unchecked",
+                        "gate_yaw_limit": 25.0,
+                        "gate_threshold_ioc": 0.35,
+                        "gate_applied": bool(gated),
+                        "ldm106": {
+                            "rmse_px": rmse,
+                            "p50_px": float(np.median(dd)),
+                            "p95_px": float(np.percentile(dd, 95)),
+                            "max_px": float(np.max(dd)),
+                            "rmse_ioc": float(rmse / ioc),
+                            "ioc_px": float(ioc),
+                            "upper_rmse_px": float(np.sqrt(np.mean(up * up))) if up.size else float("nan"),
+                            "mid_rmse_px": float(np.sqrt(np.mean(mid * mid))) if mid.size else float("nan"),
+                            "lower_rmse_px": float(np.sqrt(np.mean(lo * lo))) if lo.size else float("nan"),
+                        },
+                        "ldm134": {"status": "unavailable_no_detector_counterpart"},
+                    }
+                    if gated and detector_reprojection["ldm106"]["rmse_ioc"] > 0.35:
+                        raise RuntimeError(
+                            f"detector reprojection too high "
+                            f"(rmse_ioc={detector_reprojection['ldm106']['rmse_ioc']:.3f} > 0.35, "
+                            f"|yaw|={yaw_abs:.1f}<=25) — "
+                            f"3DMM fit disagrees with pre-3DMM detector for {path.name}"
+                        )
+                else:
+                    detector_reprojection["status"] = "degenerate_detector_ioc"
+            except RuntimeError:
+                raise
+            except Exception as exc:
+                detector_reprojection = {"status": f"error: {exc}"}
 
 
         count = len(vertices_object)
@@ -347,9 +510,27 @@ class ReconstructionEngine:
             alpha_alb=self._np(alpha["alb"])[0].astype(np.float32),
             alpha_sh=self._np(alpha["sh"])[0].astype(np.float32),
             normalization_center=center, normalization_scale=scale,
+            identity_normalization_center=identity_center,
+            identity_normalization_scale=float(identity_scale),
+            object_normalization_center=center,
+            object_normalization_scale=float(scale),
+            vertices_identity_normalized=identity_normalized,
+            vertices_expression_delta=expression_delta,
             canonical_rotation=canonical_rotation,
             chronology_correction_matrix=chronology_correction_matrix,
             chronology_target_pose=chronology_target_pose,
+            chronology_outlier_count=int(outlier_count),
+            chronology_outlier_threshold=float(outlier_threshold),
+            chronology_outlier_count_legacy_mixed_space=int(outlier_count_legacy),
+            correction_rotation_angle_deg=float(correction_rotation_angle),
+            vertices_chronology_targetonly=vertices_chronology_targetonly,
+            chronology_targetonly_matrix=targetonly_matrix,
+            detector_landmarks106=(np.asarray(detector_lmks_106, np.float32)
+                                   if detector_lmks_106 is not None
+                                   else np.full((106, 2), np.nan, np.float32)),
+            detector_face_count=int(detector_face_count),
+            detector_reprojection=dict(detector_reprojection),
+            detector_residual106_px=np.asarray(detector_residual106_px, np.float32),
             reprojection=reprojection, raw_results=results,
         )
         return bundle

@@ -289,6 +289,48 @@ def reprojection_stats(projected: np.ndarray, expected: np.ndarray) -> dict[str,
     }
 
 
+def correction_rotation_angle_deg(R: np.ndarray) -> float:
+    """Угол поворота R_corr в градусах (0 = коррекции нет).
+
+    Чистая диагностика величины применённой chronology-коррекции.
+    Не является измеренным качеством выравнивания.
+    """
+    log_status("correction_rotation_angle_deg", "complete")
+    r = np.asarray(R, np.float64).reshape(3, 3)
+    if not np.isfinite(r).all():
+        raise ValueError("rotation matrix contains NaN/Inf")
+    cos_angle = float((np.trace(r) - 1.0) / 2.0)
+    cos_angle = max(-1.0, min(1.0, cos_angle))
+    return float(np.degrees(np.arccos(cos_angle)))
+
+
+def replay_identity_chronology(
+    vertices_identity: np.ndarray,
+    identity_center: np.ndarray,
+    identity_scale: float,
+    correction_matrix: np.ndarray,
+) -> np.ndarray:
+    """Точная обратная нормировка chronology по ТЗ.
+
+    V_replayed = ((V_identity - identity_center) / identity_scale) @ R_corr.
+    ВАЖНО: center/scale обязаны быть identity-only (compute_shape(id, 0)),
+    а не object (compute_shape(id, exp)). Подстановка object-scale —
+    не точная обратная нормировка, а диагностика (см. issue wrong-space).
+    """
+    log_status("replay_identity_chronology", "complete")
+    v = np.asarray(vertices_identity, np.float64)
+    c = np.asarray(identity_center, np.float64).reshape(1, 3)
+    r = np.asarray(correction_matrix, np.float64).reshape(3, 3)
+    s = float(identity_scale)
+    if v.ndim != 2 or v.shape[1] != 3:
+        raise ValueError("vertices_identity must have shape (N,3)")
+    if not np.isfinite(v).all() or not np.isfinite(c).all() or not np.isfinite(r).all():
+        raise ValueError("replay inputs contain NaN/Inf")
+    if not np.isfinite(s) or s < 1e-8:
+        raise ValueError("invalid identity scale")
+    return (((v - c) / s) @ r).astype(np.float32)
+
+
 def pack_mask(mask: np.ndarray) -> np.ndarray:
     log_status("pack_mask", "complete")
     arr = np.asarray(mask)

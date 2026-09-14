@@ -27,7 +27,12 @@ import json,os,pickle,time,shutil
 import numpy as np
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, datetime
+try:
+    from datetime import UTC, datetime
+except ImportError:
+    from datetime import timezone
+    UTC = timezone.utc
+    from datetime import datetime
 from pathlib import Path
 from typing import Any
 from app6.stage1.utils import atomic_json,json_ready,digest_file,digest_json,write_csv

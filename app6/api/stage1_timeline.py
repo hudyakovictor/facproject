@@ -8,7 +8,12 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import date, datetime, UTC
+try:
+    from datetime import date, datetime, UTC
+except ImportError:
+    from datetime import timezone
+    UTC = timezone.utc
+    from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 

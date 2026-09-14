@@ -13,7 +13,12 @@ import threading
 import traceback
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+try:
+    from datetime import UTC, datetime
+except ImportError:
+    from datetime import timezone
+    UTC = timezone.utc
+    from datetime import datetime
 from pathlib import Path
 from collections.abc import Callable
 from typing import Any

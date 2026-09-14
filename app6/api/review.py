@@ -1,7 +1,12 @@
 """Append-only manual QA and face-selection decisions."""
 from __future__ import annotations
 import json,os
-from datetime import UTC, datetime
+try:
+    from datetime import UTC, datetime
+except ImportError:
+    from datetime import timezone
+    UTC = timezone.utc
+    from datetime import datetime
 from pathlib import Path
 from typing import Any
 def append_review(project_root:Path,payload:dict[str,Any])->dict[str,Any]:

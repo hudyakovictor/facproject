@@ -24,11 +24,20 @@ class retinaface:
         # retinaface uses cuda
         self.landmark_model = LargeModelInfer("assets/large_base_net.pth", device=device)
         self.lm3d_std = load_lm3d()
+        # v2.6: полный 106-точечный детектор-прогноз в пикселях ориентированного
+        # входа (top-left origin). Раньше использовались только 5 точек на кроп,
+        # остальные 101 выбрасывались. Теперь сохраняются как независимый
+        # 2D-канал (до 3DMM) + эталон настоящего reprojection-гейта.
+        self.last_lmks_106 = None
+        self.last_face_count = 0
 
     def detector(self, im):
         img = cv2.cvtColor(np.asarray(im),cv2.COLOR_RGB2BGR)
         H = img.shape[0]
         _, results_all = self.landmark_model.infer(img)
+        self.last_face_count = int(len(results_all))
+        self.last_lmks_106 = (np.asarray(results_all[0], np.float32).reshape(106, 2)
+                              if len(results_all) > 0 else None)
         if len(results_all)>0:
             results = results_all[0] # only use the first one
             landmarks=[]
@@ -96,13 +105,16 @@ class mtcnnface:
 
 class face_box:
     def __init__(self, args):
+        self.impl = None
         if args.iscrop:
             if args.detector == 'mtcnn':
                 m = mtcnnface()
+                self.impl = m
                 self.detector = m.detector
                 print('use mtcnn for face box')
             elif args.detector == 'retinaface':
                 r = retinaface(args.device)
+                self.impl = r
                 self.detector = r.detector
                 print('use retinaface for face box')
             else:

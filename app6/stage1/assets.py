@@ -146,6 +146,16 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
     # Exactly one UV texture is serialized. Provenance masks identify observed
     # and visually filled texels, but neither is used by skin analyzers.
     filled_mask = np.asarray(aux.get("uv_synthetic_mask", np.zeros_like(observed_bool)), bool)
+    # v2.7: взаимоисключающий provenance на тексель:
+    # 0=unobserved, 1=directly_observed, 2=inpainted_or_synthetic (включая
+    # mirror: генератор НЕ различает mirror и inpaint в aux — честно
+    # документируем как неподдерживаемое различие, тихого mirror-фолбэка нет).
+    provenance = np.zeros(observed_bool.shape, np.uint8)
+    textured = observed_bool | filled_mask
+    provenance[textured & ~is_original_bool] = 2
+    provenance[observed_bool & is_original_bool] = 1
+    n_px = provenance.size
+    prov_frac = {int(k): float(np.mean(provenance == k)) for k in (0, 1, 2)}
     np.savez_compressed(
         out / "uv.npz",
         texture_bgr=np.asarray(uv_render, np.uint8),
@@ -154,6 +164,7 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         filled_mask=filled_mask,
         is_original_mask=is_original_bool,
         valid_mask=valid_mask,
+        provenance=provenance,
         tri_visibility=tri_visibility,
         uv_shape=np.asarray(observed_bool.shape, np.int32),
         valid_threshold=np.asarray([valid_threshold], np.float32),
@@ -177,6 +188,13 @@ def save_uv_and_mesh(bgr: np.ndarray, bundle: Any, out: Path, uv_size: int, skin
         "original_coverage": float(np.mean(is_original_bool)),
         "valid_coverage": float(np.mean(valid_mask)),
         "valid_threshold": float(valid_threshold),
+        # v2.7: честные доли provenance (не называть всё покрытие наблюдаемым).
+        "directly_observed_fraction": prov_frac[1],
+        "inpainted_or_synthetic_fraction": prov_frac[2],
+        "unobserved_fraction": prov_frac[0],
+        "provenance_codes": {"0": "unobserved", "1": "directly_observed",
+                             "2": "inpainted_or_synthetic_incl_mirror",
+                             "mirrored": "unsupported_distinction_folded_into_2"},
         "mean_confidence_observed": float(np.mean(confidence_01[observed_bool])) if np.any(observed_bool) else 0.0,
         "confidence_semantics": "uv_confidence.png is a binary visual valid mask; uv.npz stores UV texture pixels, continuous 0..1 confidence, component masks, UV coords and triangle visibility; valid_mask = observed AND original AND confidence >= threshold",
         "render_fill_policy": "contralateral mirror plus tiny-hole inpaint inside the single visualization render; never evidence",

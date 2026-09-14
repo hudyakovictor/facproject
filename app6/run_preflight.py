@@ -31,6 +31,60 @@ def audit_calibration_index(index_path:Path,data_root:Path,check_files:bool=True
     for r in rows: counts.setdefault(str(r.get('dataset_id')),{}).setdefault(str(r.get('pose_bin')),0);counts[str(r.get('dataset_id'))][str(r.get('pose_bin'))]+=1
     return {'status':'ready' if not errors else 'blocked','rows':len(rows),'people':people,'pose_bins':poses,'counts':counts,'missing_file_count':len(missing_files),'missing_file_examples':missing_files[:20],'errors':errors,'warnings':warnings}
 
+def audit_texture_atlas(root:Path)->dict:
+    """Fail-fast контракт текстурного атласа (ТЗ: без автогенерации и fallback).
+
+    Проверяет app6/atlas/texture_zones_bfm35709_v3.npz против BFM assets:
+    существование, ключи, triangle count == 70789 == BFM tri, диапазоны
+    main/subzone labels, digest топологии, версия схемы. Анатомическая
+    семантика зон здесь НЕ проверяется (требует канонического источника +
+    визуального preview вне preflight). Автогенерация запрещена: отсутствующий
+    или битый атлас = blocked, а не сгенерированный суррогат.
+    """
+    import numpy as np
+    atlas=root/'app6'/'atlas'/'texture_zones_bfm35709_v3.npz'
+    rep={'path':str(atlas),'errors':[],'warnings':[],'checks':{}}
+    if not atlas.is_file():
+        rep['errors'].append('missing texture atlas (no autogeneration allowed)')
+        rep['status']='blocked';return rep
+    try:
+        z=np.load(atlas,allow_pickle=False)
+        files=set(z.files)
+        need={'triangle_main_label','triangle_subzone_label','triangle_skin_mask',
+              'main_codes','subzone_codes','topology_tri_digest'}
+        missing=sorted(need-files)
+        rep['checks']['required_keys']=not missing
+        if missing: rep['errors'].append('atlas missing keys: '+','.join(missing))
+        n=int(z['triangle_main_label'].shape[0]) if 'triangle_main_label' in files else -1
+        rep['checks']['triangle_count']=n
+        if n!=70789: rep['errors'].append(f'atlas triangle count {n} != 70789')
+        main=np.asarray(z['triangle_main_label']).reshape(-1)
+        sub=np.asarray(z['triangle_subzone_label']).reshape(-1)
+        codes_main={str(c) for c in np.asarray(z['main_codes']).reshape(-1)} if 'main_codes' in files else set()
+        codes_sub={str(c) for c in np.asarray(z['subzone_codes']).reshape(-1)} if 'subzone_codes' in files else set()
+        rep['checks']['main_label_range']=(int(main.min()),int(main.max()))
+        rep['checks']['subzone_label_range']=(int(sub.min()),int(sub.max()))
+        if int(main.min())<-1 or int(main.max())>=len(codes_main)+1:
+            rep['warnings'].append('main labels outside declared codes (may include -1=none)')
+        if int(sub.min())<-1 or int(sub.max())>=len(codes_sub)+1:
+            rep['warnings'].append('subzone labels outside declared codes (may include -1=none)')
+        # совместимость с BFM: число треугольников модели
+        fm=root/'assets'/'face_model.npy'
+        if fm.is_file():
+            tri=np.load(fm,allow_pickle=True).item()['tri']
+            rep['checks']['bfm_triangles']=int(np.asarray(tri).shape[0])
+            if int(np.asarray(tri).shape[0])!=n:
+                rep['errors'].append('atlas/BFM triangle count mismatch')
+        else:
+            rep['warnings'].append('face_model.npy absent; BFM compat unchecked')
+        dg=str(np.asarray(z['topology_tri_digest']).reshape(-1)[0]) if 'topology_tri_digest' in files else ''
+        rep['checks']['topology_digest_present']=bool(dg)
+        if not dg: rep['warnings'].append('topology digest empty')
+    except Exception as exc:
+        rep['errors'].append(f'atlas unreadable: {exc}')
+    rep['status']='ready' if not rep['errors'] else 'blocked'
+    return rep
+
 def main()->int:
     p=argparse.ArgumentParser(description='DEEPUTIN release preflight')
     p.add_argument('--project-root',type=Path,default=Path(__file__).resolve().parents[1])
@@ -53,6 +107,9 @@ def main()->int:
     missing=[x for x in required if not (assets/x).is_file()]
     report['assets']={'required':required,'missing':missing}
     if missing: report['errors'].append('missing model assets: '+','.join(missing))
+    report['texture_atlas']=audit_texture_atlas(root)
+    report['errors'].extend('atlas: '+e for e in report['texture_atlas']['errors'])
+    report['warnings'].extend('atlas: '+w for w in report['texture_atlas']['warnings'])
     if not (root/'3ddfa_v3'/'model'/'recon.py').is_file(): report['errors'].append('missing 3ddfa_v3 source')
     if a.stage1_root:
         s=a.stage1_root.resolve();needed=['main_timeline.csv','stage1_manifest.json']

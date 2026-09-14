@@ -95,3 +95,15 @@ app6/AUDIT_50_REPORT.md
 runs/
 patch/
 deeputin/
+
+# Stage1 calibration/pilot runs (local only, never commit; see field_provenance.csv)
+stage1_v25_calib_input/
+stage1_v25_calib_output/
+stage1_v26_det_output/
+stage1_v27_det_output/
+stage1_v25_calib_output_run.log
+stage1_v26_det_output_run.log
+stage1_v27_det_output_run.log
+# Local analysis artifacts (regenerable via scripts/*.py)
+alpha_calib_v25/
+analyst_v25/
