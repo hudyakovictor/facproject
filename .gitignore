@@ -107,3 +107,5 @@ stage1_v27_det_output_run.log
 # Local analysis artifacts (regenerable via scripts/*.py)
 alpha_calib_v25/
 analyst_v25/
+stage1_v27_mini_input/
+stage1_v27_mini_output/
