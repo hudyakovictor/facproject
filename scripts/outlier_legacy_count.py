@@ -7,13 +7,14 @@
 from __future__ import annotations
 
 import csv
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 
-OLD = Path("/Volumes/SDCARD/storage/stage1")
-OUT = Path("/Users/victorkhudyakov/work/analyst_v25")
+OLD = Path(os.environ.get("FAC_STAGE1", "/Volumes/SDCARD/storage/stage1"))
+OUT = Path(os.environ.get("FAC_ANALYST", "/Users/victorkhudyakov/work/analyst_v25"))
 
 
 def main():

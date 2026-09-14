@@ -223,11 +223,16 @@ _UI_ARTIFACTS = {"face_mask.png": "image/png", "texture.json": "application/json
 _LANDMARK_FILES = {
     (106, "raw"): ("ldm106_raw.csv", "raw_object_normalized"),
     (106, "aligned"): ("ldm106_chronology.csv", "chronology_aligned"),
+    (106, "canonical"): ("ldm106_chronology_targetonly.csv", "chronology_targetonly"),
     (106, "original"): ("ldm106_original.csv", "original_image_px"),
     (134, "raw"): ("ldm134_raw.csv", "raw_object_normalized"),
     (134, "aligned"): ("ldm134_chronology.csv", "chronology_aligned"),
+    (134, "canonical"): ("ldm134_chronology_targetonly.csv", "chronology_targetonly"),
     (134, "original"): ("ldm134_original.csv", "original_image_px"),
 }
+#: v2.7: space "aligned" отдаёт deprecated R_corr-канал (sensitivity).
+#: Потребители обязаны переходить на "canonical" (target-only).
+DEPRECATED_SPACES = {"aligned"}
 
 
 def _safe_record_file(photo_id: str, filename: str) -> Path:
@@ -258,7 +263,7 @@ def get_photo_artifact(photo_id: str, name: str):
 def get_photo_landmarks(photo_id: str, count: int, space: str) -> dict[str, Any]:
     spec = _LANDMARK_FILES.get((count, space))
     if spec is None:
-        raise HTTPException(status_code=400, detail="supported counts: 106/134; spaces: raw/aligned/original")
+        raise HTTPException(status_code=400, detail="supported counts: 106/134; spaces: raw/aligned(deprecated)/canonical/original")
     filename, coordinate_space = spec
 
     # Try to read from CSV file first (backward compatibility)
@@ -301,9 +306,15 @@ def get_photo_landmarks(photo_id: str, count: int, space: str) -> dict[str, Any]
 
     if len(points) != count:
         raise HTTPException(status_code=422, detail=f"expected {count} landmark rows, got {len(points)}")
-    return {"schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
+    payload: dict[str, Any] = {"schema": APP_SCHEMA, "source_mode": "research", "not_a_verdict": True,
             "photo_id": photo_id, "count": count, "space": space,
             "coordinate_space": coordinate_space, "points": points, "source_file": filename}
+    if space in DEPRECATED_SPACES:
+        payload["deprecated"] = True
+        payload["canonical_space"] = "canonical"
+        payload["deprecation_note"] = ("space 'aligned' serves the legacy R_corr channel "
+                                       "(wrong-space sensitivity); use space 'canonical' (target-only)")
+    return payload
 
 
 def _calibration_records() -> list[Any]:

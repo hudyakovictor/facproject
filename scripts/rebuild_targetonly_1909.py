@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 
-WORK = Path("/Users/victorkhudyakov/work")
-OLD = Path("/Volumes/SDCARD/storage/stage1")
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
+OLD = Path(os.environ.get("FAC_STAGE1", "/Volumes/SDCARD/storage/stage1"))
 OUT = WORK / "analyst_v25"
 
 

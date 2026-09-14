@@ -75,8 +75,7 @@ class FailFastSmokeTests(unittest.TestCase):
             rep = audit_texture_atlas(Path(t))
             self.assertEqual(rep["status"], "blocked")
 
-    def test_validator_rejects_foreign_policy(self):
-        from app6.stage1.validator import validate_photo
+    def test_validator_rejects_foreign_policy(self):        from app6.stage1.validator import validate_photo
         import shutil
         cands = sorted((WORK / "stage1_v27_det_output").glob("*"))
         cands = [c for c in cands if (c / "info.json").is_file()]
@@ -94,6 +93,44 @@ class FailFastSmokeTests(unittest.TestCase):
             res = validate_photo(d, write_result=False)
             self.assertEqual(res["status"], "invalid")
             self.assertTrue(any("pose policy" in e for e in res["errors"]))
+
+
+class PolicyTamperTests(unittest.TestCase):
+    """П5: тампер CSV-политики на старте движка заперт тестом."""
+
+    def _copy_policy(self, tmp):
+        import shutil
+        from app6.stage1.config import POSE_POLICY_FILE
+        src = WORK / POSE_POLICY_FILE
+        dst = Path(tmp) / "app6" / "atlas" / "pose_policy_v3_9bins.csv"
+        dst.parent.mkdir(parents=True)
+        shutil.copy(src, dst)
+        return dst
+
+    def test_ok_policy_passes(self):
+        from app6.stage1.engine import check_pose_policy
+        with tempfile.TemporaryDirectory() as t:
+            self._copy_policy(t)
+            h = check_pose_policy(Path(t))
+            self.assertEqual(len(h), 64)
+
+    def test_swapped_center_fails(self):
+        from app6.stage1.engine import check_pose_policy
+        with tempfile.TemporaryDirectory() as t:
+            dst = self._copy_policy(t)
+            txt = dst.read_text(encoding="utf-8").replace("-17.5", "-99.9")
+            dst.write_text(txt, encoding="utf-8")
+            with self.assertRaises(RuntimeError):
+                check_pose_policy(Path(t))
+
+    def test_appended_byte_fails(self):
+        from app6.stage1.engine import check_pose_policy
+        with tempfile.TemporaryDirectory() as t:
+            dst = self._copy_policy(t)
+            with dst.open("ab") as f:
+                f.write(b" ")
+            with self.assertRaises(RuntimeError):
+                check_pose_policy(Path(t))
 
 
 if __name__ == "__main__":

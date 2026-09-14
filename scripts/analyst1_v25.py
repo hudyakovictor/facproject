@@ -1,23 +1,24 @@
 """Аналитик v25, часть 1: загрузка 1909, event-датасет, matching, метрики, Z_noise.
 
 Читает ТОЛЬКО старый storage (read-only). Пишет в analyst_v25/.
-Каналы: corrected identity (chrono@R.T), raw object, original 2D.
+Каналы: PRIMARY target-only (T134_targetonly.npy; canonical, без инверсии позы),
+raw object, original 2D. Legacy R_corr (chrono@R.T) — только sensitivity
+(флаг --channel legacy). Пути через env/argv (портативность для форка).
 """
 from __future__ import annotations
 
+import argparse
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-WORK = Path("/Users/victorkhudyakov/work")
-OLD = Path("/Volumes/SDCARD/storage/stage1")
-NOISE = pd.read_csv(WORK / "alpha_calib_v25" / "table5_noise_floor.csv")
-OUT = WORK / "analyst_v25"
-OUT.mkdir(exist_ok=True)
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
+OLD = Path(os.environ.get("FAC_STAGE1", "/Volumes/SDCARD/storage/stage1"))
 
 EYE_L, EYE_R = 74, 77
 
@@ -56,36 +57,58 @@ def procrustes(a, b):
     return d, int(m.sum())
 
 
-def noise_p95(dyaw, same_bin):
-    a = abs(float(dyaw))
-    gap = "0-3" if a <= 3 else ("3-8" if a <= 8 else ("8-15" if a <= 15 else ">15"))
-    sb = "yes" if same_bin else "no"
-    hit = NOISE[(NOISE.yaw_gap == gap) & (NOISE.same_bin == sb)]
-    return float(hit["p95"].iloc[0]) if len(hit) else 0.05
-
-
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--channel", choices=["targetonly", "legacy"], default="targetonly",
+                    help="targetonly=canonical (default); legacy=R_corr sensitivity")
+    ap.add_argument("--out", type=Path, default=None)
+    args = ap.parse_args()
+    OUT = args.out or (WORK / "analyst_v25")
+    OUT.mkdir(exist_ok=True)
+    NOISE = pd.read_csv(WORK / "alpha_calib_v25" / "table5_noise_floor.csv")
+
+    def noise_p95(dyaw, same_bin):
+        a = abs(float(dyaw))
+        gap = "0-3" if a <= 3 else ("3-8" if a <= 8 else ("8-15" if a <= 15 else ">15"))
+        sb = "yes" if same_bin else "no"
+        hit = NOISE[(NOISE.yaw_gap == gap) & (NOISE.same_bin == sb)]
+        return float(hit["p95"].iloc[0]) if len(hit) else 0.05
+
     tl = list(csv.DictReader(open(OLD / "main_timeline.csv")))
     recs, F106, F134, Fraw106, Fraw134, F2d = [], [], [], [], [], []
-    for r in tl:
+    use_legacy = args.channel == "legacy"
+    if use_legacy:
+        print("WARNING: legacy R_corr channel (deprecated sensitivity)", flush=True)
+    T106 = T134 = None
+    if not use_legacy:
+        T106 = np.load(OUT / "T106_targetonly.npy")
+        T134 = np.load(OUT / "T134_targetonly.npy")
+        tpids = json.load(open(OUT / "T_targetonly_pids.json"))
+    for k, r in enumerate(tl):
         d = OLD / r["photo_id"]
         try:
             info = json.load(open(d / "info.json"))
-            ch106 = read_csv3(d / "ldm106_chronology.csv", 106)
-            ch134 = read_csv3(d / "ldm134_chronology.csv", 134)
             raw106 = read_csv3(d / "ldm106_raw.csv", 106)
             raw134 = read_csv3(d / "ldm134_raw.csv", 134)
             o2d = read_csv2(d / "ldm106_original.csv", 106)
+            if use_legacy:
+                ch106 = read_csv3(d / "ldm106_chronology.csv", 106)
+                ch134 = read_csv3(d / "ldm134_chronology.csv", 134)
         except Exception:
             continue
         ch = info.get("chronology", {})
-        R = np.asarray(ch["applied_rotation"], np.float64).reshape(3, 3)
-        RT = R.T
         img = info.get("image", {})
         W, H = float(img.get("width") or 1), float(img.get("height") or 1)
         o2dn = o2d / np.array([[W, H]], np.float32)
-        F106.append(ch106.astype(np.float64) @ RT)
-        F134.append(ch134.astype(np.float64) @ RT)
+        if use_legacy:
+            R = np.asarray(ch["applied_rotation"], np.float64).reshape(3, 3)
+            RT = R.T
+            F106.append(ch106.astype(np.float64) @ RT)
+            F134.append(ch134.astype(np.float64) @ RT)
+        else:
+            assert tpids[k] == r["photo_id"], "targetonly order mismatch"
+            F106.append(T106[k].astype(np.float64))
+            F134.append(T134[k].astype(np.float64))
         Fraw106.append(raw106.astype(np.float64))
         Fraw134.append(raw134.astype(np.float64))
         F2d.append(o2dn.astype(np.float64))
@@ -131,7 +154,10 @@ def main():
             np.stack([np.nanmedian(A134[ph.index[ph["date"] == e].to_numpy()], axis=0) for e in ev["date"]]))
     ph.to_csv(OUT / "photos.csv", index=False)
     ev.to_csv(OUT / "events.csv", index=False)
-    print(f"photos={len(ph)} events={len(ev)}", flush=True)
+    json.dump({"primary_channel": args.channel,
+               "note": "targetonly=canonical (v2.7); legacy=R_corr deprecated sensitivity"},
+              open(OUT / "channel.json", "w"))
+    print(f"photos={len(ph)} events={len(ev)} channel={args.channel}", flush=True)
 
     # ---- matching: пары same-bin, малые Δуглы, same smile/jaw ----
     idx = ph.index.to_numpy()

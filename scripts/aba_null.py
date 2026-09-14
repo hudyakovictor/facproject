@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-WORK = Path("/Users/victorkhudyakov/work")
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
 AN = WORK / "analyst_v25"
 
 

@@ -3,6 +3,7 @@ leave-year-out, чувствительность, шкала R0-R6.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -11,9 +12,9 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.metrics import adjusted_rand_score, silhouette_score
 
-WORK = Path("/Users/victorkhudyakov/work")
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
 AN = WORK / "analyst_v25"
-CALIB = Path("/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets")
+CALIB = Path(os.environ.get("FAC_CALIB", "/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets"))
 
 
 def ZoneOf(p):

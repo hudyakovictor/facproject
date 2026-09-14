@@ -8,14 +8,15 @@
 from __future__ import annotations
 
 import csv
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-WORK = Path("/Users/victorkhudyakov/work")
-CALIB = Path("/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets")
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
+CALIB = Path(os.environ.get("FAC_CALIB", "/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets"))
 OUT = WORK / "alpha_calib_v25"
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -19,8 +20,8 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import KFold, LeaveOneGroupOut
 from sklearn.preprocessing import SplineTransformer
 
-WORK = Path("/Users/victorkhudyakov/work")
-CALIB = Path("/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets")
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
+CALIB = Path(os.environ.get("FAC_CALIB", "/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets"))
 OUT = WORK / "alpha_calib_v25"
 OUT.mkdir(exist_ok=True)
 

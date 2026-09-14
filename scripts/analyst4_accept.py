@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -12,7 +13,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.metrics import adjusted_rand_score
 
-WORK = Path("/Users/victorkhudyakov/work")
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
 AN = WORK / "analyst_v25"
 
 

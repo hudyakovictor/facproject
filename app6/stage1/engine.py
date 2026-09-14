@@ -138,6 +138,33 @@ def _landmark_rows_2d(points: np.ndarray, visible: np.ndarray, indices: np.ndarr
     return rows
 
 
+def check_pose_policy(project_root: Path) -> str:
+    """Fail-closed сверка pose-policy (тестируемо отдельно от движка).
+
+    Парсит центры (distinct yaw_bin_center_deg) из самого нормативного CSV,
+    сверяет с POSE_BINS кода и sha файла с эталоном config. Возвращает sha.
+    Подмена центра (-17.5→-99.9) или дописанный байт -> RuntimeError.
+    """
+    import csv as _csv
+    from .config import POSE_BINS as _BINS, POSE_POLICY_SHA256
+    policy_path = Path(project_root) / POSE_POLICY_FILE
+    if not policy_path.is_file():
+        raise FileNotFoundError(f"missing normative pose policy: {policy_path}")
+    digest = digest_file(policy_path)
+    if digest != POSE_POLICY_SHA256:
+        raise RuntimeError(
+            f"pose policy file hash mismatch: {digest} != etalon "
+            f"{POSE_POLICY_SHA256} — refusing to run with substituted policy")
+    with policy_path.open(newline="", encoding="utf-8") as f:
+        csv_centers = sorted({float(r["yaw_bin_center_deg"]) for r in _csv.DictReader(f)})
+    code_centers = sorted(float(c) for _, _, _, c in _BINS)
+    if code_centers != [float(c) for c in csv_centers]:
+        raise RuntimeError(
+            f"POSE_BINS code centers {code_centers} != normative {POSE_POLICY_VERSION} "
+            f"CSV centers {csv_centers} — refusing to mix policies")
+    return digest
+
+
 class Stage1Engine:
     def __init__(self, config: Stage1Config):
         self.cfg = config
@@ -162,28 +189,9 @@ class Stage1Engine:
         if missing:
             raise FileNotFoundError("missing required model assets: " + ", ".join(map(str, missing)))
         self.model_hash = digest_paths(model_files, self.root)
-        # v2.7: fail-closed сверка pose-policy. POSE_BINS (код) обязаны совпадать
-        # с нормативной политикой (центры + знак yaw); смешивание версий в одной
-        # таблице запрещено. Хеш политики пишется в manifest/info.
-        # Центры парсятся из самого CSV (distinct yaw_bin_center_deg), sha —
-        # против захардкоженного эталона в config (подмена файла ловится здесь).
-        import csv as _csv
-        from .config import POSE_BINS as _BINS, POSE_POLICY_SHA256
-        policy_path = self.root / POSE_POLICY_FILE
-        if not policy_path.is_file():
-            raise FileNotFoundError(f"missing normative pose policy: {policy_path}")
-        self.pose_policy_hash = digest_file(policy_path)
-        if self.pose_policy_hash != POSE_POLICY_SHA256:
-            raise RuntimeError(
-                f"pose policy file hash mismatch: {self.pose_policy_hash} != etalon "
-                f"{POSE_POLICY_SHA256} — refusing to run with substituted policy")
-        with policy_path.open(newline="", encoding="utf-8") as f:
-            csv_centers = sorted({float(r["yaw_bin_center_deg"]) for r in _csv.DictReader(f)})
-        code_centers = sorted(float(c) for _, _, _, c in _BINS)
-        if code_centers != [float(c) for c in csv_centers]:
-            raise RuntimeError(
-                f"POSE_BINS code centers {code_centers} != normative {POSE_POLICY_VERSION} "
-                f"CSV centers {csv_centers} — refusing to mix policies")
+        # v2.7: fail-closed сверка pose-policy (см. check_pose_policy).
+        # Хеш политики пишется в manifest/info.
+        self.pose_policy_hash = check_pose_policy(self.root)
         self.recon = ReconstructionEngine(self.root, config.device, config.detector, config.backbone)
 
     def run(self) -> dict[str, Any]:
@@ -737,10 +745,14 @@ class Stage1Engine:
                     "method": "LargeBaseLmkInfer-106 pre-3DMM",
                     "independence": "different network and forward than net_recon; shared crop only; residual shared-crop risk noted",
                     "face_count": int(rec.detector_face_count),
+                    "multi_face_warning": bool(int(rec.detector_face_count) > 1),
                     "landmarks_csv": "ldm106_detector2d.csv",
                     "coordinate_space": "oriented input pixels, top-left origin",
                     "reprojection": json.loads(json.dumps(rec.detector_reprojection, default=str)),
-                    "description": "Independent 2D channel (exists before 3DMM fit). ldm106: P50/P95/max + thirds; ldm134 has no detector counterpart (honestly unavailable)."
+                    "anchor5_caveat": ("anchor5_rmse is NOT an independent measure: the crop is "
+                                       "aligned on 5 detector points overlapping anchor semantics; "
+                                       "leading metric is nonanchor101_rmse_px; rmse_ioc is QC-only, never morphometry"),
+                    "description": "Independent 2D channel (exists before 3DMM fit). ldm106: P50/P95/max + thirds + anchor5/nonanchor101; ldm134 has no detector counterpart (honestly unavailable)."
                 },
                 "reprojection_consistency_note": "reprojection.* (ldm106/134_224 p95<=5px) is INTERNAL consistency (3DMM vs itself), not a scientific gate.",
                 "camera": {"projection": "perspective", "focal": 1015.0, "principal_point": [112.0, 112.0],

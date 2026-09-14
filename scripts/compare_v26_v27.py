@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-WORK = Path("/Users/victorkhudyakov/work")
+WORK = Path(os.environ.get("FAC_WORK", "/Users/victorkhudyakov/work"))
 V26 = WORK / "stage1_v26_det_output"
 V27 = WORK / "stage1_v27_det_output"
 NOISE = pd.read_csv(WORK / "alpha_calib_v25" / "table5_noise_floor.csv")
