@@ -75,7 +75,8 @@ class FailFastSmokeTests(unittest.TestCase):
             rep = audit_texture_atlas(Path(t))
             self.assertEqual(rep["status"], "blocked")
 
-    def test_validator_rejects_foreign_policy(self):        from app6.stage1.validator import validate_photo
+    def test_validator_rejects_foreign_policy(self):
+        from app6.stage1.validator import validate_photo
         import shutil
         cands = sorted((WORK / "stage1_v27_det_output").glob("*"))
         cands = [c for c in cands if (c / "info.json").is_file()]
