@@ -27,6 +27,20 @@ def main() -> int:
     p.add_argument("--limit", type=int, default=0)
     a = p.parse_args()
     os.chdir(WORK)
+    # Совместимость вендорного 3DDFA с torch<2.0 (weights_only добавлен в torch 2.x).
+    import torch as _torch
+    import inspect as _inspect
+    try:
+        if "weights_only" not in _inspect.signature(_torch.load).parameters:
+            _orig = _torch.load
+
+            def _compat(*a, **k):
+                k.pop("weights_only", None)
+                return _orig(*a, **k)
+
+            _torch.load = _compat
+    except Exception:
+        pass
     from face_box import face_box
     from PIL import Image, ImageOps
 
