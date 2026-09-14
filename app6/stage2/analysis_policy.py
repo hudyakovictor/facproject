@@ -84,7 +84,10 @@ def pose_gap(angles_a, angles_b, *, pose_bin: str | None = None) -> PoseGap:
     if a.size != 3 or b.size != 3 or not (np.isfinite(a).all() and np.isfinite(b).all()):
         return PoseGap(float("nan"),float("nan"),float("nan"),False,"nonfinite_pose",
                        pose_bin or "", float("nan"), False)
-    pitch,yaw,roll=map(float,np.abs(a-b))
+    pitch, roll = map(float, (abs(a[0] - b[0]), abs(a[2] - b[2])))
+    # yaw круговой (через ±180), как в angle_delta
+    _dy = abs(float(a[1]) - float(b[1])) % 360.0
+    yaw = float(min(_dy, 360.0 - _dy))
     limited = bool(pose_bin in LIMITED_BINS)
     if pose_bin and pose_bin in PROFILE_BINS:
         # Профили: сравнение только внутри одного 10° подбина; внутри подбина

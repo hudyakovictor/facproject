@@ -26,7 +26,7 @@ from app6.stage2.temporal_axis import temporal_status
 
 
 OUTPUT_ROOT = Path(os.environ.get(
-    "PKG001_OUTPUT_ROOT", "/Volumes/SDCARD/storage/function-verification-runs/PKG-001"
+    "PKG001_OUTPUT_ROOT", str(Path(tempfile.gettempdir()) / "PKG-001")
 ))
 
 

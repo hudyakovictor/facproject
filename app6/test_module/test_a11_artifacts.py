@@ -8,8 +8,9 @@ import unittest
 
 import numpy as np
 
-# Audit utilities are intentionally kept outside the runtime package.  Add the
-# local tools root explicitly so collection works from the repository root.
+# Audit utilities live in repo tools/ (vendored from .runtime for clean clones).
+# Fall back to the local .runtime root so older checkouts keep working.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / ".runtime"))
 
 from tools.rebuild_landmark_utility import (

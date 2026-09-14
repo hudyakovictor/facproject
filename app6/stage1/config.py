@@ -21,6 +21,8 @@ PIPELINE_VERSION = "stage1-pipeline-v2.7"
 #: Источник: app6/atlas/pose_policy_v3_9bins.csv (конвенция v3: +yaw = правый профиль).
 POSE_POLICY_VERSION = "pose-policy-v3-9bins"
 POSE_POLICY_FILE = "app6/atlas/pose_policy_v3_9bins.csv"
+#: Эталонный sha256 нормативного файла (fail-closed: подмена запрещена).
+POSE_POLICY_SHA256 = "438605ed8c4a1ecbb920a8d815d5d9bd036d825a950a1709e5229ea70270c41c"
 #: Нормативные центры бинов (должны совпадать с POSE_BINS ниже и с политикой).
 POSE_POLICY_CENTERS = (-70.0, -45.0, -32.5, -17.5, 0.0, 17.5, 32.5, 45.0, 70.0)
 POSE_POLICY_YAW_SIGN = "positive_yaw_is_right_profile"
@@ -81,6 +83,15 @@ EXPRESSION_CORNER_LIFT_THRESHOLD = 0.005
 #: jaw_open_ratio = ||upper_lip - lower_lip|| / interocular
 #: Все calm ≤ 0.1711, open_mouth = 0.3955 (на smiletest).
 EXPRESSION_JAW_OPEN_THRESHOLD = 0.28
+
+#: ── НЕЗАВИСИМЫЙ DETECTOR REPROJECTION GATE (v2.6+) ──
+#: 3DMM-проекция против LargeBaseLmkInfer-106 (другой forward, общий кроп).
+#: Порог по rmse/ioc; hard-fail только frontal/near-frontal (|yaw|<=лимита),
+#: профили — measured_profile_unchecked (калибровка 53: все превышения — профили).
+DETECTOR_REPROJ_MAX_IOC = 0.35
+DETECTOR_GATE_YAW_LIMIT_DEG = 25.0
+#: 5 anchor-точек детектора, используемых для кропа (схема детектора).
+DETECTOR_ANCHOR106 = (74, 83, 54, 84, 90)
 
 
 @dataclass(frozen=True)

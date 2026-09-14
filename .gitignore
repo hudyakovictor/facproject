@@ -109,3 +109,11 @@ alpha_calib_v25/
 analyst_v25/
 stage1_v27_mini_input/
 stage1_v27_mini_output/
+
+# Machine-local symlinks (never track; see merge-blocker audit)
+.venv
+SDCARD_photo_main
+3ddfa_v3/3DDFA-V3
+stage1_detonly_input/
+stage1_detonly_output/
+stage1_detonly_run.log

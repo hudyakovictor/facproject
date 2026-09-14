@@ -33,8 +33,16 @@ COMPENSABLE_METRICS: Final[tuple[str, ...]] = (
 )
 
 
+def _circular_abs(a: float, b: float, period: float = 360.0) -> float:
+    """Круговая абсолютная разница (yaw заворачивается через ±180)."""
+    d = abs(float(a) - float(b)) % period
+    return float(min(d, period - d))
+
+
 def angle_delta(angles_a: Sequence[float], angles_b: Sequence[float]) -> dict[str, float]:
     """🔢 Абсолютная разница углов пары в порядке (pitch, yaw, roll).
+
+    yaw — круговая (через ±180); pitch/roll — линейные.
 
     Raises:
         ValueError: если вектор углов не содержит ровно три компоненты.
@@ -46,7 +54,7 @@ def angle_delta(angles_a: Sequence[float], angles_b: Sequence[float]) -> dict[st
     if not (np.isfinite(a).all() and np.isfinite(b).all()):
         raise ValueError("углы содержат NaN/Inf")
     return {"pitch": abs(float(a[0] - b[0])),
-            "yaw": abs(float(a[1] - b[1])),
+            "yaw": _circular_abs(a[1], b[1]),
             "roll": abs(float(a[2] - b[2]))}
 
 

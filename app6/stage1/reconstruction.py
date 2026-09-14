@@ -412,14 +412,23 @@ class ReconstructionEngine:
         # ldm134 независимой пары не имеет — честно помечаем недоступность.
         # Метрики: P50/P95/max + грубые трети по y + поточечные остатки в NPZ.
         from .geometry import to_original_image as _to_orig
+        from .config import (DETECTOR_REPROJ_MAX_IOC, DETECTOR_GATE_YAW_LIMIT_DEG,
+                             DETECTOR_ANCHOR106)
         detector_residual106_px = np.full((106,), np.nan, np.float32)
+        yaw_abs_gate = abs(float(angles_deg[1]))
+        gated = yaw_abs_gate <= float(DETECTOR_GATE_YAW_LIMIT_DEG)
         detector_reprojection: dict[str, Any] = {
             "status": "no_detector_landmarks",
+            "gate": {"max_ioc": float(DETECTOR_REPROJ_MAX_IOC),
+                     "yaw_limit_deg": float(DETECTOR_GATE_YAW_LIMIT_DEG),
+                     "applied": False},
             "ldm106": {"rmse_px": float("nan"), "p50_px": float("nan"),
                        "p95_px": float("nan"), "max_px": float("nan"),
                        "rmse_ioc": float("nan"), "ioc_px": float("nan"),
                        "upper_rmse_px": float("nan"), "mid_rmse_px": float("nan"),
-                       "lower_rmse_px": float("nan")},
+                       "lower_rmse_px": float("nan"),
+                       "anchor5_rmse_px": float("nan"),
+                       "nonanchor101_rmse_px": float("nan")},
             "ldm134": {"status": "unavailable_no_detector_counterpart"},
         }
         if detector_lmks_106 is not None:
@@ -436,17 +445,14 @@ class ReconstructionEngine:
                     q1, q2 = np.quantile(ys, [1 / 3, 2 / 3])
                     # y растёт вниз (top-left origin): верх/середина/низ лица
                     up, mid, lo = dd[ys <= q1], dd[(ys > q1) & (ys <= q2)], dd[ys > q2]
+                    anch = dd[np.asarray(DETECTOR_ANCHOR106, np.int64)]
+                    nona = np.delete(dd, np.asarray(DETECTOR_ANCHOR106, np.int64))
                     rmse = float(np.sqrt(np.mean(dd * dd)))
-                    yaw_abs = abs(float(angles_deg[1]))
-                    # Калибровка 53 фото: все 17 превышений — профили |yaw|>45.
-                    # Hard-fail только frontal/near-frontal (|yaw|<=25), где
-                    # расхождение = плохой фит. Профили: измеряем, не валим.
-                    gated = yaw_abs <= 25.0
                     detector_reprojection = {
                         "status": "measured" if gated else "measured_profile_unchecked",
-                        "gate_yaw_limit": 25.0,
-                        "gate_threshold_ioc": 0.35,
-                        "gate_applied": bool(gated),
+                        "gate": {"max_ioc": float(DETECTOR_REPROJ_MAX_IOC),
+                                 "yaw_limit_deg": float(DETECTOR_GATE_YAW_LIMIT_DEG),
+                                 "applied": bool(gated)},
                         "ldm106": {
                             "rmse_px": rmse,
                             "p50_px": float(np.median(dd)),
@@ -457,14 +463,17 @@ class ReconstructionEngine:
                             "upper_rmse_px": float(np.sqrt(np.mean(up * up))) if up.size else float("nan"),
                             "mid_rmse_px": float(np.sqrt(np.mean(mid * mid))) if mid.size else float("nan"),
                             "lower_rmse_px": float(np.sqrt(np.mean(lo * lo))) if lo.size else float("nan"),
+                            "anchor5_rmse_px": float(np.sqrt(np.mean(anch * anch))),
+                            "nonanchor101_rmse_px": float(np.sqrt(np.mean(nona * nona))) if nona.size else float("nan"),
                         },
                         "ldm134": {"status": "unavailable_no_detector_counterpart"},
                     }
-                    if gated and detector_reprojection["ldm106"]["rmse_ioc"] > 0.35:
+                    if gated and detector_reprojection["ldm106"]["rmse_ioc"] > float(DETECTOR_REPROJ_MAX_IOC):
                         raise RuntimeError(
                             f"detector reprojection too high "
-                            f"(rmse_ioc={detector_reprojection['ldm106']['rmse_ioc']:.3f} > 0.35, "
-                            f"|yaw|={yaw_abs:.1f}<=25) — "
+                            f"(rmse_ioc={detector_reprojection['ldm106']['rmse_ioc']:.3f} "
+                            f"> {float(DETECTOR_REPROJ_MAX_IOC):.2f}, "
+                            f"|yaw|={yaw_abs_gate:.1f}<={float(DETECTOR_GATE_YAW_LIMIT_DEG):.0f}) — "
                             f"3DMM fit disagrees with pre-3DMM detector for {path.name}"
                         )
                 else:
@@ -472,7 +481,13 @@ class ReconstructionEngine:
             except RuntimeError:
                 raise
             except Exception as exc:
-                detector_reprojection = {"status": f"error: {exc}"}
+                # Узкий except: во фронтальной зоне ошибка измерения = брак фото;
+                # в профиле — счётчик необработанных (не тихий пропуск).
+                if gated:
+                    raise RuntimeError(f"detector reprojection measurement failed for {path.name}: {exc}") from exc
+                detector_reprojection = {"status": "error_unchecked_profile",
+                                         "error": str(exc),
+                                         "gate": {"applied": False}}
 
 
         count = len(vertices_object)

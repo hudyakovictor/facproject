@@ -165,16 +165,25 @@ class Stage1Engine:
         # v2.7: fail-closed сверка pose-policy. POSE_BINS (код) обязаны совпадать
         # с нормативной политикой (центры + знак yaw); смешивание версий в одной
         # таблице запрещено. Хеш политики пишется в manifest/info.
-        from .config import POSE_BINS as _BINS
+        # Центры парсятся из самого CSV (distinct yaw_bin_center_deg), sha —
+        # против захардкоженного эталона в config (подмена файла ловится здесь).
+        import csv as _csv
+        from .config import POSE_BINS as _BINS, POSE_POLICY_SHA256
         policy_path = self.root / POSE_POLICY_FILE
         if not policy_path.is_file():
             raise FileNotFoundError(f"missing normative pose policy: {policy_path}")
         self.pose_policy_hash = digest_file(policy_path)
-        code_centers = tuple(float(c) for _, _, _, c in _BINS)
-        if code_centers != tuple(float(c) for c in POSE_POLICY_CENTERS):
+        if self.pose_policy_hash != POSE_POLICY_SHA256:
+            raise RuntimeError(
+                f"pose policy file hash mismatch: {self.pose_policy_hash} != etalon "
+                f"{POSE_POLICY_SHA256} — refusing to run with substituted policy")
+        with policy_path.open(newline="", encoding="utf-8") as f:
+            csv_centers = sorted({float(r["yaw_bin_center_deg"]) for r in _csv.DictReader(f)})
+        code_centers = sorted(float(c) for _, _, _, c in _BINS)
+        if code_centers != [float(c) for c in csv_centers]:
             raise RuntimeError(
                 f"POSE_BINS code centers {code_centers} != normative {POSE_POLICY_VERSION} "
-                f"{list(POSE_POLICY_CENTERS)} — refusing to mix policies")
+                f"CSV centers {csv_centers} — refusing to mix policies")
         self.recon = ReconstructionEngine(self.root, config.device, config.detector, config.backbone)
 
     def run(self) -> dict[str, Any]:
@@ -443,6 +452,17 @@ class Stage1Engine:
                 "ldm106_detector2d": "ldm106_detector2d.csv",  # v2.6: pre-3DMM, original px
                 "ldm134_original": "ldm134_original.csv",  # original image px
             })
+            # v2.7: deprecation в контракте данных (условие мержа). Старый
+            # R_corr-канал НЕ удалён (sensitivity + replay), но потребители
+            # обязаны использовать canonical (target-only). machine-readable,
+            # отдельными ключами (не в files{}, чтобы не ломать валидатор).
+            deprecated_files = [
+                "ldm106_chronology.csv", "ldm134_chronology.csv",
+                "ldm106_aligned.csv", "ldm134_aligned.csv",
+            ]
+            canonical_chronology = [
+                "ldm106_chronology_targetonly.csv", "ldm134_chronology_targetonly.csv",
+            ]
             # Compute per-vertex visibility confidence
             # Combines: combined_visible, front_facing, renderer_visible
             # Higher = more reliable vertex for comparison
@@ -744,6 +764,8 @@ class Stage1Engine:
                 },
                 "mask": {"status": mask.status, "error": mask.error, **mask.metadata},
                 "uv": {"status": "valid", **uv_meta}, "quality_inputs": quality,
+                "deprecated_files": deprecated_files,
+                "canonical_chronology": canonical_chronology,
                 "quality_summary": quality_summary, "skin": skin_status,
                 "reprojection": rec.reprojection, "crop": crop_meta, "files": files,
             }

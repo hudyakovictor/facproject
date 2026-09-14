@@ -146,6 +146,8 @@ def validate_photo(directory: Path, write_result: bool = True) -> dict[str, Any]
             raise ValidationError(
                 f"pose policy mismatch: {pp.get('version')} != {POSE_POLICY_VERSION} — "
                 f"refusing to mix policies in one table")
+        if not pp.get("sha256"):
+            raise ValidationError("pose policy sha is empty — provenance unknown")
         try:
             import hashlib as _hl
             cur = _hl.sha256((Path(__file__).resolve().parents[2] / POSE_POLICY_FILE).read_bytes()).hexdigest()
