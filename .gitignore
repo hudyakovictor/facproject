@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 venv/
 .env
+350/
 
 # OS / editor
 .DS_Store
@@ -95,3 +96,4 @@ app6/AUDIT_50_REPORT.md
 runs/
 patch/
 deeputin/
+*.bundle

@@ -1,0 +1,28 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0b0c10;
+  user-select: none;
+}
+
+input[type="range"] {
+  height: 6px;
+  border-radius: 3px;
+  background: #30363d;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00ffaa;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 255, 170, 0.5);
+}
