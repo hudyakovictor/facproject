@@ -11,6 +11,8 @@ export default function Controls({
   setShowHeatmap,
   wireframe,
   setWireframe,
+  lighting,
+  setLighting,
   metadata,
   onDownloadGif,
   gifLoading
@@ -163,6 +165,16 @@ export default function Controls({
             style={{ accentColor: '#79c0ff' }}
           />
           <span>Режим 3D-полигональной сетки</span>
+        </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={lighting}
+            onChange={(e) => setLighting(e.target.checked)}
+            style={{ accentColor: '#ffa657' }}
+          />
+          <span>Досвет Ламбертом (выпуклость, но цвет отличается от фото)</span>
         </label>
       </div>
 

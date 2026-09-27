@@ -9,6 +9,7 @@ export default function Canvas3D({
   showLandmarks,
   showHeatmap,
   wireframe,
+  lighting,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -34,7 +35,9 @@ export default function Canvas3D({
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    // Цвет кожи должен совпадать с фото: тонмаппинг смещает цвет.
+    // «Киношный» вид можно включить: THREE.ACESFilmicToneMapping (чанк <tonemapping_fragment> в шейдере уже есть).
+    renderer.toneMapping = THREE.NoToneMapping;
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
 
@@ -113,6 +116,7 @@ export default function Canvas3D({
         u_showHeatmap: { value: showHeatmap ? 1.0 : 0.0 },
         u_wireframeMode: { value: wireframe ? 1.0 : 0.0 },
         u_lightDirection: { value: new THREE.Vector3(0.4, 0.8, 1.2).normalize() },
+        u_useLighting: { value: lighting ? 1.0 : 0.0 },
       },
       side: THREE.DoubleSide,
       wireframe: wireframe,
@@ -147,6 +151,7 @@ export default function Canvas3D({
       materialRef.current.uniforms.u_progress.value = progress;
       materialRef.current.uniforms.u_showHeatmap.value = showHeatmap ? 1.0 : 0.0;
       materialRef.current.uniforms.u_wireframeMode.value = wireframe ? 1.0 : 0.0;
+      materialRef.current.uniforms.u_useLighting.value = lighting ? 1.0 : 0.0;
       materialRef.current.wireframe = wireframe;
     }
 
@@ -162,7 +167,7 @@ export default function Canvas3D({
       landmarksPointsRef.current.geometry.attributes.position.needsUpdate = true;
       landmarksPointsRef.current.visible = showLandmarks;
     }
-  }, [progress, showHeatmap, showLandmarks, wireframe]);
+  }, [progress, showHeatmap, showLandmarks, wireframe, lighting]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>

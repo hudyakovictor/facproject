@@ -42,6 +42,8 @@ export default function App() {
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [wireframe, setWireframe] = useState(false);
+  // false = цвет лица ровно из UV-текстуры (как на фото), true = досвет Ламбертом
+  const [lighting, setLighting] = useState(false);
 
   // Цикл плавной автоанимации
   useEffect(() => {
@@ -192,6 +194,8 @@ export default function App() {
             setShowHeatmap={setShowHeatmap}
             wireframe={wireframe}
             setWireframe={setWireframe}
+            lighting={lighting}
+            setLighting={setLighting}
             metadata={morphData.metadata}
             onDownloadGif={handleDownloadGif}
             gifLoading={gifLoading}
@@ -209,6 +213,7 @@ export default function App() {
             showLandmarks={showLandmarks}
             showHeatmap={showHeatmap}
             wireframe={wireframe}
+            lighting={lighting}
           />
         ) : (
           <div style={{
