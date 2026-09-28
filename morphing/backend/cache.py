@@ -1,67 +1,65 @@
-"""LRU-кэш для результатов 3D-реконструкции.
+"""🗃️ LRU-кэш 3D-реконструкций по SHA-256 хэшу файла.
 
-Позволяет избежать повторной реконструкции одного и того же фото
-при последовательных вызовах /api/morph-pair, /api/forensic-score,
-/api/export-gif и других эндпоинтов.
-
-Размер кэша: 20 последних реконструкций (~400 MB VRAM при cpu-режиме).
+Позволяет многократно использовать результат reconstruct_image
+для одного и того же фото без повторных вычислений.
 """
 from __future__ import annotations
-
 import hashlib
 import io
 import sys
 from pathlib import Path
 from typing import Any
 
-from cachetools import LRUCache
+try:
+    from cachetools import LRUCache
+except ImportError:  # Fallback: простой dict с ограничением
+    class LRUCache(dict):  # type: ignore
+        def __init__(self, maxsize: int = 20):
+            super().__init__()
+            self._maxsize = maxsize
+            self._order: list[str] = []
 
-# Корень проекта
+        def __setitem__(self, key: str, value: Any) -> None:
+            if key in self:
+                self._order.remove(key)
+            elif len(self) >= self._maxsize:
+                oldest = self._order.pop(0)
+                super().__delitem__(oldest)
+            super().__setitem__(key, value)
+            self._order.append(key)
+
+
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app8.reconstruction import reconstruct_image
+from app8.reconstruction import reconstruct_image  # noqa: E402
 
-# 20 лиц × ~20 MB на реконструкцию = до 400 MB RAM
 _recon_cache: LRUCache = LRUCache(maxsize=20)
 
 
-def file_sha256(file_bytes: bytes) -> str:
-    """SHA-256 хэш байтов файла — ключ кэша."""
-    return hashlib.sha256(file_bytes).hexdigest()
-
-
-def cached_reconstruct(file_bytes: bytes, device: str = "cpu") -> dict[str, Any] | None:
-    """Реконструкция с кэшированием по SHA-256 хэшу входного файла.
+def cached_reconstruct(file_bytes: bytes, device: str = "cpu") -> Any | None:
+    """Реконструирует 3D-лицо из байтов, используя LRU-кэш по SHA-256 хэшу.
 
     Args:
-        file_bytes: Байты изображения (JPEG/PNG).
-        device: Устройство для вычислений ('cpu' или 'cuda').
+        file_bytes: Сырые байты изображения (JPEG/PNG/etc.).
+        device: Устройство PyTorch ('cpu' или 'cuda').
 
     Returns:
-        Словарь с результатами реконструкции или None если лицо не найдено.
-        Повторный вызов с теми же байтами вернёт кэшированный результат мгновенно.
+        dict с результатами reconstruct_image, или None если лицо не найдено.
     """
-    key = file_sha256(file_bytes)
-
+    key = hashlib.sha256(file_bytes).hexdigest()
     if key not in _recon_cache:
         result = reconstruct_image(io.BytesIO(file_bytes), device=device)
-        if result is not None:
-            _recon_cache[key] = result
-        return result
-
+        _recon_cache[key] = result  # Кэшируем даже None
     return _recon_cache[key]
 
 
-def cache_info() -> dict[str, int]:
-    """Статистика кэша для /api/health."""
-    return {
-        "cached_reconstructions": len(_recon_cache),
-        "max_size": _recon_cache.maxsize,
-    }
+def cache_size() -> int:
+    """Возвращает текущее число элементов в кэше."""
+    return len(_recon_cache)
 
 
-def cache_clear() -> None:
-    """Очистка кэша (например, при нехватке памяти)."""
+def clear_cache() -> None:
+    """Очищает кэш реконструкций."""
     _recon_cache.clear()
