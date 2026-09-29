@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Canvas3D from './components/Canvas3D';
 import DropZone from './components/DropZone';
 import Controls from './components/Controls';
@@ -10,6 +10,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [morphData, setMorphData] = useState(null);
   const [gifLoading, setGifLoading] = useState(false);
+  const [webmLoading, setWebmLoading] = useState(false);
 
   const [progress, setProgress] = useState(0.0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -18,7 +19,10 @@ export default function App() {
   const [wireframe, setWireframe] = useState(false);
   const [lighting, setLighting] = useState(false);
 
-  // ── KEYBOARD SHORTCUTS ──────────────────────────────────────────────────
+  // Ссылка на <canvas> внутри Canvas3D для WebM-записи
+  const canvasRef = useRef(null);
+
+  // ── KEYBOARD SHORTCUTS ───────────────────────────────────────────
   useEffect(() => {
     const handleKey = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -58,7 +62,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
-  // ── SWAP A ↔ B ──────────────────────────────────────────────────────────
+  // ── SWAP A ↔ B ────────────────────────────────────────────
   const swapFaces = useCallback(() => {
     if (!morphData) return;
     setMorphData((prev) => ({
@@ -74,7 +78,7 @@ export default function App() {
     setProgress((prev) => 1.0 - prev);
   }, [morphData]);
 
-  // ── LIVE METRICS (вычисляется на клиенте, без запросов) ─────────────────
+  // ── LIVE METRICS (вычисляется на клиенте, без запросов) ──────────────
   const liveMetrics = useMemo(() => {
     if (!morphData?.vertices_a || !morphData?.vertices_b) return null;
     const a = morphData.vertices_a;
@@ -82,6 +86,7 @@ export default function App() {
     const n = a.length / 3;
     const THRESHOLD = 0.025;
     let sumDist = 0, maxDist = 0, aboveThreshold = 0;
+    let dotAB = 0, normA = 0, normB = 0;
     for (let i = 0; i < a.length; i += 3) {
       const dx = a[i] - b[i];
       const dy = a[i + 1] - b[i + 1];
@@ -90,16 +95,24 @@ export default function App() {
       sumDist += d;
       if (d > maxDist) maxDist = d;
       if (d > THRESHOLD) aboveThreshold++;
+      dotAB += a[i] * b[i] + a[i + 1] * b[i + 1] + a[i + 2] * b[i + 2];
+      normA += a[i] * a[i] + a[i + 1] * a[i + 1] + a[i + 2] * a[i + 2];
+      normB += b[i] * b[i] + b[i + 1] * b[i + 1] + b[i + 2] * b[i + 2];
     }
+    const meanDist = sumDist / n;
+    const cosine = dotAB / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-9);
+    const morphability = Math.max(0, Math.min(100, (1.0 - meanDist / 0.15) * 100));
     return {
-      euclidean: (sumDist / n).toFixed(5),
+      euclidean: meanDist.toFixed(5),
       maxDelta: maxDist.toFixed(5),
       pctAbove: ((aboveThreshold / n) * 100).toFixed(1),
       totalVerts: n.toLocaleString(),
+      cosine: cosine.toFixed(4),
+      morphability: morphability.toFixed(1),
     };
   }, [morphData]);
 
-  // ── GIF DOWNLOAD ────────────────────────────────────────────────────────
+  // ── GIF DOWNLOAD ───────────────────────────────────────────
   const handleDownloadGif = async () => {
     if (!photoA || !photoB) return;
     setGifLoading(true);
@@ -124,7 +137,48 @@ export default function App() {
     }
   };
 
-  // ── AUTO PLAY ───────────────────────────────────────────────────────────
+  // ── WEBM RECORD (запись с canvas через MediaRecorder) ───────────────
+  const handleDownloadWebm = useCallback(() => {
+    // Находим <canvas> в DOM (тег r3f рисует сцену в <canvas>)
+    const canvas = document.querySelector('canvas');
+    if (!canvas) { alert('Канвас не найден. Запустите морфинг перед записью.'); return; }
+    if (!canvas.captureStream) { alert('Ваш браузер не поддерживает captureStream.'); return; }
+
+    const DURATION_MS = 4000;   // 4 секунды
+    const FPS = 30;
+    const stream = canvas.captureStream(FPS);
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : 'video/webm';
+    const recorder = new MediaRecorder(stream, { mimeType });
+    const chunks = [];
+
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `3d_morph_${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setWebmLoading(false);
+    };
+
+    // Автозапуск анимации для записи
+    setIsPlaying(true);
+    setProgress(0);
+    setWebmLoading(true);
+    recorder.start();
+    setTimeout(() => {
+      recorder.stop();
+      setIsPlaying(false);
+    }, DURATION_MS);
+  }, []);
+
+  // ── AUTO PLAY ─────────────────────────────────────────────
   useEffect(() => {
     if (!isPlaying) return;
     let forward = true;
@@ -139,7 +193,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isPlaying]);
 
-  // ── PROCESS ─────────────────────────────────────────────────────────────
+  // ── PROCESS ─────────────────────────────────────────────
   const handleProcess = async () => {
     if (!photoA || !photoB) {
       setError('Пожалуйста, выберите оба фото для морфинга.');
@@ -167,7 +221,7 @@ export default function App() {
     }
   };
 
-  // ── RENDER ──────────────────────────────────────────────────────────────
+  // ── RENDER ─────────────────────────────────────────────
   return (
     <div style={{
       display: 'flex',
@@ -211,7 +265,6 @@ export default function App() {
             <DropZone label="Фото A (0%)" photo={photoA} onPhotoSelect={setPhotoA} badgeColor="#1f6feb" />
             <DropZone label="Фото B (100%)" photo={photoB} onPhotoSelect={setPhotoB} badgeColor="#ab7df8" />
           </div>
-          {/* Swap A↔B */}
           <button
             onClick={swapFaces}
             disabled={!morphData}
@@ -272,32 +325,61 @@ export default function App() {
           </div>
         )}
 
-        {/* Live Metrics */}
+        {/* ── LIVE METRICS + MORPHABILITY SCORE ── */}
         {liveMetrics && (
           <div style={{
             background: '#161b22',
             border: '1px solid #30363d',
             borderRadius: '8px',
             padding: '12px',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
           }}>
-            <div style={{ fontSize: '11px', color: '#8b949e', marginBottom: '4px', gridColumn: '1/-1', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               📐 Live Metrics
             </div>
-            {[
-              { label: 'Mean Dist', value: liveMetrics.euclidean },
-              { label: 'Max Delta', value: liveMetrics.maxDelta },
-              { label: '% > threshold', value: `${liveMetrics.pctAbove}%` },
-              { label: 'Вершин', value: liveMetrics.totalVerts },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ background: '#0d1117', borderRadius: '6px', padding: '6px 10px' }}>
-                <div style={{ fontSize: '10px', color: '#8b949e' }}>{label}</div>
-                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#e6edf3', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+
+            {/* Morphability Score — главная метрика */}
+            <div style={{
+              background: '#0d1117',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+            }}>
+              <div>
+                <div style={{ fontSize: '10px', color: '#8b949e', marginBottom: '2px' }}>Morphability Score</div>
+                <div style={{ fontSize: '22px', fontWeight: 'bold', color: getMorphabilityColor(parseFloat(liveMetrics.morphability)), fontVariantNumeric: 'tabular-nums' }}>
+                  {liveMetrics.morphability}%
+                </div>
               </div>
-            ))}
+              <MorphabilityBar value={parseFloat(liveMetrics.morphability)} />
+            </div>
+
+            {/* Остальные метрики в сетке */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {[
+                { label: 'Cosine Sim', value: liveMetrics.cosine },
+                { label: 'Mean Dist', value: liveMetrics.euclidean },
+                { label: 'Max Delta', value: liveMetrics.maxDelta },
+                { label: '% > 0.025', value: `${liveMetrics.pctAbove}%` },
+                { label: 'Вершин', value: liveMetrics.totalVerts },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ background: '#0d1117', borderRadius: '6px', padding: '6px 10px' }}>
+                  <div style={{ fontSize: '10px', color: '#8b949e' }}>{label}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#e6edf3', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Зональные скоры из backend (forensic metadata) */}
+        {morphData?.metadata?.zone_scores && (
+          <ZoneScoresPanel zones={morphData.metadata.zone_scores} />
         )}
 
         {/* Controls */}
@@ -318,6 +400,8 @@ export default function App() {
             metadata={morphData.metadata}
             onDownloadGif={handleDownloadGif}
             gifLoading={gifLoading}
+            onDownloadWebm={handleDownloadWebm}
+            webmLoading={webmLoading}
           />
         )}
 
@@ -360,6 +444,76 @@ export default function App() {
         )}
       </div>
 
+    </div>
+  );
+}
+
+// ── HELPERS ─────────────────────────────────────────────────
+
+function getMorphabilityColor(v) {
+  if (v >= 75) return '#3fb950';  // зелёный — очень похожи
+  if (v >= 50) return '#d29922';  // жёлтый — похож
+  if (v >= 25) return '#f0883e';  // оранжевый — мало похож
+  return '#f85149';               // красный — сильно различаются
+}
+
+function MorphabilityBar({ value }) {
+  const color = getMorphabilityColor(value);
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ height: '8px', background: '#21262d', borderRadius: '999px', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%',
+          width: `${value}%`,
+          background: color,
+          borderRadius: '999px',
+          transition: 'width 0.5s ease',
+        }} />
+      </div>
+      <div style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', textAlign: 'right' }}>
+        {value >= 75 ? 'Очень похожи' : value >= 50 ? 'Похожи' : value >= 25 ? 'Мало похожи' : 'Сильно различаются'}
+      </div>
+    </div>
+  );
+}
+
+const ZONE_LABELS = {
+  forehead: 'Лоб',
+  left_eye: 'Л. глаз',
+  right_eye: 'П. глаз',
+  nose: 'Нос',
+  left_cheek: 'Л. щека',
+  right_cheek: 'П. щека',
+  mouth_chin: 'Рот/Подб.',
+};
+
+function ZoneScoresPanel({ zones }) {
+  return (
+    <div style={{
+      background: '#161b22',
+      border: '1px solid #30363d',
+      borderRadius: '8px',
+      padding: '12px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+    }}>
+      <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+        🦷 Зональный Forensic Score
+      </div>
+      {Object.entries(zones).map(([key, dist]) => {
+        const score = Math.max(0, Math.min(100, (1.0 - dist / 0.15) * 100));
+        const color = getMorphabilityColor(score);
+        return (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '64px', fontSize: '11px', color: '#8b949e', flexShrink: 0 }}>{ZONE_LABELS[key] || key}</div>
+            <div style={{ flex: 1, height: '6px', background: '#21262d', borderRadius: '999px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${score.toFixed(0)}%`, background: color, borderRadius: '999px', transition: 'width 0.5s' }} />
+            </div>
+            <div style={{ width: '38px', fontSize: '11px', color, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{score.toFixed(0)}%</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
