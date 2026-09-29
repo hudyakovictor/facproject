@@ -368,6 +368,99 @@ async def forensic_score(photo_a: UploadFile = File(...), photo_b: UploadFile = 
         raise HTTPException(status_code=500, detail=f"Ошибка forensic score: {exc}")
 
 
+def _compute_mirror_correspondence(v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Отражает сетку по срединной плоскости x=0 и находит для каждой вершины
+    V ближайшую точку на зеркальном меше (scipy.spatial.cKDTree) — так как BFM
+    топология НЕ гарантирует, что индекс i и его зеркальный аналог имеют один
+    и тот же номер вершины. Возвращает (v_mirror_matched, per_vertex_asymmetry).
+
+    Оговорка (M20, docs/30_MORPHING_ANALYSES.md): BFM — статистическая модель,
+    обученная на выборке лиц, которая сама по себе близка к симметричной
+    (усреднение стирает часть реальной асимметрии). Score ниже измеряет
+    "асимметрия модели+личности", а не чисто анатомическую асимметрию черепа.
+    """
+    from scipy.spatial import cKDTree
+    v_mirror = v.copy()
+    v_mirror[:, 0] *= -1.0
+    tree = cKDTree(v_mirror)
+    dists, idx = tree.query(v, k=1)
+    return v_mirror[idx], dists.astype(np.float32)
+
+
+# Эвристический порог "средней асимметрии" для перевода в 0-100 score.
+# Как и _ZONE_INDICES/0.15 в других эндпоинтах — не откалиброван по датасету.
+_SYMMETRY_ASYMMETRY_SCALE = 0.06
+
+
+@app.post("/api/symmetry")
+async def symmetry_analysis(photo: UploadFile = File(...)):
+    """Анализ фациальной симметрии: отражает сетку по x=0, находит зеркальные
+    соответствия через cKDTree, считает per-vertex асимметрию и зональные
+    symmetry-score (0-100) по тем же 7 приближённым зонам, что и другие
+    forensic-эндпоинты. Ответ имеет ТУ ЖЕ схему, что и /api/morph-pair
+    (vertices_a/b, triangles, uv_coords, texture, landmarks) — vertices_b
+    здесь не "лицо B", а зеркальное соответствие, что позволяет переиспользовать
+    существующий Canvas3D/MorphShader (heatmap = |v - v_mirror_matched|) без
+    единой строчки нового шейдерного кода.
+    """
+    try:
+        raw = await photo.read()
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+        bgr = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+
+        res = reconstruct_image(io.BytesIO(raw), device="cpu")
+        if res is None:
+            raise HTTPException(status_code=400, detail="На фото не обнаружено лицо")
+
+        v, ldm106, _scale = align_identity_mesh_to_zero(res)
+        v_mirror_matched, asym = _compute_mirror_correspondence(v)
+        _, uv_b64 = extract_enhanced_uv(bgr, res, uv_size=1024)
+
+        ldm_idx = np.asarray(res["ldm106_indices"], dtype=np.int64)
+        ldm_mirror = v_mirror_matched[ldm_idx]
+
+        zones: dict[str, dict] = {}
+        for zone, (i0, i1) in _ZONE_INDICES.items():
+            seg = asym[i0:i1]
+            mean_a = float(np.mean(seg))
+            max_a = float(np.max(seg))
+            score = round(max(0.0, min(100.0, (1.0 - mean_a / _SYMMETRY_ASYMMETRY_SCALE) * 100)), 1)
+            zones[zone] = {
+                "mean_asymmetry": round(mean_a, 6),
+                "max_asymmetry": round(max_a, 6),
+                "symmetry_score": score,
+            }
+        global_score = round(float(np.mean([z["symmetry_score"] for z in zones.values()])), 1)
+
+        return {
+            "status": "success",
+            "metadata": {
+                "mean_asymmetry": round(float(np.mean(asym)), 6),
+                "max_asymmetry": round(float(np.max(asym)), 6),
+                "global_symmetry_score": global_score,
+                "zones": zones,
+                "note": (
+                    "BFM — статистическая модель, обученная на выборке почти-симметричных "
+                    "лиц: часть реальной анатомической асимметрии стирается усреднением. "
+                    "Score измеряет асимметрию модель+личность, не является медицинским "
+                    "или судебным заключением о хирургических изменениях."
+                ),
+            },
+            "triangles": res["triangles"].flatten().tolist(),
+            "uv_coords": res["uv_coords"].flatten().tolist(),
+            "vertices_a": v.flatten().tolist(),
+            "vertices_b": v_mirror_matched.flatten().tolist(),
+            "landmarks_106_a": ldm106.flatten().tolist(),
+            "landmarks_106_b": ldm_mirror.flatten().tolist(),
+            "texture_a_base64": uv_b64,
+            "texture_b_base64": uv_b64,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка анализа симметрии: {exc}")
+
+
 @app.post("/api/morph-multi")
 async def morph_multi(photos: list[UploadFile] = File(...)):
     """Принимает 2–6 упорядоченных фото, реконструирует и выравнивает каждое

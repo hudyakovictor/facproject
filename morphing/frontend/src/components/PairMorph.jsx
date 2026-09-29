@@ -164,9 +164,12 @@ export default function PairMorph() {
     }
   };
 
-  // ── WEBM RECORD (запись с canvas через MediaRecorder) ───────────────
+  // ── VIDEO RECORD (запись с canvas через MediaRecorder: MP4 если браузер
+  // умеет кодировать H.264 через MediaRecorder — в основном Safari и свежий
+  // Chrome/Edge, — иначе WebM/VP9). Бэкенд ffmpeg-пайплайна сознательно нет:
+  // добавляет системную зависимость деплоя ради формата, который браузер
+  // всё равно может отдать сам в большинстве актуальных версий (M9).
   const handleDownloadWebm = useCallback(() => {
-    // Находим <canvas> в DOM (тег r3f рисует сцену в <canvas>)
     const canvas = document.querySelector('canvas');
     if (!canvas) { alert('Канвас не найден. Запустите морфинг перед записью.'); return; }
     if (!canvas.captureStream) { alert('Ваш браузер не поддерживает captureStream.'); return; }
@@ -174,19 +177,27 @@ export default function PairMorph() {
     const DURATION_MS = 4000;   // 4 секунды
     const FPS = 30;
     const stream = canvas.captureStream(FPS);
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9'
-      : 'video/webm';
-    const recorder = new MediaRecorder(stream, { mimeType });
+
+    // Пробуем MP4 (H.264) первым — поддерживается Safari и Chrome/Edge 105+;
+    // фолбэк на WebM/VP9, затем на общий video/webm.
+    const CANDIDATES = [
+      { mime: 'video/mp4;codecs=avc1.42E01E', ext: 'mp4' },
+      { mime: 'video/mp4', ext: 'mp4' },
+      { mime: 'video/webm;codecs=vp9', ext: 'webm' },
+      { mime: 'video/webm', ext: 'webm' },
+    ];
+    const chosen = CANDIDATES.find((c) => MediaRecorder.isTypeSupported(c.mime)) || { mime: '', ext: 'webm' };
+
+    const recorder = new MediaRecorder(stream, chosen.mime ? { mimeType: chosen.mime } : undefined);
     const chunks = [];
 
     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
     recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: mimeType });
+      const blob = new Blob(chunks, { type: chosen.mime || 'video/webm' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `3d_morph_${Date.now()}.webm`;
+      a.download = `3d_morph_${Date.now()}.${chosen.ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();

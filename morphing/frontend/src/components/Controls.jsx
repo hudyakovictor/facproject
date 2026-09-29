@@ -138,7 +138,7 @@ export default function Controls({
         <button
           onClick={onDownloadWebm}
           disabled={webmLoading || gifLoading}
-          title="Записать 4 секунды анимации с 3D-канваса в WebM"
+          title="Записать 4 секунды анимации с 3D-канваса (MP4, если браузер умеет — иначе WebM)"
           style={{
             padding: '10px',
             background: '#8957e5',
@@ -154,7 +154,7 @@ export default function Controls({
             fontSize: '13px'
           }}
         >
-          <span>{webmLoading ? '⏳ Идёт запись...' : '🎬 Скачать WebM (4 сек, VP9)'}</span>
+          <span>{webmLoading ? '⏳ Идёт запись...' : '🎬 Скачать видео (MP4/WebM, 4 сек)'}</span>
         </button>
       </div>
 

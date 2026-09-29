@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import PairMorph from './components/PairMorph';
 import MultiFaceBlend from './components/MultiFaceBlend';
 import TimelineMorph from './components/TimelineMorph';
+import SymmetryMode from './components/SymmetryMode';
 
 const TABS = [
   { id: 'pair', label: '👤↔👤 Пара (A↔B)' },
   { id: 'multi', label: '🧬 Multi-Face Blend' },
   { id: 'timeline', label: '🎬 Timeline A→B→C→D' },
+  { id: 'symmetry', label: '🪞 Симметрия' },
 ];
 
 export default function App() {
@@ -56,6 +58,7 @@ export default function App() {
         {tab === 'pair' && <PairMorph />}
         {tab === 'multi' && <MultiFaceBlend />}
         {tab === 'timeline' && <TimelineMorph />}
+        {tab === 'symmetry' && <SymmetryMode />}
       </div>
     </div>
   );
