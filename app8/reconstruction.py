@@ -123,6 +123,25 @@ def get_mean_face_vertices(device: str = "cpu") -> np.ndarray:
     return mean_flat.reshape(-1, 3)
 
 
+def compute_shape_from_alpha(alpha_id: np.ndarray, device: str = "cpu") -> np.ndarray:
+    """Строит (35709, 3) сетку identity-формы из произвольного 80-мерного
+    вектора ``alpha_id`` (экспрессия принудительно нулевая), используя тот
+    же кэшированный BFM-базис, что и обычная реконструкция.
+
+    Линейность 3DMM (``V = U + Aid·alpha_id + Aexp·alpha_exp``) делает это
+    дешёвой операцией без прогона нейросети — нужна только матрица базиса.
+    Используется для Timeline-морфинга (Catmull-Rom по alpha_id, M8) и
+    любых других задач, где alpha_id уже посчитан отдельно.
+    """
+    import torch
+    fm, _det, _basis = get_models(device)
+    alpha_t = torch.as_tensor(np.asarray(alpha_id, dtype=np.float32), device=fm.device).unsqueeze(0)
+    exp_zero = torch.zeros(1, 64, device=fm.device)
+    with torch.no_grad():
+        v = fm.compute_shape(alpha_t, exp_zero)[0].cpu().numpy()
+    return v
+
+
 def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | None:
     """Прямой проход реконструкции одного изображения."""
     import torch

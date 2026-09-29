@@ -368,6 +368,80 @@ async def forensic_score(photo_a: UploadFile = File(...), photo_b: UploadFile = 
         raise HTTPException(status_code=500, detail=f"Ошибка forensic score: {exc}")
 
 
+@app.post("/api/morph-multi")
+async def morph_multi(photos: list[UploadFile] = File(...)):
+    """Принимает 2–6 упорядоченных фото, реконструирует и выравнивает каждое
+    в общую топологию/UV. Универсальный N-лицевой эндпоинт:
+
+    * **Multi-Face Blend** (M7) использует ``vertices``/``textures`` как N
+      независимых целей барицентрического блендинга ``V = Σ wᵢVᵢ`` — порядок
+      фото не важен, важны только веса.
+    * **Timeline A→B→C→D** (M8) использует тот же массив как упорядоченную
+      цепочку контрольных точек для Catmull-Rom интерполяции на GPU
+      (4 соседних meshes на сегмент) — здесь порядок важен.
+
+    Топология (triangles/uv) отдаётся один раз — она общая для всех N лиц
+    (M21: "triangles и uv_coords — один раз").
+    """
+    n = len(photos)
+    if n < 2:
+        raise HTTPException(status_code=400, detail="Нужно минимум 2 фото")
+    if n > 6:
+        raise HTTPException(status_code=400, detail="Максимум 6 фото за один запрос (ограничение payload/CPU)")
+
+    vertices_list: list[list[float]] = []
+    texture_list: list[str] = []
+    landmarks_list: list[list[float]] = []
+    yaw_list: list[float] = []
+    triangles = None
+    uv_coords = None
+
+    for idx, photo in enumerate(photos):
+        raw = await photo.read()
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+        bgr = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+
+        res = reconstruct_image(io.BytesIO(raw), device="cpu")
+        if res is None:
+            raise HTTPException(status_code=400, detail=f"На фото #{idx + 1} не обнаружено лицо")
+
+        v_aligned, ldm106, _scale = align_identity_mesh_to_zero(res)
+        _, uv_b64 = extract_enhanced_uv(bgr, res, uv_size=1024)
+
+        if triangles is None:
+            triangles = res["triangles"].flatten().tolist()
+            uv_coords = res["uv_coords"].flatten().tolist()
+
+        vertices_list.append(v_aligned.flatten().tolist())
+        texture_list.append(uv_b64)
+        landmarks_list.append(ldm106.flatten().tolist())
+        yaw_list.append(float(res["angles_deg"][1]))
+
+    # Матрица попарных средних дистанций — для live-метрик N-лицевого режима
+    # (напр. "максимальная попарная дистанция внутри смеси", M17).
+    verts_np = [np.array(v, dtype=np.float32).reshape(-1, 3) for v in vertices_list]
+    pairwise_mean: list[list[float]] = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = float(np.mean(np.linalg.norm(verts_np[i] - verts_np[j], axis=1)))
+            pairwise_mean[i][j] = round(d, 6)
+            pairwise_mean[j][i] = round(d, 6)
+
+    return {
+        "status": "success",
+        "count": n,
+        "triangles": triangles,
+        "uv_coords": uv_coords,
+        "vertices": vertices_list,
+        "textures": texture_list,
+        "landmarks_106": landmarks_list,
+        "metadata": {
+            "yaw_deg": yaw_list,
+            "pairwise_mean_dist": pairwise_mean,
+        },
+    }
+
+
 @app.post("/api/export-gif")
 async def export_gif(photo_a: UploadFile = File(...), photo_b: UploadFile = File(...)):
     """Генерирует и скачивает GIF-анимацию плавного 3D-морфинга (A -> B -> A)."""
