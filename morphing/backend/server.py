@@ -486,6 +486,7 @@ async def morph_multi(photos: list[UploadFile] = File(...)):
     texture_list: list[str] = []
     landmarks_list: list[list[float]] = []
     yaw_list: list[float] = []
+    alpha_id_list: list[list[float]] = []
     triangles = None
     uv_coords = None
 
@@ -509,6 +510,10 @@ async def morph_multi(photos: list[UploadFile] = File(...)):
         texture_list.append(uv_b64)
         landmarks_list.append(ldm106.flatten().tolist())
         yaw_list.append(float(res["angles_deg"][1]))
+        # 80-мерный вектор формы 3DMM — для PCA-скаттера сессии (M12-lite) и
+        # Temporal Drift / 4D Age Progression (M19/M15): тренд считается в
+        # этом низкоразмерном пространстве, а не по 35709×3 вершинам.
+        alpha_id_list.append(np.asarray(res["alpha_id"], dtype=np.float32).flatten().tolist())
 
     # Матрица попарных средних дистанций — для live-метрик N-лицевого режима
     # (напр. "максимальная попарная дистанция внутри смеси", M17).
@@ -528,11 +533,34 @@ async def morph_multi(photos: list[UploadFile] = File(...)):
         "vertices": vertices_list,
         "textures": texture_list,
         "landmarks_106": landmarks_list,
+        "alpha_id": alpha_id_list,
         "metadata": {
             "yaw_deg": yaw_list,
             "pairwise_mean_dist": pairwise_mean,
         },
     }
+
+
+@app.post("/api/alpha-to-mesh")
+async def alpha_to_mesh(payload: dict):
+    """Строит (35709,3) выровненную сетку из произвольного 80-мерного
+    alpha_id (например, экстраполированного трендом во времени, M15/M19).
+    Не запускает нейросеть — только линейный BFM-базис (compute_shape_from_alpha).
+    Используется для 4D Age Progression / Temporal Drift: результат ВСЕГДА
+    синтетический (нет фото для этого alpha_id), фронтенд обязан помечать его
+    как exploratory и не подставлять как "реальное" лицо."""
+    try:
+        alpha_id = payload.get("alpha_id")
+        if not isinstance(alpha_id, list) or len(alpha_id) != 80:
+            raise HTTPException(status_code=400, detail="alpha_id должен быть списком из 80 чисел")
+        from app8.reconstruction import compute_shape_from_alpha
+        v = compute_shape_from_alpha(np.asarray(alpha_id, dtype=np.float32), device="cpu")
+        v_aligned, _scale = align_vertices_to_zero(v)
+        return {"status": "ok", "vertices": v_aligned.flatten().tolist(), "synthetic": True}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка построения сетки из alpha_id: {exc}")
 
 
 @app.post("/api/export-gif")
