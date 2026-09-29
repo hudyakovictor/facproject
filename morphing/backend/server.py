@@ -20,6 +20,7 @@ from app8.reconstruction import reconstruct_image, get_mean_face_vertices
 from morphing.backend.aligner import align_identity_mesh_to_zero, align_vertices_to_zero
 from morphing.backend.uv_extractor import extract_enhanced_uv
 from morphing.backend.gif_renderer import generate_morph_gif
+from morphing.backend.arap import arap_interpolate
 import tempfile
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -58,6 +59,14 @@ _ZONE_LABELS_RU: dict[str, str] = {
 def _bgr_to_base64_jpeg(bgr: np.ndarray, quality: int = 90) -> str:
     _, buf = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, quality])
     return "data:image/jpeg;base64," + base64.b64encode(buf).decode("utf-8")
+
+
+def _bgr_to_base64_png(bgr: np.ndarray) -> str:
+    _, buf = cv2.imencode(".png", bgr, [cv2.IMWRITE_PNG_COMPRESSION, 4])
+    return "data:image/png;base64," + base64.b64encode(buf).decode("utf-8")
+
+
+_ARAP_KEYFRAMES = 9  # K кадров ARAP-траектории (компромисс payload/гладкость, см. 31_MORPHING_PROGRESS.md)
 
 
 def _parse_vertices(data: Any) -> np.ndarray:
@@ -459,6 +468,94 @@ async def symmetry_analysis(photo: UploadFile = File(...)):
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ошибка анализа симметрии: {exc}")
+
+
+@app.post("/api/morph-pair-fluid")
+async def morph_pair_fluid(photo_a: UploadFile = File(...), photo_b: UploadFile = File(...)):
+    """🌊 Fluid Dynamics Morphing: As-Rigid-As-Possible интерполяция формы
+    вместо наивной покадровой линейной V(t)=(1-t)VA+t·VB (см. morphing/backend/arap.py
+    для полного объяснения метода и ссылок на источники — Alexa et al. 2000).
+
+    Возвращает K=9 предрасчитанных ARAP-кадров формы в СХЕМЕ /api/morph-multi
+    (vertices: [...], textures: [...]) — фронтенд проигрывает их через уже
+    существующий Timeline-плеер (CanvasMulti + MultiMorphShader, Catmull-Rom
+    между соседними кадрами) без единой новой строчки шейдера. Текстуры для
+    K кадров — это K попиксельных alpha-blend'ов между текстурой A и текстурой
+    B (пропорция k/(K-1)), а НЕ K настоящих фотографий — честно диктуется тем,
+    что промежуточных фотографий физически не существует.
+    """
+    try:
+        bytes_a = await photo_a.read()
+        bytes_b = await photo_b.read()
+        im_a = Image.open(io.BytesIO(bytes_a)).convert("RGB")
+        im_b = Image.open(io.BytesIO(bytes_b)).convert("RGB")
+        bgr_a = cv2.cvtColor(np.array(im_a), cv2.COLOR_RGB2BGR)
+        bgr_b = cv2.cvtColor(np.array(im_b), cv2.COLOR_RGB2BGR)
+
+        res_a = reconstruct_image(io.BytesIO(bytes_a), device="cpu")
+        if res_a is None:
+            raise HTTPException(status_code=400, detail="На фото A не обнаружено лицо")
+        res_b = reconstruct_image(io.BytesIO(bytes_b), device="cpu")
+        if res_b is None:
+            raise HTTPException(status_code=400, detail="На фото B не обнаружено лицо")
+
+        v_a, ldm106_a, _sa = align_identity_mesh_to_zero(res_a)
+        v_b, ldm106_b, _sb = align_identity_mesh_to_zero(res_b)
+        triangles = res_a["triangles"]
+
+        uv_a_bgr, _ = extract_enhanced_uv(bgr_a, res_a, uv_size=1024)
+        uv_b_bgr, _ = extract_enhanced_uv(bgr_b, res_b, uv_size=1024)
+        if uv_a_bgr.shape != uv_b_bgr.shape:
+            uv_b_bgr = cv2.resize(uv_b_bgr, (uv_a_bgr.shape[1], uv_a_bgr.shape[0]))
+
+        K = _ARAP_KEYFRAMES
+        ts = [k / (K - 1) for k in range(K)]
+
+        frames = arap_interpolate(v_a, v_b, triangles, ts)
+
+        ldm_idx = np.asarray(res_a["ldm106_indices"], dtype=np.int64)
+        vertices_list = [f.flatten().tolist() for f in frames]
+        landmarks_list = [f[ldm_idx].flatten().tolist() for f in frames]
+        texture_list = [
+            _bgr_to_base64_png(cv2.addWeighted(uv_a_bgr, 1.0 - t, uv_b_bgr, t, 0.0))
+            for t in ts
+        ]
+
+        # для сравнения: та же линейная траектория (что уже даёт /api/morph-pair
+        # неявно) — чтобы фронтенд мог явно показать метрику "насколько ARAP
+        # отличается от линейной интерполяции сейчас"
+        linear_frames = [(1 - t) * v_a + t * v_b for t in ts]
+        arap_vs_linear_max_dist = [
+            float(np.max(np.linalg.norm(frames[i] - linear_frames[i], axis=1))) for i in range(K)
+        ]
+
+        return {
+            "status": "success",
+            "count": K,
+            "triangles": triangles.flatten().tolist(),
+            "uv_coords": res_a["uv_coords"].flatten().tolist(),
+            "vertices": vertices_list,
+            "textures": texture_list,
+            "landmarks_106": landmarks_list,
+            "metadata": {
+                "method": "arap",
+                "keyframe_t": ts,
+                "arap_vs_linear_max_dist": [round(d, 5) for d in arap_vs_linear_max_dist],
+                "note": (
+                    "ARAP интерполирует локальные повороты/растяжения треугольников (полярное "
+                    "разложение + SLERP), а не сырые координаты вершин — устраняет эффект "
+                    "\"сминания\" геометрии там, где между A и B есть относительный поворот куска "
+                    "лица. Разница с линейной интерполяцией заметнее для поз с поворотом частей "
+                    "лица друг относительно друга и минимальна для плавных, диффузных изменений "
+                    "формы по всему лицу — см. docs/31_MORPHING_PROGRESS.md (Партия 6) для "
+                    "синтетических измерений обоих случаев."
+                ),
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка ARAP-морфинга: {exc}")
 
 
 @app.post("/api/morph-multi")

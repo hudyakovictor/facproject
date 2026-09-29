@@ -3,12 +3,14 @@ import PairMorph from './components/PairMorph';
 import MultiFaceBlend from './components/MultiFaceBlend';
 import TimelineMorph from './components/TimelineMorph';
 import SymmetryMode from './components/SymmetryMode';
+import FluidMorph from './components/FluidMorph';
 
 const TABS = [
   { id: 'pair', label: '👤↔👤 Пара (A↔B)' },
   { id: 'multi', label: '🧬 Multi-Face Blend' },
   { id: 'timeline', label: '🎬 Timeline A→B→C→D' },
   { id: 'symmetry', label: '🪞 Симметрия' },
+  { id: 'fluid', label: '🌊 Fluid Morph (ARAP)' },
 ];
 
 export default function App() {
@@ -59,6 +61,7 @@ export default function App() {
         {tab === 'multi' && <MultiFaceBlend />}
         {tab === 'timeline' && <TimelineMorph />}
         {tab === 'symmetry' && <SymmetryMode />}
+        {tab === 'fluid' && <FluidMorph />}
       </div>
     </div>
   );
