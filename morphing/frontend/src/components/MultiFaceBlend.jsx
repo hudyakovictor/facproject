@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import DropZone from './DropZone';
 import CanvasMulti from './CanvasMulti';
 import TriangleBarycentricPicker from './TriangleBarycentricPicker';
+import FaceSpaceScatter from './FaceSpaceScatter';
 
 const SLOT_COLORS = ['#58a6ff', '#f778ba', '#d29922', '#3fb950'];
 
@@ -83,6 +84,16 @@ export default function MultiFaceBlend() {
     }
     return active.length >= 2 ? max : null;
   }, [data, weights]);
+
+  const dominantIndex = useMemo(() => weights.reduce((best, w, i) => (w > weights[best] ? i : best), 0), [weights]);
+
+  const handleScatterSelect = useCallback((idx) => {
+    if (faceCount === 3) {
+      setWeights3([0, 1, 2].map((i) => (i === idx ? 1 : 0)));
+    } else {
+      setWeights4Raw([0, 1, 2, 3].map((i) => (i === idx ? 1 : 0)));
+    }
+  }, [faceCount]);
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%' }}>
@@ -197,6 +208,21 @@ export default function MultiFaceBlend() {
             {dominantPairMax !== null && (
               <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#8b949e' }}>
                 Макс. попарная дистанция среди лиц с весом &gt;5%: <b style={{ color: '#e6edf3' }}>{dominantPairMax.toFixed(4)}</b>
+              </div>
+            )}
+
+            {data.alpha_id && data.alpha_id.length >= 2 && (
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '12px', padding: '14px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#8b949e', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  🌌 Face Space (PCA, эта сессия)
+                </div>
+                <FaceSpaceScatter
+                  alphaVectors={data.alpha_id}
+                  labels={Array.from({ length: faceCount }, (_, i) => String.fromCharCode(65 + i))}
+                  colors={SLOT_COLORS}
+                  selectedIndex={dominantIndex}
+                  onSelect={handleScatterSelect}
+                />
               </div>
             )}
 
