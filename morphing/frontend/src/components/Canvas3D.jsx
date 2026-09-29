@@ -8,8 +8,14 @@ export default function Canvas3D({
   progress,
   showLandmarks,
   showHeatmap,
+  heatmapSource = 'diff', // 'diff' | 'deltaA' | 'deltaB'
   wireframe,
   lighting,
+  showUVDiff = false,
+  meanFace = null,        // Float32Array(35709*3) — среднее лицо BFM, для Identity Decomposition
+  decompMode = false,     // true => V = V_mean + tA*deltaA + tB*deltaB вместо линейного A<->B
+  tA = 1.0,
+  tB = 0.0,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -106,6 +112,25 @@ export default function Canvas3D({
     geometry.setIndex(morphData.triangles);
     geometry.computeVertexNormals();
 
+    // Identity Decomposition: positionMean/deltaA/deltaB. Шейдер их всегда
+    // читает (даже в обычном linear-режиме), поэтому если /api/mean-face
+    // ещё не пришёл — используем vertices_a как заглушку (delta = 0), чтобы
+    // не падать на неопределённых атрибутах.
+    const vA = morphData.vertices_a;
+    const vB = morphData.vertices_b;
+    const vMean = (meanFace && meanFace.length === vA.length) ? meanFace : vA;
+    const deltaA = new Float32Array(vA.length);
+    const deltaB = new Float32Array(vB.length);
+    for (let i = 0; i < vA.length; i++) {
+      deltaA[i] = vA[i] - vMean[i];
+      deltaB[i] = vB[i] - vMean[i];
+    }
+    geometry.setAttribute('positionMean', new THREE.Float32BufferAttribute(vMean, 3));
+    geometry.setAttribute('deltaA', new THREE.Float32BufferAttribute(deltaA, 3));
+    geometry.setAttribute('deltaB', new THREE.Float32BufferAttribute(deltaB, 3));
+
+    const HEAT_SOURCE_MAP = { diff: 0.0, deltaA: 1.0, deltaB: 2.0 };
+
     // Шейдерный материал
     const material = new THREE.ShaderMaterial({
       ...MorphShaderMaterialDefinition,
@@ -114,9 +139,14 @@ export default function Canvas3D({
         u_textureA: { value: texA },
         u_textureB: { value: texB },
         u_showHeatmap: { value: showHeatmap ? 1.0 : 0.0 },
+        u_heatmapSource: { value: HEAT_SOURCE_MAP[heatmapSource] ?? 0.0 },
         u_wireframeMode: { value: wireframe ? 1.0 : 0.0 },
         u_lightDirection: { value: new THREE.Vector3(0.4, 0.8, 1.2).normalize() },
         u_useLighting: { value: lighting ? 1.0 : 0.0 },
+        u_showUVDiff: { value: showUVDiff ? 1.0 : 0.0 },
+        u_decompMode: { value: decompMode ? 1.0 : 0.0 },
+        u_tA: { value: tA },
+        u_tB: { value: tB },
       },
       side: THREE.DoubleSide,
       wireframe: wireframe,
@@ -143,19 +173,26 @@ export default function Canvas3D({
     landmarksPointsRef.current = ldmPoints;
     scene.add(ldmPoints);
 
-  }, [morphData]);
+  }, [morphData, meanFace]);
 
   // Обновление состояния морфинга в реальном времени
   useEffect(() => {
+    const HEAT_SOURCE_MAP = { diff: 0.0, deltaA: 1.0, deltaB: 2.0 };
     if (materialRef.current) {
       materialRef.current.uniforms.u_progress.value = progress;
       materialRef.current.uniforms.u_showHeatmap.value = showHeatmap ? 1.0 : 0.0;
+      materialRef.current.uniforms.u_heatmapSource.value = HEAT_SOURCE_MAP[heatmapSource] ?? 0.0;
       materialRef.current.uniforms.u_wireframeMode.value = wireframe ? 1.0 : 0.0;
       materialRef.current.uniforms.u_useLighting.value = lighting ? 1.0 : 0.0;
+      materialRef.current.uniforms.u_showUVDiff.value = showUVDiff ? 1.0 : 0.0;
+      materialRef.current.uniforms.u_decompMode.value = decompMode ? 1.0 : 0.0;
+      materialRef.current.uniforms.u_tA.value = tA;
+      materialRef.current.uniforms.u_tB.value = tB;
       materialRef.current.wireframe = wireframe;
     }
 
-    // Морфинг 106 ориентиров
+    // Морфинг 106 ориентиров (только в обычном linear-режиме; в Identity
+    // Decomposition ориентиры формы A/B теряют однозначный смысл)
     if (morphData && landmarksPointsRef.current) {
       const a = morphData.landmarks_106_a;
       const b = morphData.landmarks_106_b;
@@ -165,9 +202,9 @@ export default function Canvas3D({
       }
       landmarksPointsRef.current.geometry.setAttribute('position', new THREE.Float32BufferAttribute(interp, 3));
       landmarksPointsRef.current.geometry.attributes.position.needsUpdate = true;
-      landmarksPointsRef.current.visible = showLandmarks;
+      landmarksPointsRef.current.visible = showLandmarks && !decompMode;
     }
-  }, [progress, showHeatmap, showLandmarks, wireframe, lighting]);
+  }, [progress, showHeatmap, heatmapSource, showLandmarks, wireframe, lighting, showUVDiff, decompMode, tA, tB]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>

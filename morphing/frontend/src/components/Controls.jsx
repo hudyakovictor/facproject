@@ -9,10 +9,21 @@ export default function Controls({
   setShowLandmarks,
   showHeatmap,
   setShowHeatmap,
+  heatmapSource = 'diff',
+  setHeatmapSource = () => {},
   wireframe,
   setWireframe,
   lighting,
   setLighting,
+  showUVDiff = false,
+  setShowUVDiff = () => {},
+  decompMode = false,
+  setDecompMode = () => {},
+  tA = 1.0,
+  setTA = () => {},
+  tB = 0.0,
+  setTB = () => {},
+  meanFaceReady = false,
   metadata,
   onDownloadGif,
   gifLoading,
@@ -181,6 +192,38 @@ export default function Controls({
           <span>Тепловая карта анатомической разницы</span>
         </label>
 
+        {showHeatmap && (
+          <div style={{ marginLeft: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {[
+              { id: 'diff', label: '|A − B| — разница формы' },
+              { id: 'deltaA', label: '|δA| — уникальность лица A', disabled: !meanFaceReady },
+              { id: 'deltaB', label: '|δB| — уникальность лица B', disabled: !meanFaceReady },
+            ].map((opt) => (
+              <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: opt.disabled ? '#4d5563' : '#8b949e', cursor: opt.disabled ? 'not-allowed' : 'pointer' }}>
+                <input
+                  type="radio"
+                  name="heatmapSource"
+                  checked={heatmapSource === opt.id}
+                  disabled={opt.disabled}
+                  onChange={() => setHeatmapSource(opt.id)}
+                  style={{ accentColor: '#ff7b72' }}
+                />
+                <span>{opt.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showUVDiff}
+            onChange={(e) => setShowUVDiff(e.target.checked)}
+            style={{ accentColor: '#e3b341' }}
+          />
+          <span>🌗 UV Diff текстуры (пигментация/морщины, |texA − texB|)</span>
+        </label>
+
         <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
           <input
             type="checkbox"
@@ -200,6 +243,72 @@ export default function Controls({
           />
           <span>Досвет Ламбертом (выпуклость, но цвет отличается от фото)</span>
         </label>
+      </div>
+
+      {/* 3b. IDENTITY DECOMPOSITION: V = V_mean + tA*deltaA + tB*deltaB */}
+      <div style={{
+        background: '#161b22',
+        border: '1px solid #30363d',
+        borderRadius: '12px',
+        padding: '14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+      }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: meanFaceReady ? 'pointer' : 'not-allowed' }}>
+          <input
+            type="checkbox"
+            checked={decompMode}
+            disabled={!meanFaceReady}
+            onChange={(e) => setDecompMode(e.target.checked)}
+            style={{ accentColor: '#d2a8ff' }}
+          />
+          <span style={{ color: meanFaceReady ? undefined : '#4d5563' }}>
+            🔑 Identity Decomposition {!meanFaceReady && '(загрузка V_mean...)'}
+          </span>
+        </label>
+
+        {decompMode && (
+          <>
+            <div style={{ fontSize: '11px', color: '#8b949e', lineHeight: 1.4 }}>
+              V(t) = V_mean + t<sub>A</sub>·δ<sub>A</sub> + t<sub>B</sub>·δ<sub>B</sub>, где δ<sub>X</sub> = V<sub>X</sub> − V<sub>mean</sub> —
+              «уникальность» лица относительно среднего лица модели.
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                <span style={{ color: '#58a6ff' }}>t_A (вклад уникальности A)</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{tA.toFixed(2)}</span>
+              </div>
+              <input type="range" min="0" max="1.5" step="0.01" value={tA} onChange={(e) => setTA(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#58a6ff' }} />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                <span style={{ color: '#f778ba' }}>t_B (вклад уникальности B)</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{tB.toFixed(2)}</span>
+              </div>
+              <input type="range" min="0" max="1.5" step="0.01" value={tB} onChange={(e) => setTB(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#f778ba' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Только A', a: 1, b: 0 },
+                { label: 'Только B', a: 0, b: 1 },
+                { label: 'Среднее лицо', a: 0, b: 0 },
+                { label: 'A + B (обе уникальности)', a: 1, b: 1 },
+              ].map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => { setTA(p.a); setTB(p.b); }}
+                  style={{ padding: '4px 8px', background: '#21262d', border: '1px solid #30363d', borderRadius: '6px', color: '#c9d1d9', fontSize: '10.5px', cursor: 'pointer' }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* 4. ИНФОРМАЦИЯ О ВЫРАВНИВАНИИ */}

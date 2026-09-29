@@ -19,11 +19,35 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapSource, setHeatmapSource] = useState('diff'); // 'diff' | 'deltaA' | 'deltaB'
   const [wireframe, setWireframe] = useState(false);
   const [lighting, setLighting] = useState(false);
+  const [showUVDiff, setShowUVDiff] = useState(false);
+
+  // ── IDENTITY DECOMPOSITION: V(t) = V_mean + tA*deltaA + tB*deltaB ──────
+  const [meanFace, setMeanFace] = useState(null); // Float32Array из /api/mean-face (грузится один раз)
+  const [decompMode, setDecompMode] = useState(false);
+  const [tA, setTA] = useState(1.0);
+  const [tB, setTB] = useState(0.0);
+
+  // ── QUANTITATIVE SIMILARITY (/api/similarity) ──────────────────────
+  const [similarityData, setSimilarityData] = useState(null);
+  const [similarityLoading, setSimilarityLoading] = useState(false);
 
   // Ссылка на <canvas> внутри Canvas3D для WebM-записи
   const canvasRef = useRef(null);
+
+  // Среднее лицо модели BFM не зависит от загруженных фото — грузим один раз при старте.
+  useEffect(() => {
+    fetch('/api/mean-face')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status === 'ok' && Array.isArray(data.vertices_mean)) {
+          setMeanFace(new Float32Array(data.vertices_mean));
+        }
+      })
+      .catch((e) => console.warn('Не удалось загрузить среднее лицо (/api/mean-face):', e.message));
+  }, []);
 
   // ── KEYBOARD SHORTCUTS ───────────────────────────────────────────
   useEffect(() => {
@@ -215,6 +239,25 @@ export default function App() {
     }
   }, [photoA, photoB]);
 
+  // ── QUANTITATIVE SIMILARITY (запрос к /api/similarity) ─────────────
+  const fetchSimilarity = useCallback(async () => {
+    if (!photoA || !photoB) return;
+    setSimilarityLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo_a', photoA);
+      formData.append('photo_b', photoB);
+      const res = await fetch('/api/similarity', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(`similarity: HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.status === 'ok') setSimilarityData(data);
+    } catch (e) {
+      console.warn('Similarity недоступен:', e.message);
+    } finally {
+      setSimilarityLoading(false);
+    }
+  }, [photoA, photoB]);
+
   // ── PROCESS ─────────────────────────────────────────────
   const handleProcess = async () => {
     if (!photoA || !photoB) {
@@ -237,8 +280,11 @@ export default function App() {
       setMorphData(data);
       setProgress(0.0);
       setForensicData(null);
-      // Фоновый запрос зонального forensic-score — не блокирует отображение морфа
+      setSimilarityData(null);
+      // Фоновые запросы зонального forensic-score и quantitative similarity —
+      // не блокируют отображение морфа
       fetchForensicScore();
+      fetchSimilarity();
     } catch (err) {
       setError(err.message || 'Ошибка соединения с бэкендом');
     } finally {
@@ -399,6 +445,23 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            {/* Предупреждение о низкой морфабельности — лица геометрически далеки */}
+            {parseFloat(liveMetrics.morphability) < 40 && (
+              <div style={{
+                background: 'rgba(248, 81, 73, 0.12)',
+                border: '1px solid rgba(248, 81, 73, 0.4)',
+                borderRadius: '6px',
+                padding: '8px 10px',
+                fontSize: '11px',
+                color: '#ff9492',
+                lineHeight: 1.4,
+              }}>
+                ⚠️ Лица геометрически сильно различаются — морфинг между ними может выглядеть
+                неестественно (резкие переходы формы в средних кадрах). Score — эвристический
+                (порог 0.15 не откалиброван по датасету), используйте как ориентир, не как точную величину.
+              </div>
+            )}
           </div>
         )}
 
@@ -406,10 +469,16 @@ export default function App() {
         {(forensicData || morphData?.metadata?.zone_scores) && (
           <ZoneScoresPanel
             zones={forensicData ? forensicData.zones : morphData.metadata.zone_scores}
-            globalScore={forensicData ? forensicData.global_forensic_score : null}
+            globalScore={forensicData ? forensicData.probability_same_person ?? forensicData.global_forensic_score : null}
+            explanation={forensicData ? forensicData.explanation : null}
             onRecompute={fetchForensicScore}
             recomputing={forensicLoading}
           />
+        )}
+
+        {/* Quantitative Similarity: /api/similarity — euclidean/cosine(alpha_id)/top-5 зон */}
+        {similarityData && (
+          <SimilarityPanel data={similarityData} onRecompute={fetchSimilarity} recomputing={similarityLoading} />
         )}
 
         {/* Controls */}
@@ -423,10 +492,21 @@ export default function App() {
             setShowLandmarks={setShowLandmarks}
             showHeatmap={showHeatmap}
             setShowHeatmap={setShowHeatmap}
+            heatmapSource={heatmapSource}
+            setHeatmapSource={setHeatmapSource}
             wireframe={wireframe}
             setWireframe={setWireframe}
             lighting={lighting}
             setLighting={setLighting}
+            showUVDiff={showUVDiff}
+            setShowUVDiff={setShowUVDiff}
+            decompMode={decompMode}
+            setDecompMode={setDecompMode}
+            tA={tA}
+            setTA={setTA}
+            tB={tB}
+            setTB={setTB}
+            meanFaceReady={!!meanFace}
             metadata={morphData.metadata}
             onDownloadGif={handleDownloadGif}
             gifLoading={gifLoading}
@@ -445,8 +525,14 @@ export default function App() {
             progress={progress}
             showLandmarks={showLandmarks}
             showHeatmap={showHeatmap}
+            heatmapSource={heatmapSource}
             wireframe={wireframe}
             lighting={lighting}
+            showUVDiff={showUVDiff}
+            meanFace={meanFace}
+            decompMode={decompMode}
+            tA={tA}
+            tB={tB}
           />
         ) : (
           <div style={{
@@ -517,7 +603,7 @@ const ZONE_LABELS = {
   mouth_chin: 'Рот/Подб.',
 };
 
-function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
+function ZoneScoresPanel({ zones, globalScore, explanation, onRecompute, recomputing }) {
   return (
     <div style={{
       background: '#161b22',
@@ -530,7 +616,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          🦷 Зональный Forensic Score{globalScore !== null && globalScore !== undefined ? ` · ${globalScore}` : ''}
+          🎯 Forensic Identity Score
         </div>
         {onRecompute && (
           <button
@@ -551,8 +637,25 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
           </button>
         )}
       </div>
+
+      {globalScore !== null && globalScore !== undefined && (
+        <div style={{
+          background: '#0d1117',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+        }}>
+          <span style={{ fontSize: '12px', color: '#8b949e' }}>Вероятность одного человека</span>
+          <span style={{ fontSize: '22px', fontWeight: 'bold', color: getMorphabilityColor(globalScore), fontVariantNumeric: 'tabular-nums' }}>
+            {globalScore}%
+          </span>
+        </div>
+      )}
+
       {Object.entries(zones).map(([key, val]) => {
-        // forensic-score отдаёт объект {mean_dist, max_dist, identity_score};
+        // forensic-score отдаёт объект {mean_dist, max_dist, identity_score, z_local};
         // morph-pair отдаёт плоский mean_dist по зоне
         const score = (val !== null && typeof val === 'object')
           ? val.identity_score
@@ -568,6 +671,85 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
           </div>
         );
       })}
+
+      {/* Объяснение вердикта по зонам: какие говорят "да", какие "нет" */}
+      {explanation && explanation.length > 0 && (
+        <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          {explanation.map((item) => (
+            <div key={item.zone} style={{ fontSize: '10.5px', color: item.verdict === 'да' ? '#7ee787' : item.verdict === 'нет' ? '#ff9492' : '#8b949e' }}>
+              {item.verdict === 'да' ? '✅' : item.verdict === 'нет' ? '❌' : '➖'} {item.text}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SimilarityPanel({ data, onRecompute, recomputing }) {
+  return (
+    <div style={{
+      background: '#161b22',
+      border: '1px solid #30363d',
+      borderRadius: '8px',
+      padding: '12px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          📊 Quantitative Similarity
+        </div>
+        {onRecompute && (
+          <button
+            onClick={onRecompute}
+            disabled={recomputing}
+            title="Пересчитать через /api/similarity"
+            style={{
+              padding: '3px 8px',
+              background: '#21262d',
+              border: '1px solid #30363d',
+              borderRadius: '6px',
+              color: '#8b949e',
+              fontSize: '10px',
+              cursor: recomputing ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {recomputing ? '⏳ Расчёт...' : '↻ Пересчитать'}
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <MiniStat label="Euclidean mean" value={data.euclidean_mean} />
+        <MiniStat label="Euclidean max" value={data.euclidean_max} />
+        <MiniStat label="Cosine (vertices)" value={data.cosine_similarity} />
+        <MiniStat label="Cosine (α_id)" value={data.cosine_similarity_alpha_id} />
+      </div>
+
+      {Array.isArray(data.top_diverging_zones) && data.top_diverging_zones.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+          <div style={{ fontSize: '10px', color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Top-5 зон наибольшего расхождения
+          </div>
+          {data.top_diverging_zones.map((z, idx) => (
+            <div key={z.zone} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#c9d1d9' }}>
+              <span>{idx + 1}. {ZONE_LABELS[z.zone] || z.zone}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums', color: '#8b949e' }}>{z.mean_dist.toFixed(4)} ({z.z_local >= 0 ? '+' : ''}{z.z_local.toFixed(1)}σ)</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div style={{ background: '#0d1117', borderRadius: '6px', padding: '6px 10px' }}>
+      <div style={{ fontSize: '10px', color: '#8b949e' }}>{label}</div>
+      <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#e6edf3', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
     </div>
   );
 }

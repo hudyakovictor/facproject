@@ -109,6 +109,20 @@ def get_models(device: str = "cpu"):
     return _MODELS_CACHE
 
 
+def get_mean_face_vertices(device: str = "cpu") -> np.ndarray:
+    """Возвращает среднее лицо модели BFM (identity=0, expr=0): (35709, 3).
+
+    Математически это ``fm.compute_shape(zeros(80), zeros(64))`` — то есть
+    константный член ``u`` линейного 3DMM-разложения ``V = U + Aid·alpha_id +
+    Aexp·alpha_exp``. Не зависит от входных фото, вычисляется один раз и
+    кэшируется вместе с остальными моделями (``get_models``/``_MODELS_CACHE``).
+    Используется для Identity Decomposition: ``delta = V_id − V_mean``.
+    """
+    fm, _det, _basis = get_models(device)
+    mean_flat = fm.u.detach().cpu().numpy().astype(np.float32)
+    return mean_flat.reshape(-1, 3)
+
+
 def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | None:
     """Прямой проход реконструкции одного изображения."""
     import torch

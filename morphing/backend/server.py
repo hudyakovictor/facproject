@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app8.reconstruction import reconstruct_image
-from morphing.backend.aligner import align_identity_mesh_to_zero
+from app8.reconstruction import reconstruct_image, get_mean_face_vertices
+from morphing.backend.aligner import align_identity_mesh_to_zero, align_vertices_to_zero
 from morphing.backend.uv_extractor import extract_enhanced_uv
 from morphing.backend.gif_renderer import generate_morph_gif
 import tempfile
@@ -44,6 +44,16 @@ _ZONE_INDICES: dict[str, tuple[int, int]] = {
     "mouth_chin":  (29000, 35709),
 }
 
+_ZONE_LABELS_RU: dict[str, str] = {
+    "forehead": "лоб",
+    "left_eye": "левый глаз",
+    "right_eye": "правый глаз",
+    "nose": "нос",
+    "left_cheek": "левая скула/щека",
+    "right_cheek": "правая скула/щека",
+    "mouth_chin": "рот/подбородок",
+}
+
 
 def _bgr_to_base64_jpeg(bgr: np.ndarray, quality: int = 90) -> str:
     _, buf = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, quality])
@@ -56,6 +66,63 @@ def _parse_vertices(data: Any) -> np.ndarray:
     if arr.ndim == 1:
         arr = arr.reshape(-1, 3)
     return arr
+
+
+def _zone_breakdown(v_a: np.ndarray, v_b: np.ndarray) -> dict[str, dict[str, float]]:
+    """Для каждой из 7 приближённых зон считает mean/max евклидову дистанцию
+    между двумя выровненными сетками + локальный z-score (сколько зона
+    отклоняется от среднего разброса по ВСЕМ зонам этой конкретной пары).
+
+    Важная оговорка (см. docs/30_MORPHING_ANALYSES.md, M13): это НЕ z-score
+    относительно откалиброванного датасетного шума (σ same-day noise floor
+    из stage2_v2) — такой калибровки в morphing пока нет. Это z-score внутри
+    7 значений текущей пары, т.е. "насколько эта зона выделяется на фоне
+    остальных зон этого же сравнения". Подписано явно в ключе ``z_local``.
+    """
+    means = {}
+    maxes = {}
+    for zone, (i0, i1) in _ZONE_INDICES.items():
+        d = np.linalg.norm(v_a[i0:i1] - v_b[i0:i1], axis=1)
+        means[zone] = float(np.mean(d))
+        maxes[zone] = float(np.max(d))
+
+    vals = np.array(list(means.values()), dtype=np.float64)
+    mu, sigma = float(np.mean(vals)), float(np.std(vals) + 1e-9)
+
+    out: dict[str, dict[str, float]] = {}
+    for zone in _ZONE_INDICES:
+        mean_d = means[zone]
+        z_local = (mean_d - mu) / sigma
+        score = round(max(0.0, min(100.0, (1.0 - mean_d / 0.15) * 100)), 1)
+        out[zone] = {
+            "mean_dist": round(mean_d, 6),
+            "max_dist": round(maxes[zone], 6),
+            "identity_score": score,
+            "z_local": round(z_local, 2),
+        }
+    return out
+
+
+def _top_diverging_zones(zone_breakdown: dict[str, dict[str, float]], n: int = 5) -> list[dict]:
+    ranked = sorted(zone_breakdown.items(), key=lambda kv: kv[1]["mean_dist"], reverse=True)
+    return [
+        {"zone": zone, "mean_dist": vals["mean_dist"], "z_local": vals["z_local"]}
+        for zone, vals in ranked[:n]
+    ]
+
+
+_MEAN_FACE_CACHE: np.ndarray | None = None
+
+
+def _get_aligned_mean_face() -> np.ndarray:
+    """Кэшированная (35709, 3) сетка среднего лица модели, выровненная тем
+    же рецептом (центр + нормировка по max-радиусу), что и лица A/B."""
+    global _MEAN_FACE_CACHE
+    if _MEAN_FACE_CACHE is None:
+        v_mean = get_mean_face_vertices(device="cpu")
+        v_mean_aligned, _scale = align_vertices_to_zero(v_mean)
+        _MEAN_FACE_CACHE = v_mean_aligned
+    return _MEAN_FACE_CACHE
 
 
 @app.get("/api/health")
@@ -99,13 +166,11 @@ async def morph_pair(photo_a: UploadFile = File(...), photo_b: UploadFile = File
         mean_diff = float(np.mean(diff_magnitudes))
         max_diff = float(np.max(diff_magnitudes))
 
-        # 5. Предрасчёт зональных метрик (forensic-like)
-        zone_scores: dict[str, float] = {}
-        for zone, (i0, i1) in _ZONE_INDICES.items():
-            seg_a = v_a_aligned[i0:i1]
-            seg_b = v_b_aligned[i0:i1]
-            d = np.linalg.norm(seg_a - seg_b, axis=1)
-            zone_scores[zone] = round(float(np.mean(d)), 6)
+        # 5. Предрасчёт зональных метрик (forensic-like) — sidecar на случай,
+        # если /api/forensic-score ещё не отработал.
+        zone_scores: dict[str, float] = {
+            zone: vals["mean_dist"] for zone, vals in _zone_breakdown(v_a_aligned, v_b_aligned).items()
+        }
 
         # Morphability Score: нормируем mean_diff на эмпирический max 0.15
         morphability = round(max(0.0, min(100.0, (1.0 - mean_diff / 0.15) * 100)), 1)
@@ -155,9 +220,25 @@ async def morph_pair(photo_a: UploadFile = File(...), photo_b: UploadFile = File
         raise HTTPException(status_code=500, detail=f"Ошибка обработки морфинга: {exc}")
 
 
+@app.get("/api/mean-face")
+async def mean_face():
+    """Возвращает среднее лицо BFM (35709 вершин), выровненное тем же
+    рецептом, что и лица A/B. Не зависит от входных фото — фронтенд
+    запрашивает это один раз и кэширует; используется для Identity
+    Decomposition: δ_A = V_A − V_mean, δ_B = V_B − V_mean."""
+    try:
+        v_mean = _get_aligned_mean_face()
+        return {"status": "ok", "vertices_mean": v_mean.flatten().tolist()}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения среднего лица: {exc}")
+
+
 @app.post("/api/similarity")
 async def compute_similarity(photo_a: UploadFile = File(...), photo_b: UploadFile = File(...)):
-    """Вычисляет Euclidean mean distance и cosine similarity 3D-форм двух лиц."""
+    """Quantitative similarity: Euclidean distance по 35 709 вершинам,
+    cosine similarity векторов формы alpha_id (80-мерных 3DMM-коэффициентов,
+    а не «плоских» координат вершин — так это честная мера направления в
+    пространстве формы), zone breakdown и top-5 наиболее расходящихся зон."""
     try:
         bytes_a = await photo_a.read()
         bytes_b = await photo_b.read()
@@ -175,18 +256,35 @@ async def compute_similarity(photo_a: UploadFile = File(...), photo_b: UploadFil
         dists = np.linalg.norm(v_a - v_b, axis=1)
         mean_dist = float(np.mean(dists))
         max_dist = float(np.max(dists))
+        pct_above = float(np.mean(dists > 0.025) * 100.0)
 
+        # Cosine similarity по вершинам (обратная совместимость со старыми клиентами)
         flat_a = v_a.flatten().astype(np.float64)
         flat_b = v_b.flatten().astype(np.float64)
-        cosine = float(np.dot(flat_a, flat_b) / (np.linalg.norm(flat_a) * np.linalg.norm(flat_b) + 1e-9))
+        cosine_vertices = float(np.dot(flat_a, flat_b) / (np.linalg.norm(flat_a) * np.linalg.norm(flat_b) + 1e-9))
+
+        # Cosine similarity по alpha_id — 80-мерный вектор формы 3DMM, честнее
+        # отражает "направление" идентичности лица, чем плоские координаты вершин.
+        alpha_a = np.asarray(res_a["alpha_id"], dtype=np.float64).flatten()
+        alpha_b = np.asarray(res_b["alpha_id"], dtype=np.float64).flatten()
+        cosine_alpha_id = float(
+            np.dot(alpha_a, alpha_b) / (np.linalg.norm(alpha_a) * np.linalg.norm(alpha_b) + 1e-9)
+        )
+
         morphability = round(max(0.0, min(100.0, (1.0 - mean_dist / 0.15) * 100)), 1)
+        zones = _zone_breakdown(v_a, v_b)
+        top_zones = _top_diverging_zones(zones, n=5)
 
         return {
             "status": "ok",
             "euclidean_mean": round(mean_dist, 6),
             "euclidean_max": round(max_dist, 6),
-            "cosine_similarity": round(cosine, 6),
+            "pct_vertices_above_threshold": round(pct_above, 2),
+            "cosine_similarity": round(cosine_vertices, 6),
+            "cosine_similarity_alpha_id": round(cosine_alpha_id, 6),
             "morphability_score": morphability,
+            "zones": zones,
+            "top_diverging_zones": top_zones,
         }
     except HTTPException:
         raise
@@ -194,9 +292,26 @@ async def compute_similarity(photo_a: UploadFile = File(...), photo_b: UploadFil
         raise HTTPException(status_code=500, detail=f"Ошибка similarity: {exc}")
 
 
+# Веса анатомических зон для глобального Forensic Identity Score.
+# Нос и периорбитальная зона (глаза) считаются наиболее дискриминативными
+# зонами лица в антропометрии/криминалистике и получают больший вес.
+_FORENSIC_ZONE_WEIGHTS: dict[str, float] = {
+    "forehead":    0.10,
+    "left_eye":    0.18,
+    "right_eye":   0.18,
+    "nose":        0.22,
+    "left_cheek":  0.10,
+    "right_cheek": 0.10,
+    "mouth_chin":  0.12,
+}
+
+
 @app.post("/api/forensic-score")
 async def forensic_score(photo_a: UploadFile = File(...), photo_b: UploadFile = File(...)):
-    """Зональный forensic identity score: отдельные метрики для 7 анатомических зон лица."""
+    """Forensic Identity Score: вероятность, что на двух фото один и тот же
+    человек, с декомпозицией по 7 анатомическим зонам (веса из
+    _FORENSIC_ZONE_WEIGHTS) и текстовым объяснением, какие зоны говорят "да"
+    (похожи/идентичны), а какие "нет" (отличаются сильнее прочих)."""
     try:
         bytes_a = await photo_a.read()
         bytes_b = await photo_b.read()
@@ -211,39 +326,41 @@ async def forensic_score(photo_a: UploadFile = File(...), photo_b: UploadFile = 
         v_a, _, _ = align_identity_mesh_to_zero(res_a)
         v_b, _, _ = align_identity_mesh_to_zero(res_b)
 
-        zones_result: dict[str, dict] = {}
-        for zone, (i0, i1) in _ZONE_INDICES.items():
-            seg_a = v_a[i0:i1]
-            seg_b = v_b[i0:i1]
-            d = np.linalg.norm(seg_a - seg_b, axis=1)
-            mean_d = float(np.mean(d))
-            max_d = float(np.max(d))
-            # Нормируем на эмпирический max 0.15 → score 0–100
-            score = round(max(0.0, min(100.0, (1.0 - mean_d / 0.15) * 100)), 1)
-            zones_result[zone] = {
-                "mean_dist": round(mean_d, 6),
-                "max_dist": round(max_d, 6),
-                "identity_score": score,
-            }
+        zones_result = _zone_breakdown(v_a, v_b)
 
-        # Глобальный взвешенный score (нос и периорбитальная зона весят больше)
-        weights = {
-            "forehead": 0.10,
-            "left_eye": 0.18,
-            "right_eye": 0.18,
-            "nose": 0.22,
-            "left_cheek": 0.10,
-            "right_cheek": 0.10,
-            "mouth_chin": 0.12,
-        }
-        global_score = round(
-            sum(zones_result[z]["identity_score"] * w for z, w in weights.items()), 1
+        # Глобальная вероятность "один и тот же человек" — взвешенная сумма
+        # зональных identity_score (0-100) по весам зон.
+        probability_same_person = round(
+            sum(zones_result[z]["identity_score"] * w for z, w in _FORENSIC_ZONE_WEIGHTS.items()),
+            1,
         )
+
+        # Текстовое объяснение по зонам: "да" (совпадает) / "нет" (отличается),
+        # используя локальный z-score (z_local) внутри 7 зон этой пары —
+        # см. docstring _zone_breakdown про то, что это НЕ откалиброванная
+        # по датасету σ, а относительный разброс внутри самой пары.
+        explanation: list[dict] = []
+        for zone, vals in sorted(zones_result.items(), key=lambda kv: kv[1]["z_local"]):
+            z = vals["z_local"]
+            zone_ru = _ZONE_LABELS_RU.get(zone, zone)
+            if z <= -0.5:
+                verdict = "да"
+                text = f"{zone_ru} совпадают (ниже среднего расхождения по паре)"
+            elif z >= 1.0:
+                verdict = "нет"
+                text = f"{zone_ru} отличаются на {z:.1f}σ (заметно сильнее прочих зон)"
+            else:
+                verdict = "нейтрально"
+                text = f"{zone_ru} — расхождение на уровне среднего по паре"
+            explanation.append({"zone": zone, "verdict": verdict, "z_local": z, "text": text})
 
         return {
             "status": "ok",
-            "global_forensic_score": global_score,
+            "global_forensic_score": probability_same_person,
+            "probability_same_person": probability_same_person,
             "zones": zones_result,
+            "zone_weights": _FORENSIC_ZONE_WEIGHTS,
+            "explanation": explanation,
         }
     except HTTPException:
         raise

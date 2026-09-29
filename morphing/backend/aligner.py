@@ -27,3 +27,21 @@ def align_identity_mesh_to_zero(recon_data: dict[str, Any]) -> tuple[np.ndarray,
     ldm106_pts = v_aligned[ldm106_idx]
     
     return v_aligned, ldm106_pts, scale
+
+
+def align_vertices_to_zero(v_id: np.ndarray) -> tuple[np.ndarray, float]:
+    """Тот же рецепт выравнивания (центр в 0, нормализация по max-радиусу),
+    но для голого массива вершин (35709, 3) без остального recon_data.
+
+    Нужен, чтобы приводить «среднее лицо» модели (``get_mean_face_vertices``)
+    к той же нормировке, что и ``align_identity_mesh_to_zero`` применяет к
+    лицам A/B — иначе разность ``V_id − V_mean`` (Identity Decomposition)
+    сравнивала бы вершины в разных масштабах.
+    """
+    v = np.asarray(v_id, dtype=np.float32).copy()
+    center = np.mean(v, axis=0)
+    v_aligned = v - center
+    scale = float(np.max(np.linalg.norm(v_aligned, axis=1)))
+    if scale > 1e-4:
+        v_aligned /= scale
+    return v_aligned, scale
