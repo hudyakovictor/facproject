@@ -15,7 +15,9 @@ export default function Controls({
   setLighting,
   metadata,
   onDownloadGif,
-  gifLoading
+  gifLoading,
+  onDownloadWebm,
+  webmLoading
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -103,7 +105,7 @@ export default function Controls({
 
         <button
           onClick={onDownloadGif}
-          disabled={gifLoading}
+          disabled={gifLoading || webmLoading}
           style={{
             padding: '10px',
             background: '#1f6feb',
@@ -120,6 +122,28 @@ export default function Controls({
           }}
         >
           <span>{gifLoading ? '⏳ Рендеринг GIF...' : '📥 Скачать 3D Morphing GIF'}</span>
+        </button>
+
+        <button
+          onClick={onDownloadWebm}
+          disabled={webmLoading || gifLoading}
+          title="Записать 4 секунды анимации с 3D-канваса в WebM"
+          style={{
+            padding: '10px',
+            background: '#8957e5',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: 'bold',
+            cursor: webmLoading ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontSize: '13px'
+          }}
+        >
+          <span>{webmLoading ? '⏳ Идёт запись...' : '🎬 Скачать WebM (4 сек, VP9)'}</span>
         </button>
       </div>
 
@@ -195,10 +219,50 @@ export default function Controls({
           <div>Исходный ракурс A: <b>{metadata.photo_a_yaw > 0 ? `+${metadata.photo_a_yaw}°` : `${metadata.photo_a_yaw}°`}</b></div>
           <div>Исходный ракурс B: <b>{metadata.photo_b_yaw > 0 ? `+${metadata.photo_b_yaw}°` : `${metadata.photo_b_yaw}°`}</b></div>
           <div>Средняя 3D-девиация: <b>{metadata.mean_3d_difference}</b></div>
+          {metadata.max_3d_difference !== undefined && (
+            <div>Макс. 3D-девиация: <b>{metadata.max_3d_difference}</b></div>
+          )}
+          {metadata.morphability_score !== undefined && (
+            <div>Morphability Score: <b style={{ color: '#00ffaa' }}>{metadata.morphability_score}%</b></div>
+          )}
+          {metadata.cosine_similarity !== undefined && (
+            <div>Cosine Similarity: <b style={{ color: '#58a6ff' }}>{metadata.cosine_similarity}</b></div>
+          )}
           <div>Текстура: <b>HD UV (uv_module / 1024px)</b></div>
         </div>
       )}
 
+      {/* 5. ЛЕГЕНДА ГОРЯЧИХ КЛАВИШ */}
+      <details style={{
+        background: '#161b22',
+        border: '1px solid #30363d',
+        borderRadius: '8px',
+        padding: '10px 14px',
+        fontSize: '12px',
+        color: '#8b949e'
+      }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#58a6ff' }}>
+          ⌨ Горячие клавиши
+        </summary>
+        <ul style={{ margin: '8px 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <li><kbd style={kbdStyle}>Space</kbd> — пуск / пауза анимации</li>
+          <li><kbd style={kbdStyle}>←</kbd> / <kbd style={kbdStyle}>→</kbd> — шаг морфа ±5%</li>
+          <li><kbd style={kbdStyle}>R</kbd> — сброс на середину (50%)</li>
+          <li><kbd style={kbdStyle}>W</kbd> — вкл / выкл полигональную сетку</li>
+          <li><kbd style={kbdStyle}>0</kbd> / <kbd style={kbdStyle}>1</kbd> — чистое лицо A / B</li>
+        </ul>
+      </details>
+
     </div>
   );
 }
+
+const kbdStyle = {
+  background: '#21262d',
+  border: '1px solid #30363d',
+  borderRadius: '4px',
+  padding: '1px 6px',
+  fontSize: '11px',
+  color: '#e6edf3',
+  fontFamily: 'monospace',
+};

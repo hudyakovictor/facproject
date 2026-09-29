@@ -11,6 +11,9 @@ export default function App() {
   const [morphData, setMorphData] = useState(null);
   const [gifLoading, setGifLoading] = useState(false);
   const [webmLoading, setWebmLoading] = useState(false);
+  // Данные специализированного эндпоинта /api/forensic-score (зональные identity-скоры)
+  const [forensicData, setForensicData] = useState(null);
+  const [forensicLoading, setForensicLoading] = useState(false);
 
   const [progress, setProgress] = useState(0.0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -193,6 +196,25 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isPlaying]);
 
+  // ── FORENSIC SCORE (запрос к /api/forensic-score) ─────────────────
+  const fetchForensicScore = useCallback(async () => {
+    if (!photoA || !photoB) return;
+    setForensicLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo_a', photoA);
+      formData.append('photo_b', photoB);
+      const res = await fetch('/api/forensic-score', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(`forensic-score: HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.status === 'ok') setForensicData(data);
+    } catch (e) {
+      console.warn('Forensic score недоступен:', e.message);
+    } finally {
+      setForensicLoading(false);
+    }
+  }, [photoA, photoB]);
+
   // ── PROCESS ─────────────────────────────────────────────
   const handleProcess = async () => {
     if (!photoA || !photoB) {
@@ -214,6 +236,9 @@ export default function App() {
       const data = await response.json();
       setMorphData(data);
       setProgress(0.0);
+      setForensicData(null);
+      // Фоновый запрос зонального forensic-score — не блокирует отображение морфа
+      fetchForensicScore();
     } catch (err) {
       setError(err.message || 'Ошибка соединения с бэкендом');
     } finally {
@@ -377,9 +402,14 @@ export default function App() {
           </div>
         )}
 
-        {/* Зональные скоры из backend (forensic metadata) */}
-        {morphData?.metadata?.zone_scores && (
-          <ZoneScoresPanel zones={morphData.metadata.zone_scores} />
+        {/* Зональные скоры: предпочитает /api/forensic-score, иначе sidecar из morph-pair */}
+        {(forensicData || morphData?.metadata?.zone_scores) && (
+          <ZoneScoresPanel
+            zones={forensicData ? forensicData.zones : morphData.metadata.zone_scores}
+            globalScore={forensicData ? forensicData.global_forensic_score : null}
+            onRecompute={fetchForensicScore}
+            recomputing={forensicLoading}
+          />
         )}
 
         {/* Controls */}
@@ -487,7 +517,7 @@ const ZONE_LABELS = {
   mouth_chin: 'Рот/Подб.',
 };
 
-function ZoneScoresPanel({ zones }) {
+function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
   return (
     <div style={{
       background: '#161b22',
@@ -498,11 +528,35 @@ function ZoneScoresPanel({ zones }) {
       flexDirection: 'column',
       gap: '8px',
     }}>
-      <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-        🦷 Зональный Forensic Score
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          🦷 Зональный Forensic Score{globalScore !== null && globalScore !== undefined ? ` · ${globalScore}` : ''}
+        </div>
+        {onRecompute && (
+          <button
+            onClick={onRecompute}
+            disabled={recomputing}
+            title="Пересчитать через /api/forensic-score"
+            style={{
+              padding: '3px 8px',
+              background: '#21262d',
+              border: '1px solid #30363d',
+              borderRadius: '6px',
+              color: '#8b949e',
+              fontSize: '10px',
+              cursor: recomputing ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {recomputing ? '⏳ Расчёт...' : '↻ Пересчитать'}
+          </button>
+        )}
       </div>
-      {Object.entries(zones).map(([key, dist]) => {
-        const score = Math.max(0, Math.min(100, (1.0 - dist / 0.15) * 100));
+      {Object.entries(zones).map(([key, val]) => {
+        // forensic-score отдаёт объект {mean_dist, max_dist, identity_score};
+        // morph-pair отдаёт плоский mean_dist по зоне
+        const score = (val !== null && typeof val === 'object')
+          ? val.identity_score
+          : Math.max(0, Math.min(100, (1.0 - val / 0.15) * 100));
         const color = getMorphabilityColor(score);
         return (
           <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
