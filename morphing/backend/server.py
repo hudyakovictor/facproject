@@ -7,6 +7,7 @@ sequence endpoint as well as the original A/B workflow.
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 import sys
@@ -16,9 +17,9 @@ from typing import Any
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
@@ -29,7 +30,10 @@ if str(ROOT) not in sys.path:
 from app8.reconstruction import reconstruct_image
 from morphing.backend.aligner import align_identity_mesh_to_zero
 from morphing.backend.deformation import tps_deformed_target
-from morphing.backend.extrapolation import extrapolate_shape
+from morphing.backend.extrapolation import MAX_EXTRAPOLATION_HORIZON_YEARS, extrapolate_shape
+from morphing.backend.quality import evaluate_image, evaluate_mesh, quality_schema
+from morphing.backend.batch import similarity_matrix as build_similarity_matrix
+from morphing.backend.reporting import build_pair_report, render_report_html
 from morphing.backend.analysis import (
     DEFAULT_ZONE_WEIGHTS,
     forensic_metrics,
@@ -158,7 +162,11 @@ def _pair_payload(face_a: dict[str, Any], face_b: dict[str, Any], deformation: s
         raise ValueError("deformation must be linear or tps")
     forensic = forensic_metrics(vertices_a, vertices_b, weights=DEFAULT_ZONE_WEIGHTS)
     diff_texture = uv_difference(face_a["texture"], face_b["texture"])
+    quality_a = evaluate_image(face_a["bgr"], label="photo_a")
+    quality_b = evaluate_image(face_b["bgr"], label="photo_b")
     result_a, result_b = face_a["result"], face_b["result"]
+    mesh_quality_a = evaluate_mesh(vertices_a, result_a["triangles"])
+    mesh_quality_b = evaluate_mesh(vertices_b, result_b["triangles"])
     return {
         "status": "success",
         "metadata": {
@@ -176,10 +184,17 @@ def _pair_payload(face_a: dict[str, Any], face_b: dict[str, Any], deformation: s
             },
             "top_5_zones": metrics["top_5_zones"],
             "forensic_score": forensic["forensic_score"],
-            "probability_same_person": forensic["probability_same_person"],
+            "forensic_score_type": forensic["score_type"],
+            "probability_same_person": None,
             "forensic_interpretation": forensic["interpretation"],
             "parameter_heatmap_source": "dense-mesh mean delta proxy",
             "deformation": deformation_info,
+            "quality": {
+                "photo_a": quality_a.to_dict(),
+                "photo_b": quality_b.to_dict(),
+                "mesh_a": mesh_quality_a.to_dict(),
+                "mesh_b": mesh_quality_b.to_dict(),
+            },
         },
         "triangles": result_a["triangles"].flatten().tolist(),
         "uv_coords": result_a["uv_coords"].flatten().tolist(),
@@ -220,6 +235,47 @@ async def parameter_registry() -> dict[str, Any]:
         "count": len(registry.get("params", [])),
         "usage_note": "Registry metadata is shown alongside dense-mesh diagnostics; it is not a substitute for a calibrated Stage 2 run.",
     }
+
+
+@app.get("/api/quality-schema")
+async def get_quality_schema() -> dict[str, Any]:
+    return quality_schema()
+
+
+@app.post("/api/report-pair")
+async def report_pair(
+    photo_a: UploadFile = File(...),
+    photo_b: UploadFile = File(...),
+    format: str = Query(default="json"),
+) -> Any:
+    """Build a deterministic JSON or self-contained HTML analysis report."""
+    try:
+        if format not in {"json", "html"}:
+            raise HTTPException(status_code=400, detail="format must be json or html")
+        raw_a, raw_b = await photo_a.read(), await photo_b.read()
+        face_a, face_b = _reconstruct(raw_a, "A"), _reconstruct(raw_b, "B")
+        report = build_pair_report(
+            face_a["vertices"],
+            face_b["vertices"],
+            labels=(photo_a.filename or "A", photo_b.filename or "B"),
+            quality_a=evaluate_image(face_a["bgr"], label="photo_a"),
+            quality_b=evaluate_image(face_b["bgr"], label="photo_b"),
+            mesh_quality_a=evaluate_mesh(face_a["vertices"], face_a["result"]["triangles"]),
+            mesh_quality_b=evaluate_mesh(face_b["vertices"], face_b["result"]["triangles"]),
+            provenance={
+                "endpoint": "/api/report-pair",
+                "reconstruction": "app8",
+                "alignment": "canonical_zero",
+                "input_sha256": [hashlib.sha256(raw_a).hexdigest(), hashlib.sha256(raw_b).hexdigest()],
+            },
+        )
+        if format == "html":
+            return HTMLResponse(content=render_report_html(report, "3D face morphing report"))
+        return JSONResponse(content=report)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка формирования отчёта: {exc}") from exc
 
 
 @app.post("/api/morph-pair")
@@ -303,6 +359,8 @@ async def _sequence_response(
             raise HTTPException(status_code=400, detail="Для extrapolation нужны минимум 3 года в строго возрастающем порядке")
         if future_year <= numeric_years[-1]:
             raise HTTPException(status_code=400, detail="future_year должен быть позже последнего года")
+        if future_year - numeric_years[-1] > MAX_EXTRAPOLATION_HORIZON_YEARS:
+            raise HTTPException(status_code=400, detail=f"прогноз ограничен горизонтом {MAX_EXTRAPOLATION_HORIZON_YEARS:g} лет")
         prediction, extrapolation_info = extrapolate_shape(numeric_years, vertex_arrays, future_year)
         extrapolation = {**extrapolation_info, "vertices": prediction.flatten().tolist()}
     return {
@@ -342,6 +400,21 @@ async def morph_sequence(
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ошибка timeline-морфинга: {exc}") from exc
+
+
+@app.post("/api/similarity-matrix")
+async def batch_similarity_matrix(photos: list[UploadFile] = File(...)) -> dict[str, Any]:
+    """Compare 2–16 uploaded faces as an explainable distance matrix."""
+    if not 2 <= len(photos) <= 16:
+        raise HTTPException(status_code=400, detail="similarity-matrix принимает от 2 до 16 фотографий")
+    try:
+        faces = [_reconstruct(await upload.read(), chr(65 + index)) for index, upload in enumerate(photos)]
+        labels = [upload.filename or f"Face {index + 1}" for index, upload in enumerate(photos)]
+        return {"status": "ok", **build_similarity_matrix([face["vertices"] for face in faces], labels)}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка similarity matrix: {exc}") from exc
 
 
 @app.post("/api/face-space")

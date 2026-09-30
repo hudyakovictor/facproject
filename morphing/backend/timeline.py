@@ -28,17 +28,21 @@ def catmull_rom_weights(
     """
     if count < 2 or count > 4:
         raise ValueError("a morph timeline must contain between 2 and 4 keyframes")
+    if not np.isfinite(float(progress)):
+        raise ValueError("progress must be finite")
     t = float(np.clip(progress, 0.0, 1.0))
-    if count == 2:
-        return np.array([1.0 - t, t, 0.0, 0.0], dtype=np.float32)
-
-    # Segment number and local t. The last point belongs to the last segment.
     if positions is None:
         timeline_positions = np.linspace(0.0, 1.0, count)
     else:
         timeline_positions = np.asarray(list(positions), dtype=np.float64)
-        if len(timeline_positions) != count or timeline_positions[0] != 0 or timeline_positions[-1] != 1 or np.any(np.diff(timeline_positions) <= 0):
-            raise ValueError("timeline positions must be strictly increasing from 0 to 1")
+        if (len(timeline_positions) != count or not np.isfinite(timeline_positions).all()
+                or timeline_positions[0] != 0 or timeline_positions[-1] != 1
+                or np.any(np.diff(timeline_positions) <= 0)):
+            raise ValueError("timeline positions must be finite and strictly increasing from 0 to 1")
+    if count == 2:
+        return np.array([1.0 - t, t, 0.0, 0.0], dtype=np.float32)
+
+    # Segment number and local t. The last point belongs to the last segment.
     segment = int(np.searchsorted(timeline_positions, t, side="right") - 1)
     segment = min(max(segment, 0), count - 2)
     span = timeline_positions[segment + 1] - timeline_positions[segment]
@@ -74,6 +78,8 @@ def interpolate_sequence(
         raise ValueError("a morph timeline must contain between 2 and 4 keyframes")
     if any(item.shape != arrays[0].shape for item in arrays[1:]):
         raise ValueError("all timeline meshes must have the same shape")
+    if arrays[0].size == 0 or any(not np.isfinite(item).all() for item in arrays):
+        raise ValueError("timeline meshes must be non-empty and finite")
     weights = catmull_rom_weights(progress, len(arrays), positions)
     result = np.zeros_like(arrays[0], dtype=np.float32)
     for index, array in enumerate(arrays):
@@ -89,6 +95,8 @@ def blend_vertices(vertices: Iterable[np.ndarray], weights: Iterable[float]) -> 
         raise ValueError("blend requires 2–4 meshes and one weight per mesh")
     if any(item.shape != arrays[0].shape for item in arrays[1:]):
         raise ValueError("all blend meshes must have the same shape")
+    if arrays[0].size == 0 or any(not np.isfinite(item).all() for item in arrays):
+        raise ValueError("blend meshes must be non-empty and finite")
     if not np.all(np.isfinite(raw_weights)) or np.any(raw_weights < 0):
         raise ValueError("blend weights must be finite and non-negative")
     total = float(raw_weights.sum())
@@ -107,6 +115,8 @@ def timeline_metadata(
     if not 2 <= count <= 4:
         raise ValueError("a morph timeline must contain between 2 and 4 keyframes")
     names = labels or [f"Face {chr(65 + i)}" for i in range(count)]
+    if len(names) != count:
+        raise ValueError("labels must match the keyframe count")
     times = list(positions) if positions is not None else list(np.linspace(0.0, 1.0, count))
     catmull_rom_weights(0.0, count, times)  # validate and normalize the contract
     return {

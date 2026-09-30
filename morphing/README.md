@@ -36,9 +36,10 @@
   Годы также становятся неравномерными `timeline.keyframe_times`, поэтому 10-летний
   интервал получает больше времени spline, чем 1-летний.
 - В Timeline можно указать будущий год. API выполнит bounded polynomial
-  extrapolation по dense mesh и вернёт `extrapolation.vertices`; UI позволяет
-  переключиться на режим `Last observed → Forecast`. Это what-if projection,
-  а не валидированное предсказание внешности.
+  extrapolation по dense mesh (максимальный горизонт — 50 лет) и вернёт
+  `extrapolation.vertices`; UI позволяет переключиться на режим
+  `Last observed → Forecast`. Это what-if projection, а не валидированное
+  предсказание внешности.
 
 ### Экспорт и диагностические слои
 
@@ -52,7 +53,8 @@
   cosine similarity, Morphability и top-5 зон расхождения.
 - `POST /api/forensic-score` возвращает взвешенный зональный score и объяснение
   (какие зоны поддерживают/снижают сходство). Используются явные веса зон,
-  результат помечен как geometric similarity proxy.
+  результат помечен как geometric similarity proxy; совместимое поле
+  `probability_same_person` намеренно возвращает `null`, score не калиброван как вероятность.
 - `POST /api/uv-diff` и слой **UV Diff** показывают нормализованную разницу
   двух UV-текстур независимо от геометрии.
 - `GET /api/parameter-registry` отдаёт реестр Stage 2 v2; в ответе pair также
@@ -61,6 +63,19 @@
   порогов Stage 2.
 - `POST /api/symmetry` оценивает bilateral symmetry canonical mesh с разбором по
   зонам.
+- Quality gates оценивают resolution, sharpness, contrast, exposure, clipping,
+  entropy, mesh finite vertices, invalid/degenerate faces и topology edge counts.
+  Замечания показываются в UI; эти heuristic checks не оценивают качество
+  реконструкции как ground-truth.
+- `POST /api/similarity-matrix` принимает 2–16 лиц и строит парные distance,
+  cosine и zonal matrices с геометрическим outlier ranking.
+- Batch diagnostics включают deterministic bootstrap intervals по зонам и
+  real-year displacement rates. Интервалы descriptive: vertex resampling не
+  моделирует spatial dependence и не является population confidence interval.
+- `GET /api/quality-schema` публикует quality gates.
+- `POST /api/report-pair?format=json|html` собирает reproducible report packet
+  с metrics, image/mesh quality, symmetry, input SHA-256 hashes, provenance и
+  limitations. UI умеет скачать оба формата; HTML экранирует untrusted labels.
 
 ## Структура
 
@@ -72,6 +87,11 @@ morphing/
 │   ├── timeline.py     # Catmull–Rom / normalized multi-face blend
 │   ├── deformation.py  # optional smooth TPS deformation
 │   ├── extrapolation.py # dated polynomial shape projection
+│   ├── regions.py      # anatomical region registry and aggregation
+│   ├── quality.py      # image/mesh quality gates
+│   ├── reporting.py    # JSON/HTML evidence packet
+│   ├── batch.py        # pair matrices, peer ranking, descriptive bootstrap
+│   ├── tests/          # unittest coverage for math, quality, batch and reports
 │   ├── aligner.py      # каноническое выравнивание
 │   └── uv_extractor.py # HD UV через uv_module
 ├── frontend/
@@ -117,10 +137,19 @@ Vite проксирует `/api` на backend, поэтому браузер н�
 | `POST /api/morph-blend` | normalized barycentric mesh blend |
 | `POST /api/face-space` | PCA 3D scatter coordinates and ordered path |
 | `POST /api/similarity` | dense quantitative similarity |
+| `POST /api/similarity-matrix` | 2–16 face distance/cosine/regional matrix |
 | `POST /api/forensic-score` | weighted zone similarity proxy |
 | `POST /api/uv-diff` | normalized UV difference texture |
 | `POST /api/symmetry` | bilateral symmetry diagnostic |
+| `GET /api/quality-schema` | quality-gate registry |
+| `POST /api/report-pair?format=json|html` | reproducible analysis report |
 | `POST /api/export-gif` | legacy HD GIF export |
+
+Backend unit tests (не загружают реконструкционную GPU-модель) запускаются из корня:
+
+```bash
+python3 -m unittest discover -s morphing/backend/tests -v
+```
 
 `morph-pair` сохраняет старые поля `vertices_a`, `vertices_b`,
 `landmarks_106_a/b`, `texture_a_base64`, `texture_b_base64`, поэтому старые

@@ -56,10 +56,15 @@ def similarity_metrics(
     """Compute dense shape metrics and a ranked anatomical breakdown."""
     a = np.asarray(vertices_a, dtype=np.float32)
     b = np.asarray(vertices_b, dtype=np.float32)
-    if a.shape != b.shape or a.ndim != 2 or a.shape[1] != 3:
-        raise ValueError("vertices_a and vertices_b must both have shape (N, 3)")
+    if a.shape != b.shape or a.ndim != 2 or a.shape[1] != 3 or len(a) < 7:
+        raise ValueError("vertices_a and vertices_b must both have shape (N, 3), N >= 7")
+    if not np.isfinite(a).all() or not np.isfinite(b).all():
+        raise ValueError("vertex coordinates must be finite")
     dists = np.linalg.norm(a - b, axis=1).astype(np.float64)
     zones = dict(zones or zone_ranges(len(a)))
+    for name, (start, end) in zones.items():
+        if not isinstance(start, (int, np.integer)) or not isinstance(end, (int, np.integer)) or not 0 <= start < end <= len(a):
+            raise ValueError(f"invalid zone bounds for {name}: {(start, end)}")
     zone_metrics: dict[str, dict[str, float]] = {}
     for name, (start, end) in zones.items():
         delta = dists[start:end]
@@ -107,7 +112,12 @@ def forensic_metrics(
     response so callers cannot accidentally present it as a verified identity.
     """
     metrics = similarity_metrics(vertices_a, vertices_b, zones=zones)
-    chosen_weights = dict(weights or DEFAULT_ZONE_WEIGHTS)
+    chosen_weights = {str(key): float(value) for key, value in (weights or DEFAULT_ZONE_WEIGHTS).items()}
+    unknown = set(chosen_weights) - set(metrics["zones"])
+    if unknown:
+        raise ValueError(f"unknown forensic zones: {', '.join(sorted(unknown))}")
+    if any(not np.isfinite(value) or value < 0 for value in chosen_weights.values()):
+        raise ValueError("forensic zone weights must be finite and non-negative")
     available = {name: data for name, data in metrics["zones"].items() if name in chosen_weights}
     total_weight = sum(chosen_weights[name] for name in available) or 1.0
     weighted_score = sum(
@@ -121,7 +131,10 @@ def forensic_metrics(
     return {
         **metrics,
         "forensic_score": round(float(weighted_score), 2),
-        "probability_same_person": round(float(weighted_score), 2),
+        "score_type": "uncalibrated geometric similarity index on a 0–100 scale",
+        # Deprecated compatibility field; deliberately null because this
+        # score has not been calibrated to a probability of shared identity.
+        "probability_same_person": None,
         "zone_weights": chosen_weights,
         "explanations": explanations,
         "interpretation": "geometric similarity proxy; not a calibrated identity probability",
@@ -131,8 +144,8 @@ def forensic_metrics(
 def symmetry_metrics(vertices: np.ndarray) -> dict[str, Any]:
     """Estimate bilateral symmetry using a reflected nearest-neighbour metric."""
     points = np.asarray(vertices, dtype=np.float32)
-    if points.ndim != 2 or points.shape[1] != 3:
-        raise ValueError("vertices must have shape (N, 3)")
+    if points.ndim != 2 or points.shape[1] != 3 or len(points) < 7 or not np.isfinite(points).all():
+        raise ValueError("vertices must have finite shape (N, 3), N >= 7")
     reflected = points.copy()
     reflected[:, 0] *= -1.0
     sampled_indices = None
@@ -178,7 +191,14 @@ def pca_projection(vertices: list[np.ndarray], components: int = 3) -> dict[str,
     """Project aligned meshes into a deterministic low-dimensional face space."""
     if len(vertices) < 2:
         raise ValueError("PCA face space needs at least two meshes")
-    matrix = np.stack([np.asarray(item, dtype=np.float64).reshape(-1) for item in vertices])
+    if components < 1:
+        raise ValueError("components must be positive")
+    arrays = [np.asarray(item, dtype=np.float64) for item in vertices]
+    if any(array.shape != arrays[0].shape for array in arrays[1:]):
+        raise ValueError("all PCA meshes must have identical shapes")
+    if any(not np.isfinite(array).all() for array in arrays):
+        raise ValueError("PCA mesh coordinates must be finite")
+    matrix = np.stack([item.reshape(-1) for item in arrays])
     centered = matrix - np.mean(matrix, axis=0, keepdims=True)
     left, singular_values, _ = np.linalg.svd(centered, full_matrices=False)
     usable = min(int(components), left.shape[1])
@@ -206,11 +226,18 @@ def temporal_drift_metrics(years: list[float], vertices: list[np.ndarray]) -> di
     """
     if len(years) != len(vertices) or len(years) < 3:
         raise ValueError("temporal drift needs at least three dated keyframes")
-    order = np.argsort(np.asarray(years, dtype=np.float64))
-    x = np.asarray(years, dtype=np.float64)[order]
+    raw_years = np.asarray(years, dtype=np.float64)
+    if not np.isfinite(raw_years).all():
+        raise ValueError("temporal drift years must be finite")
+    order = np.argsort(raw_years)
+    x = raw_years[order]
+    if np.any(np.diff(x) <= 0):
+        raise ValueError("temporal drift years must be unique")
     arrays = [np.asarray(vertices[index], dtype=np.float64) for index in order]
     if any(array.shape != arrays[0].shape for array in arrays[1:]):
         raise ValueError("all drift meshes must have identical shapes")
+    if any(array.ndim != 2 or array.shape[1] != 3 or not np.isfinite(array).all() for array in arrays):
+        raise ValueError("all drift meshes must have finite shape (N, 3)")
     centered_years = x - float(np.mean(x))
     denominator = float(np.dot(centered_years, centered_years)) or 1.0
     stack = np.stack(arrays)
@@ -241,8 +268,24 @@ def uv_difference(texture_a_bgr: np.ndarray, texture_b_bgr: np.ndarray) -> np.nd
     """Create a normalized, display-ready UV difference heatmap."""
     a = np.asarray(texture_a_bgr, dtype=np.float32)
     b = np.asarray(texture_b_bgr, dtype=np.float32)
-    if a.shape != b.shape or a.ndim != 3 or a.shape[2] < 3:
-        raise ValueError("UV textures must have identical HxWx3 shapes")
+    if a.shape != b.shape or a.ndim != 3 or a.shape[2] < 3 or min(a.shape[:2]) < 1:
+        raise ValueError("UV textures must have identical non-empty HxWx3 shapes")
+    if not np.isfinite(a).all() or not np.isfinite(b).all():
+        raise ValueError("UV texture pixels must be finite")
     delta = np.mean(np.abs(a[:, :, :3] - b[:, :, :3]), axis=2)
-    normalized = np.clip(delta / max(float(np.percentile(delta, 99)), 1.0) * 255.0, 0, 255).astype(np.uint8)
-    return __import__("cv2").applyColorMap(normalized, __import__("cv2").COLORMAP_TURBO)
+    normalized = np.clip(delta / max(float(np.percentile(delta, 99)), 1.0) * 255.0, 0, 255)
+    # Compact blue→cyan→yellow→red LUT with the same BGR channel order used
+    # by OpenCV callers, but no hard dependency on cv2 for metric consumers.
+    stops = np.asarray([0, 64, 128, 192, 255], dtype=np.float64)
+    palette = np.asarray([
+        [128, 0, 0],
+        [255, 255, 0],
+        [0, 255, 255],
+        [0, 128, 255],
+        [0, 0, 128],
+    ], dtype=np.float64)
+    heatmap = np.stack([
+        np.interp(normalized, stops, palette[:, channel])
+        for channel in range(3)
+    ], axis=2)
+    return np.clip(np.rint(heatmap), 0, 255).astype(np.uint8)

@@ -10,6 +10,8 @@ from typing import Any
 
 import numpy as np
 
+MAX_EXTRAPOLATION_HORIZON_YEARS = 50.0
+
 
 def extrapolate_shape(
     years: list[float],
@@ -17,6 +19,7 @@ def extrapolate_shape(
     future_year: float,
     *,
     degree: int = 2,
+    max_horizon_years: float = MAX_EXTRAPOLATION_HORIZON_YEARS,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     """Fit a bounded polynomial per mesh coordinate and evaluate it later."""
     if len(years) != len(vertices) or len(years) < 3:
@@ -26,9 +29,20 @@ def extrapolate_shape(
         raise ValueError("years and future_year must be finite")
     if np.any(np.diff(x) <= 0):
         raise ValueError("years must be strictly increasing in upload order")
+    horizon = float(future_year) - float(x[-1])
+    if not np.isfinite(max_horizon_years) or max_horizon_years <= 0:
+        raise ValueError("max_horizon_years must be finite and positive")
+    if horizon <= 0:
+        raise ValueError("future_year must be later than the last training year")
+    if horizon > max_horizon_years:
+        raise ValueError(f"forecast horizon exceeds the {max_horizon_years:g}-year limit")
     arrays = [np.asarray(item, dtype=np.float64) for item in vertices]
     if any(item.shape != arrays[0].shape for item in arrays[1:]):
         raise ValueError("all extrapolation meshes must have identical shapes")
+    if arrays[0].ndim != 2 or arrays[0].shape[1] != 3 or arrays[0].shape[0] < 7:
+        raise ValueError("extrapolation meshes must have shape (N, 3), N >= 7")
+    if any(not np.isfinite(item).all() for item in arrays):
+        raise ValueError("extrapolation mesh coordinates must be finite")
     fit_degree = min(max(int(degree), 1), len(years) - 1)
     matrix = np.stack([item.reshape(-1) for item in arrays])
     origin = float(x[-1])
@@ -46,6 +60,7 @@ def extrapolate_shape(
         "training_years": [float(value) for value in x],
         "degree": fit_degree,
         "extrapolation_span_years": round(span, 4),
+        "max_horizon_years": float(max_horizon_years),
         "training_residuals": [round(float(value), 8) for value in residuals],
         "method": "per-coordinate polynomial regression on aligned dense mesh",
         "interpretation": "what-if geometric projection; not a calibrated age or surgery prediction",

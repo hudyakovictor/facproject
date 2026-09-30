@@ -20,6 +20,7 @@ export default function App() {
   const [forensicLoading, setForensicLoading] = useState(false);
   const [symmetryData, setSymmetryData] = useState(null);
   const [symmetryLoading, setSymmetryLoading] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   const [timelineFiles, setTimelineFiles] = useState([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineMode, setTimelineMode] = useState(false);
@@ -259,6 +260,29 @@ export default function App() {
     setBlendMode('timeline');
     setProgress(count > 1 ? index / (count - 1) : 0);
   }, [morphData]);
+
+  const handleDownloadReport = useCallback(async (format = 'html') => {
+    if (!photoA || !photoB) return;
+    setReportLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo_a', photoA);
+      formData.append('photo_b', photoB);
+      const response = await fetch(`/api/report-pair?format=${format}`, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`report: HTTP ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `morphing-report-${Date.now()}.${format}`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setError(`Не удалось выгрузить отчёт: ${error.message}`);
+    } finally {
+      setReportLoading(false);
+    }
+  }, [photoA, photoB]);
 
   const fetchSymmetry = useCallback(async () => {
     const source = timelineMode ? timelineFiles[0] : photoA;
@@ -561,6 +585,10 @@ export default function App() {
           <SymmetryPanel data={symmetryData} loading={symmetryLoading} onCalculate={fetchSymmetry} />
         )}
 
+        {morphData?.metadata?.quality && (
+          <QualityPanel quality={morphData.metadata.quality} onDownload={handleDownloadReport} loading={reportLoading} />
+        )}
+
         {morphData?.parameter_heatmap?.length > 0 && (
           <ParameterHeatmapPanel items={morphData.parameter_heatmap} />
         )}
@@ -686,6 +714,33 @@ const ZONE_LABELS = {
   mouth_chin: 'Рот/Подб.',
 };
 
+function QualityPanel({ quality, onDownload, loading }) {
+  const rows = [
+    ['Photo A', quality.photo_a],
+    ['Photo B', quality.photo_b],
+    ['Mesh A', quality.mesh_a],
+    ['Mesh B', quality.mesh_b],
+  ];
+  const statusColor = (status) => status === 'pass' ? '#3fb950' : status === 'warn' ? '#d29922' : '#f85149';
+  return (
+    <details style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '12px' }}>
+      <summary style={{ cursor: 'pointer', color: '#79c0ff', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>🧪 Input / mesh quality gates</summary>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginTop: '8px' }}>
+        {rows.map(([label, item]) => <div key={label} style={{ background: '#0d1117', borderRadius: '5px', padding: '6px' }}><div style={{ fontSize: '9px', color: '#8b949e' }}>{label}</div><b style={{ color: statusColor(item?.status), fontSize: '11px' }}>{item?.status || 'not run'}</b><div style={{ color: '#c9d1d9', fontSize: '10px' }}>{item?.score ?? '—'} / 100</div><div style={{ color: '#8b949e', fontSize: '9px' }}>{item?.metrics?.width && item?.metrics?.height ? `${item.metrics.width}×${item.metrics.height}` : `${item?.metrics?.vertex_count ?? '—'} vertices`}</div></div>)}
+      </div>
+      <div style={{ marginTop: '8px', display: 'grid', gap: '4px' }}>
+        {rows.flatMap(([label, item]) => (item?.findings || []).map((finding, index) => <div key={`${label}-${finding.code}-${index}`} style={{ padding: '6px 8px', borderLeft: `2px solid ${statusColor(finding.severity === 'error' || finding.severity === 'critical' ? 'fail' : 'warn')}`, background: '#0d1117', color: '#c9d1d9', fontSize: '10px' }}><b>{label} · {finding.code}</b><div style={{ color: '#8b949e', marginTop: '2px' }}>{finding.message}{finding.value != null ? ` (${finding.value}; threshold ${finding.threshold})` : ''}</div></div>))}
+        {rows.every(([, item]) => !item?.findings?.length) && <div style={{ color: '#8b949e', fontSize: '10px' }}>No quality findings.</div>}
+      </div>
+      <div style={{ color: '#8b949e', fontSize: '9px', lineHeight: 1.4, marginTop: '7px' }}>Heuristic input checks only — not a reconstruction accuracy or identity confidence score.</div>
+      <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+        <button type="button" onClick={() => onDownload('html')} disabled={loading} style={{ flex: 1, padding: '6px', background: '#21262d', border: '1px solid #30363d', borderRadius: '5px', color: '#c9d1d9', cursor: 'pointer', fontSize: '10px' }}>{loading ? '⏳' : '⬇ HTML report'}</button>
+        <button type="button" onClick={() => onDownload('json')} disabled={loading} style={{ flex: 1, padding: '6px', background: '#21262d', border: '1px solid #30363d', borderRadius: '5px', color: '#c9d1d9', cursor: 'pointer', fontSize: '10px' }}>⬇ JSON</button>
+      </div>
+    </details>
+  );
+}
+
 function SymmetryPanel({ data, loading, onCalculate }) {
   return (
     <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -754,7 +809,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          🦷 Зональный Forensic Score{globalScore !== null && globalScore !== undefined ? ` · ${globalScore}%` : ''}
+          🦷 Геометрический similarity index{globalScore !== null && globalScore !== undefined ? ` · ${Number(globalScore).toFixed(0)} / 100` : ''}
         </div>
         {onRecompute && (
           <button
@@ -775,6 +830,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
           </button>
         )}
       </div>
+      <div style={{ color: '#8b949e', fontSize: '9px' }}>Не калиброванная вероятность личности — только геометрический индикатор сходства.</div>
       {Object.entries(zones).map(([key, val]) => {
         // forensic-score отдаёт объект {mean_dist, max_dist, identity_score};
         // morph-pair отдаёт плоский mean_dist по зоне
@@ -788,7 +844,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
             <div style={{ flex: 1, height: '6px', background: '#21262d', borderRadius: '999px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${score.toFixed(0)}%`, background: color, borderRadius: '999px', transition: 'width 0.5s' }} />
             </div>
-            <div style={{ width: '38px', fontSize: '11px', color, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{score.toFixed(0)}%</div>
+            <div style={{ width: '38px', fontSize: '11px', color, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }} title="Геометрический индекс 0–100; не вероятность личности">{score.toFixed(0)}</div>
           </div>
         );
       })}
