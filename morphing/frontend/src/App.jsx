@@ -4,6 +4,7 @@ import DropZone from './components/DropZone';
 import Controls from './components/Controls';
 import TimelineUploader from './components/TimelineUploader';
 import FaceSpacePlot from './components/FaceSpacePlot';
+import TemporalDriftPanel from './components/TemporalDriftPanel';
 import { catmullRomWeights } from './utils/timeline';
 
 export default function App() {
@@ -100,7 +101,7 @@ export default function App() {
     if (!sequence?.length || sequence.length < 2) return null;
     const weights = blendMode === 'blend'
       ? normalizeWeights(blendWeights, sequence.length)
-      : catmullRomWeights(progress, sequence.length);
+      : catmullRomWeights(progress, sequence.length, morphData.timeline?.keyframe_times);
     const current = new Float32Array(sequence[0].length);
     for (let faceIndex = 0; faceIndex < sequence.length; faceIndex += 1) {
       const weight = weights[faceIndex];
@@ -529,6 +530,7 @@ export default function App() {
         )}
 
         {morphData?.metadata?.face_space && <FaceSpacePlot faceSpace={morphData.metadata.face_space} onSelect={selectFaceSpace} />}
+        {morphData?.metadata?.temporal_drift && <TemporalDriftPanel drift={morphData.metadata.temporal_drift} />}
 
         {morphData && (
           <SymmetryPanel data={symmetryData} loading={symmetryLoading} onCalculate={fetchSymmetry} />

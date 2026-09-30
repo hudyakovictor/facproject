@@ -268,18 +268,25 @@ async def _sequence_response(photos: list[UploadFile], metadata_raw: str | None)
         labels = [f"Face {chr(65 + index)}" for index in range(len(reconstructed))]
         keyframes = [{"index": i, "label": label} for i, label in enumerate(labels)]
 
-    first, last = reconstructed[0], reconstructed[-1]
-    first_last = similarity_metrics(first["vertices"], last["vertices"])
     numeric_years = []
     if metadata:
         try:
-            numeric_years = [float(item.get("year")) for item in metadata]
+            candidate_years = [float(item.get("year")) for item in metadata]
+            numeric_years = candidate_years if all(np.isfinite(candidate_years)) else []
         except (TypeError, ValueError, AttributeError):
             numeric_years = []
+    timeline_positions = None
+    if len(numeric_years) == len(reconstructed) and max(numeric_years) > min(numeric_years):
+        first_year, last_year = min(numeric_years), max(numeric_years)
+        candidate_positions = [(year - first_year) / (last_year - first_year) for year in numeric_years]
+        if all(right > left for left, right in zip(candidate_positions, candidate_positions[1:])):
+            timeline_positions = candidate_positions
+    first, last = reconstructed[0], reconstructed[-1]
+    first_last = similarity_metrics(first["vertices"], last["vertices"])
     drift = temporal_drift_metrics(numeric_years, vertex_arrays) if len(numeric_years) >= 3 else None
     return {
         "status": "success",
-        "timeline": {**timeline_metadata(len(reconstructed), labels), "keyframes": keyframes},
+        "timeline": {**timeline_metadata(len(reconstructed), labels, timeline_positions), "keyframes": keyframes},
         "triangles": reconstructed[0]["result"]["triangles"].flatten().tolist(),
         "uv_coords": reconstructed[0]["result"]["uv_coords"].flatten().tolist(),
         "sequence_vertices": [face["vertices"].flatten().tolist() for face in reconstructed],

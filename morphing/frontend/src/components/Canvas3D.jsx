@@ -139,7 +139,7 @@ export default function Canvas3D({
       wireframe,
     });
     materialRef.current = material;
-    sequenceRef.current = { vertices, landmarks, count: vertices.length };
+    sequenceRef.current = { vertices, landmarks, count: vertices.length, times: morphData.timeline?.keyframe_times || null };
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.name = 'face_mesh';
@@ -165,10 +165,10 @@ export default function Canvas3D({
   useEffect(() => {
     const material = materialRef.current;
     if (material && sequenceRef.current) {
-      const { count, landmarks } = sequenceRef.current;
+      const { count, landmarks, times } = sequenceRef.current;
       const weights = blendMode === 'blend'
         ? normalizeWeights(blendWeights, count)
-        : catmullRomWeights(progress, count);
+        : catmullRomWeights(progress, count, times);
       material.uniforms.u_weights.value.set(...weights);
       material.uniforms.u_showHeatmap.value = showHeatmap ? 1 : 0;
       material.uniforms.u_showUVDiff.value = showUVDiff ? 1 : 0;

@@ -12,10 +12,16 @@ from typing import Iterable
 import numpy as np
 
 
-def catmull_rom_weights(progress: float, count: int) -> np.ndarray:
+def catmull_rom_weights(
+    progress: float,
+    count: int,
+    positions: Iterable[float] | None = None,
+) -> np.ndarray:
     """Return Catmull-Rom basis weights for up to four timeline keyframes.
 
-    ``progress`` is in ``[0, 1]`` and keyframes are evenly spaced.  Endpoints
+    ``progress`` is in ``[0, 1]``.  ``positions`` may provide normalized,
+    strictly increasing time positions for age-aware timelines; when omitted,
+    keyframes are evenly spaced.  Endpoints
     are duplicated at the boundary, which makes the curve pass through every
     uploaded face (rather than overshooting beyond the first or last face).
     Negative weights are valid and are an expected property of a cubic spline.
@@ -26,10 +32,17 @@ def catmull_rom_weights(progress: float, count: int) -> np.ndarray:
     if count == 2:
         return np.array([1.0 - t, t, 0.0, 0.0], dtype=np.float32)
 
-    # Segment number and local t.  The last point belongs to the last segment.
-    scaled = t * (count - 1)
-    segment = min(int(np.floor(scaled)), count - 2)
-    u = 1.0 if t >= 1.0 else scaled - segment
+    # Segment number and local t. The last point belongs to the last segment.
+    if positions is None:
+        timeline_positions = np.linspace(0.0, 1.0, count)
+    else:
+        timeline_positions = np.asarray(list(positions), dtype=np.float64)
+        if len(timeline_positions) != count or timeline_positions[0] != 0 or timeline_positions[-1] != 1 or np.any(np.diff(timeline_positions) <= 0):
+            raise ValueError("timeline positions must be strictly increasing from 0 to 1")
+    segment = int(np.searchsorted(timeline_positions, t, side="right") - 1)
+    segment = min(max(segment, 0), count - 2)
+    span = timeline_positions[segment + 1] - timeline_positions[segment]
+    u = 1.0 if t >= 1.0 else (t - timeline_positions[segment]) / span
     u2, u3 = u * u, u * u * u
     basis = np.array(
         [
@@ -50,14 +63,18 @@ def catmull_rom_weights(progress: float, count: int) -> np.ndarray:
     return weights
 
 
-def interpolate_sequence(vertices: Iterable[np.ndarray], progress: float) -> np.ndarray:
+def interpolate_sequence(
+    vertices: Iterable[np.ndarray],
+    progress: float,
+    positions: Iterable[float] | None = None,
+) -> np.ndarray:
     """Interpolate a sequence of equally shaped vertex arrays."""
     arrays = [np.asarray(item, dtype=np.float32) for item in vertices]
     if not 2 <= len(arrays) <= 4:
         raise ValueError("a morph timeline must contain between 2 and 4 keyframes")
     if any(item.shape != arrays[0].shape for item in arrays[1:]):
         raise ValueError("all timeline meshes must have the same shape")
-    weights = catmull_rom_weights(progress, len(arrays))
+    weights = catmull_rom_weights(progress, len(arrays), positions)
     result = np.zeros_like(arrays[0], dtype=np.float32)
     for index, array in enumerate(arrays):
         result += weights[index] * array
@@ -81,15 +98,22 @@ def blend_vertices(vertices: Iterable[np.ndarray], weights: Iterable[float]) -> 
     return np.tensordot(normalized.astype(np.float32), np.stack(arrays), axes=(0, 0))
 
 
-def timeline_metadata(count: int, labels: list[str] | None = None) -> dict:
+def timeline_metadata(
+    count: int,
+    labels: list[str] | None = None,
+    positions: Iterable[float] | None = None,
+) -> dict:
     """Create a small serializable description for API responses."""
     if not 2 <= count <= 4:
         raise ValueError("a morph timeline must contain between 2 and 4 keyframes")
     names = labels or [f"Face {chr(65 + i)}" for i in range(count)]
+    times = list(positions) if positions is not None else list(np.linspace(0.0, 1.0, count))
+    catmull_rom_weights(0.0, count, times)  # validate and normalize the contract
     return {
         "method": "catmull-rom",
         "keyframe_count": count,
         "labels": names,
+        "keyframe_times": [round(float(value), 6) for value in times],
         "domain": [0.0, 1.0],
         "endpoint_policy": "duplicated-boundary-control-points",
     }

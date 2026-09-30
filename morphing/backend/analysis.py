@@ -226,9 +226,11 @@ def temporal_drift_metrics(years: list[float], vertices: list[np.ndarray]) -> di
     anomaly_threshold = float(np.mean(residuals) + 2 * np.std(residuals))
     return {
         "years": [float(value) for value in x],
+        "ordered_indices": [int(index) for index in order],
         "velocity_l2_per_year": round(float(np.linalg.norm(velocity)), 8),
         "zone_velocity": zone_velocity,
         "residuals": [round(float(value), 8) for value in residuals],
+        "anomaly_positions": [int(position) for position, value in enumerate(residuals) if value > anomaly_threshold],
         "anomaly_keyframes": [int(index) for index, value in zip(order, residuals) if value > anomaly_threshold],
         "method": "linear regression on aligned dense vertex coordinates",
         "interpretation": "trajectory deviation is a screening signal, not a diagnosis of ageing or surgery",

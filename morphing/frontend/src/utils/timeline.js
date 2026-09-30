@@ -1,12 +1,16 @@
 // Keep timeline interpolation in sync with morphing/backend/timeline.py.
-export function catmullRomWeights(progress, count) {
+export function catmullRomWeights(progress, count, positions = null) {
   if (count < 2 || count > 4) throw new Error('Timeline must contain 2–4 keyframes');
   const t = Math.max(0, Math.min(1, Number(progress)));
   if (count === 2) return [1 - t, t, 0, 0];
-
-  const scaled = t * (count - 1);
-  const segment = Math.min(Math.floor(scaled), count - 2);
-  const u = t >= 1 ? 1 : scaled - segment;
+  const timelinePositions = positions || Array.from({ length: count }, (_, index) => index / (count - 1));
+  if (timelinePositions.length !== count || timelinePositions[0] !== 0 || timelinePositions[timelinePositions.length - 1] !== 1 || timelinePositions.some((value, index) => index > 0 && value <= timelinePositions[index - 1])) {
+    throw new Error('Timeline positions must be strictly increasing from 0 to 1');
+  }
+  const upper = timelinePositions.findIndex((value, index) => index > 0 && t <= value);
+  const segment = upper < 0 ? count - 2 : upper - 1;
+  const span = timelinePositions[segment + 1] - timelinePositions[segment];
+  const u = t >= 1 ? 1 : (t - timelinePositions[segment]) / span;
   const u2 = u * u;
   const u3 = u2 * u;
   const basis = [
