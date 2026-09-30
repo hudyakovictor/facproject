@@ -1,7 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Canvas3D from './components/Canvas3D';
 import DropZone from './components/DropZone';
 import Controls from './components/Controls';
+import TimelineUploader from './components/TimelineUploader';
+import FaceSpacePlot from './components/FaceSpacePlot';
+import TemporalDriftPanel from './components/TemporalDriftPanel';
+import SimilarityMatrixPanel from './components/SimilarityMatrixPanel';
+import TimelineQualityPanel from './components/TimelineQualityPanel';
+import { catmullRomWeights } from './utils/timeline';
 
 export default function App() {
   const [photoA, setPhotoA] = useState(null);
@@ -14,16 +20,24 @@ export default function App() {
   // Данные специализированного эндпоинта /api/forensic-score (зональные identity-скоры)
   const [forensicData, setForensicData] = useState(null);
   const [forensicLoading, setForensicLoading] = useState(false);
+  const [symmetryData, setSymmetryData] = useState(null);
+  const [symmetryLoading, setSymmetryLoading] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [timelineFiles, setTimelineFiles] = useState([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineMode, setTimelineMode] = useState(false);
+  const [blendMode, setBlendMode] = useState('timeline');
+  const [blendWeights, setBlendWeights] = useState([1, 0, 0, 0]);
+  const [deformationMode, setDeformationMode] = useState('linear');
+  const [predictionMode, setPredictionMode] = useState(false);
 
   const [progress, setProgress] = useState(0.0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showUVDiff, setShowUVDiff] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [lighting, setLighting] = useState(false);
-
-  // Ссылка на <canvas> внутри Canvas3D для WebM-записи
-  const canvasRef = useRef(null);
 
   // ── KEYBOARD SHORTCUTS ───────────────────────────────────────────
   useEffect(() => {
@@ -74,46 +88,68 @@ export default function App() {
       vertices_b: prev.vertices_a,
       texture_a_base64: prev.texture_b_base64,
       texture_b_base64: prev.texture_a_base64,
-      landmarks_a: prev.landmarks_b,
-      landmarks_b: prev.landmarks_a,
+      landmarks_106_a: prev.landmarks_106_b,
+      landmarks_106_b: prev.landmarks_106_a,
+      sequence_vertices: [prev.vertices_b, prev.vertices_a],
+      sequence_landmarks: [prev.landmarks_106_b, prev.landmarks_106_a],
+      sequence_textures: [prev.texture_b_base64, prev.texture_a_base64],
       metadata: { ...prev.metadata },
+      timeline: { method: 'linear pair', keyframe_count: 2, labels: ['Face A', 'Face B'] },
     }));
     setProgress((prev) => 1.0 - prev);
   }, [morphData]);
 
-  // ── LIVE METRICS (вычисляется на клиенте, без запросов) ──────────────
+  // ── LIVE METRICS: recomputed on every timeline tick, without a network call ──
   const liveMetrics = useMemo(() => {
-    if (!morphData?.vertices_a || !morphData?.vertices_b) return null;
-    const a = morphData.vertices_a;
-    const b = morphData.vertices_b;
-    const n = a.length / 3;
+    const originalSequence = morphData?.sequence_vertices;
+    const predictionSequence = morphData?.extrapolation?.vertices
+      ? [originalSequence?.[originalSequence.length - 1], morphData.extrapolation.vertices]
+      : null;
+    const sequence = predictionMode ? predictionSequence : originalSequence;
+    if (!sequence?.length || sequence.length < 2 || !sequence[0]) return null;
+    const timelineTimes = predictionMode ? [0, 1] : morphData.timeline?.keyframe_times;
+    const weights = blendMode === 'blend'
+      ? normalizeWeights(blendWeights, sequence.length)
+      : catmullRomWeights(progress, sequence.length, timelineTimes);
+    const current = new Float32Array(sequence[0].length);
+    for (let faceIndex = 0; faceIndex < sequence.length; faceIndex += 1) {
+      const weight = weights[faceIndex];
+      if (!weight) continue;
+      for (let index = 0; index < current.length; index += 1) current[index] += sequence[faceIndex][index] * weight;
+    }
+    const anchor = sequence[0];
+    const endpoint = sequence[sequence.length - 1];
+    const n = current.length / 3;
     const THRESHOLD = 0.025;
-    let sumDist = 0, maxDist = 0, aboveThreshold = 0;
-    let dotAB = 0, normA = 0, normB = 0;
-    for (let i = 0; i < a.length; i += 3) {
-      const dx = a[i] - b[i];
-      const dy = a[i + 1] - b[i + 1];
-      const dz = a[i + 2] - b[i + 2];
+    let sumDist = 0; let maxDist = 0; let aboveThreshold = 0;
+    let dot = 0; let normCurrent = 0; let normEndpoint = 0;
+    let sumEndpointDelta = 0;
+    for (let index = 0; index < current.length; index += 3) {
+      const dx = current[index] - anchor[index];
+      const dy = current[index + 1] - anchor[index + 1];
+      const dz = current[index + 2] - anchor[index + 2];
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      sumDist += d;
-      if (d > maxDist) maxDist = d;
-      if (d > THRESHOLD) aboveThreshold++;
-      dotAB += a[i] * b[i] + a[i + 1] * b[i + 1] + a[i + 2] * b[i + 2];
-      normA += a[i] * a[i] + a[i + 1] * a[i + 1] + a[i + 2] * a[i + 2];
-      normB += b[i] * b[i] + b[i + 1] * b[i + 1] + b[i + 2] * b[i + 2];
+      sumDist += d; maxDist = Math.max(maxDist, d); if (d > THRESHOLD) aboveThreshold += 1;
+      const ex = current[index] - endpoint[index];
+      const ey = current[index + 1] - endpoint[index + 1];
+      const ez = current[index + 2] - endpoint[index + 2];
+      sumEndpointDelta += Math.sqrt(ex * ex + ey * ey + ez * ez);
+      dot += current[index] * endpoint[index] + current[index + 1] * endpoint[index + 1] + current[index + 2] * endpoint[index + 2];
+      normCurrent += current[index] ** 2 + current[index + 1] ** 2 + current[index + 2] ** 2;
+      normEndpoint += endpoint[index] ** 2 + endpoint[index + 1] ** 2 + endpoint[index + 2] ** 2;
     }
     const meanDist = sumDist / n;
-    const cosine = dotAB / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-9);
-    const morphability = Math.max(0, Math.min(100, (1.0 - meanDist / 0.15) * 100));
     return {
       euclidean: meanDist.toFixed(5),
       maxDelta: maxDist.toFixed(5),
       pctAbove: ((aboveThreshold / n) * 100).toFixed(1),
       totalVerts: n.toLocaleString(),
-      cosine: cosine.toFixed(4),
-      morphability: morphability.toFixed(1),
+      cosine: (dot / (Math.sqrt(normCurrent) * Math.sqrt(normEndpoint) + 1e-9)).toFixed(4),
+      morphability: Math.max(0, Math.min(100, (1 - meanDist / 0.15) * 100)).toFixed(1),
+      toEndpoint: (sumEndpointDelta / n).toFixed(5),
+      keyframeCount: sequence.length,
     };
-  }, [morphData]);
+  }, [morphData, progress, blendMode, blendWeights, predictionMode]);
 
   // ── GIF DOWNLOAD ───────────────────────────────────────────
   const handleDownloadGif = async () => {
@@ -140,46 +176,52 @@ export default function App() {
     }
   };
 
-  // ── WEBM RECORD (запись с canvas через MediaRecorder) ───────────────
+  // ── VIDEO RECORD: exact 60 timeline frames via canvas.captureStream ──
   const handleDownloadWebm = useCallback(() => {
-    // Находим <canvas> в DOM (тег r3f рисует сцену в <canvas>)
     const canvas = document.querySelector('canvas');
     if (!canvas) { alert('Канвас не найден. Запустите морфинг перед записью.'); return; }
-    if (!canvas.captureStream) { alert('Ваш браузер не поддерживает captureStream.'); return; }
-
-    const DURATION_MS = 4000;   // 4 секунды
-    const FPS = 30;
-    const stream = canvas.captureStream(FPS);
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9'
-      : 'video/webm';
-    const recorder = new MediaRecorder(stream, { mimeType });
+    if (!canvas.captureStream || !window.MediaRecorder) { alert('Браузер не поддерживает canvas.captureStream / MediaRecorder.'); return; }
+    const candidates = [
+      ['video/mp4;codecs=avc1.42E01E', 'mp4'],
+      ['video/webm;codecs=vp9', 'webm'],
+      ['video/webm;codecs=vp8', 'webm'],
+      ['video/webm', 'webm'],
+    ];
+    const selected = candidates.find(([mime]) => MediaRecorder.isTypeSupported(mime));
+    if (!selected) { alert('В этом браузере нет поддерживаемого MP4/WebM кодека.'); return; }
+    const [mimeType, extension] = selected;
+    const stream = canvas.captureStream(60);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 });
     const chunks = [];
-
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    let frame = 0;
+    let previousPlaying = isPlaying;
+    setWebmLoading(true);
+    setIsPlaying(false);
+    setProgress(0);
+    recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+    recorder.onerror = () => { stream.getTracks().forEach((track) => track.stop()); setWebmLoading(false); alert('Не удалось записать видео.'); };
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: mimeType });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `3d_morph_${Date.now()}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `3d_morph_${Date.now()}.${extension}`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      stream.getTracks().forEach((track) => track.stop());
       setWebmLoading(false);
+      setIsPlaying(previousPlaying);
     };
-
-    // Автозапуск анимации для записи
-    setIsPlaying(true);
-    setProgress(0);
-    setWebmLoading(true);
     recorder.start();
-    setTimeout(() => {
-      recorder.stop();
-      setIsPlaying(false);
-    }, DURATION_MS);
-  }, []);
+    const capture = () => {
+      const t = frame / 59;
+      setProgress(t);
+      frame += 1;
+      if (frame < 60) window.requestAnimationFrame(capture);
+      else window.setTimeout(() => recorder.stop(), 120);
+    };
+    window.requestAnimationFrame(capture);
+  }, [isPlaying]);
 
   // ── AUTO PLAY ─────────────────────────────────────────────
   useEffect(() => {
@@ -215,6 +257,84 @@ export default function App() {
     }
   }, [photoA, photoB]);
 
+  const selectFaceSpace = useCallback((index) => {
+    const count = morphData?.sequence_vertices?.length || 2;
+    setBlendMode('timeline');
+    setProgress(count > 1 ? index / (count - 1) : 0);
+  }, [morphData]);
+
+  const handleDownloadReport = useCallback(async (format = 'html') => {
+    if (!photoA || !photoB) return;
+    setReportLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo_a', photoA);
+      formData.append('photo_b', photoB);
+      const response = await fetch(`/api/report-pair?format=${format}`, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`report: HTTP ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `morphing-report-${Date.now()}.${format}`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setError(`Не удалось выгрузить отчёт: ${error.message}`);
+    } finally {
+      setReportLoading(false);
+    }
+  }, [photoA, photoB]);
+
+  const handleDownloadTimelineReport = useCallback(async (format = 'html') => {
+    if (timelineFiles.length < 2) return;
+    setReportLoading(true);
+    try {
+      const formData = new FormData();
+      timelineFiles.forEach((file) => formData.append('photos', file));
+      const keyframes = morphData?.timeline?.keyframes || [];
+      const metadata = timelineFiles.map((file, index) => ({
+        label: keyframes[index]?.label || file.name.replace(/\.[^.]+$/, ''),
+        year: keyframes[index]?.year ?? null,
+      }));
+      formData.append('metadata', JSON.stringify(metadata));
+      const response = await fetch(`/api/report-timeline?format=${format}`, { method: 'POST', body: formData });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || `report: HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `morphing-timeline-report-${Date.now()}.${format}`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (requestError) {
+      setError(`Не удалось выгрузить timeline-отчёт: ${requestError.message}`);
+    } finally {
+      setReportLoading(false);
+    }
+  }, [morphData, timelineFiles]);
+
+  const fetchSymmetry = useCallback(async () => {
+    const source = timelineMode ? timelineFiles[0] : photoA;
+    if (!source) return;
+    setSymmetryLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo', source);
+      const response = await fetch('/api/symmetry', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`symmetry: HTTP ${response.status}`);
+      const data = await response.json();
+      if (data.status === 'ok') setSymmetryData(data);
+    } catch (e) {
+      setError(`Не удалось рассчитать symmetry: ${e.message}`);
+    } finally {
+      setSymmetryLoading(false);
+    }
+  }, [photoA, timelineFiles, timelineMode]);
+
   // ── PROCESS ─────────────────────────────────────────────
   const handleProcess = async () => {
     if (!photoA || !photoB) {
@@ -227,6 +347,7 @@ export default function App() {
     const formData = new FormData();
     formData.append('photo_a', photoA);
     formData.append('photo_b', photoB);
+    formData.append('deformation', deformationMode);
     try {
       const response = await fetch('/api/morph-pair', { method: 'POST', body: formData });
       if (!response.ok) {
@@ -235,8 +356,13 @@ export default function App() {
       }
       const data = await response.json();
       setMorphData(data);
+      setTimelineMode(false);
+      setBlendMode('timeline');
+      setBlendWeights([1, 0, 0, 0]);
       setProgress(0.0);
       setForensicData(null);
+      setSymmetryData(null);
+      setPredictionMode(false);
       // Фоновый запрос зонального forensic-score — не блокирует отображение морфа
       fetchForensicScore();
     } catch (err) {
@@ -245,6 +371,78 @@ export default function App() {
       setLoading(false);
     }
   };
+
+  // ── MULTI-FACE TIMELINE ─────────────────────────────────────────────
+  const handleBuildTimeline = async (years, futureYear) => {
+    if (timelineFiles.length < 2) return;
+    setTimelineLoading(true);
+    setError(null);
+    setIsPlaying(false);
+    try {
+      const formData = new FormData();
+      timelineFiles.forEach((file) => formData.append('photos', file));
+      formData.append('metadata', JSON.stringify(timelineFiles.map((file, index) => ({
+        label: file.name.replace(/\.[^.]+$/, '') || `Face ${String.fromCharCode(65 + index)}`,
+        year: years[index] || null,
+      }))));
+      if (futureYear) formData.append('future_year', futureYear);
+      const response = await fetch('/api/morph-sequence', { method: 'POST', body: formData });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Не удалось построить timeline');
+      }
+      const data = await response.json();
+      setMorphData(data);
+      setTimelineMode(true);
+      setBlendMode('timeline');
+      setBlendWeights(Array.from({ length: timelineFiles.length }, (_, index) => (index === 0 ? 1 : 0)));
+      setProgress(0);
+      setForensicData(null);
+      setSymmetryData(null);
+      setPredictionMode(false);
+    } catch (err) {
+      setError(err.message || 'Ошибка timeline-морфинга');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  const faceSpaceData = useMemo(() => {
+    const source = morphData?.metadata?.face_space;
+    if (!source) return null;
+    if (Array.isArray(source.points)) return source;
+    const coordinates = source.coordinates;
+    if (!Array.isArray(coordinates)) return null;
+    const labels = morphData.timeline?.labels || [];
+    return {
+      ...source,
+      points: coordinates.map((coordinate, index) => ({
+        index,
+        label: labels[index] || `Face ${String.fromCharCode(65 + index)}`,
+        x: coordinate[0] || 0,
+        y: coordinate[1] || 0,
+        z: coordinate[2] || 0,
+      })),
+      path: coordinates.map((_, index) => index),
+      highlighted: [0, Math.max(0, coordinates.length - 1)],
+    };
+  }, [morphData]);
+
+  const activeMorphData = useMemo(() => {
+    if (!predictionMode || !morphData?.extrapolation?.vertices) return morphData;
+    const lastIndex = (morphData.sequence_vertices?.length || 1) - 1;
+    const lastVertices = morphData.sequence_vertices[lastIndex];
+    const lastLandmarks = morphData.sequence_landmarks?.[lastIndex] || morphData.sequence_landmarks?.[0];
+    const lastTexture = morphData.sequence_textures?.[lastIndex] || morphData.sequence_textures?.[0];
+    return {
+      ...morphData,
+      sequence_vertices: [lastVertices, morphData.extrapolation.vertices],
+      sequence_landmarks: [lastLandmarks, lastLandmarks],
+      sequence_textures: [lastTexture, lastTexture],
+      timeline: { method: `Observed → forecast ${morphData.extrapolation.future_year}`, keyframe_count: 2, labels: ['Last observed', 'Forecast'], keyframe_times: [0, 1] },
+      metadata: { ...morphData.metadata, method: `Forecast to ${morphData.extrapolation.future_year}` },
+    };
+  }, [morphData, predictionMode]);
 
   // ── RENDER ─────────────────────────────────────────────
   return (
@@ -292,8 +490,8 @@ export default function App() {
           </div>
           <button
             onClick={swapFaces}
-            disabled={!morphData}
-            title="Поменять A и B местами"
+            disabled={!morphData?.vertices_a || timelineMode}
+            title={timelineMode ? 'Для timeline используйте порядок keyframes' : 'Поменять A и B местами'}
             style={{
               position: 'absolute',
               top: '50%',
@@ -336,6 +534,21 @@ export default function App() {
         >
           {loading ? '⏳ Выравнивание в (0,0,0) и генерация HD UV...' : '🚀 Запустить 3D Morphing'}
         </button>
+
+        <label style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#8b949e' }}>
+          <span>Smooth deformation</span>
+          <select value={deformationMode} onChange={(event) => setDeformationMode(event.target.value)} style={{ background: '#161b22', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', padding: '6px', fontSize: '11px' }}>
+            <option value="linear">Linear correspondence</option>
+            <option value="tps">Thin-plate spline (TPS)</option>
+          </select>
+        </label>
+
+        <TimelineUploader
+          files={timelineFiles}
+          setFiles={(files) => { setTimelineFiles(files); setTimelineMode(files.length >= 2); }}
+          onBuild={handleBuildTimeline}
+          loading={timelineLoading}
+        />
 
         {error && (
           <div style={{
@@ -390,8 +603,10 @@ export default function App() {
                 { label: 'Cosine Sim', value: liveMetrics.cosine },
                 { label: 'Mean Dist', value: liveMetrics.euclidean },
                 { label: 'Max Delta', value: liveMetrics.maxDelta },
+                { label: 'До финала', value: liveMetrics.toEndpoint },
                 { label: '% > 0.025', value: `${liveMetrics.pctAbove}%` },
                 { label: 'Вершин', value: liveMetrics.totalVerts },
+                { label: 'Keyframes', value: liveMetrics.keyframeCount },
               ].map(({ label, value }) => (
                 <div key={label} style={{ background: '#0d1117', borderRadius: '6px', padding: '6px 10px' }}>
                   <div style={{ fontSize: '10px', color: '#8b949e' }}>{label}</div>
@@ -399,6 +614,11 @@ export default function App() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        {morphData && Number(morphData.metadata?.morphability_score ?? morphData.metadata?.first_last_similarity?.morphability_score) < 50 && (
+          <div style={{ background: 'rgba(248, 81, 73, 0.12)', border: '1px solid rgba(248, 81, 73, 0.5)', color: '#ff7b72', borderRadius: '8px', padding: '9px 12px', fontSize: '11px', lineHeight: 1.4 }}>
+            ⚠️ Низкая геометрическая совместимость. Морфинг может давать артефакты; проверьте ракурс, выражение и качество реконструкции.
           </div>
         )}
 
@@ -412,6 +632,31 @@ export default function App() {
           />
         )}
 
+        {faceSpaceData?.points?.length > 0 && <FaceSpacePlot faceSpace={faceSpaceData} onSelect={selectFaceSpace} />}
+        {timelineMode && morphData && timelineFiles.length >= 2 && (
+          <SimilarityMatrixPanel
+            key={timelineFiles.map((file) => `${file.name}:${file.size}:${file.lastModified}`).join('|')}
+            files={timelineFiles}
+            onSelect={selectFaceSpace}
+          />
+        )}
+        {morphData?.metadata?.temporal_drift && <TemporalDriftPanel drift={morphData.metadata.temporal_drift} extrapolation={morphData.extrapolation} predictionMode={predictionMode} onTogglePreview={() => { setPredictionMode((value) => !value); setProgress(0); }} />}
+
+        {morphData && (
+          <SymmetryPanel data={symmetryData} loading={symmetryLoading} onCalculate={fetchSymmetry} />
+        )}
+
+        {morphData?.metadata?.quality && (
+          <QualityPanel quality={morphData.metadata.quality} onDownload={handleDownloadReport} loading={reportLoading} />
+        )}
+        {morphData?.metadata?.quality_keyframes && (
+          <TimelineQualityPanel keyframes={morphData.metadata.quality_keyframes} onDownload={handleDownloadTimelineReport} loading={reportLoading} />
+        )}
+
+        {morphData?.parameter_heatmap?.length > 0 && (
+          <ParameterHeatmapPanel items={morphData.parameter_heatmap} />
+        )}
+
         {/* Controls */}
         {morphData && (
           <Controls
@@ -423,11 +668,18 @@ export default function App() {
             setShowLandmarks={setShowLandmarks}
             showHeatmap={showHeatmap}
             setShowHeatmap={setShowHeatmap}
+            showUVDiff={showUVDiff}
+            setShowUVDiff={setShowUVDiff}
             wireframe={wireframe}
             setWireframe={setWireframe}
             lighting={lighting}
             setLighting={setLighting}
-            metadata={morphData.metadata}
+            metadata={activeMorphData?.metadata || morphData.metadata}
+            sequenceCount={activeMorphData?.sequence_vertices?.length || 2}
+            blendMode={blendMode}
+            setBlendMode={setBlendMode}
+            blendWeights={blendWeights}
+            setBlendWeights={setBlendWeights}
             onDownloadGif={handleDownloadGif}
             gifLoading={gifLoading}
             onDownloadWebm={handleDownloadWebm}
@@ -441,10 +693,13 @@ export default function App() {
       <div style={{ flex: 1, height: '100%', position: 'relative' }}>
         {morphData ? (
           <Canvas3D
-            morphData={morphData}
+            morphData={activeMorphData}
             progress={progress}
+            blendMode={blendMode}
+            blendWeights={blendWeights}
             showLandmarks={showLandmarks}
             showHeatmap={showHeatmap}
+            showUVDiff={showUVDiff}
             wireframe={wireframe}
             lighting={lighting}
           />
@@ -479,6 +734,12 @@ export default function App() {
 }
 
 // ── HELPERS ─────────────────────────────────────────────────
+
+function normalizeWeights(values, count) {
+  const next = Array.from({ length: 4 }, (_, index) => Math.max(0, Number(values[index] || 0)));
+  const total = next.slice(0, count).reduce((sum, value) => sum + value, 0) || 1;
+  return next.map((value, index) => (index < count ? value / total : 0));
+}
 
 function getMorphabilityColor(v) {
   if (v >= 75) return '#3fb950';  // зелёный — очень похожи
@@ -517,6 +778,88 @@ const ZONE_LABELS = {
   mouth_chin: 'Рот/Подб.',
 };
 
+function QualityPanel({ quality, onDownload, loading }) {
+  const rows = [
+    ['Photo A', quality.photo_a],
+    ['Photo B', quality.photo_b],
+    ['Mesh A', quality.mesh_a],
+    ['Mesh B', quality.mesh_b],
+  ];
+  const statusColor = (status) => status === 'pass' ? '#3fb950' : status === 'warn' ? '#d29922' : '#f85149';
+  return (
+    <details style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '12px' }}>
+      <summary style={{ cursor: 'pointer', color: '#79c0ff', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>🧪 Input / mesh quality gates</summary>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginTop: '8px' }}>
+        {rows.map(([label, item]) => <div key={label} style={{ background: '#0d1117', borderRadius: '5px', padding: '6px' }}><div style={{ fontSize: '9px', color: '#8b949e' }}>{label}</div><b style={{ color: statusColor(item?.status), fontSize: '11px' }}>{item?.status || 'not run'}</b><div style={{ color: '#c9d1d9', fontSize: '10px' }}>{item?.score ?? '—'} / 100</div><div style={{ color: '#8b949e', fontSize: '9px' }}>{item?.metrics?.width && item?.metrics?.height ? `${item.metrics.width}×${item.metrics.height}` : `${item?.metrics?.vertex_count ?? '—'} vertices`}</div></div>)}
+      </div>
+      <div style={{ marginTop: '8px', display: 'grid', gap: '4px' }}>
+        {rows.flatMap(([label, item]) => (item?.findings || []).map((finding, index) => <div key={`${label}-${finding.code}-${index}`} style={{ padding: '6px 8px', borderLeft: `2px solid ${statusColor(finding.severity === 'error' || finding.severity === 'critical' ? 'fail' : 'warn')}`, background: '#0d1117', color: '#c9d1d9', fontSize: '10px' }}><b>{label} · {finding.code}</b><div style={{ color: '#8b949e', marginTop: '2px' }}>{finding.message}{finding.value != null ? ` (${finding.value}; threshold ${finding.threshold})` : ''}</div></div>))}
+        {rows.every(([, item]) => !item?.findings?.length) && <div style={{ color: '#8b949e', fontSize: '10px' }}>No quality findings.</div>}
+      </div>
+      <div style={{ color: '#8b949e', fontSize: '9px', lineHeight: 1.4, marginTop: '7px' }}>Heuristic input checks only — not a reconstruction accuracy or identity confidence score.</div>
+      <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+        <button type="button" onClick={() => onDownload('html')} disabled={loading} style={{ flex: 1, padding: '6px', background: '#21262d', border: '1px solid #30363d', borderRadius: '5px', color: '#c9d1d9', cursor: 'pointer', fontSize: '10px' }}>{loading ? '⏳' : '⬇ HTML report'}</button>
+        <button type="button" onClick={() => onDownload('json')} disabled={loading} style={{ flex: 1, padding: '6px', background: '#21262d', border: '1px solid #30363d', borderRadius: '5px', color: '#c9d1d9', cursor: 'pointer', fontSize: '10px' }}>⬇ JSON</button>
+      </div>
+    </details>
+  );
+}
+
+function SymmetryPanel({ data, loading, onCalculate }) {
+  return (
+    <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '11px', color: '#79c0ff', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>🪞 Bilateral symmetry</div>
+        <button type="button" onClick={onCalculate} disabled={loading} style={{ padding: '3px 8px', background: '#21262d', border: '1px solid #30363d', borderRadius: '6px', color: '#8b949e', fontSize: '10px', cursor: loading ? 'not-allowed' : 'pointer' }}>
+          {loading ? '⏳ Расчёт…' : data ? '↻ Пересчитать' : 'Рассчитать'}
+        </button>
+      </div>
+      {!data && <div style={{ color: '#8b949e', fontSize: '10px', lineHeight: 1.4 }}>Отражение canonical mesh относительно x=0 и nearest-neighbour сравнение.</div>}
+      {data && <>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ fontSize: '22px', fontWeight: 'bold', color: data.score >= 0.8 ? '#3fb950' : data.score >= 0.6 ? '#d29922' : '#f85149' }}>{(data.score * 100).toFixed(1)}%</div>
+          <div style={{ flex: 1, height: '7px', background: '#21262d', borderRadius: '99px', overflow: 'hidden' }}><div style={{ width: `${data.score * 100}%`, height: '100%', background: data.score >= 0.8 ? '#3fb950' : '#d29922' }} /></div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' }}>
+          {Object.entries(data.regions || {}).slice(0, 6).map(([name, value]) => <div key={name} style={{ background: '#0d1117', borderRadius: '4px', padding: '5px', color: '#8b949e', fontSize: '9px' }}>{ZONE_LABELS[name] || name}<b style={{ display: 'block', color: '#e6edf3', fontSize: '11px' }}>{(value.score * 100).toFixed(0)}%</b></div>)}
+        </div>
+        <div style={{ color: '#6e7681', fontSize: '9px' }}>{data.interpretation}</div>
+      </>}
+    </div>
+  );
+}
+
+function ParameterHeatmapPanel({ items }) {
+  const groups = [...new Set(items.map((item) => item.group))];
+  return (
+    <details style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '12px' }}>
+      <summary style={{ cursor: 'pointer', color: '#ffb86c', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+        🔬 Stage2 v2 · {items.length} параметров
+      </summary>
+      <div style={{ fontSize: '10px', color: '#8b949e', lineHeight: 1.4, margin: '8px 0' }}>
+        Интенсивность — прокси от dense-mesh delta, а не новый калиброванный Stage 2 замер. Нажмите группу, чтобы увидеть ключи.
+      </div>
+      {groups.map((group) => {
+        const groupItems = items.filter((item) => item.group === group);
+        return (
+          <div key={group} style={{ marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c9d1d9', fontSize: '10px', marginBottom: '3px' }}>
+              <span>{group}</span><span>{groupItems.length}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
+              {groupItems.map((item) => (
+                <div key={item.key} title={`${item.title} · ${item.source}`} style={{ background: `linear-gradient(90deg, rgba(255,123,114,${0.12 + item.signal * 0.7}) ${item.signal * 100}%, #21262d ${item.signal * 100}%)`, borderRadius: '3px', padding: '3px 4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#c9d1d9', fontSize: '9px' }}>
+                  {item.key}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </details>
+  );
+}
+
 function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
   return (
     <div style={{
@@ -530,7 +873,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          🦷 Зональный Forensic Score{globalScore !== null && globalScore !== undefined ? ` · ${globalScore}` : ''}
+          🦷 Геометрический similarity index{globalScore !== null && globalScore !== undefined ? ` · ${Number(globalScore).toFixed(0)} / 100` : ''}
         </div>
         {onRecompute && (
           <button
@@ -551,11 +894,12 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
           </button>
         )}
       </div>
+      <div style={{ color: '#8b949e', fontSize: '9px' }}>Не калиброванная вероятность личности — только геометрический индикатор сходства.</div>
       {Object.entries(zones).map(([key, val]) => {
         // forensic-score отдаёт объект {mean_dist, max_dist, identity_score};
         // morph-pair отдаёт плоский mean_dist по зоне
         const score = (val !== null && typeof val === 'object')
-          ? val.identity_score
+          ? (val.identity_score ?? val.similarity ?? 0)
           : Math.max(0, Math.min(100, (1.0 - val / 0.15) * 100));
         const color = getMorphabilityColor(score);
         return (
@@ -564,7 +908,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
             <div style={{ flex: 1, height: '6px', background: '#21262d', borderRadius: '999px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${score.toFixed(0)}%`, background: color, borderRadius: '999px', transition: 'width 0.5s' }} />
             </div>
-            <div style={{ width: '38px', fontSize: '11px', color, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{score.toFixed(0)}%</div>
+            <div style={{ width: '38px', fontSize: '11px', color, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }} title="Геометрический индекс 0–100; не вероятность личности">{score.toFixed(0)}</div>
           </div>
         );
       })}
