@@ -97,6 +97,14 @@ class ReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "match"):
             build_timeline_report([sample_mesh(), sample_mesh(1)], [2000])
 
+    def test_timeline_quality_rows_are_included_and_validated(self) -> None:
+        meshes = [sample_mesh(), sample_mesh(0.1)]
+        rows = [{"index": 0, "status": "pass"}, {"index": 1, "status": "warn"}]
+        report = build_timeline_report(meshes, quality_keyframes=rows)
+        self.assertEqual(report["quality_keyframes"], rows)
+        with self.assertRaisesRegex(ValueError, "quality_keyframes"):
+            build_timeline_report(meshes, quality_keyframes=rows[:1])
+
     def test_html_escapes_untrusted_title_and_payload(self) -> None:
         report = {"report_id": "test", "kind": "pair", "user_label": "</script><img src=x onerror=alert(1)>"}
         output = render_report_html(report, "<img src=x>")

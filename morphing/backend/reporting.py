@@ -123,6 +123,7 @@ def build_timeline_report(
     years: list[float] | None = None,
     *,
     labels: list[str] | None = None,
+    quality_keyframes: list[Mapping[str, Any]] | None = None,
     provenance: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not 2 <= len(vertices) <= 4:
@@ -131,6 +132,8 @@ def build_timeline_report(
     resolved_labels = labels or [f"Face {chr(65 + index)}" for index in range(len(arrays))]
     if len(resolved_labels) != len(arrays):
         raise ValueError("labels must match the keyframe count")
+    if quality_keyframes is not None and len(quality_keyframes) != len(arrays):
+        raise ValueError("quality_keyframes must match the keyframe count")
     adjacent = [similarity_metrics(arrays[index], arrays[index + 1]) for index in range(len(arrays) - 1)]
     timeline: dict[str, Any] = {
         "schema": REPORT_SCHEMA,
@@ -141,6 +144,7 @@ def build_timeline_report(
         "adjacent_similarity": adjacent,
         "first_last_similarity": similarity_metrics(arrays[0], arrays[-1]),
         "face_space": _safe_face_space(arrays),
+        "quality_keyframes": list(quality_keyframes or []),
         "provenance": dict(provenance or {}),
         "limitations": ["Temporal trend is descriptive and does not separate age, pose, expression or surgery without calibration."],
     }

@@ -6,6 +6,7 @@ import TimelineUploader from './components/TimelineUploader';
 import FaceSpacePlot from './components/FaceSpacePlot';
 import TemporalDriftPanel from './components/TemporalDriftPanel';
 import SimilarityMatrixPanel from './components/SimilarityMatrixPanel';
+import TimelineQualityPanel from './components/TimelineQualityPanel';
 import { catmullRomWeights } from './utils/timeline';
 
 export default function App() {
@@ -285,6 +286,37 @@ export default function App() {
     }
   }, [photoA, photoB]);
 
+  const handleDownloadTimelineReport = useCallback(async (format = 'html') => {
+    if (timelineFiles.length < 2) return;
+    setReportLoading(true);
+    try {
+      const formData = new FormData();
+      timelineFiles.forEach((file) => formData.append('photos', file));
+      const keyframes = morphData?.timeline?.keyframes || [];
+      const metadata = timelineFiles.map((file, index) => ({
+        label: keyframes[index]?.label || file.name.replace(/\.[^.]+$/, ''),
+        year: keyframes[index]?.year ?? null,
+      }));
+      formData.append('metadata', JSON.stringify(metadata));
+      const response = await fetch(`/api/report-timeline?format=${format}`, { method: 'POST', body: formData });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || `report: HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `morphing-timeline-report-${Date.now()}.${format}`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (requestError) {
+      setError(`Не удалось выгрузить timeline-отчёт: ${requestError.message}`);
+    } finally {
+      setReportLoading(false);
+    }
+  }, [morphData, timelineFiles]);
+
   const fetchSymmetry = useCallback(async () => {
     const source = timelineMode ? timelineFiles[0] : photoA;
     if (!source) return;
@@ -350,7 +382,7 @@ export default function App() {
       const formData = new FormData();
       timelineFiles.forEach((file) => formData.append('photos', file));
       formData.append('metadata', JSON.stringify(timelineFiles.map((file, index) => ({
-        label: file.name.replace(/\\.[^.]+$/, '') || `Face ${String.fromCharCode(65 + index)}`,
+        label: file.name.replace(/\.[^.]+$/, '') || `Face ${String.fromCharCode(65 + index)}`,
         year: years[index] || null,
       }))));
       if (futureYear) formData.append('future_year', futureYear);
@@ -616,6 +648,9 @@ export default function App() {
 
         {morphData?.metadata?.quality && (
           <QualityPanel quality={morphData.metadata.quality} onDownload={handleDownloadReport} loading={reportLoading} />
+        )}
+        {morphData?.metadata?.quality_keyframes && (
+          <TimelineQualityPanel keyframes={morphData.metadata.quality_keyframes} onDownload={handleDownloadTimelineReport} loading={reportLoading} />
         )}
 
         {morphData?.parameter_heatmap?.length > 0 && (

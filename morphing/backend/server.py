@@ -33,7 +33,7 @@ from morphing.backend.deformation import tps_deformed_target
 from morphing.backend.extrapolation import MAX_EXTRAPOLATION_HORIZON_YEARS, extrapolate_shape
 from morphing.backend.quality import evaluate_image, evaluate_mesh, quality_schema
 from morphing.backend.batch import similarity_matrix as build_similarity_matrix
-from morphing.backend.reporting import build_pair_report, render_report_html
+from morphing.backend.reporting import build_pair_report, build_timeline_report, render_report_html
 from morphing.backend.analysis import (
     DEFAULT_ZONE_WEIGHTS,
     forensic_metrics,
@@ -278,6 +278,66 @@ async def report_pair(
         raise HTTPException(status_code=500, detail=f"Ошибка формирования отчёта: {exc}") from exc
 
 
+@app.post("/api/report-timeline")
+async def report_timeline(
+    photos: list[UploadFile] = File(...),
+    metadata: str | None = Form(default=None),
+    format: str = Query(default="json"),
+) -> Any:
+    """Create a dated or undated JSON/HTML report for 2–4 timeline photos."""
+    if not 2 <= len(photos) <= 4:
+        raise HTTPException(status_code=400, detail="timeline report принимает от 2 до 4 фотографий")
+    if format not in {"json", "html"}:
+        raise HTTPException(status_code=400, detail="format must be json or html")
+    try:
+        try:
+            rows = json.loads(metadata) if metadata else [{} for _ in photos]
+        except json.JSONDecodeError as exc:
+            raise HTTPException(status_code=400, detail=f"metadata должен быть JSON: {exc}") from exc
+        if not isinstance(rows, list) or len(rows) != len(photos):
+            raise HTTPException(status_code=400, detail="metadata должен содержать запись для каждого фото")
+        raw_images = [await photo.read() for photo in photos]
+        faces = [_reconstruct(raw, chr(65 + index)) for index, raw in enumerate(raw_images)]
+        labels = [str((row if isinstance(row, dict) else {}).get("label") or photo.filename or f"Face {index + 1}") for index, (row, photo) in enumerate(zip(rows, photos))]
+        year_values = [(row if isinstance(row, dict) else {}).get("year") for row in rows]
+        years = None
+        if any(value not in (None, "") for value in year_values):
+            try:
+                years = [float(value) for value in year_values]
+            except (TypeError, ValueError) as exc:
+                raise HTTPException(status_code=400, detail="годы в metadata должны быть заданы для всех keyframes") from exc
+            if not np.isfinite(years).all() or np.any(np.diff(years) <= 0):
+                raise HTTPException(status_code=400, detail="годы должны быть конечными и строго возрастающими")
+        quality_keyframes = []
+        for index, face in enumerate(faces):
+            quality_keyframes.append({
+                "index": index,
+                "label": labels[index],
+                "year": years[index] if years else None,
+                "photo": evaluate_image(face["bgr"], label=labels[index]).to_dict(),
+                "mesh": evaluate_mesh(face["vertices"], face["result"]["triangles"], label=labels[index]).to_dict(),
+            })
+        report = build_timeline_report(
+            [face["vertices"] for face in faces],
+            years,
+            labels=labels,
+            quality_keyframes=quality_keyframes,
+            provenance={
+                "endpoint": "/api/report-timeline",
+                "reconstruction": "app8",
+                "alignment": "canonical_zero",
+                "input_sha256": [hashlib.sha256(raw).hexdigest() for raw in raw_images],
+            },
+        )
+        if format == "html":
+            return HTMLResponse(content=render_report_html(report, "3D face timeline report"))
+        return JSONResponse(content=report)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка формирования timeline-отчёта: {exc}") from exc
+
+
 @app.post("/api/morph-pair")
 async def morph_pair(
     photo_a: UploadFile = File(...),
@@ -350,6 +410,15 @@ async def _sequence_response(
         candidate_positions = [(year - first_year) / (last_year - first_year) for year in numeric_years]
         if all(right > left for left, right in zip(candidate_positions, candidate_positions[1:])):
             timeline_positions = candidate_positions
+    quality_keyframes = []
+    for index, face in enumerate(reconstructed):
+        quality_keyframes.append({
+            "index": index,
+            "label": labels[index],
+            "year": numeric_years[index] if len(numeric_years) == len(reconstructed) else None,
+            "photo": evaluate_image(face["bgr"], label=labels[index]).to_dict(),
+            "mesh": evaluate_mesh(face["vertices"], face["result"]["triangles"], label=labels[index]).to_dict(),
+        })
     first, last = reconstructed[0], reconstructed[-1]
     first_last = similarity_metrics(first["vertices"], last["vertices"])
     drift = temporal_drift_metrics(numeric_years, vertex_arrays) if len(numeric_years) >= 3 else None
@@ -381,6 +450,7 @@ async def _sequence_response(
             "first_last_similarity": first_last,
             "temporal_drift": drift,
             "face_space": pca_projection(vertex_arrays),
+            "quality_keyframes": quality_keyframes,
             "method": "Catmull-Rom spline over aligned identity meshes",
         },
     }

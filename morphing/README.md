@@ -75,7 +75,9 @@
 - `GET /api/quality-schema` публикует quality gates.
 - `POST /api/report-pair?format=json|html` собирает reproducible report packet
   с metrics, image/mesh quality, symmetry, input SHA-256 hashes, provenance и
-  limitations. UI умеет скачать оба формата; HTML экранирует untrusted labels.
+  limitations. `POST /api/report-timeline?format=json|html` экспортирует 2–4
+  keyframes, age-aware drift, PCA и качество каждого кадра. UI умеет скачать
+  оба формата; HTML экранирует untrusted labels.
 
 ## Структура
 
@@ -142,7 +144,8 @@ Vite проксирует `/api` на backend, поэтому браузер н�
 | `POST /api/uv-diff` | normalized UV difference texture |
 | `POST /api/symmetry` | bilateral symmetry diagnostic |
 | `GET /api/quality-schema` | quality-gate registry |
-| `POST /api/report-pair?format=json|html` | reproducible analysis report |
+| `POST /api/report-pair?format=json|html` | reproducible pair analysis report |
+| `POST /api/report-timeline?format=json|html` | dated or undated 2–4 face report |
 | `POST /api/export-gif` | legacy HD GIF export |
 
 Backend unit tests (не загружают реконструкционную GPU-модель) запускаются из корня:
