@@ -5,6 +5,7 @@ import Controls from './components/Controls';
 import TimelineUploader from './components/TimelineUploader';
 import FaceSpacePlot from './components/FaceSpacePlot';
 import TemporalDriftPanel from './components/TemporalDriftPanel';
+import SimilarityMatrixPanel from './components/SimilarityMatrixPanel';
 import { catmullRomWeights } from './utils/timeline';
 
 export default function App() {
@@ -374,6 +375,27 @@ export default function App() {
     }
   };
 
+  const faceSpaceData = useMemo(() => {
+    const source = morphData?.metadata?.face_space;
+    if (!source) return null;
+    if (Array.isArray(source.points)) return source;
+    const coordinates = source.coordinates;
+    if (!Array.isArray(coordinates)) return null;
+    const labels = morphData.timeline?.labels || [];
+    return {
+      ...source,
+      points: coordinates.map((coordinate, index) => ({
+        index,
+        label: labels[index] || `Face ${String.fromCharCode(65 + index)}`,
+        x: coordinate[0] || 0,
+        y: coordinate[1] || 0,
+        z: coordinate[2] || 0,
+      })),
+      path: coordinates.map((_, index) => index),
+      highlighted: [0, Math.max(0, coordinates.length - 1)],
+    };
+  }, [morphData]);
+
   const activeMorphData = useMemo(() => {
     if (!predictionMode || !morphData?.extrapolation?.vertices) return morphData;
     const lastIndex = (morphData.sequence_vertices?.length || 1) - 1;
@@ -578,7 +600,14 @@ export default function App() {
           />
         )}
 
-        {morphData?.metadata?.face_space && <FaceSpacePlot faceSpace={morphData.metadata.face_space} onSelect={selectFaceSpace} />}
+        {faceSpaceData?.points?.length > 0 && <FaceSpacePlot faceSpace={faceSpaceData} onSelect={selectFaceSpace} />}
+        {timelineMode && morphData && timelineFiles.length >= 2 && (
+          <SimilarityMatrixPanel
+            key={timelineFiles.map((file) => `${file.name}:${file.size}:${file.lastModified}`).join('|')}
+            files={timelineFiles}
+            onSelect={selectFaceSpace}
+          />
+        )}
         {morphData?.metadata?.temporal_drift && <TemporalDriftPanel drift={morphData.metadata.temporal_drift} extrapolation={morphData.extrapolation} predictionMode={predictionMode} onTogglePreview={() => { setPredictionMode((value) => !value); setProgress(0); }} />}
 
         {morphData && (
