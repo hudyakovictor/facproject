@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Canvas3D from './components/Canvas3D';
 import DropZone from './components/DropZone';
 import Controls from './components/Controls';
+import TimelineUploader from './components/TimelineUploader';
+import FaceSpacePlot from './components/FaceSpacePlot';
+import { catmullRomWeights } from './utils/timeline';
 
 export default function App() {
   const [photoA, setPhotoA] = useState(null);
@@ -14,16 +17,19 @@ export default function App() {
   // Данные специализированного эндпоинта /api/forensic-score (зональные identity-скоры)
   const [forensicData, setForensicData] = useState(null);
   const [forensicLoading, setForensicLoading] = useState(false);
+  const [timelineFiles, setTimelineFiles] = useState([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineMode, setTimelineMode] = useState(false);
+  const [blendMode, setBlendMode] = useState('timeline');
+  const [blendWeights, setBlendWeights] = useState([1, 0, 0, 0]);
 
   const [progress, setProgress] = useState(0.0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showUVDiff, setShowUVDiff] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [lighting, setLighting] = useState(false);
-
-  // Ссылка на <canvas> внутри Canvas3D для WebM-записи
-  const canvasRef = useRef(null);
 
   // ── KEYBOARD SHORTCUTS ───────────────────────────────────────────
   useEffect(() => {
@@ -74,46 +80,63 @@ export default function App() {
       vertices_b: prev.vertices_a,
       texture_a_base64: prev.texture_b_base64,
       texture_b_base64: prev.texture_a_base64,
-      landmarks_a: prev.landmarks_b,
-      landmarks_b: prev.landmarks_a,
+      landmarks_106_a: prev.landmarks_106_b,
+      landmarks_106_b: prev.landmarks_106_a,
+      sequence_vertices: [prev.vertices_b, prev.vertices_a],
+      sequence_landmarks: [prev.landmarks_106_b, prev.landmarks_106_a],
+      sequence_textures: [prev.texture_b_base64, prev.texture_a_base64],
       metadata: { ...prev.metadata },
+      timeline: { method: 'linear pair', keyframe_count: 2, labels: ['Face A', 'Face B'] },
     }));
     setProgress((prev) => 1.0 - prev);
   }, [morphData]);
 
-  // ── LIVE METRICS (вычисляется на клиенте, без запросов) ──────────────
+  // ── LIVE METRICS: recomputed on every timeline tick, without a network call ──
   const liveMetrics = useMemo(() => {
-    if (!morphData?.vertices_a || !morphData?.vertices_b) return null;
-    const a = morphData.vertices_a;
-    const b = morphData.vertices_b;
-    const n = a.length / 3;
+    const sequence = morphData?.sequence_vertices;
+    if (!sequence?.length || sequence.length < 2) return null;
+    const weights = blendMode === 'blend'
+      ? normalizeWeights(blendWeights, sequence.length)
+      : catmullRomWeights(progress, sequence.length);
+    const current = new Float32Array(sequence[0].length);
+    for (let faceIndex = 0; faceIndex < sequence.length; faceIndex += 1) {
+      const weight = weights[faceIndex];
+      if (!weight) continue;
+      for (let index = 0; index < current.length; index += 1) current[index] += sequence[faceIndex][index] * weight;
+    }
+    const anchor = sequence[0];
+    const endpoint = sequence[sequence.length - 1];
+    const n = current.length / 3;
     const THRESHOLD = 0.025;
-    let sumDist = 0, maxDist = 0, aboveThreshold = 0;
-    let dotAB = 0, normA = 0, normB = 0;
-    for (let i = 0; i < a.length; i += 3) {
-      const dx = a[i] - b[i];
-      const dy = a[i + 1] - b[i + 1];
-      const dz = a[i + 2] - b[i + 2];
+    let sumDist = 0; let maxDist = 0; let aboveThreshold = 0;
+    let dot = 0; let normCurrent = 0; let normEndpoint = 0;
+    let sumEndpointDelta = 0;
+    for (let index = 0; index < current.length; index += 3) {
+      const dx = current[index] - anchor[index];
+      const dy = current[index + 1] - anchor[index + 1];
+      const dz = current[index + 2] - anchor[index + 2];
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      sumDist += d;
-      if (d > maxDist) maxDist = d;
-      if (d > THRESHOLD) aboveThreshold++;
-      dotAB += a[i] * b[i] + a[i + 1] * b[i + 1] + a[i + 2] * b[i + 2];
-      normA += a[i] * a[i] + a[i + 1] * a[i + 1] + a[i + 2] * a[i + 2];
-      normB += b[i] * b[i] + b[i + 1] * b[i + 1] + b[i + 2] * b[i + 2];
+      sumDist += d; maxDist = Math.max(maxDist, d); if (d > THRESHOLD) aboveThreshold += 1;
+      const ex = current[index] - endpoint[index];
+      const ey = current[index + 1] - endpoint[index + 1];
+      const ez = current[index + 2] - endpoint[index + 2];
+      sumEndpointDelta += Math.sqrt(ex * ex + ey * ey + ez * ez);
+      dot += current[index] * endpoint[index] + current[index + 1] * endpoint[index + 1] + current[index + 2] * endpoint[index + 2];
+      normCurrent += current[index] ** 2 + current[index + 1] ** 2 + current[index + 2] ** 2;
+      normEndpoint += endpoint[index] ** 2 + endpoint[index + 1] ** 2 + endpoint[index + 2] ** 2;
     }
     const meanDist = sumDist / n;
-    const cosine = dotAB / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-9);
-    const morphability = Math.max(0, Math.min(100, (1.0 - meanDist / 0.15) * 100));
     return {
       euclidean: meanDist.toFixed(5),
       maxDelta: maxDist.toFixed(5),
       pctAbove: ((aboveThreshold / n) * 100).toFixed(1),
       totalVerts: n.toLocaleString(),
-      cosine: cosine.toFixed(4),
-      morphability: morphability.toFixed(1),
+      cosine: (dot / (Math.sqrt(normCurrent) * Math.sqrt(normEndpoint) + 1e-9)).toFixed(4),
+      morphability: Math.max(0, Math.min(100, (1 - meanDist / 0.15) * 100)).toFixed(1),
+      toEndpoint: (sumEndpointDelta / n).toFixed(5),
+      keyframeCount: sequence.length,
     };
-  }, [morphData]);
+  }, [morphData, progress, blendMode, blendWeights]);
 
   // ── GIF DOWNLOAD ───────────────────────────────────────────
   const handleDownloadGif = async () => {
@@ -140,46 +163,52 @@ export default function App() {
     }
   };
 
-  // ── WEBM RECORD (запись с canvas через MediaRecorder) ───────────────
+  // ── VIDEO RECORD: exact 60 timeline frames via canvas.captureStream ──
   const handleDownloadWebm = useCallback(() => {
-    // Находим <canvas> в DOM (тег r3f рисует сцену в <canvas>)
     const canvas = document.querySelector('canvas');
     if (!canvas) { alert('Канвас не найден. Запустите морфинг перед записью.'); return; }
-    if (!canvas.captureStream) { alert('Ваш браузер не поддерживает captureStream.'); return; }
-
-    const DURATION_MS = 4000;   // 4 секунды
-    const FPS = 30;
-    const stream = canvas.captureStream(FPS);
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9'
-      : 'video/webm';
-    const recorder = new MediaRecorder(stream, { mimeType });
+    if (!canvas.captureStream || !window.MediaRecorder) { alert('Браузер не поддерживает canvas.captureStream / MediaRecorder.'); return; }
+    const candidates = [
+      ['video/mp4;codecs=avc1.42E01E', 'mp4'],
+      ['video/webm;codecs=vp9', 'webm'],
+      ['video/webm;codecs=vp8', 'webm'],
+      ['video/webm', 'webm'],
+    ];
+    const selected = candidates.find(([mime]) => MediaRecorder.isTypeSupported(mime));
+    if (!selected) { alert('В этом браузере нет поддерживаемого MP4/WebM кодека.'); return; }
+    const [mimeType, extension] = selected;
+    const stream = canvas.captureStream(60);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 });
     const chunks = [];
-
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    let frame = 0;
+    let previousPlaying = isPlaying;
+    setWebmLoading(true);
+    setIsPlaying(false);
+    setProgress(0);
+    recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+    recorder.onerror = () => { stream.getTracks().forEach((track) => track.stop()); setWebmLoading(false); alert('Не удалось записать видео.'); };
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: mimeType });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `3d_morph_${Date.now()}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `3d_morph_${Date.now()}.${extension}`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      stream.getTracks().forEach((track) => track.stop());
       setWebmLoading(false);
+      setIsPlaying(previousPlaying);
     };
-
-    // Автозапуск анимации для записи
-    setIsPlaying(true);
-    setProgress(0);
-    setWebmLoading(true);
     recorder.start();
-    setTimeout(() => {
-      recorder.stop();
-      setIsPlaying(false);
-    }, DURATION_MS);
-  }, []);
+    const capture = () => {
+      const t = frame / 59;
+      setProgress(t);
+      frame += 1;
+      if (frame < 60) window.requestAnimationFrame(capture);
+      else window.setTimeout(() => recorder.stop(), 120);
+    };
+    window.requestAnimationFrame(capture);
+  }, [isPlaying]);
 
   // ── AUTO PLAY ─────────────────────────────────────────────
   useEffect(() => {
@@ -235,6 +264,9 @@ export default function App() {
       }
       const data = await response.json();
       setMorphData(data);
+      setTimelineMode(false);
+      setBlendMode('timeline');
+      setBlendWeights([1, 0, 0, 0]);
       setProgress(0.0);
       setForensicData(null);
       // Фоновый запрос зонального forensic-score — не блокирует отображение морфа
@@ -243,6 +275,38 @@ export default function App() {
       setError(err.message || 'Ошибка соединения с бэкендом');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── MULTI-FACE TIMELINE ─────────────────────────────────────────────
+  const handleBuildTimeline = async (years) => {
+    if (timelineFiles.length < 2) return;
+    setTimelineLoading(true);
+    setError(null);
+    setIsPlaying(false);
+    try {
+      const formData = new FormData();
+      timelineFiles.forEach((file) => formData.append('photos', file));
+      formData.append('metadata', JSON.stringify(timelineFiles.map((file, index) => ({
+        label: file.name.replace(/\\.[^.]+$/, '') || `Face ${String.fromCharCode(65 + index)}`,
+        year: years[index] || null,
+      }))));
+      const response = await fetch('/api/morph-sequence', { method: 'POST', body: formData });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Не удалось построить timeline');
+      }
+      const data = await response.json();
+      setMorphData(data);
+      setTimelineMode(true);
+      setBlendMode('timeline');
+      setBlendWeights(Array.from({ length: timelineFiles.length }, (_, index) => (index === 0 ? 1 : 0)));
+      setProgress(0);
+      setForensicData(null);
+    } catch (err) {
+      setError(err.message || 'Ошибка timeline-морфинга');
+    } finally {
+      setTimelineLoading(false);
     }
   };
 
@@ -292,8 +356,8 @@ export default function App() {
           </div>
           <button
             onClick={swapFaces}
-            disabled={!morphData}
-            title="Поменять A и B местами"
+            disabled={!morphData?.vertices_a || timelineMode}
+            title={timelineMode ? 'Для timeline используйте порядок keyframes' : 'Поменять A и B местами'}
             style={{
               position: 'absolute',
               top: '50%',
@@ -336,6 +400,13 @@ export default function App() {
         >
           {loading ? '⏳ Выравнивание в (0,0,0) и генерация HD UV...' : '🚀 Запустить 3D Morphing'}
         </button>
+
+        <TimelineUploader
+          files={timelineFiles}
+          setFiles={(files) => { setTimelineFiles(files); setTimelineMode(files.length >= 2); }}
+          onBuild={handleBuildTimeline}
+          loading={timelineLoading}
+        />
 
         {error && (
           <div style={{
@@ -390,8 +461,10 @@ export default function App() {
                 { label: 'Cosine Sim', value: liveMetrics.cosine },
                 { label: 'Mean Dist', value: liveMetrics.euclidean },
                 { label: 'Max Delta', value: liveMetrics.maxDelta },
+                { label: 'До финала', value: liveMetrics.toEndpoint },
                 { label: '% > 0.025', value: `${liveMetrics.pctAbove}%` },
                 { label: 'Вершин', value: liveMetrics.totalVerts },
+                { label: 'Keyframes', value: liveMetrics.keyframeCount },
               ].map(({ label, value }) => (
                 <div key={label} style={{ background: '#0d1117', borderRadius: '6px', padding: '6px 10px' }}>
                   <div style={{ fontSize: '10px', color: '#8b949e' }}>{label}</div>
@@ -412,6 +485,12 @@ export default function App() {
           />
         )}
 
+        {morphData?.metadata?.face_space && <FaceSpacePlot faceSpace={morphData.metadata.face_space} />}
+
+        {morphData?.parameter_heatmap?.length > 0 && (
+          <ParameterHeatmapPanel items={morphData.parameter_heatmap} />
+        )}
+
         {/* Controls */}
         {morphData && (
           <Controls
@@ -423,11 +502,18 @@ export default function App() {
             setShowLandmarks={setShowLandmarks}
             showHeatmap={showHeatmap}
             setShowHeatmap={setShowHeatmap}
+            showUVDiff={showUVDiff}
+            setShowUVDiff={setShowUVDiff}
             wireframe={wireframe}
             setWireframe={setWireframe}
             lighting={lighting}
             setLighting={setLighting}
             metadata={morphData.metadata}
+            sequenceCount={morphData.sequence_vertices?.length || 2}
+            blendMode={blendMode}
+            setBlendMode={setBlendMode}
+            blendWeights={blendWeights}
+            setBlendWeights={setBlendWeights}
             onDownloadGif={handleDownloadGif}
             gifLoading={gifLoading}
             onDownloadWebm={handleDownloadWebm}
@@ -443,8 +529,11 @@ export default function App() {
           <Canvas3D
             morphData={morphData}
             progress={progress}
+            blendMode={blendMode}
+            blendWeights={blendWeights}
             showLandmarks={showLandmarks}
             showHeatmap={showHeatmap}
+            showUVDiff={showUVDiff}
             wireframe={wireframe}
             lighting={lighting}
           />
@@ -479,6 +568,12 @@ export default function App() {
 }
 
 // ── HELPERS ─────────────────────────────────────────────────
+
+function normalizeWeights(values, count) {
+  const next = Array.from({ length: 4 }, (_, index) => Math.max(0, Number(values[index] || 0)));
+  const total = next.slice(0, count).reduce((sum, value) => sum + value, 0) || 1;
+  return next.map((value, index) => (index < count ? value / total : 0));
+}
 
 function getMorphabilityColor(v) {
   if (v >= 75) return '#3fb950';  // зелёный — очень похожи
@@ -517,6 +612,37 @@ const ZONE_LABELS = {
   mouth_chin: 'Рот/Подб.',
 };
 
+function ParameterHeatmapPanel({ items }) {
+  const groups = [...new Set(items.map((item) => item.group))];
+  return (
+    <details style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '12px' }}>
+      <summary style={{ cursor: 'pointer', color: '#ffb86c', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+        🔬 Stage2 v2 · {items.length} параметров
+      </summary>
+      <div style={{ fontSize: '10px', color: '#8b949e', lineHeight: 1.4, margin: '8px 0' }}>
+        Интенсивность — прокси от dense-mesh delta, а не новый калиброванный Stage 2 замер. Нажмите группу, чтобы увидеть ключи.
+      </div>
+      {groups.map((group) => {
+        const groupItems = items.filter((item) => item.group === group);
+        return (
+          <div key={group} style={{ marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c9d1d9', fontSize: '10px', marginBottom: '3px' }}>
+              <span>{group}</span><span>{groupItems.length}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px' }}>
+              {groupItems.map((item) => (
+                <div key={item.key} title={`${item.title} · ${item.source}`} style={{ background: `linear-gradient(90deg, rgba(255,123,114,${0.12 + item.signal * 0.7}) ${item.signal * 100}%, #21262d ${item.signal * 100}%)`, borderRadius: '3px', padding: '3px 4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#c9d1d9', fontSize: '9px' }}>
+                  {item.key}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </details>
+  );
+}
+
 function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
   return (
     <div style={{
@@ -530,7 +656,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          🦷 Зональный Forensic Score{globalScore !== null && globalScore !== undefined ? ` · ${globalScore}` : ''}
+          🦷 Зональный Forensic Score{globalScore !== null && globalScore !== undefined ? ` · ${globalScore}%` : ''}
         </div>
         {onRecompute && (
           <button
@@ -555,7 +681,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
         // forensic-score отдаёт объект {mean_dist, max_dist, identity_score};
         // morph-pair отдаёт плоский mean_dist по зоне
         const score = (val !== null && typeof val === 'object')
-          ? val.identity_score
+          ? (val.identity_score ?? val.similarity ?? 0)
           : Math.max(0, Math.min(100, (1.0 - val / 0.15) * 100));
         const color = getMorphabilityColor(score);
         return (

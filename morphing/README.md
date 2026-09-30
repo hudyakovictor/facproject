@@ -1,90 +1,111 @@
-# 🎭 3D Face Morphing (React + Three.js + app8 + uv_module)
+# 🎭 3D Face Morphing Studio
 
-Интерактивный веб-интерфейс для загрузки двух фотографий, автоматического канонического 3D-выравнивания в $(0^\circ, 0^\circ, 0^\circ)$, генерации улучшенных HD UV-текстур кожи через `uv_module` и плавного GPU-морфинга 3D-моделей и текстур в реальном времени (60+ FPS).
+Веб-инструмент для канонического 3D-морфинга лица на базе `app8`, Three.js и
+`uv_module`. Текущая версия поддерживает не только A → B, но и timeline на
+2–4 keyframe, одновременный barycentric blend, количественные метрики,
+зональный forensic-разбор, UV Diff и запись видео из WebGL canvas.
 
----
+> **Ограничение интерпретации.** `Morphability`, forensic score, симметрия и
+> temporal drift — описательные геометрические индикаторы. Это не
+> калиброванная вероятность личности, медицинское заключение или доказательство
+> идентичности. Для forensic-вывода нужен отдельный валидированный reference
+> dataset и контроль качества входных снимков.
 
-## 🌟 Ключевые возможности
+## Что добавлено
 
-1. **Каноническое выравнивание в $(0^\circ, 0^\circ, 0^\circ)$:**
-   * Устраняются наклоны, повороты головы (Yaw/Pitch/Roll) и мимические искажения.
-   * Обе 3D-модели центрируются в $(0, 0, 0)$ и масштабируются по краниометрическому базису.
-2. **Интеграция с `uv_module` (HD UV-текстура):**
-   * Генерация развертки лица 1024×1024 с алгоритмами `detail_boost`, симметризацией и подавлением бликов.
-3. **Плавный GPU-морфинг (Three.js Custom Shader):**
-   * Вершинный шейдер выполняет интерполяцию всех 35 709 вершин сетки: $V(t) = (1-t)V_A + tV_B$.
-   * Фрагментный шейдер интерполирует микроструктуру кожи между двумя HD UV-картами.
-4. **Морфинг 106 3D ключевых точек:**
-   * Анатомические ориентиры лица плавно перетекают из одной формы в другую.
-5. **Тепловая карта анатомической разницы ($||V_A - V_B||$):**
-   * Цветовая подсветка локальных различий формы черепа (синий $\to$ зелёный $\to$ красный).
-6. **Режим полигональной сетки (Wireframe) и автоанимация ($A \leftrightarrow B$).**
+### Multi-face timeline и blend
 
----
+- `POST /api/morph-sequence` принимает 2–4 файла в поле `photos` и optional
+  JSON `metadata` с `label`/`year`.
+- Вектор формы интерполируется Catmull–Rom spline, проходящей через каждый
+  keyframe. Boundary control points дублируются, поэтому A и D не
+  overshoot-ятся.
+- На фронтенде режим **Barycentric blend** даёт 3 слайдера для треугольника и
+  4 для тетраэдра. Веса нормализуются к `Σw = 1` и применяются GPU-шэйдером.
+- При наличии годов API дополнительно отдаёт `metadata.temporal_drift`: скорость
+  dense-shape drift, скорость по зонам и отклонения от линейной траектории.
 
-## 📁 Структура проекта `morphing/`
+### Экспорт и диагностические слои
+
+- Кнопка **MP4 / WebM** записывает ровно 60 кадров через
+  `canvas.captureStream(60)` + `MediaRecorder`. Браузер выбирает MP4, если его
+  кодек доступен, иначе безопасно скачивается VP9/VP8 WebM.
+- Live metrics пересчитываются на каждом tick: mean/max delta, p95,
+  `% vertices > threshold`, cosine similarity и distance до финального
+  keyframe.
+- `POST /api/similarity` возвращает полный Euclidean L2, mean/max/p95,
+  cosine similarity, Morphability и top-5 зон расхождения.
+- `POST /api/forensic-score` возвращает взвешенный зональный score и объяснение
+  (какие зоны поддерживают/снижают сходство). Используются явные веса зон,
+  результат помечен как geometric similarity proxy.
+- `POST /api/uv-diff` и слой **UV Diff** показывают нормализованную разницу
+  двух UV-текстур независимо от геометрии.
+- `GET /api/parameter-registry` отдаёт реестр Stage 2 v2; в ответе pair также
+  есть групповой heatmap 83 параметров с provenance-меткой
+  `dense-mesh mean delta proxy`. Это намеренно не выдаётся за измерение
+  порогов Stage 2.
+- `POST /api/symmetry` оценивает bilateral symmetry canonical mesh с разбором по
+  зонам.
+
+## Структура
 
 ```text
-facproject/morphing/
+morphing/
 ├── backend/
-│   ├── server.py              # FastAPI сервер (/api/morph-pair, /api/health)
-│   ├── aligner.py             # Выравнивание в (0°, 0°, 0°) и нормализация черепа
-│   └── uv_extractor.py        # Генерация HD UV-текстур через uv_module
-├── frontend/                  # React + Vite + Three.js приложение
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js
-│   └── src/
-│       ├── App.jsx            # Главный интерфейс с загрузкой и контролами
-│       ├── main.jsx
-│       ├── index.css
-│       ├── components/
-│       │   ├── Canvas3D.jsx   # 3D-сцена Three.js с OrbitControls
-│       │   ├── Controls.jsx   # Слайдер морфинга, автоанимация, слои
-│       │   └── DropZone.jsx   # Drag & Drop загрузка двух фото
-│       └── shaders/
-│           └── MorphShader.js # Кастомный GPU шейдер морфинга
-├── run.sh                     # Скрипт запуска бэкенда и фронтенда
-└── README.md
+│   ├── server.py       # FastAPI: pair, sequence, similarity, forensic, UV, symmetry
+│   ├── analysis.py     # детерминированные метрики и diagnostic helpers
+│   ├── timeline.py     # Catmull–Rom / normalized multi-face blend
+│   ├── aligner.py      # каноническое выравнивание
+│   └── uv_extractor.py # HD UV через uv_module
+├── frontend/
+│   ├── src/App.jsx
+│   ├── src/components/FaceSpacePlot.jsx
+│   ├── src/components/TimelineUploader.jsx
+│   ├── src/components/Canvas3D.jsx
+│   ├── src/components/Controls.jsx
+│   └── src/utils/timeline.js
+└── run.sh
 ```
 
----
-
-## 🚀 Быстрый запуск
-
-### 1. Автоматический запуск (всё в одном):
+## Запуск
 
 ```bash
 cd facproject/morphing
 ./run.sh
 ```
 
-### 2. Ручной запуск компонентов:
+Или вручную:
 
-#### Бэкенд (FastAPI):
 ```bash
 cd facproject
-python3 -m uvicorn morphing.backend.server:app --host 0.0.0.0 --port 8000 --reload
-```
-
-#### Фронтенд (React / Vite):
-```bash
-cd facproject/morphing/frontend
+python3 -m uvicorn morphing.backend.server:app --host 0.0.0.0 --port 8000
+cd morphing/frontend
 npm install
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 3000
 ```
 
-Откройте в браузере: **`http://localhost:3000`**
+Vite проксирует `/api` на backend, поэтому браузер не обращается к
+`localhost` напрямую. Для preview-сред Arena оба сервера слушают
+`0.0.0.0`.
 
----
+## API-контракт
 
-## 🧠 Как работает каноническое выравнивание и морфинг
+| Endpoint | Назначение |
+|---|---|
+| `GET /api/health` | health/version |
+| `GET /api/parameter-registry` | Stage 2 v2 registry |
+| `POST /api/morph-pair` | A/B mesh, UV, metrics, forensic sidecar |
+| `POST /api/morph-sequence` | 2–4 keyframe Catmull–Rom timeline |
+| `POST /api/morph-multi` | alias for multi-face timeline |
+| `POST /api/morph-blend` | normalized barycentric mesh blend |
+| `POST /api/face-space` | PCA 3D scatter coordinates and ordered path |
+| `POST /api/similarity` | dense quantitative similarity |
+| `POST /api/forensic-score` | weighted zone similarity proxy |
+| `POST /api/uv-diff` | normalized UV difference texture |
+| `POST /api/symmetry` | bilateral symmetry diagnostic |
+| `POST /api/export-gif` | legacy HD GIF export |
 
-1. **Реконструкция `app8`:** 
-   Нейросеть извлекает 80-мерный вектор формы $\alpha_{id}$ и строит 3D-сетку лица без экспрессий `vertices_identity_only` (35 709 вершин).
-2. **Юстировка в 0°:**
-   Центр масс совмещается с началом координат $(0, 0, 0)$, углы ориентации принудительно обнуляются.
-3. **Генерация HD UV:**
-   `uv_module.HDUVTextureGenerator` с параметрами `enable_detail_boost=True` и `enable_symmetry_fill=True` создаёт две бесшовные текстуры высокого разрешения.
-4. **Рендеринг в Three.js:**
-   Шейдер на видеокарте смешивает вершины и текстуры с коэффициентом $t \in [0.0, 1.0]$, обеспечивая плавную анимацию 60 кадров в секунду.
+`morph-pair` сохраняет старые поля `vertices_a`, `vertices_b`,
+`landmarks_106_a/b`, `texture_a_base64`, `texture_b_base64`, поэтому старые
+клиенты остаются совместимыми. Новые клиенты могут использовать
+`sequence_vertices`, `sequence_landmarks` и `sequence_textures` для 2–4 точек.
