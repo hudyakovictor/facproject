@@ -15,6 +15,12 @@ echo "🚀 Запуск FastAPI бэкенда на http://localhost:8000 ..."
 python3 -m uvicorn morphing.backend.server:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
+# Всегда завершаем backend вместе с frontend (в том числе при Ctrl-C).
+cleanup() {
+    kill "$BACKEND_PID" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
 # 2. Проверка Node модулей и запуск Frontend (Vite) на порту 3000
 cd "$SCRIPT_DIR/frontend"
 if [ ! -d "node_modules" ]; then
@@ -24,6 +30,3 @@ fi
 
 echo "✨ Запуск React/Three.js фронтенда на http://localhost:3000 ..."
 npm run dev -- --host 0.0.0.0 --port 3000
-
-# Завершение при выходе
-trap "kill $BACKEND_PID" EXIT

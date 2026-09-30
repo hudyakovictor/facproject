@@ -9,10 +9,17 @@ export default function Controls({
   setShowLandmarks,
   showHeatmap,
   setShowHeatmap,
+  showUVDiff = false,
+  setShowUVDiff = () => {},
   wireframe,
   setWireframe,
   lighting,
   setLighting,
+  sequenceCount = 2,
+  blendMode = 'timeline',
+  setBlendMode = () => {},
+  blendWeights = [1, 0, 0, 0],
+  setBlendWeights = () => {},
   metadata,
   onDownloadGif,
   gifLoading,
@@ -35,7 +42,7 @@ export default function Controls({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#58a6ff' }}>Лицо A (0%)</span>
           <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#00ffaa' }}>{Math.round(progress * 100)}%</span>
-          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#f778ba' }}>Лицо B (100%)</span>
+          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#f778ba' }}>{sequenceCount > 2 ? `A → B → ${String.fromCharCode(65 + sequenceCount - 1)}` : 'Лицо B (100%)'}</span>
         </div>
 
         <input
@@ -81,6 +88,31 @@ export default function Controls({
         </div>
       </div>
 
+      {sequenceCount >= 3 && (
+        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#d2a8ff' }}>🧬 Multi-face blend</span>
+            <select value={blendMode} onChange={(event) => setBlendMode(event.target.value)} style={{ background: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '5px', padding: '3px', fontSize: '10px' }}>
+              <option value="timeline">Timeline spline</option>
+              <option value="blend">Barycentric blend</option>
+            </select>
+          </div>
+          {blendMode === 'blend' ? (
+            <>
+              <div style={{ fontSize: '10px', color: '#8b949e' }}>Одновременный blend: веса нормализуются к сумме 1. Треугольник для 3 лиц, тетраэдр для 4.</div>
+              {Array.from({ length: sequenceCount }, (_, index) => (
+                <label key={index} style={{ display: 'grid', gridTemplateColumns: '48px 1fr 38px', alignItems: 'center', gap: '7px', fontSize: '11px', color: '#c9d1d9' }}>
+                  <span style={{ color: ['#1f6feb', '#ab7df8', '#f0883e', '#3fb950'][index] }}>Face {String.fromCharCode(65 + index)}</span>
+                  <input type="range" min="0" max="1" step="0.01" value={blendWeights[index] || 0} onChange={(event) => { const next = [...blendWeights]; next[index] = parseFloat(event.target.value); setBlendWeights(next); }} style={{ accentColor: ['#1f6feb', '#ab7df8', '#f0883e', '#3fb950'][index] }} />
+                  <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Math.round((blendWeights[index] || 0) * 100)}%</span>
+                </label>
+              ))}
+              <div style={{ fontSize: '10px', color: '#00ffaa' }}>Σ {blendWeights.slice(0, sequenceCount).reduce((sum, value) => sum + Number(value || 0), 0).toFixed(2)} → автоматически нормализуется</div>
+            </>
+          ) : <div style={{ fontSize: '10px', color: '#8b949e' }}>Плавная Catmull–Rom траектория проходит через все keyframes.</div>}
+        </div>
+      )}
+
       {/* 2. КНОПКА АВТОАНИМАЦИИ И ЭКСПОРТА GIF */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
@@ -100,7 +132,7 @@ export default function Controls({
             transition: 'background 0.2s'
           }}
         >
-          <span>{isPlaying ? '⏸ Остановить анимацию' : '▶️ Автоматический морфинг (A ↔ B)'}</span>
+          <span>{isPlaying ? '⏸ Остановить анимацию' : `▶️ Автоматическая ${sequenceCount > 2 ? 'timeline-анимация' : 'анимация A ↔ B'}`}</span>
         </button>
 
         <button
@@ -143,7 +175,7 @@ export default function Controls({
             fontSize: '13px'
           }}
         >
-          <span>{webmLoading ? '⏳ Идёт запись...' : '🎬 Скачать WebM (4 сек, VP9)'}</span>
+          <span>{webmLoading ? '⏳ Идёт запись 60 кадров...' : '🎬 Записать MP4 / WebM (60 кадров)'}</span>
         </button>
       </div>
 
@@ -160,6 +192,8 @@ export default function Controls({
         <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#8b949e', textTransform: 'uppercase' }}>
           Слои визуализации
         </div>
+
+        <div style={{ fontSize: '10px', color: '#6e7681' }}>Выбранная deformation mode действует при следующем A/B запуске. TPS — smooth deformation, не calibrated ARAP.</div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
           <input
@@ -179,6 +213,16 @@ export default function Controls({
             style={{ accentColor: '#ff7b72' }}
           />
           <span>Тепловая карта анатомической разницы</span>
+        </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showUVDiff}
+            onChange={(e) => setShowUVDiff(e.target.checked)}
+            style={{ accentColor: '#ffb86c' }}
+          />
+          <span>UV Diff текстур (пигментация и морщины)</span>
         </label>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer' }}>
@@ -216,9 +260,12 @@ export default function Controls({
           gap: '4px'
         }}>
           <div style={{ color: '#58a6ff', fontWeight: 'bold' }}>✓ Каноническое выравнивание в (0°, 0°, 0°)</div>
-          <div>Исходный ракурс A: <b>{metadata.photo_a_yaw > 0 ? `+${metadata.photo_a_yaw}°` : `${metadata.photo_a_yaw}°`}</b></div>
-          <div>Исходный ракурс B: <b>{metadata.photo_b_yaw > 0 ? `+${metadata.photo_b_yaw}°` : `${metadata.photo_b_yaw}°`}</b></div>
-          <div>Средняя 3D-девиация: <b>{metadata.mean_3d_difference}</b></div>
+          {metadata.photo_a_yaw !== undefined && <div>Исходный ракурс A: <b>{metadata.photo_a_yaw > 0 ? `+${metadata.photo_a_yaw}°` : `${metadata.photo_a_yaw}°`}</b></div>}
+          {metadata.photo_b_yaw !== undefined && <div>Исходный ракурс B: <b>{metadata.photo_b_yaw > 0 ? `+${metadata.photo_b_yaw}°` : `${metadata.photo_b_yaw}°`}</b></div>}
+          {metadata.mean_3d_difference !== undefined && <div>Средняя 3D-девиация: <b>{metadata.mean_3d_difference}</b></div>}
+          {metadata.mean_adjacent_difference !== undefined && <div>Средняя по соседним keyframes: <b>{metadata.mean_adjacent_difference}</b></div>}
+          {metadata.method && <div>Траектория: <b>{metadata.method}</b></div>}
+          {metadata.temporal_drift && <div>Temporal drift: <b>{metadata.temporal_drift.velocity_l2_per_year}</b> / год; anomalies: <b>{metadata.temporal_drift.anomaly_keyframes?.length || 0}</b></div>}
           {metadata.max_3d_difference !== undefined && (
             <div>Макс. 3D-девиация: <b>{metadata.max_3d_difference}</b></div>
           )}
