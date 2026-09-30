@@ -178,7 +178,7 @@ export default function Canvas3D({
       if (landmarksPointsRef.current) {
         const current = blendMode === 'blend'
           ? blendFlat(landmarks, weights)
-          : interpolateFlat(landmarks, progress, count);
+          : interpolateFlat(landmarks, progress, count, times);
         landmarksPointsRef.current.geometry.setAttribute('position', new THREE.Float32BufferAttribute(current, 3));
         landmarksPointsRef.current.geometry.attributes.position.needsUpdate = true;
         landmarksPointsRef.current.visible = showLandmarks;

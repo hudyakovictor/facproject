@@ -26,6 +26,7 @@ export default function App() {
   const [blendMode, setBlendMode] = useState('timeline');
   const [blendWeights, setBlendWeights] = useState([1, 0, 0, 0]);
   const [deformationMode, setDeformationMode] = useState('linear');
+  const [predictionMode, setPredictionMode] = useState(false);
 
   const [progress, setProgress] = useState(0.0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -97,11 +98,16 @@ export default function App() {
 
   // ── LIVE METRICS: recomputed on every timeline tick, without a network call ──
   const liveMetrics = useMemo(() => {
-    const sequence = morphData?.sequence_vertices;
-    if (!sequence?.length || sequence.length < 2) return null;
+    const originalSequence = morphData?.sequence_vertices;
+    const predictionSequence = morphData?.extrapolation?.vertices
+      ? [originalSequence?.[originalSequence.length - 1], morphData.extrapolation.vertices]
+      : null;
+    const sequence = predictionMode ? predictionSequence : originalSequence;
+    if (!sequence?.length || sequence.length < 2 || !sequence[0]) return null;
+    const timelineTimes = predictionMode ? [0, 1] : morphData.timeline?.keyframe_times;
     const weights = blendMode === 'blend'
       ? normalizeWeights(blendWeights, sequence.length)
-      : catmullRomWeights(progress, sequence.length, morphData.timeline?.keyframe_times);
+      : catmullRomWeights(progress, sequence.length, timelineTimes);
     const current = new Float32Array(sequence[0].length);
     for (let faceIndex = 0; faceIndex < sequence.length; faceIndex += 1) {
       const weight = weights[faceIndex];
@@ -140,7 +146,7 @@ export default function App() {
       toEndpoint: (sumEndpointDelta / n).toFixed(5),
       keyframeCount: sequence.length,
     };
-  }, [morphData, progress, blendMode, blendWeights]);
+  }, [morphData, progress, blendMode, blendWeights, predictionMode]);
 
   // ── GIF DOWNLOAD ───────────────────────────────────────────
   const handleDownloadGif = async () => {
@@ -299,6 +305,7 @@ export default function App() {
       setProgress(0.0);
       setForensicData(null);
       setSymmetryData(null);
+      setPredictionMode(false);
       // Фоновый запрос зонального forensic-score — не блокирует отображение морфа
       fetchForensicScore();
     } catch (err) {
@@ -309,7 +316,7 @@ export default function App() {
   };
 
   // ── MULTI-FACE TIMELINE ─────────────────────────────────────────────
-  const handleBuildTimeline = async (years) => {
+  const handleBuildTimeline = async (years, futureYear) => {
     if (timelineFiles.length < 2) return;
     setTimelineLoading(true);
     setError(null);
@@ -321,6 +328,7 @@ export default function App() {
         label: file.name.replace(/\\.[^.]+$/, '') || `Face ${String.fromCharCode(65 + index)}`,
         year: years[index] || null,
       }))));
+      if (futureYear) formData.append('future_year', futureYear);
       const response = await fetch('/api/morph-sequence', { method: 'POST', body: formData });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
@@ -334,12 +342,29 @@ export default function App() {
       setProgress(0);
       setForensicData(null);
       setSymmetryData(null);
+      setPredictionMode(false);
     } catch (err) {
       setError(err.message || 'Ошибка timeline-морфинга');
     } finally {
       setTimelineLoading(false);
     }
   };
+
+  const activeMorphData = useMemo(() => {
+    if (!predictionMode || !morphData?.extrapolation?.vertices) return morphData;
+    const lastIndex = (morphData.sequence_vertices?.length || 1) - 1;
+    const lastVertices = morphData.sequence_vertices[lastIndex];
+    const lastLandmarks = morphData.sequence_landmarks?.[lastIndex] || morphData.sequence_landmarks?.[0];
+    const lastTexture = morphData.sequence_textures?.[lastIndex] || morphData.sequence_textures?.[0];
+    return {
+      ...morphData,
+      sequence_vertices: [lastVertices, morphData.extrapolation.vertices],
+      sequence_landmarks: [lastLandmarks, lastLandmarks],
+      sequence_textures: [lastTexture, lastTexture],
+      timeline: { method: `Observed → forecast ${morphData.extrapolation.future_year}`, keyframe_count: 2, labels: ['Last observed', 'Forecast'], keyframe_times: [0, 1] },
+      metadata: { ...morphData.metadata, method: `Forecast to ${morphData.extrapolation.future_year}` },
+    };
+  }, [morphData, predictionMode]);
 
   // ── RENDER ─────────────────────────────────────────────
   return (
@@ -530,7 +555,7 @@ export default function App() {
         )}
 
         {morphData?.metadata?.face_space && <FaceSpacePlot faceSpace={morphData.metadata.face_space} onSelect={selectFaceSpace} />}
-        {morphData?.metadata?.temporal_drift && <TemporalDriftPanel drift={morphData.metadata.temporal_drift} />}
+        {morphData?.metadata?.temporal_drift && <TemporalDriftPanel drift={morphData.metadata.temporal_drift} extrapolation={morphData.extrapolation} predictionMode={predictionMode} onTogglePreview={() => { setPredictionMode((value) => !value); setProgress(0); }} />}
 
         {morphData && (
           <SymmetryPanel data={symmetryData} loading={symmetryLoading} onCalculate={fetchSymmetry} />
@@ -557,8 +582,8 @@ export default function App() {
             setWireframe={setWireframe}
             lighting={lighting}
             setLighting={setLighting}
-            metadata={morphData.metadata}
-            sequenceCount={morphData.sequence_vertices?.length || 2}
+            metadata={activeMorphData?.metadata || morphData.metadata}
+            sequenceCount={activeMorphData?.sequence_vertices?.length || 2}
             blendMode={blendMode}
             setBlendMode={setBlendMode}
             blendWeights={blendWeights}
@@ -576,7 +601,7 @@ export default function App() {
       <div style={{ flex: 1, height: '100%', position: 'relative' }}>
         {morphData ? (
           <Canvas3D
-            morphData={morphData}
+            morphData={activeMorphData}
             progress={progress}
             blendMode={blendMode}
             blendWeights={blendWeights}

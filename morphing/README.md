@@ -35,6 +35,10 @@
   dense-shape drift, скорость по зонам и отклонения от линейной траектории.
   Годы также становятся неравномерными `timeline.keyframe_times`, поэтому 10-летний
   интервал получает больше времени spline, чем 1-летний.
+- В Timeline можно указать будущий год. API выполнит bounded polynomial
+  extrapolation по dense mesh и вернёт `extrapolation.vertices`; UI позволяет
+  переключиться на режим `Last observed → Forecast`. Это what-if projection,
+  а не валидированное предсказание внешности.
 
 ### Экспорт и диагностические слои
 
@@ -67,6 +71,7 @@ morphing/
 │   ├── analysis.py     # детерминированные метрики и diagnostic helpers
 │   ├── timeline.py     # Catmull–Rom / normalized multi-face blend
 │   ├── deformation.py  # optional smooth TPS deformation
+│   ├── extrapolation.py # dated polynomial shape projection
 │   ├── aligner.py      # каноническое выравнивание
 │   └── uv_extractor.py # HD UV через uv_module
 ├── frontend/
@@ -107,7 +112,7 @@ Vite проксирует `/api` на backend, поэтому браузер н�
 | `GET /api/health` | health/version |
 | `GET /api/parameter-registry` | Stage 2 v2 registry |
 | `POST /api/morph-pair` | A/B mesh, UV, metrics, forensic sidecar; optional `deformation=linear|tps` |
-| `POST /api/morph-sequence` | 2–4 keyframe Catmull–Rom timeline |
+| `POST /api/morph-sequence` | 2–4 keyframe Catmull–Rom timeline; optional `future_year` forecast |
 | `POST /api/morph-multi` | alias for multi-face timeline |
 | `POST /api/morph-blend` | normalized barycentric mesh blend |
 | `POST /api/face-space` | PCA 3D scatter coordinates and ordered path |

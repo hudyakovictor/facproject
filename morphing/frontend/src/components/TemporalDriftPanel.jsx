@@ -10,7 +10,7 @@ const labels = {
   mouth_chin: 'Рот / подбородок',
 };
 
-export default function TemporalDriftPanel({ drift }) {
+export default function TemporalDriftPanel({ drift, extrapolation, predictionMode, onTogglePreview }) {
   if (!drift) return null;
   const residuals = drift.residuals || [];
   const maxResidual = Math.max(...residuals, 1e-9);
@@ -27,6 +27,10 @@ export default function TemporalDriftPanel({ drift }) {
       <div style={{ color: '#8b949e', fontSize: '10px', lineHeight: 1.4 }}>
         Линейная траектория dense mesh по годам. Красные точки — отклонения от траектории, не доказательство операции или старения.
       </div>
+      {extrapolation && <div style={{ background: predictionMode ? 'rgba(210, 168, 255, 0.16)' : '#0d1117', border: '1px solid rgba(210, 168, 255, 0.35)', borderRadius: '6px', padding: '7px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ color: '#d2a8ff', fontSize: '10px', lineHeight: 1.35 }}>Forecast mesh: {extrapolation.future_year}<br /><span style={{ color: '#8b949e' }}>degree {extrapolation.degree} · span {extrapolation.extrapolation_span_years} лет</span></div>
+        <button type="button" onClick={onTogglePreview} style={{ padding: '5px 7px', border: '1px solid #8957e5', borderRadius: '5px', background: predictionMode ? '#8957e5' : '#21262d', color: '#fff', cursor: 'pointer', fontSize: '10px' }}>{predictionMode ? 'Вернуть наблюдение' : 'Показать прогноз'}</button>
+      </div>}
       <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{ width: '100%', height: '58px', background: '#0d1117', borderRadius: '5px' }} aria-label="Residuals temporal drift">
         <polyline points={points} fill="none" stroke="#f0883e" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
         {residuals.map((value, index) => <circle key={index} cx={residuals.length === 1 ? 50 : (index / (residuals.length - 1)) * 100} cy={36 - (value / maxResidual) * 28} r={anomalyPositions.has(index) ? 2.2 : 1.4} fill={anomalyPositions.has(index) ? '#f85149' : '#f0883e'} />)}

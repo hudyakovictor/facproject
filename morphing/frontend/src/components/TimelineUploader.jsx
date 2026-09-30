@@ -5,6 +5,7 @@ const palette = ['#1f6feb', '#ab7df8', '#f0883e', '#3fb950'];
 export default function TimelineUploader({ files, setFiles, onBuild, loading }) {
   const inputRef = useRef(null);
   const [years, setYears] = useState([]);
+  const [futureYear, setFutureYear] = useState('');
   const previews = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
 
   const chooseFiles = (event) => {
@@ -48,8 +49,14 @@ export default function TimelineUploader({ files, setFiles, onBuild, loading }) 
           ))}
         </div>
       )}
+      {files.length >= 3 && (
+        <label style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '8px', alignItems: 'center', color: '#8b949e', fontSize: '11px' }}>
+          <span>Опционально спрогнозировать mesh на год</span>
+          <input value={futureYear} onChange={(event) => setFutureYear(event.target.value)} placeholder="2035" inputMode="numeric" style={{ width: '100%', padding: '5px', background: '#0d1117', border: '1px solid #30363d', borderRadius: '4px', color: '#e6edf3', fontSize: '11px' }} />
+        </label>
+      )}
       {files.length >= 2 && (
-        <button type="button" onClick={() => onBuild(years)} disabled={loading} style={{ ...primaryButton, opacity: loading ? 0.65 : 1 }}>
+        <button type="button" onClick={() => onBuild(years, futureYear)} disabled={loading} style={{ ...primaryButton, opacity: loading ? 0.65 : 1 }}>
           {loading ? '⏳ Строим spline…' : `🧬 Построить timeline (${files.length} keyframes)`}
         </button>
       )}

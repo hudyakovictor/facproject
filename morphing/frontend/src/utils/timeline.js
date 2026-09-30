@@ -26,9 +26,9 @@ export function catmullRomWeights(progress, count, positions = null) {
   return weights;
 }
 
-export function interpolateFlat(values, progress, count) {
+export function interpolateFlat(values, progress, count, positions = null) {
   if (!values?.length || count < 2) return null;
-  const weights = catmullRomWeights(progress, count);
+  const weights = catmullRomWeights(progress, count, positions);
   const result = new Float32Array(values[0].length);
   values.forEach((value, index) => {
     const weight = weights[index];

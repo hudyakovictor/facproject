@@ -29,6 +29,7 @@ if str(ROOT) not in sys.path:
 from app8.reconstruction import reconstruct_image
 from morphing.backend.aligner import align_identity_mesh_to_zero
 from morphing.backend.deformation import tps_deformed_target
+from morphing.backend.extrapolation import extrapolate_shape
 from morphing.backend.analysis import (
     DEFAULT_ZONE_WEIGHTS,
     forensic_metrics,
@@ -239,7 +240,11 @@ async def morph_pair(
         raise HTTPException(status_code=500, detail=f"Ошибка обработки морфинга: {exc}") from exc
 
 
-async def _sequence_response(photos: list[UploadFile], metadata_raw: str | None) -> dict[str, Any]:
+async def _sequence_response(
+    photos: list[UploadFile],
+    metadata_raw: str | None,
+    future_year_raw: str | None = None,
+) -> dict[str, Any]:
     if not 2 <= len(photos) <= 4:
         raise HTTPException(status_code=400, detail="Для timeline нужно от 2 до 4 фотографий")
     try:
@@ -275,6 +280,14 @@ async def _sequence_response(photos: list[UploadFile], metadata_raw: str | None)
             numeric_years = candidate_years if all(np.isfinite(candidate_years)) else []
         except (TypeError, ValueError, AttributeError):
             numeric_years = []
+    future_year = None
+    if future_year_raw not in (None, ""):
+        try:
+            future_year = float(future_year_raw)
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail="future_year должен быть числом") from exc
+        if not np.isfinite(future_year):
+            raise HTTPException(status_code=400, detail="future_year должен быть конечным числом")
     timeline_positions = None
     if len(numeric_years) == len(reconstructed) and max(numeric_years) > min(numeric_years):
         first_year, last_year = min(numeric_years), max(numeric_years)
@@ -284,9 +297,18 @@ async def _sequence_response(photos: list[UploadFile], metadata_raw: str | None)
     first, last = reconstructed[0], reconstructed[-1]
     first_last = similarity_metrics(first["vertices"], last["vertices"])
     drift = temporal_drift_metrics(numeric_years, vertex_arrays) if len(numeric_years) >= 3 else None
+    extrapolation = None
+    if future_year is not None:
+        if len(numeric_years) < 3 or timeline_positions is None:
+            raise HTTPException(status_code=400, detail="Для extrapolation нужны минимум 3 года в строго возрастающем порядке")
+        if future_year <= numeric_years[-1]:
+            raise HTTPException(status_code=400, detail="future_year должен быть позже последнего года")
+        prediction, extrapolation_info = extrapolate_shape(numeric_years, vertex_arrays, future_year)
+        extrapolation = {**extrapolation_info, "vertices": prediction.flatten().tolist()}
     return {
         "status": "success",
         "timeline": {**timeline_metadata(len(reconstructed), labels, timeline_positions), "keyframes": keyframes},
+        "extrapolation": extrapolation,
         "triangles": reconstructed[0]["result"]["triangles"].flatten().tolist(),
         "uv_coords": reconstructed[0]["result"]["uv_coords"].flatten().tolist(),
         "sequence_vertices": [face["vertices"].flatten().tolist() for face in reconstructed],
@@ -311,10 +333,11 @@ async def _sequence_response(photos: list[UploadFile], metadata_raw: str | None)
 async def morph_sequence(
     photos: list[UploadFile] = File(...),
     metadata: str | None = Form(default=None),
+    future_year: str | None = Form(default=None),
 ) -> dict[str, Any]:
     """Build a 2–4 keyframe Catmull-Rom face timeline."""
     try:
-        return await _sequence_response(photos, metadata)
+        return await _sequence_response(photos, metadata, future_year)
     except HTTPException:
         raise
     except Exception as exc:
