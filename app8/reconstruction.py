@@ -29,12 +29,10 @@ def _chdir(path: Path):
 
 
 def ensure_assets() -> None:
-    """Гарантирует наличие весов моделей в /tmp/assets и симлинков в 3ddfa_v3/assets."""
+    """Использует локальные веса; недостающие скачивает в /tmp/assets."""
     import urllib.request
     tmp_assets = Path("/tmp/assets")
-    tmp_assets.mkdir(parents=True, exist_ok=True)
     assets_dir = TDDFA / "assets"
-    assets_dir.mkdir(parents=True, exist_ok=True)
     
     asset_files = [
         "face_model.npy",
@@ -46,13 +44,17 @@ def ensure_assets() -> None:
     base_url = "https://huggingface.co/datasets/Zidu-Wang/3DDFA-V3/resolve/main/assets"
     
     for f in asset_files:
+        dst = assets_dir / f
+        if dst.is_file() and dst.stat().st_size > 0:
+            continue
+        tmp_assets.mkdir(parents=True, exist_ok=True)
+        assets_dir.mkdir(parents=True, exist_ok=True)
         tmp_f = tmp_assets / f
         if not tmp_f.exists() or tmp_f.stat().st_size == 0:
             url = f"{base_url}/{f}?download=true"
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req) as resp, open(tmp_f, "wb") as out:
                 out.write(resp.read())
-        dst = assets_dir / f
         if not dst.exists() and tmp_f.exists():
             try:
                 os.symlink(str(tmp_f), str(dst))
@@ -113,7 +115,7 @@ def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | N
     """Прямой проход реконструкции одного изображения."""
     import torch
     from PIL import Image
-    from .geometry import classify_pose, full_pose_correction_matrix, apply_pose_correction
+    from .geometry import apply_pose_correction, classify_pose, row_rotation_matrix
     from .visibility import compute_vertex_confidence
     from .expression_qc import compute_expression_qc
     from .imaging import decode_oriented_bgr
@@ -129,8 +131,12 @@ def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | N
         return None
     im = Image.fromarray(bgr_oriented[:, :, ::-1])  # BGR -> RGB PIL
 
-    trans_p, im_t = det(im)
-    if im_t is None:
+    try:
+        trans_p, im_t = det(im)
+    except SystemExit:
+        # The vendored detector calls exit() when no face is found.
+        return None
+    if trans_p is None or im_t is None:
         return None
         
     fm.input_img = im_t
@@ -198,11 +204,15 @@ def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | N
     # Карта надежности видимости
     vertex_conf = compute_vertex_confidence(front_facing, rend_vis)
     
-    # Хронологическое выравнивание позы (Pose Bins)
+    # Хронологическое выравнивание позы (Pose Bins).
+    # v_id построен с нулевыми параметрами позы (compute_shape(id, 0)), поэтому вычитать
+    # измеренные углы повторно нельзя — это двойной поворот: сетку доворачивало на -yaw сверх
+    # уже снятой позы (замеры app9/validation/advisor_tests.py, фронтал: ratio к полу 4.87
+    # против 2.15 у canon и 2.19 у корректного cam × Fz × R_corr). Остаётся только общий для
+    # бина доворот к каноническому yaw.
     yaw = float(angles_deg[1])
     pose_bin, canonical_yaw = classify_pose(yaw)
-    target_pose_deg = [0.0, canonical_yaw, 0.0]
-    r_corr = full_pose_correction_matrix(angles_deg, target_pose_deg)
+    r_corr = row_rotation_matrix(0.0, canonical_yaw, 0.0)
     v_chronology = apply_pose_correction(v_id, r_corr)
     
     # Топологические ориентиры

@@ -4,10 +4,6 @@ import torch.nn.functional as F
 from scipy.io import loadmat
 import os
 import cv2
-try:
-    from mtcnn import MTCNN
-except ImportError:
-    MTCNN = None
 from util.preprocess import load_lm3d, align_img
 from .facelandmark.large_model_infer import LargeModelInfer
 
@@ -53,6 +49,16 @@ class retinaface:
 
 class mtcnnface:
     def __init__(self):
+        # mtcnn тянет TensorFlow, который на Python 3.12 роняет процесс segfault'ом
+        # ещё на импорте, поэтому он отложен сюда: нужен только если выбран
+        # detector == 'mtcnn'. RetinaFace этого импорта не требует.
+        try:
+            from mtcnn import MTCNN
+        except ImportError as exc:
+            raise RuntimeError(
+                "detector='mtcnn' требует пакета mtcnn (TensorFlow); "
+                "используйте detector='retinaface'"
+            ) from exc
         self.landmark_model = MTCNN()
         self.lm3d_std = load_lm3d()
 

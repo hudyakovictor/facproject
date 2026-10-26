@@ -28,7 +28,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app8.reconstruction import reconstruct_image
-from morphing.backend.aligner import align_identity_mesh_to_zero
+from morphing.backend.aligner import (
+    align_identity_mesh,
+    group_pose_reference,
+    pose_alignment_report,
+)
+from morphing.backend import identity as identity_module
+from morphing.backend.pose_noise_model import pair_noise_reference
 from morphing.backend.deformation import tps_deformed_target
 from morphing.backend.extrapolation import MAX_EXTRAPOLATION_HORIZON_YEARS, extrapolate_shape
 from morphing.backend.quality import evaluate_image, evaluate_mesh, quality_schema
@@ -107,7 +113,7 @@ def _reconstruct(raw: bytes, label: str) -> dict[str, Any]:
     if result is None:
         raise HTTPException(status_code=400, detail=f"На фото {label} не обнаружено лицо")
     bgr = _image_bytes_to_bgr(raw)
-    vertices, landmarks, scale = align_identity_mesh_to_zero(result)
+    vertices, landmarks, scale = align_identity_mesh(result)
     texture, texture_b64 = extract_enhanced_uv(bgr, result, uv_size=1024)
     return {
         "result": result,
@@ -118,6 +124,41 @@ def _reconstruct(raw: bytes, label: str) -> dict[str, Any]:
         "texture": texture,
         "texture_b64": texture_b64,
     }
+
+
+def _align_group(faces: list[dict[str, Any]]) -> dict[str, Any]:
+    """Отчёт о ракурсах группы: общий бин, несовпадение ракурсов, разброс yaw.
+
+    Доворачивать сетки не нужно: `vertices_identity_only` — форма в объектном
+    пространстве 3DMM, поза уже вынесена в `angles_deg`, поэтому `_reconstruct`
+    даёт каноническую сетку сразу (центрирование + радиус = 1). См. docstring
+    `morphing.backend.aligner`.
+    """
+    reference = group_pose_reference([face["result"] for face in faces])
+    return pose_alignment_report([face["result"] for face in faces], reference)
+
+
+def _heat_scales(noise: dict[str, Any]) -> dict[str, float]:
+    """Опоры шкалы heatmap: пол «самого холодного цвета» и «полный красный».
+
+    Без калибровки сохраняется историческая шкала 1/18 (насыщение при 0.0556 долях
+    краниометрического радиуса) и нулевой пол. С калибровкой:
+      full — типичное расхождение вершины между разными людьми в этом ракурсе, но не
+             меньше двух шумовых пер-вершинных девиаций, чтобы «красный» означал
+             различие лиц, а не шум конвейера;
+      base — половина типичной пер-вершинной девиации шумовой пары: всё, что ниже,
+             рисуется самым холодным цветом.
+    """
+    default_full = round(1.0 / 18.0, 6)
+    if not noise.get("available"):
+        return {"heat_full_scale": default_full, "heat_base_scale": 0.0}
+    noise_v = float(noise.get("noise_vertex_p95") or 0.0)
+    signal_v = float(noise.get("signal_vertex_p95") or 0.0)
+    if noise_v <= 0 and signal_v <= 0:
+        return {"heat_full_scale": default_full, "heat_base_scale": 0.0}
+    full = float(np.clip(max(signal_v, 2.0 * noise_v) if noise_v > 0 else signal_v, 0.02, 0.6))
+    base = float(np.clip(0.5 * noise_v, 0.0, 0.8 * full))
+    return {"heat_full_scale": round(full, 6), "heat_base_scale": round(base, 6)}
 
 
 def _parameter_heatmap(mean_delta: float) -> list[dict[str, Any]]:
@@ -146,6 +187,7 @@ def _parameter_heatmap(mean_delta: float) -> list[dict[str, Any]]:
 
 
 def _pair_payload(face_a: dict[str, Any], face_b: dict[str, Any], deformation: str = "linear") -> dict[str, Any]:
+    pose = _align_group([face_a, face_b])
     vertices_a = face_a["vertices"]
     vertices_b = face_b["vertices"]
     metrics = similarity_metrics(vertices_a, vertices_b)
@@ -167,12 +209,16 @@ def _pair_payload(face_a: dict[str, Any], face_b: dict[str, Any], deformation: s
     result_a, result_b = face_a["result"], face_b["result"]
     mesh_quality_a = evaluate_mesh(vertices_a, result_a["triangles"])
     mesh_quality_b = evaluate_mesh(vertices_b, result_b["triangles"])
+    noise = pair_noise_reference(pose, metrics)
     return {
         "status": "success",
         "metadata": {
             "photo_a_yaw": float(result_a["angles_deg"][1]),
             "photo_b_yaw": float(result_b["angles_deg"][1]),
-            "aligned_to": [0.0, 0.0, 0.0],
+            "aligned_to": pose["aligned_to"],
+            "pose": pose,
+            "noise": noise,
+            **_heat_scales(noise),
             "mean_3d_difference": metrics["euclidean_mean"],
             "max_3d_difference": metrics["euclidean_max"],
             "p95_3d_difference": metrics["p95_delta"],
@@ -254,6 +300,7 @@ async def report_pair(
             raise HTTPException(status_code=400, detail="format must be json or html")
         raw_a, raw_b = await photo_a.read(), await photo_b.read()
         face_a, face_b = _reconstruct(raw_a, "A"), _reconstruct(raw_b, "B")
+        pose = _align_group([face_a, face_b])
         report = build_pair_report(
             face_a["vertices"],
             face_b["vertices"],
@@ -265,7 +312,10 @@ async def report_pair(
             provenance={
                 "endpoint": "/api/report-pair",
                 "reconstruction": "app8",
-                "alignment": "canonical_zero",
+                "alignment": "identity_object_space",
+                "pose_bin": pose["canonical_bin"],
+                "aligned_to": pose["aligned_to"],
+                "pose_warning": pose["warning"],
                 "input_sha256": [hashlib.sha256(raw_a).hexdigest(), hashlib.sha256(raw_b).hexdigest()],
             },
         )
@@ -298,6 +348,7 @@ async def report_timeline(
             raise HTTPException(status_code=400, detail="metadata должен содержать запись для каждого фото")
         raw_images = [await photo.read() for photo in photos]
         faces = [_reconstruct(raw, chr(65 + index)) for index, raw in enumerate(raw_images)]
+        pose = _align_group(faces)
         labels = [str((row if isinstance(row, dict) else {}).get("label") or photo.filename or f"Face {index + 1}") for index, (row, photo) in enumerate(zip(rows, photos))]
         year_values = [(row if isinstance(row, dict) else {}).get("year") for row in rows]
         years = None
@@ -325,7 +376,10 @@ async def report_timeline(
             provenance={
                 "endpoint": "/api/report-timeline",
                 "reconstruction": "app8",
-                "alignment": "canonical_zero",
+                "alignment": "identity_object_space",
+                "pose_bin": pose["canonical_bin"],
+                "aligned_to": pose["aligned_to"],
+                "pose_warning": pose["warning"],
                 "input_sha256": [hashlib.sha256(raw).hexdigest() for raw in raw_images],
             },
         )
@@ -374,6 +428,7 @@ async def _sequence_response(
     for index, upload in enumerate(photos):
         faces.append(await upload.read())
     reconstructed = [_reconstruct(raw, chr(65 + index)) for index, raw in enumerate(faces)]
+    pose = _align_group(reconstructed)
     vertex_arrays = [face["vertices"] for face in reconstructed]
     sequence_metrics = [
         similarity_metrics(vertex_arrays[index], vertex_arrays[index + 1])
@@ -421,6 +476,11 @@ async def _sequence_response(
         })
     first, last = reconstructed[0], reconstructed[-1]
     first_last = similarity_metrics(first["vertices"], last["vertices"])
+    sequence_noise = pair_noise_reference(
+        pose,
+        first_last,
+        yaw_spread_deg=abs(float(first["result"]["angles_deg"][1]) - float(last["result"]["angles_deg"][1])),
+    )
     drift = temporal_drift_metrics(numeric_years, vertex_arrays) if len(numeric_years) >= 3 else None
     extrapolation = None
     if future_year is not None:
@@ -446,6 +506,9 @@ async def _sequence_response(
         "previews": [_bgr_to_base64_jpeg(face["bgr"], quality=82) for face in reconstructed],
         "metadata": {
             "keyframe_count": len(reconstructed),
+            "pose": pose,
+            "noise": sequence_noise,
+            **_heat_scales(sequence_noise),
             "mean_adjacent_difference": round(float(np.mean([m["euclidean_mean"] for m in sequence_metrics])), 8),
             "first_last_similarity": first_last,
             "temporal_drift": drift,
@@ -566,8 +629,9 @@ async def forensic_score(photo_a: UploadFile = File(...), photo_b: UploadFile = 
     try:
         raw_a, raw_b = await photo_a.read(), await photo_b.read()
         face_a, face_b = _reconstruct(raw_a, "A"), _reconstruct(raw_b, "B")
+        pose = _align_group([face_a, face_b])
         result = forensic_metrics(face_a["vertices"], face_b["vertices"], weights=DEFAULT_ZONE_WEIGHTS)
-        return {"status": "ok", "global_forensic_score": result["forensic_score"], **result}
+        return {"status": "ok", "global_forensic_score": result["forensic_score"], "pose": pose, **result}
     except HTTPException:
         raise
     except Exception as exc:
@@ -615,6 +679,59 @@ async def export_gif(photo_a: UploadFile = File(...), photo_b: UploadFile = File
             return FileResponse(path=str(gif_path), filename="3d_face_morph.gif", media_type="image/gif")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ошибка генерации GIF: {exc}") from exc
+
+
+# ── 3-WAY IDENTITY PROBABILITY (put / vas / udmurt) ──────────────────────
+_IDENTITY_MODEL_CACHE: dict[str, Any] = {"model": None, "loaded": False, "error": None}
+
+
+def _identity_model():
+    """Ленивая загрузка эталонов формы; кэш на процесс."""
+    if not _IDENTITY_MODEL_CACHE["loaded"]:
+        _IDENTITY_MODEL_CACHE["loaded"] = True
+        try:
+            _IDENTITY_MODEL_CACHE["model"] = identity_module.load_prototypes()
+        except FileNotFoundError:
+            _IDENTITY_MODEL_CACHE["model"] = None
+            _IDENTITY_MODEL_CACHE["error"] = "файл identity_prototypes.json не найден"
+        except ValueError as exc:
+            # Устаревшее пространство выравнивания: молча классифицировать нельзя.
+            _IDENTITY_MODEL_CACHE["model"] = None
+            _IDENTITY_MODEL_CACHE["error"] = str(exc)
+    return _IDENTITY_MODEL_CACHE["model"]
+
+
+def _landmarks_only(raw: bytes, label: str) -> np.ndarray:
+    result = reconstruct_image(io.BytesIO(raw), device="cpu")
+    if result is None:
+        raise HTTPException(status_code=400, detail=f"На фото {label} не обнаружено лицо")
+    return align_identity_mesh(result)[1]
+
+
+@app.post("/api/identify-probability")
+async def identify_probability(photo: UploadFile = File(...)) -> dict[str, Any]:
+    """Процентное сходство загруженного лица с эталонами личностей по форме (17 метрик).
+
+    Эвристика, не калиброванная вероятность личности.
+    """
+    model = _identity_model()
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Эталоны личностей недоступны — соберите identity_prototypes.json. "
+                f"Причина: {_IDENTITY_MODEL_CACHE.get('error') or 'файл не читается'}"
+            ),
+        )
+    try:
+        raw = await photo.read()
+        landmarks = _landmarks_only(raw, "photo")
+        result = identity_module.probabilities(model, landmarks)
+        return {"status": "ok", "identities": model.identities, **result}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка identify-probability: {exc}") from exc
 
 
 STATIC_DIR = Path(__file__).resolve().parents[1] / "frontend" / "dist"

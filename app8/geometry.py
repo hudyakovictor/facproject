@@ -48,9 +48,21 @@ def row_rotation_matrix(pitch_deg: float, yaw_deg: float, roll_deg: float) -> np
 
 def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
                                 target_pose_deg: list[float] | np.ndarray) -> np.ndarray:
-    """Вычисляет матрицу перехода R_corr: V_chronology = V_object @ R_corr.
-    
-    R_corr = R_target @ R_actual^T.
+    """Матрица ПЕРЕВОДА из одного ИЗМЕРЕННОГО ракурса в другой: V_out = V_in @ R_corr.
+
+    R_corr = R_actual^T @ R_target в row-конвенции (V @ R), где R_actual и R_target -
+    матрицы, которыми базис 3DDFA поворачивает сетку в соответствующий ракурс. Оба
+    ортонормированы, поэтому транспонирование = обращение: «снять R_actual, надеть R_target».
+
+    Ограничение применимости, из-за которого здесь был баг: матрица имеет смысл ТОЛЬКО
+    для сетки, в которой поза R_actual реально сидит (vertices_camera в базисе модели).
+    Она бесполезна и вредна на vertices_identity_only - ту сетку базис 3DDFA строит с
+    нулевой позой, вычитать ту же позу второй раз значит довернуть кадр на -yaw сверх
+    нормы (в замерах app9/validation ratio вырастал с 2.15 до 4.87). Для vertices_camera
+    нужен ещё один шаг: to_camera делает z = camera_distance - z, т.е. добавляет отражение
+    Fz = diag(1,1,-1), и коррекция присоединяется как cam @ Fz @ R_corr (иначе результат
+    хуже, чем ничего: 5.83 против 2.19).
+
     Устраняет паразитный pitch и roll, фиксируя yaw на каноническом угле бина.
     """
     p_act = np.asarray(actual_pose_deg, np.float32)
@@ -60,9 +72,14 @@ def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
     return (r_actual.T @ r_target).astype(np.float32)
 
 
-def apply_pose_correction(vertices: np.ndarray, r_corr: np.ndarray) -> np.ndarray:
-    """Применяет матрицу коррекции позы к 3D-вершинам."""
-    v = np.asarray(vertices, np.float32)
+def apply_pose_correction(posed_vertices: np.ndarray, r_corr: np.ndarray) -> np.ndarray:
+    """Применяет матрицу коррекции позы к сетке, в ЭТА сетке уже есть поза r_actual.
+
+    posed_vertices - (N, 3) вершины, повёрнутые тем же ракурсом, который описан углами,
+    из которых построен r_corr. Сетку без позы (vertices_identity_only) сюда передавать
+    нельзя: вычтется поворот, которого не было.
+    """
+    v = np.asarray(posed_vertices, np.float32)
     return (v @ r_corr).astype(np.float32)
 
 

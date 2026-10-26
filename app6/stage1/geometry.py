@@ -1,10 +1,12 @@
 """
 🎯 CRITICAL → Геометрия поз: canonical alignment и chronology alignment.
 
-КЛЮЧЕВОЙ КОНТРАКТ (патч 01): фото в одном pose bin
-приводятся к ИДЕНТИЧНОЙ позе (0, canonical_yaw, 0) полной коррекцией
-pitch+yaw+roll через full_pose_correction_matrix (R_corr = R_target @ R_actual^T).
-Это исключает шумы наклона головы при хронологическом сравнении.
+КЛЮЧЕВОЙ КОНТРАКТ (патч 02): фото в одном pose bin
+приводятся к ИДЕНТИЧНОЙ позе (0, canonical_yaw, 0) поворотом к каноническому yaw бина.
+Хронология сравнивает vertices_identity (поза в них уже снята базисом 3DDFA), поэтому
+полная коррекция pitch+yaw+roll здесь применялась дважды и доворачивала кадр на -yaw
+сверх нормы - убрана (см. compute_chronology_alignment). Шум наклона головы внутри бина
+остаётся и измеряется в app9/validation.
 🔗 DEPENDS ON: config.POSE_BINS (9 бинов yaw), используется reconstruction.py/engine.py.
 💡 NOTE: row_rotation_matrix — конвенция row-vector (Rz@Ry@Rx)^T; координаты согласованы с 3DDFA_V3.
 ⚠️ nearest_canonical_yaw (#17) — soft assignment, в пайплайн пока не интегрирована.
@@ -95,6 +97,16 @@ def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
     The correction is: R_corr = R_target @ R_actual^T
     Where R_actual is the rotation that produced the actual pose, and R_target
     is the rotation for the desired canonical pose.
+
+    IMPORTANT — applicability: this matrix only removes a pose that is actually
+    present in the mesh (i.e. vertices_camera in the model basis, or a mesh the
+    basis rotated by R_actual). Feeding `vertices_identity_only` into it is the
+    double-rotation bug: the basis builds that mesh with zero pose, so
+    subtracting the measured pose again over-rotates the frame by -yaw
+    (app9/validation: ratio to the noise floor 4.87 instead of 2.15 frontal).
+    In camera space an extra step is needed too, because to_camera does
+    z = camera_distance - z, i.e. a reflection Fz = diag(1,1,-1): the correction
+    must be applied as cam @ Fz @ R_corr (5.83 vs 2.19 otherwise).
 
     Args:
         actual_pose_deg: [pitch, yaw, roll] in degrees from 3DDFA
@@ -199,19 +211,26 @@ def compute_chronology_alignment(vertices: np.ndarray,
 
     Steps:
     1. Normalize mesh (center + scale)
-    2. Compute full pose correction matrix (corrects pitch, yaw, AND roll)
-    3. Apply correction to get chronology-aligned vertices
+    2. Rotate by the bin's canonical yaw ONLY
+    3. Apply rotation to get chronology-aligned vertices
+
+    Почему не full_pose_correction: вход (`vertices_identity`) строится базисом 3DDFA
+    с нулевыми параметрами позы, то есть поза уже снята. Вычитать из него измеренные
+    pitch/yaw/roll второй раз — двойной поворот: сетку доворачивало на -yaw сверх нормы,
+    что давало ratio 4.87 против 2.15 у канона (замеры в app9/validation, фронтал). Внутри бина
+    R_target — общая изометрия, поэтому для сравнения кадров одного бина она безвредна,
+    но портит оси симметризации и сравнение с фронтальным эталоном.
 
     Args:
         vertices: (N, 3) vertex array (identity-only recommended)
-        actual_pose_deg: [pitch, yaw, roll] from 3DDFA
+        actual_pose_deg: [pitch, yaw, roll] from 3DDFA — сохраняется только как диагностика
         canonical_yaw: target yaw for the pose bin
         normalization: "rms" for full-mesh RMS, "landmark" for eye-distance anchored
 
     Returns:
         dict with:
             - vertices_aligned: (N, 3) aligned vertices
-            - correction_matrix: (3, 3) applied rotation
+            - correction_matrix: (3, 3) applied rotation (Ry(canonical_yaw))
             - center: (3,) applied translation
             - scale: float applied scale
             - target_pose: [0, canonical_yaw, 0]
@@ -229,8 +248,8 @@ def compute_chronology_alignment(vertices: np.ndarray,
     else:
         raise ValueError("normalization must be 'rms' or 'landmark'")
 
-    # Step 2: Compute full pose correction
-    R_corr = full_pose_correction_matrix(actual, target)
+    # Step 2: Rotation to the bin's canonical yaw (позу вычитать нельзя — см. docstring)
+    R_corr = row_rotation_matrix(0.0, float(canonical_yaw), 0.0)
 
     # Step 3: Apply correction
     aligned = (normalized @ R_corr).astype(np.float32)

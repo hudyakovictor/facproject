@@ -579,7 +579,7 @@ class Stage1Engine:
                 "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower(), "decode": decode_meta, "pixels": int(bgr.shape[1]) * int(bgr.shape[0])},
                 "pose": pose_payload,
                 "chronology": {
-                    "alignment_method": "full_pose_correction_v1",
+                    "alignment_method": "canonical_yaw_rotation_v2",
                     "applied_rotation": rec.chronology_correction_matrix.tolist(),
                     "applied_scale": float(rec.normalization_scale),
                     "applied_center": rec.normalization_center.tolist(),

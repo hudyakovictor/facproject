@@ -1,0 +1,262 @@
+{
+  "schema_version": "morphing-reshoot-bands-v2",
+  "meaning": "разброс средней разницы 3D-сетки между двумя независимыми снимками одного человека в одном бине ракурса",
+  "population": "фотоархивы людей, не входивших в видеокалибровку; near — интервал съёмки ≤ 7 дней, spread — любой интервал",
+  "near_days": 7,
+  "min_pairs_to_use": 20,
+  "note": "границей вердикта может быть только near: в spread входит настоящее морфологическое изменение, и называть его «шумом» нельзя",
+  "bins": {
+    "left_profile": {
+      "near": {
+        "pairs": 2,
+        "p50": 0.01739499,
+        "p95": 0.02020816,
+        "max": 0.02052074,
+        "median_dyaw": 18.4
+      },
+      "spread": {
+        "pairs": 559,
+        "p50": 0.01821016,
+        "p95": 0.02993002,
+        "max": 0.0404242,
+        "median_dyaw": 10.26
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 1152,
+        "p50": 0.0208938,
+        "p90": 0.03028968,
+        "p95": 0.03279103,
+        "max": 0.04482494
+      },
+      "auc_near": 0.707,
+      "auc_spread": 0.6223,
+      "share_near_above_between_p50": 0.0,
+      "share_spread_above_between_p50": 0.3399
+    },
+    "left_deep": {
+      "near": {
+        "pairs": 3,
+        "p50": 0.02073881,
+        "p95": 0.02468093,
+        "max": 0.02511894,
+        "median_dyaw": 2.87
+      },
+      "spread": {
+        "pairs": 125,
+        "p50": 0.01815178,
+        "p95": 0.02770577,
+        "max": 0.03137854,
+        "median_dyaw": 1.81
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 253,
+        "p50": 0.02222463,
+        "p90": 0.03410274,
+        "p95": 0.03768977,
+        "max": 0.04666654
+      },
+      "auc_near": 0.6008,
+      "auc_spread": 0.6837,
+      "share_near_above_between_p50": 0.3333,
+      "share_spread_above_between_p50": 0.248
+    },
+    "left_mid": {
+      "near": {
+        "pairs": 1,
+        "p50": 0.0167013,
+        "p95": 0.0167013,
+        "max": 0.0167013,
+        "median_dyaw": 0.19
+      },
+      "spread": {
+        "pairs": 68,
+        "p50": 0.01994215,
+        "p95": 0.03385794,
+        "max": 0.03571051,
+        "median_dyaw": 3.96
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 103,
+        "p50": 0.021146,
+        "p90": 0.02963678,
+        "p95": 0.03153512,
+        "max": 0.04649312
+      },
+      "auc_near": 0.7961,
+      "auc_spread": 0.5854,
+      "share_near_above_between_p50": 0.0,
+      "share_spread_above_between_p50": 0.3971
+    },
+    "left_light": {
+      "near": {
+        "pairs": 5,
+        "p50": 0.01554016,
+        "p95": 0.0178852,
+        "max": 0.01833157,
+        "median_dyaw": 6.9
+      },
+      "spread": {
+        "pairs": 507,
+        "p50": 0.01805709,
+        "p95": 0.03305375,
+        "max": 0.04818458,
+        "median_dyaw": 4.53
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 1033,
+        "p50": 0.0226611,
+        "p90": 0.03244161,
+        "p95": 0.03562032,
+        "max": 0.04735374
+      },
+      "auc_near": 0.88,
+      "auc_spread": 0.6723,
+      "share_near_above_between_p50": 0.0,
+      "share_spread_above_between_p50": 0.2722
+    },
+    "frontal": {
+      "near": {
+        "pairs": 46,
+        "p50": 0.01586812,
+        "p95": 0.02758361,
+        "max": 0.03300848,
+        "median_dyaw": 4.84
+      },
+      "spread": {
+        "pairs": 2476,
+        "p50": 0.01717328,
+        "p95": 0.03049615,
+        "max": 0.0482049,
+        "median_dyaw": 5.32
+      },
+      "operative": true,
+      "between_photos": {
+        "n": 4784,
+        "p50": 0.02325879,
+        "p90": 0.03337679,
+        "p95": 0.03652687,
+        "max": 0.0506794
+      },
+      "auc_near": 0.7717,
+      "auc_spread": 0.7424,
+      "share_near_above_between_p50": 0.1739,
+      "share_spread_above_between_p50": 0.1773
+    },
+    "right_light": {
+      "near": {
+        "pairs": 5,
+        "p50": 0.01545286,
+        "p95": 0.01760378,
+        "max": 0.01794636,
+        "median_dyaw": 6.44
+      },
+      "spread": {
+        "pairs": 264,
+        "p50": 0.017246,
+        "p95": 0.02762551,
+        "max": 0.03251638,
+        "median_dyaw": 3.65
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 556,
+        "p50": 0.02156119,
+        "p90": 0.03115863,
+        "p95": 0.03322255,
+        "max": 0.04004855
+      },
+      "auc_near": 0.8727,
+      "auc_spread": 0.7196,
+      "share_near_above_between_p50": 0.0,
+      "share_spread_above_between_p50": 0.1742
+    },
+    "right_mid": {
+      "near": {
+        "pairs": 1,
+        "p50": 0.01059952,
+        "p95": 0.01059952,
+        "max": 0.01059952,
+        "median_dyaw": 5.66
+      },
+      "spread": {
+        "pairs": 60,
+        "p50": 0.01835563,
+        "p95": 0.02627977,
+        "max": 0.02891296,
+        "median_dyaw": 3.51
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 111,
+        "p50": 0.02314384,
+        "p90": 0.03545063,
+        "p95": 0.03944696,
+        "max": 0.04758292
+      },
+      "auc_near": 0.982,
+      "auc_spread": 0.7399,
+      "share_near_above_between_p50": 0.0,
+      "share_spread_above_between_p50": 0.1667
+    },
+    "right_deep": {
+      "near": {
+        "pairs": 2,
+        "p50": 0.01981441,
+        "p95": 0.02252831,
+        "max": 0.02282986,
+        "median_dyaw": 4.55
+      },
+      "spread": {
+        "pairs": 49,
+        "p50": 0.01818863,
+        "p95": 0.02661421,
+        "max": 0.03406955,
+        "median_dyaw": 3.12
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 56,
+        "p50": 0.02324976,
+        "p90": 0.03493264,
+        "p95": 0.03818176,
+        "max": 0.04124347
+      },
+      "auc_near": 0.6696,
+      "auc_spread": 0.6983,
+      "share_near_above_between_p50": 0.0,
+      "share_spread_above_between_p50": 0.2041
+    },
+    "right_profile": {
+      "near": {
+        "pairs": 2,
+        "p50": 0.01517549,
+        "p95": 0.01669111,
+        "max": 0.01685951,
+        "median_dyaw": 5.0
+      },
+      "spread": {
+        "pairs": 228,
+        "p50": 0.01768092,
+        "p95": 0.03385176,
+        "max": 0.04603809,
+        "median_dyaw": 10.06
+      },
+      "operative": false,
+      "between_photos": {
+        "n": 475,
+        "p50": 0.01908887,
+        "p90": 0.02977459,
+        "p95": 0.03415244,
+        "max": 0.04423054
+      },
+      "auc_near": 0.7737,
+      "auc_spread": 0.5611,
+      "share_near_above_between_p50": 0.0,
+      "share_spread_above_between_p50": 0.4035
+    }
+  }
+}

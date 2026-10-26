@@ -30,10 +30,17 @@ BINS = list(BIN_CAP)
 
 
 def norm(p):
+    """Центр в 0, max-радиус = 1. Возвращает (нормированные точки, те же точки flat).
+
+    Важно: вторая позиция - именно отмасштабированные точки. Раньше здесь возвращался
+    центрированный `p` без деления на `s`, из-за чего весь кэш был центрирован, но не
+    нормирован по масштабу (distances в `two_d` получались в пикселях).
+    """
     p = np.asarray(p, float)
     p = p - p.mean(axis=0)
     s = float(np.max(np.linalg.norm(p, axis=1)))
-    return (p / s if s > 1e-6 else p), [round(x, 5) for x in p.ravel().tolist()]
+    q = p / s if s > 1e-6 else p
+    return q, [round(float(x), 5) for x in q.ravel().tolist()]
 
 
 def frames_for(person, bin_name):

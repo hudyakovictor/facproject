@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT / "3ddfa_v3"))
 from util.cpu_renderer import MeshRenderer_cpu
 
 from app8.reconstruction import reconstruct_image
-from morphing.backend.aligner import align_identity_mesh_to_zero
+from morphing.backend.aligner import align_identity_mesh
 from morphing.backend.uv_extractor import extract_enhanced_uv
 
 
@@ -52,10 +52,10 @@ def generate_morph_gif(
     if res_a is None or res_b is None:
         raise RuntimeError("Лицо не обнаружено на одной из фотографий")
         
-    # 2. Выравнивание в (0, 0, 0) градусов
-    print(f"[HD GIF] Каноническое 3D-выравнивание в (0°, 0°, 0°)...")
-    v_a, _, _ = align_identity_mesh_to_zero(res_a)
-    v_b, _, _ = align_identity_mesh_to_zero(res_b)
+    # 2. Юстировка в канон 3DMM (центр в нуле, радиус = 1; позы в identity-сетке нет)
+    print("[HD GIF] Каноническое 3D-выравнивание формы...")
+    v_a, _, _ = align_identity_mesh(res_a)
+    v_b, _, _ = align_identity_mesh(res_b)
     triangles = res_a["triangles"]
     uv_coords = res_a["uv_coords"]
     
