@@ -24,7 +24,9 @@ import numpy as np
 ROOT = Path("/Users/victorkhudyakov/work")
 HERE = Path(__file__).resolve().parent
 CAL = Path("/Volumes/SDCARD/calibration")
-CACHE = ROOT / ".runtime" / "calib_cache"
+# Каталог кэша с меткой нормировки: rms106 (aligner.normalize_ldm106). Старый кэш собран
+# в max-radius единицах, смешивать их нельзя — поэтому он не переиспользуется.
+CACHE = ROOT / ".runtime" / "calib_cache_rms106"
 ROWS = CACHE / "features.jsonl"
 OUT = ROOT / ".runtime" / "calib_report.json"
 BINS = ("frontal", "left_light", "right_light", "left_mid", "right_mid",
@@ -38,15 +40,12 @@ spec2 = importlib.util.spec_from_file_location("rn", HERE / "rakurs_noise.py")
 rn = importlib.util.module_from_spec(spec2)
 spec2.loader.exec_module(rn)
 from morphing.backend import identity as I
+from morphing.backend.aligner import normalize_ldm106
 
 
 def norm_center_scale(p: np.ndarray) -> np.ndarray:
-    """Как align_identity_mesh: центр в среднее, масштаб по max.norm (craniometric radius=1)."""
-    q = p - p.mean(axis=0)
-    scale = np.abs(q).max() if np.abs(q).max() > 1e-9 else 1.0
-    # aligner использует max norm по строкам; берём радиус = max \|q_i\|
-    rad = np.linalg.norm(q, axis=1).max()
-    return q / (rad if rad > 1e-9 else scale)
+    """Та же нормировка, что в проде: aligner.normalize_ldm106 (центр и RMS по 106 точкам)."""
+    return normalize_ldm106(np.asarray(p, float))[0]
 
 
 def phase_a() -> None:

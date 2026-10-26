@@ -6,7 +6,7 @@ T1 sanity Procrustes: эмпирически проверяем, когда d(be
     Procrustes минимизирует сумму квадратов, а vdist - среднюю длину).
 T2 rotneg на правильном входе: матрица app8 к cam (с z-флипом to_camera) против той же матрицы к canon.
 T3 блочный пол шума: эталон без соседей по индексу кадра.
-T4 нормировка RMS (прод app6) вместо max-radius.
+T4 нормировки: боевая RMS по 106 точкам (aligner.normalize_ldm106) против старой max-radius.
 T5 расстояние между людьми в тех же единицах.
 T6 ICC по 17 метрикам: ровные кадры против наклонных после canon.
 T7 знаковый остаток против yaw, регрессия на 5 людях -> проверка на 6-м.
@@ -31,6 +31,7 @@ FZ = np.diag([1.0, 1.0, -1.0])          # to_camera делает z = camera_dist
 from app8.config import POSE_BINS  # noqa: E402
 from app8.geometry import full_pose_correction_matrix, row_rotation_matrix  # noqa: E402
 from morphing.backend import identity as I  # noqa: E402
+from morphing.backend.aligner import normalize_ldm106  # noqa: E402
 
 CANON_YAW = {b[0]: float(b[3]) for b in POSE_BINS}
 ALAR_L, ALAR_R, NOSE_BASE, NOSE_TIP = 58, 62, 60, 54
@@ -40,10 +41,6 @@ NOSE_SET = [NOSE_BASE, ALAR_L, ALAR_R, NOSE_TIP, 51, 52, 53]
 def fidx(name):
     m = re.search(r"(\d+)", name)
     return int(m.group(1)) if m else -1
-
-
-def rms(p):
-    return float(np.sqrt(np.mean(np.sum(p * p, axis=1))))
 
 
 def vdist(a, b, idx=None):
@@ -63,13 +60,15 @@ def maxr(p):
 
 
 def load():
-    """Кэш level_extract содержал центрированные, но НЕ отмасштабированные точки (баг norm()).
+    """Одна нормировка с продом: `aligner.normalize_ldm106` (центр и RMS по 106 точкам).
 
-    Масштаб восстанавливаем здесь: canon/cam/two_d делим на собственный max-радиус
-    (нормировка прод-aligner'а, но по 106 точкам вместо 35709), r* - на RMS-радиус
-    (нормировка app6/stage1). v17 пересчитываем из canon, чтобы метрики и облака жили
-    в одной нормировке; кэшированный v17 (aligner по полному мешу) остаётся в v17_cache
-    и служит оценкой расхождения двух нормировок от кадра к кадру.
+    Кэш level_extract содержал центрированные, но НЕ отмасштабированные точки (баг
+    norm()), а нормировка идемпотентна, поэтому старый кэш проходит через неё второй раз
+    без изменения — переизвлечение кадров не нужно. Старая нормировка (max-радиус по одной
+    крайней точке) остаётся только в диагностике T4 как `m`-колонки, чтобы было видно,
+    насколько она расходится с боевой. Кэшированный `v17` пересчитываем из canon: он был
+    собран в старом пространстве и на старых эталонах, а метрики и облака должны жить
+    в одной нормировке с продом.
     """
     rows = []
     for line in CACHE.read_text(encoding="utf-8").splitlines():
@@ -81,10 +80,12 @@ def load():
         r.setdefault("bin", "frontal")
         for k in STATE:
             p = np.asarray(r[k], float).reshape(106, 3)
-            r["scale" + k] = maxr(p)          # сырой масштаб кадра: модельные единицы / пиксели
-            r[k] = p / r["scale" + k]
-            r["r" + k] = p / rms(p)
-        r["v17_cache"] = list(map(float, r["v17"]))
+            p = p - p.mean(axis=0)
+            # сырой масштаб кадра: модельные единицы / пиксели. Новые строки кэша несут его
+            # отдельно (`k_rawscale`), в старых он восстанавливается как max-радиус.
+            r["scale" + k] = float(r.get(k + "_rawscale") or maxr(p))
+            r[k] = normalize_ldm106(p)[0]     # боевая нормировка: RMS по 106 точкам
+            r["m" + k] = p / maxr(p)          # старая нормировка по одной крайней точке
         r["v17"] = [float(x) for x in np.asarray(I.form_vector(r["canon"]), float)]
         r["fidx"] = fidx(r["frame"])
         r["tilt"] = r["yaw"] - CANON_YAW.get(r["bin"], 0.0)
@@ -94,12 +95,22 @@ def load():
 
 
 def norm_convention(rows):
-    """Отношение метрик aligner-нормировки (35709 вершин) к canon106 (max-radius по 106 точек)."""
-    ratios = np.array([c / m for r in rows for c, m in zip(r["v17_cache"], r["v17"], strict=False)
-                       if m and abs(m) > 1e-9 and np.isfinite(c / m)])
-    return {"median": round(float(np.median(ratios)), 4), "min": round(float(ratios.min()), 4),
-            "max": round(float(ratios.max()), 4), "p05": round(float(np.percentile(ratios, 5)), 4),
-            "p95": round(float(np.percentile(ratios, 95)), 4)}
+    """Расхождение «прод vs валидация» после патча 04 равно нулю по построению: обе стороны
+    юстируются одной функцией `aligner.normalize_ldm106` (центр и RMS по 106 точкам).
+
+    Что по-прежнему имеет смысл померить — насколько масштаб по ОДНОЙ крайней точке
+    (`max |p|`, старая норма валидации) расходится со средним квадратом по 106 точкам.
+    Ниже — разброс max-радиуса этих же 106 точек в RMS-единицах: медиана показывает, во
+    сколько раз сдвинутся абсолютные расстояния валидации при переходе со старой нормы на
+    новую, а min..max — насколько неустойчив сам старый масштаб от кадра к кадру (из-за него
+    пороги калибровки и съезжают). Для прода (масштаб по max-радиусу всех 35 709 вершин)
+    сдвиг другой и измерен на сетках: `aligner.MAXR_TO_RMS106` = 1.564.
+    """
+    vals = np.array([maxr(r[k]) for r in rows for k in STATE], float)
+    vals = vals[np.isfinite(vals)]
+    return {"median": round(float(np.median(vals)), 4), "min": round(float(vals.min()), 4),
+            "max": round(float(vals.max()), 4), "p05": round(float(np.percentile(vals, 5)), 4),
+            "p95": round(float(np.percentile(vals, 95)), 4), "n": int(len(vals))}
 
 
 def level_set(rs):
@@ -155,14 +166,23 @@ def column_stats(rs_all, cloud_for, gap=0):
     return out
 
 
-def show(title, stats, order=None):
+def show(title, stats, order=None, gap=None):
+    """Таблица по колонкам `column_stats`. `gap` — зазор между людьми в тех же единицах:
+    с ним `d` перестаёт читаться через ratio (ratio в профиле врёт, см. T2) и становится
+    величиной с линейкой. Строки с `d/gap < 1` лежат ВНУТРИ межличностного разброса."""
     print(title)
-    print(f"{'колонка':22s}{'людей':>6s}{'n накл':>7s}{'пол(LOO)':>10s}{'d наклон':>11s}{'ratio':>8s}")
+    head = f"{'колонка':22s}{'людей':>6s}{'n накл':>7s}{'пол(LOO)':>10s}{'d наклон':>11s}{'ratio':>8s}"
+    if gap:
+        head += f"{'d/зазор':>9s}"
+    print(head)
     for n in (order or stats.keys()):
         s = stats.get(n)
         if not s:
             continue
-        print(f"{n:22s}{s['n_people']:>6d}{s['n_tilt']:>7d}{s['floor']:>10.5f}{s['d_tilt']:>11.5f}{s['ratio']:>8.2f}")
+        line = f"{n:22s}{s['n_people']:>6d}{s['n_tilt']:>7d}{s['floor']:>10.5f}{s['d_tilt']:>11.5f}{s['ratio']:>8.2f}"
+        if gap:
+            line += f"{s['d_tilt'] / gap:>9.2f}"
+        print(line)
 
 
 # --------------------------------------------------------------------------- T1
@@ -200,17 +220,27 @@ def t1(rows):
 
 
 # --------------------------------------------------------------------------- T2
-def t2(rows):
+def t2(rows, gap=None):
     print("\n### T2 rotneg на правильном входе. R_corr = (R_target R_actual^T) - в матрице app8")
+    print(" С патча 03 прод доворот НЕ применяет: колонка `canon x R_corr` — это старый прод,")
+    print(" она оставлена как контроль «что мы убрали». Сравнивать состояния между собой по")
+    print(" ratio нельзя (в профиле ratio ниже у старого прода просто потому, что поворот")
+    print(" домножает на одно и то же число); для сравнения состояний — абсолютный d и")
+    if gap is None:
+        print(" зазор между людьми. Колонка d/зазор не выведена: T5 не посчитан раньше.")
+    else:
+        print(f" зазор между людьми из T5 = {gap:.5f}. Колонка d/зазор: <1 — разница лежит")
+        print(" внутри межличностного разброса (личность не различима), >1 — во сколько раз")
+        print(" d больше ближайшей пары разных людей.")
     out = {}
     for b in ("frontal", "left_profile", "right_profile"):
         cy = CANON_YAW.get(b, 0.0)
 
         def cloud(r, n, cy=cy):
             M = R_corr(r, cy)
-            if n == "canon":                       # mesh БЕЗ позы (vertices_identity_only)
+            if n == "canon":                       # mesh БЕЗ позы = текущий прод (патч 03)
                 return r["canon"]
-            if n == "canon x R_corr":              # так делает прод (app6/app8 chronology)
+            if n == "canon x R_corr":              # так делал прод до патча 03 (доворот в канон бина)
                 return r["canon"] @ M
             if n == "cam":                         # mesh С позой, в базисе камеры
                 return r["cam"]
@@ -223,7 +253,7 @@ def t2(rows):
         names = ["canon", "canon x R_corr", "cam", "cam x R_corr", "cam x Fz x R_corr"]
         cf = {n: (lambda r, n=n: cloud(r, n)) for n in names}
         stats = column_stats([r for r in rows if r["bin"] == b], cf)
-        show(f"--- бин {b} (канонический yaw {cy:+.0f}) ---", stats, names)
+        show(f"--- бин {b} (канонический yaw {cy:+.0f}) ---", stats, names, gap=gap)
         out[b] = stats
     # контроль: row_rotation_matrix совпадает с матрицей модели? (проверка соглашения)
     r = next(x for x in rows if x["bin"] == "frontal")
@@ -326,27 +356,30 @@ def t3(rows):
 
 # --------------------------------------------------------------------------- T4
 def t4(rows):
-    print("\n### T4 нормировка: max-radius (крайняя точка) против RMS (app6/stage1)")
-    print(" после исправления norm() все облака отмасштабированы; колонки отличаются только")
-    print(" выбором масштаба: max-radius одной крайней точки против RMS по 106 точкам")
+    print("\n### T4 нормировки: RMS по 106 точкам (боевая) против max-radius (старая aligner)")
+    print(" после исправления norm() и перехода на normalize_ldm106 все облака отмасштабированы;")
+    print(" колонки отличаются только выбором масштаба: RMS по 106 точкам против max-радиуса")
+    print(" одной крайней точки. Разница — систематический коэффициент и его гуляние по кадрам.")
     fr = [r for r in rows if r["bin"] == "frontal"]
     cf = {}
     for st in STATE:
-        cf[st + " maxr"] = (lambda r, s=st: r[s])
-        cf[st + " rms"] = (lambda r, s=st: r["r" + s])
+        cf[st + " rms106"] = (lambda r, s=st: r[s])
+        cf[st + " maxr"] = (lambda r, s=st: r["m" + s])
     stats = column_stats(fr, cf)
     show("--- фронтал ---", stats, list(cf))
     spread = {}
     for st in STATE:
         sc = [r["scale" + st] for r in fr]
-        rel = [rms(r[st]) for r in fr]      # RMS/max ПОСЛЕ max-нормировки = форма, не масштаб
+        rel = [maxr(r[st]) for r in fr]   # max-радиус ПОСЛЕ RMS-нормировки = форма, не масштаб
         spread[st] = {"raw_min": round(min(sc), 4), "raw_median": round(float(np.median(sc)), 4),
-                      "raw_max": round(max(sc), 4), "rms_over_maxr": round(float(np.median(rel)), 4),
-                      "rms_over_maxr_min": round(min(rel), 4), "rms_over_maxr_max": round(max(rel), 4)}
+                      "raw_max": round(max(sc), 4), "maxr_over_rms": round(float(np.median(rel)), 4),
+                      "maxr_over_rms_min": round(min(rel), 4), "maxr_over_rms_max": round(max(rel), 4)}
         print(f" {st}: сырой масштаб кадра min/med/max = {min(sc):.4f}/{float(np.median(sc)):.4f}/{max(sc):.4f}"
-              f"   |  после max-нормировки RMS-радиус = {min(rel):.4f}/{float(np.median(rel)):.4f}/{max(rel):.4f}")
+              f"   |  после RMS-нормировки max-радиус = {min(rel):.4f}/{float(np.median(rel)):.4f}/{max(rel):.4f}")
     print(" у two_d сырой масштаб - пиксели (размер лица на фото), у cam/canon - модельные единицы;")
     print(" именно этот разброс раньше выдавался за «неустойчивость max-radius»")
+    print(" max-радиус в RMS-единицах скачет по кадрам: крайняя вершина - не мера формы,")
+    print(" поэтому боевая нормировка считает средний квадрат по всем 106 точкам")
     stats["_raw_scale_spread"] = spread
     return stats
 
@@ -355,7 +388,7 @@ def t4(rows):
 def t5(rows):
     print("\n### T5 расстояние между людьми (фронтал, эталоны по ровным кадрам)")
     res = {}
-    for key, nm in (("canon", "max-radius"), ("rcanon", "RMS")):
+    for key, nm in (("canon", "RMS-106"), ("mcanon", "max-radius")):
         ref = {}
         for p in sorted({r["person"] for r in rows}):
             rs = [r for r in rows if r["person"] == p and r["bin"] == "frontal"]
@@ -543,9 +576,15 @@ def main():
     rows = load()
     print(f"кадров: {len(rows)}, персон: {len({r['person'] for r in rows})}, бинов: {len({r['bin'] for r in rows})}")
     nc = norm_convention(rows)
-    print(f" нормировка v17: aligner(35709 вершин) / canon106(max-radius по 106) = "
-          f"med {nc['median']}  p05..p95 {nc['p05']}..{nc['p95']}  min..max {nc['min']}..{nc['max']}")
-    out = {"norm_convention": nc, "T1": t1(rows), "T2": t2(rows), "T3": t3(rows), "T4": t4(rows), "T5": t5(rows),
+    print(f" нормировка: max-радиус в RMS-единицах (старый масштаб / новый) = "
+          f"med {nc['median']}  p05..p95 {nc['p05']}..{nc['p95']}  min..max {nc['min']}..{nc['max']}  n={nc['n']}")
+    # T5 идёт раньше T2: зазор между людьми нужен колонке T2 «d/зазор» (ratio для сравнения
+    # состояний не годится, см. docstring t2).
+    t1_out = t1(rows)
+    t5_out = t5(rows)
+    gap = t5_out.get("RMS-106", {}).get("min")
+    out = {"norm_convention": nc, "T1": t1_out, "T2": t2(rows, gap=gap), "T3": t3(rows),
+           "T4": t4(rows), "T5": t5_out,
            "T6": t6(rows), "T7": t7(rows), "T8": t8(rows)}
 
     def clean(o):

@@ -23,6 +23,7 @@ spec = importlib.util.spec_from_file_location("r", HERE / "robustness_check.py")
 r = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r)
 from morphing.backend import identity as I
+from morphing.backend.aligner import normalize_ldm106
 
 # билатеральная карта 106 (из symmetry_pairs_3d второго разработчика; layout совпадает)
 PAIRS = [(0, 31), (1, 29), (3, 27), (5, 25), (7, 23), (9, 21), (11, 19), (13, 17),
@@ -46,9 +47,8 @@ def angles_from_csv():
 
 
 def center_scale(v):
-    v = v - v.mean(0)
-    s = float(np.linalg.norm(v, axis=1).max())
-    return v / s if s > 1e-4 else v
+    """Нормировка одна с продом: aligner.normalize_ldm106 (центр и RMS по 106 точкам)."""
+    return normalize_ldm106(np.asarray(v, float))[0]
 
 
 def symmetrize(p):

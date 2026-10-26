@@ -6,9 +6,10 @@
   cam    = vertices_camera[idx]        поза НЕ убрана (камерное пространство)
   two_d  = vertices_2d_orig[idx]       плоскость фото (z=0)
   canon  = vertices_identity_only[idx] текущий пайплайн: поза убрана + центр/масштаб
-Все три пропускаем через одну и ту же нормировку (центр в 0, max-радиус = 1), чтобы
-расстояния между ними имели смысл. Плюс углы и rotation_matrix (нужны для вариантов
-с доворотом). Кэш resumable: строки ключуются по (person, frame).
+Все три пропускаем через одну нормировку с продом — aligner.normalize_ldm106 (центр и
+RMS по 106 точкам), поэтому расстояния между ними имеют смысл и живут в тех же единицах,
+что и метрики морфинга. Плюс углы и rotation_matrix (нужны для вариантов с доворотом).
+Кэш resumable: строки ключуются по (person, frame).
 """
 from __future__ import annotations
 
@@ -28,19 +29,27 @@ BIN_CAP = {"frontal": 0, "left_light": 12, "right_light": 12, "left_mid": 12, "r
            "left_deep": 12, "right_deep": 12, "left_profile": 12, "right_profile": 12}
 BINS = list(BIN_CAP)
 
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from morphing.backend.aligner import normalize_ldm106  # noqa: E402
+
 
 def norm(p):
-    """Центр в 0, max-радиус = 1. Возвращает (нормированные точки, те же точки flat).
+    """Одна нормировка с продом: `aligner.normalize_ldm106` (центр и RMS по 106 точкам).
 
-    Важно: вторая позиция - именно отмасштабированные точки. Раньше здесь возвращался
-    центрированный `p` без деления на `s`, из-за чего весь кэш был центрирован, но не
-    нормирован по масштабу (distances в `two_d` получались в пикселях).
+    Возвращает (нормированные точки, те же точки flat, сырой max-радиус центрированных
+    точек). Третье значение — масштаб кадра в исходных единицах (модельные / пиксели),
+    он нужен для диагностики T4.
+    Исторически здесь был баг: вторая позиция возвращала центрированный `p` без деления
+    на `s`, из-за чего весь кэш был центрирован, но не нормирован по масштабу
+    (distances в `two_d` получались в пикселях). Нормировка идемпотентна, поэтому старый
+    кэш (центрированные точки без масштаба) и строки нового формата (уже нормированные)
+    проходят через неё в одно и то же пространство — переизвлечение кадров не нужно.
     """
     p = np.asarray(p, float)
-    p = p - p.mean(axis=0)
-    s = float(np.max(np.linalg.norm(p, axis=1)))
-    q = p / s if s > 1e-6 else p
-    return q, [round(float(x), 5) for x in q.ravel().tolist()]
+    raw = p - p.mean(axis=0)
+    q, _center, _rms = normalize_ldm106(raw)
+    return q, [round(float(x), 5) for x in q.ravel().tolist()], float(np.max(np.linalg.norm(raw, axis=1)))
 
 
 def frames_for(person, bin_name):
@@ -91,7 +100,7 @@ def main():
                     for key, arr in (("cam", np.asarray(rec["vertices_camera"], float)[idx]),
                                      ("two_d", p2d),
                                      ("canon", np.asarray(rec["vertices_identity_only"], float)[idx])):
-                        _, row[key] = norm(arr)
+                        _, row[key], row[key + "_rawscale"] = norm(arr)
                     _, vcan, _ = align_identity_mesh(rec)
                     row["v17"] = [float(x) for x in np.asarray(I.form_vector(vcan), float)]
                 except Exception as exc:  # noqa: BLE001
