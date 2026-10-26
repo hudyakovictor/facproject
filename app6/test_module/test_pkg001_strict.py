@@ -25,9 +25,28 @@ from app6.stage2.same_day_gate import _robust_scale, check_same_day_conflict, sa
 from app6.stage2.temporal_axis import temporal_status
 
 
-OUTPUT_ROOT = Path(os.environ.get(
-    "PKG001_OUTPUT_ROOT", "/Volumes/SDCARD/storage/function-verification-runs/PKG-001"
-))
+def _output_root() -> Path:
+    """Каталог, в котором живут фикстуры строгих проверок PKG-001.
+
+    На рабочей машине это внешний диск: материалы прогона должны переживать его и
+    разбираться вручную. В чистой среде (GitHub Actions) `/Volumes` создать нельзя —
+    `mkdir` даёт `PermissionError: [Errno 13]`, и тест падает не по логике, а из-за
+    отсутствия диска. Поэтому при недоступности настроенного пути возвращаем
+    временный каталог: проверяется то же самое, просто артефакты живут до конца прогона.
+    """
+    configured = Path(os.environ.get(
+        "PKG001_OUTPUT_ROOT", "/Volumes/SDCARD/storage/function-verification-runs/PKG-001"
+    ))
+    try:
+        configured.mkdir(parents=True, exist_ok=True)
+        return configured
+    except OSError:
+        fallback = Path(tempfile.gettempdir()) / "pkg001-function-verification"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+OUTPUT_ROOT = _output_root()
 
 
 def workspace():
