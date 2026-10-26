@@ -10,6 +10,8 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from morphing.backend.aligner import MAXR_TO_RMS106
+
 DEFAULT_ZONE_WEIGHTS: dict[str, float] = {
     "forehead": 0.10,
     "left_eye": 0.09,
@@ -43,7 +45,12 @@ def _cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(flat_a, flat_b) / denominator) if denominator > 1e-12 else 0.0
 
 
-def _score_from_distance(distance: float, scale: float = 0.15) -> float:
+def _score_from_distance(distance: float, scale: float = round(0.15 * MAXR_TO_RMS106, 4)) -> float:
+    """Похожесть 0..100 из среднего расстояния вершин.
+
+    `scale` — историческое насыщение 0.15 в старых единицах (доля max-радиуса сетки),
+    пересчитанное в доли RMS-масштаба по 106 ландмаркам (патч 04).
+    """
     return float(np.clip((1.0 - distance / scale) * 100.0, 0.0, 100.0))
 
 
@@ -88,7 +95,9 @@ def similarity_metrics(
         "euclidean_mean": round(mean_distance, 8),
         "euclidean_max": round(float(np.max(dists)), 8),
         "p95_delta": round(float(np.percentile(dists, 95)), 8),
-        "pct_above_threshold": round(float(np.mean(dists > 0.025) * 100.0), 3),
+        # Порог «заметного» смещения вершины: исторические 0.025 старых единиц в долях
+        # RMS-масштаба по 106 ландмаркам.
+        "pct_above_threshold": round(float(np.mean(dists > 0.025 * MAXR_TO_RMS106) * 100.0), 3),
         "cosine_similarity": round(_cosine(a, b), 8),
         "morphability_score": round(_score_from_distance(mean_distance), 2),
         "zones": zone_metrics,

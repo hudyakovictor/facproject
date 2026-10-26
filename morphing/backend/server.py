@@ -29,6 +29,7 @@ if str(ROOT) not in sys.path:
 
 from app8.reconstruction import reconstruct_image
 from morphing.backend.aligner import (
+    MAXR_TO_RMS106,
     align_identity_mesh,
     group_pose_reference,
     pose_alignment_report,
@@ -131,8 +132,8 @@ def _align_group(faces: list[dict[str, Any]]) -> dict[str, Any]:
 
     Доворачивать сетки не нужно: `vertices_identity_only` — форма в объектном
     пространстве 3DMM, поза уже вынесена в `angles_deg`, поэтому `_reconstruct`
-    даёт каноническую сетку сразу (центрирование + радиус = 1). См. docstring
-    `morphing.backend.aligner`.
+    даёт каноническую сетку сразу (центр и RMS-масштаб по 106 ландмаркам, патч 04).
+    См. docstring `morphing.backend.aligner`.
     """
     reference = group_pose_reference([face["result"] for face in faces])
     return pose_alignment_report([face["result"] for face in faces], reference)
@@ -141,15 +142,16 @@ def _align_group(faces: list[dict[str, Any]]) -> dict[str, Any]:
 def _heat_scales(noise: dict[str, Any]) -> dict[str, float]:
     """Опоры шкалы heatmap: пол «самого холодного цвета» и «полный красный».
 
-    Без калибровки сохраняется историческая шкала 1/18 (насыщение при 0.0556 долях
-    краниометрического радиуса) и нулевой пол. С калибровкой:
+    Без калибровки сохраняется историческая шкала 1/18 в прежних единицах (насыщение
+    при 0.0556 долях max-радиуса сетки), пересчитанная в боевые доли RMS по 106
+    ландмаркам, и нулевой пол. С калибровкой:
       full — типичное расхождение вершины между разными людьми в этом ракурсе, но не
              меньше двух шумовых пер-вершинных девиаций, чтобы «красный» означал
              различие лиц, а не шум конвейера;
       base — половина типичной пер-вершинной девиации шумовой пары: всё, что ниже,
              рисуется самым холодным цветом.
     """
-    default_full = round(1.0 / 18.0, 6)
+    default_full = round(MAXR_TO_RMS106 / 18.0, 6)
     if not noise.get("available"):
         return {"heat_full_scale": default_full, "heat_base_scale": 0.0}
     noise_v = float(noise.get("noise_vertex_p95") or 0.0)
@@ -170,7 +172,9 @@ def _parameter_heatmap(mean_delta: float) -> list[dict[str, Any]]:
     useful overview for analysts and keeps provenance explicit.
     """
     registry = _registry()
-    signal = float(np.clip(mean_delta / 0.15, 0.0, 1.0))
+    # 0.15 — историческое насыщение proxy в прежних единицах (доля max-радиуса сетки),
+    # пересчитано в доли RMS по 106 ландмаркам, чтобы `mean_delta` попадал в ту же шкалу.
+    signal = float(np.clip(mean_delta / (0.15 * MAXR_TO_RMS106), 0.0, 1.0))
     items: list[dict[str, Any]] = []
     for spec in registry.get("params", []):
         items.append({

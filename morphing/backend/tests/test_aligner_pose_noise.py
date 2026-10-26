@@ -36,16 +36,26 @@ def fake_recon(yaw: float, pitch: float = 0.0, roll: float = 0.0, seed: int = 0)
     }
 
 
-def canonicalize(vertices: np.ndarray) -> np.ndarray:
-    """Ровно то, что делает aligner: центр в нуле, максимальный радиус = 1."""
-    centered = vertices - vertices.mean(axis=0)
-    return centered / np.max(np.linalg.norm(centered, axis=1))
+def canonicalize(vertices: np.ndarray, idx: np.ndarray | None = None) -> np.ndarray:
+    """Ровно то, что делает aligner: центр и RMS-масштаб по 106 ландмаркам.
+
+    idx — индексы ландмарков в сетке (у fake_recon это первые 106 вершин); нормировку
+    считаем по ним, а применяем ко всей сетке.
+    """
+    pts = np.asarray(vertices, np.float64)
+    subset = pts if idx is None else pts[np.asarray(idx, np.int64)]
+    center = subset.mean(axis=0)
+    d = subset - center
+    scale = float(np.sqrt(np.mean(np.sum(d * d, axis=1))))
+    return (pts - center) / scale
 
 
 class AlignerPoseTests(unittest.TestCase):
-    def test_mesh_is_normalized_to_unit_craniometric_radius(self) -> None:
+    def test_mesh_is_normalized_by_landmark_rms(self) -> None:
         vertices, landmarks, scale = align_identity_mesh(fake_recon(12.0))
-        self.assertAlmostEqual(float(np.max(np.linalg.norm(vertices, axis=1))), 1.0, places=5)
+        # Нормировка RMS по 106 точкам, поэтому максимальный радиус больше 1 — это норма.
+        self.assertAlmostEqual(float(np.sqrt(np.mean(np.sum(landmarks * landmarks, axis=1)))), 1.0, places=5)
+        self.assertGreater(float(np.max(np.linalg.norm(vertices, axis=1))), 1.0)
         self.assertTrue(scale > 0)
         self.assertEqual(landmarks.shape, (106, 3))
 
@@ -62,7 +72,7 @@ class AlignerPoseTests(unittest.TestCase):
                  "ldm106_indices": np.arange(106, dtype=np.int64)}
         va, _, _ = align_identity_mesh(left)
         vb, _, _ = align_identity_mesh(right)
-        np.testing.assert_allclose(va, canonicalize(base), rtol=0, atol=1e-6)
+        np.testing.assert_allclose(va, canonicalize(base, left["ldm106_indices"]), rtol=0, atol=1e-5)
         self.assertLess(float(np.mean(np.linalg.norm(va - vb, axis=1))), 1e-6)
 
     def test_differential_rotation_would_inflate_the_delta(self) -> None:
@@ -74,7 +84,8 @@ class AlignerPoseTests(unittest.TestCase):
             recon = fake_recon(yaw, seed=3)
             r_corr = full_pose_correction_matrix(np.array([0.0, yaw, 0.0], np.float32),
                                                  np.array([0.0, 0.0, 0.0], np.float32))
-            meshes.append(canonicalize(apply_pose_correction(recon["vertices_identity_only"], r_corr)))
+            meshes.append(canonicalize(apply_pose_correction(recon["vertices_identity_only"], r_corr),
+                                       recon["ldm106_indices"]))
         delta_rotated = float(np.mean(np.linalg.norm(meshes[0] - meshes[1], axis=1)))
         delta_aligned = float(np.mean(
             np.linalg.norm(align_identity_mesh(fake_recon(-20.0))[0] - align_identity_mesh(fake_recon(20.0))[0], axis=1)

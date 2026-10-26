@@ -50,13 +50,17 @@ from morphing.backend.identity import (  # noqa: E402
 DEFAULT_INPUT = Path("/Volumes/SDCARD/test_photos")
 CACHE_DIR = ROOT / ".runtime" / "identity_eval"
 OUTPUT_PATH = CACHE_DIR / "identity_eval.json"
+# Метка нормировки aligner'а в ключе кэша: точки из кэша, собранного в других единицах
+# (max-радиус по полному мешу), не должны примешиваться к оценке RMS-нормировки.
+NORMALIZATION_TAG = "rms106-v3"
 # Пороги «уверенности» панели: лидер по процентам сходства.
 CONFIDENT_SHARE = 60.0
 CONFIDENCE_BUCKETS = ((0.0, 50.0), (50.0, CONFIDENT_SHARE), (CONFIDENT_SHARE, 101.0))
 
 
 def _cache_path(photo: Path) -> Path:
-    digest = hashlib.sha1(str(photo.resolve()).encode(), usedforsecurity=False).hexdigest()[:16]
+    seed = f"{NORMALIZATION_TAG}|{photo.resolve()}"
+    digest = hashlib.sha1(seed.encode(), usedforsecurity=False).hexdigest()[:16]
     return CACHE_DIR / f"{photo.stem[:24]}__{digest}.npz"
 
 

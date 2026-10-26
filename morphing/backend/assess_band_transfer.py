@@ -61,7 +61,10 @@ OUTPUT_PATH = CACHE_DIR / "transfer_report.json"
 BANDS_PATH = CACHE_DIR / "reshoot_bands.json"
 BINS = tuple(name for name, _lo, _hi, _canonical in POSE_BINS)
 DATE_RE = re.compile(r"(?P<year>\d{4})[-_.](?P<month>\d{2})[-_.](?P<day>\d{2})")
-RESHOOT_SCHEMA_VERSION = "morphing-reshoot-bands-v2"
+# v3 — нормировка aligner'а стала RMS по 106 ландмаркам (патч 04). Кэши сеток и готовые
+# полосы в старых единицах не переиспользуем: абсолютные расстояния сдвинулись ~в 1.6 раза.
+RESHOOT_SCHEMA_VERSION = "morphing-reshoot-bands-v3"
+NORMALIZATION_TAG = "rms106-v3"
 MIN_RESHOOT_PAIRS = 20
 NEAR_DAYS = 7
 #несуществующий путь: оценка пар идёт по замороженной видео-полосе, а не по той самой
@@ -134,7 +137,10 @@ def discover_photos(input_dir: Path, identities: tuple[str, ...], mode: str,
 
 
 def _cache_path(photo: Path) -> Path:
-    digest = hashlib.sha1(str(photo.resolve()).encode(), usedforsecurity=False).hexdigest()[:16]
+    # Метка нормировки в ключе: кэши сеток, собранные в других единицах, не должны
+    # примешиваться к текущему прогону (файл переживает смену aligner'а).
+    seed = f"{NORMALIZATION_TAG}|{photo.resolve()}"
+    digest = hashlib.sha1(seed.encode(), usedforsecurity=False).hexdigest()[:16]
     return CACHE_DIR / f"{photo.stem[:24]}__{digest}.npz"
 
 
@@ -158,11 +164,11 @@ def _reconstruct_one(path_str: str) -> dict[str, Any] | None:
         return None
     if not recon:
         return None
-    vertices, _, radius = align_identity_mesh(recon)
+    vertices, _, scale = align_identity_mesh(recon)
     summary = pose_summary(recon)
     np.savez_compressed(
         cache, vertices=vertices.astype(np.float32), yaw=np.float32(summary["yaw"]),
-        pose_bin=np.array(summary["pose_bin"]), radius=np.float32(radius),
+        pose_bin=np.array(summary["pose_bin"]), scale=np.float32(scale),
     )
     return {
         "photo": str(photo), "file": photo.name, "vertices": vertices,
@@ -359,6 +365,8 @@ def build_reshoot_bands(within: list[dict[str, Any]], between: list[dict[str, An
         }
     return {
         "schema_version": RESHOOT_SCHEMA_VERSION,
+        "units": ("доли RMS-радиуса по 106 ландмаркам (aligner.normalize_ldm106) — те же единицы, "
+                  "что в pose_noise_calibration.json"),
         "meaning": ("разброс средней разницы 3D-сетки между двумя независимыми снимками "
                     "одного человека в одном бине ракурса"),
         "population": ("фотоархивы людей, не входивших в видеокалибровку; "

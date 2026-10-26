@@ -26,7 +26,8 @@
 сохраняется в кэше и сводится в `drift`, чтобы видеть, насколько «шум» бина на самом
 деле остаётся разницей ракурсов внутри папки.
 
-Единицы — доли краниометрического радиуса (после нормировки max |v - center| = 1).
+Единицы — доли RMS-радиуса по 106 ландмаркам (aligner.normalize_ldm106: центр и средний
+квадрат расстояний до центра по 106 точкам, сетка приводится к этому же масштабу).
 
 Запуск (офлайн, по 2 потока на воркер):
     cd /Users/victorkhudyakov/work
@@ -58,7 +59,9 @@ DEFAULT_INPUT = Path("/Volumes/SDCARD/calibration_rakurs")
 CACHE_DIR = ROOT / ".runtime" / "pose_noise_cache"
 OUTPUT_PATH = Path(__file__).resolve().parent / "pose_noise_calibration.json"
 BINS = tuple(name for name, _lo, _hi, _canonical in POSE_BINS)
-SCHEMA_VERSION = "morphing-pose-noise-v2"
+# v3 — смена нормировки aligner'а на RMS по 106 ландмаркам (патч 04): абсолютные
+# расстояния увеличились примерно в 1.6 раза, поэтому старые кэши и полосы несовместимы.
+SCHEMA_VERSION = "morphing-pose-noise-v3"
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 # Пара с |Δyaw| меньше этого порога считается «тот же ракурс»: её разница — почти чистый
 # шум конвейера, без вклада дрейфа головы внутри папки.
@@ -484,8 +487,8 @@ def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     sources = {row.get("input_dir") for row in results if row.get("input_dir")}
     return {
         "schema_version": SCHEMA_VERSION,
-        "units": "доли краниометрического радиуса (после нормировки max |v - center| = 1)",
-        "space": "identity-only mesh in 3DMM object space (pose-free), unit craniometric radius",
+        "units": "доли RMS-радиуса по 106 ландмаркам (aligner.normalize_ldm106: центр и RMS по 106 точкам)",
+        "space": "identity-only mesh in 3DMM object space (pose-free), RMS-of-106-landmarks scale",
         "source": sources.pop() if len(sources) == 1 else str(DEFAULT_INPUT),
         "band_status": BAND_STATUS,
         "sampling": _sampling_summary(results),
