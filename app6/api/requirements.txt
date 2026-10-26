@@ -3,3 +3,9 @@ uvicorn[standard]>=0.30
 python-multipart>=0.0.9
 psutil>=6.0
 numpy>=1.26
+# Чтение и обработка изображений — не «инструменты разработки»: PIL импортирует
+# сам сервер (app6/api/server.py) и 8 модулей stage1/stage2, cv2 — 11 модулей
+# stage1/stage2. Без них CI не собирает тесты (ModuleNotFoundError: PIL / cv2).
+# Проверено на локальной среде: Pillow 11.0.0, OpenCV 4.9.0.
+pillow>=10.3
+opencv-python-headless>=4.9   # headless-сборка: на сервере и в GitHub Actions нет GUI-библиотек
