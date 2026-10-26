@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { MorphShaderMaterialDefinition } from '../shaders/MorphShader';
+import { HEAT_FULL_SCALE_RMS } from '../constants/normalization';
 import { catmullRomWeights, interpolateFlat } from '../utils/timeline';
 
 function sequenceFrom(data, key, fallbackA, fallbackB) {
@@ -120,6 +121,16 @@ export default function Canvas3D({
     geometry.setIndex(morphData.triangles);
     geometry.computeVertexNormals();
 
+    // Шкала heatmap: бэкенд подбирает «полный красный» и «пол шума» по калибровке
+    // этого ракурса. Фолбэк — исторические 1/18 и 0, переведённые в боевые единицы
+    // (RMS по 106 ландмаркам); виден только когда метаданных от бэкенда нет.
+    const heatFullScale = Number(morphData?.metadata?.heat_full_scale) > 0
+      ? Number(morphData.metadata.heat_full_scale)
+      : HEAT_FULL_SCALE_RMS;
+    const heatBaseScale = Number(morphData?.metadata?.heat_base_scale) > 0
+      ? Math.min(Number(morphData.metadata.heat_base_scale), heatFullScale)
+      : 0;
+
     const material = new THREE.ShaderMaterial({
       ...MorphShaderMaterialDefinition,
       uniforms: {
@@ -130,6 +141,8 @@ export default function Canvas3D({
         u_textureD: { value: loadedTextures[3] },
         u_textureDiff: { value: diffTexture },
         u_showHeatmap: { value: showHeatmap ? 1 : 0 },
+        u_heatFull: { value: heatFullScale },
+        u_heatBase: { value: heatBaseScale },
         u_showUVDiff: { value: showUVDiff ? 1 : 0 },
         u_wireframeMode: { value: wireframe ? 1 : 0 },
         u_lightDirection: { value: new THREE.Vector3(0.4, 0.8, 1.2).normalize() },

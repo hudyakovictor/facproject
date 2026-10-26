@@ -8,6 +8,7 @@ import TemporalDriftPanel from './components/TemporalDriftPanel';
 import SimilarityMatrixPanel from './components/SimilarityMatrixPanel';
 import TimelineQualityPanel from './components/TimelineQualityPanel';
 import { catmullRomWeights } from './utils/timeline';
+import { SATURATION_RMS, VERTEX_THRESHOLD_RMS } from './constants/normalization';
 
 export default function App() {
   const [photoA, setPhotoA] = useState(null);
@@ -30,6 +31,12 @@ export default function App() {
   const [blendWeights, setBlendWeights] = useState([1, 0, 0, 0]);
   const [deformationMode, setDeformationMode] = useState('linear');
   const [predictionMode, setPredictionMode] = useState(false);
+  // Этап тяжёлой синхронной операции — для прогресс-бара (бэкенд не отдаёт реальный прогресс)
+  const [taskLabel, setTaskLabel] = useState(null);
+  // 3-way идентификация по форме (put / vas / udmurt) для загруженного фото
+  const [identityA, setIdentityA] = useState(null);
+  const [identityB, setIdentityB] = useState(null);
+  const [identityLoading, setIdentityLoading] = useState(false);
 
   const [progress, setProgress] = useState(0.0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -38,6 +45,84 @@ export default function App() {
   const [showUVDiff, setShowUVDiff] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [lighting, setLighting] = useState(false);
+
+  // ── PROGRESS BAR: тяжёлые запросы к бэкенду синхронные и не отдают прогресс,
+  // поэтому полоса детерминированная клиентская: быстрый старт, плато ~90% до ответа.
+  const busy = taskLabel !== null;
+  const [taskValue, setTaskValue] = useState(0);
+  useEffect(() => {
+    if (!busy) return undefined;
+    const startedAt = Date.now();
+    const tick = setInterval(() => {
+      const t = (Date.now() - startedAt) / 1000;
+      // ~25% за 1с, ~66% за 5с, плато 90% к ~20с
+      setTaskValue((prev) => Math.max(prev, Math.min(90, (t / (t + 0.62)) * 100)));
+    }, 100);
+    return () => clearInterval(tick);
+  }, [busy]);
+  // Завершение: мгновенно 100%, держим короткое время, затем плавно скрываем
+  const [barVisible, setBarVisible] = useState(false);
+  const [barFading, setBarFading] = useState(false);
+  useEffect(() => {
+    if (busy) {
+      setTaskValue((prev) => (prev >= 100 ? 0 : prev));
+      setBarVisible(true);
+      setBarFading(false);
+      return undefined;
+    }
+    if (!barVisible) return undefined;
+    setTaskValue(100);
+    const hold = setTimeout(() => setBarFading(true), 450);
+    const hide = setTimeout(() => { setBarVisible(false); setTaskValue(0); }, 900);
+    return () => { clearTimeout(hold); clearTimeout(hide); };
+  }, [busy, barVisible]);
+
+  // ── IDENTITY PROBABILITY: при выборе фото A/B запрашиваем /api/identify-probability ──
+  useEffect(() => {
+    let cancelled = false;
+    const run = async (file, setter) => {
+      if (!file) { setter(null); return; }
+      setIdentityLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('photo', file);
+        const res = await fetch('/api/identify-probability', { method: 'POST', body: formData });
+        const payload = await res.json();
+        if (cancelled) return;
+        if (res.ok && payload.status === 'ok') setter(payload);
+        else setter({ error: payload.detail || `HTTP ${res.status}` });
+      } catch (e) {
+        if (!cancelled) setter({ error: e.message });
+      } finally {
+        if (!cancelled) setIdentityLoading(false);
+      }
+    };
+    run(photoA, setIdentityA);
+    return () => { cancelled = true; };
+  }, [photoA]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!photoB) { setIdentityB(null); return; }
+      setIdentityLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('photo', photoB);
+        const res = await fetch('/api/identify-probability', { method: 'POST', body: formData });
+        const payload = await res.json();
+        if (cancelled) return;
+        if (res.ok && payload.status === 'ok') setIdentityB(payload);
+        else setIdentityB({ error: payload.detail || `HTTP ${res.status}` });
+      } catch (e) {
+        if (!cancelled) setIdentityB({ error: e.message });
+      } finally {
+        if (!cancelled) setIdentityLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [photoB]);
 
   // ── KEYBOARD SHORTCUTS ───────────────────────────────────────────
   useEffect(() => {
@@ -120,7 +205,7 @@ export default function App() {
     const anchor = sequence[0];
     const endpoint = sequence[sequence.length - 1];
     const n = current.length / 3;
-    const THRESHOLD = 0.025;
+    const THRESHOLD = VERTEX_THRESHOLD_RMS;
     let sumDist = 0; let maxDist = 0; let aboveThreshold = 0;
     let dot = 0; let normCurrent = 0; let normEndpoint = 0;
     let sumEndpointDelta = 0;
@@ -145,7 +230,7 @@ export default function App() {
       pctAbove: ((aboveThreshold / n) * 100).toFixed(1),
       totalVerts: n.toLocaleString(),
       cosine: (dot / (Math.sqrt(normCurrent) * Math.sqrt(normEndpoint) + 1e-9)).toFixed(4),
-      morphability: Math.max(0, Math.min(100, (1 - meanDist / 0.15) * 100)).toFixed(1),
+      morphability: Math.max(0, Math.min(100, (1 - meanDist / SATURATION_RMS) * 100)).toFixed(1),
       toEndpoint: (sumEndpointDelta / n).toFixed(5),
       keyframeCount: sequence.length,
     };
@@ -155,6 +240,7 @@ export default function App() {
   const handleDownloadGif = async () => {
     if (!photoA || !photoB) return;
     setGifLoading(true);
+    setTaskLabel('Генерация GIF на бэкенде');
     try {
       const formData = new FormData();
       formData.append('photo_a', photoA);
@@ -173,6 +259,7 @@ export default function App() {
       alert('Ошибка при скачивании GIF: ' + e.message);
     } finally {
       setGifLoading(false);
+      setTaskLabel(null);
     }
   };
 
@@ -342,6 +429,7 @@ export default function App() {
       return;
     }
     setLoading(true);
+    setTaskLabel('Реконструкция 3DMM и HD UV-текстур');
     setError(null);
     setIsPlaying(false);
     const formData = new FormData();
@@ -365,8 +453,10 @@ export default function App() {
       setPredictionMode(false);
       // Фоновый запрос зонального forensic-score — не блокирует отображение морфа
       fetchForensicScore();
+      setTaskLabel(null);
     } catch (err) {
       setError(err.message || 'Ошибка соединения с бэкендом');
+      setTaskLabel(null);
     } finally {
       setLoading(false);
     }
@@ -376,6 +466,7 @@ export default function App() {
   const handleBuildTimeline = async (years, futureYear) => {
     if (timelineFiles.length < 2) return;
     setTimelineLoading(true);
+    setTaskLabel('Построение timeline по keyframes');
     setError(null);
     setIsPlaying(false);
     try {
@@ -404,6 +495,7 @@ export default function App() {
       setError(err.message || 'Ошибка timeline-морфинга');
     } finally {
       setTimelineLoading(false);
+      setTaskLabel(null);
     }
   };
 
@@ -535,6 +627,14 @@ export default function App() {
           {loading ? '⏳ Выравнивание в (0,0,0) и генерация HD UV...' : '🚀 Запустить 3D Morphing'}
         </button>
 
+        {/* ── PROGRESS BAR тяжёлых операций ── */}
+        <ProgressBar visible={barVisible} fading={barFading} value={taskValue} label={taskLabel} />
+
+        {/* ── ВЕРОЯТНОСТЬ НА КОГО ИЗ ТРОИХ ПОХОЖЕ (по форме лица) ── */}
+        {(identityA || identityB) && (
+          <IdentityProbabilityPanel slots={[{ tag: 'Фото A', data: identityA }, { tag: 'Фото B', data: identityB }]} loading={identityLoading} />
+        )}
+
         <label style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#8b949e' }}>
           <span>Smooth deformation</span>
           <select value={deformationMode} onChange={(event) => setDeformationMode(event.target.value)} style={{ background: '#161b22', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', padding: '6px', fontSize: '11px' }}>
@@ -604,7 +704,7 @@ export default function App() {
                 { label: 'Mean Dist', value: liveMetrics.euclidean },
                 { label: 'Max Delta', value: liveMetrics.maxDelta },
                 { label: 'До финала', value: liveMetrics.toEndpoint },
-                { label: '% > 0.025', value: `${liveMetrics.pctAbove}%` },
+                { label: `% > ${VERTEX_THRESHOLD_RMS}`, value: `${liveMetrics.pctAbove}%` },
                 { label: 'Вершин', value: liveMetrics.totalVerts },
                 { label: 'Keyframes', value: liveMetrics.keyframeCount },
               ].map(({ label, value }) => (
@@ -746,6 +846,108 @@ function getMorphabilityColor(v) {
   if (v >= 50) return '#d29922';  // жёлтый — похож
   if (v >= 25) return '#f0883e';  // оранжевый — мало похож
   return '#f85149';               // красный — сильно различаются
+}
+
+// Вероятности сходства с эталонами личностей (put / vas / udmurt) для загруженного фото.
+const IDENTITY_COLORS = { put: '#1f6feb', vas: '#ab7df8', udmurt: '#f0883e' };
+
+function IdentityProbabilityPanel({ slots, loading }) {
+  return (
+    <div style={{
+      background: '#161b22',
+      border: '1px solid #30363d',
+      borderRadius: '8px',
+      padding: '12px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '11px', color: '#79c0ff', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          🎯 Сходство с эталонами (форма)
+        </div>
+        {loading && <span style={{ fontSize: '10px', color: '#8b949e' }}>⏳ расчёт…</span>}
+      </div>
+      <div style={{ color: '#6e7681', fontSize: '9px', lineHeight: 1.35 }}>
+        Эвристика по 17 метрикам формы (softmax от робастного z-расстояния). Не калиброванная вероятность личности.
+      </div>
+      <div style={{ color: '#6e7681', fontSize: '9px', lineHeight: 1.35 }}>
+        Измерено на 120 фото, не входивших в сборку эталонов: top-1 = 63% (случайно 33%).
+        По уверенности: лидер ниже 50% — попадает 54% раз (2/3 кадров), 50–60% — 79%,
+        ≥60% — 7 из 7. То есть короткая полоска означает «метрика не различает», а не
+        «лицо не похоже».
+      </div>
+      {slots.map(({ tag, data }) => (
+        <div key={tag}>
+          <div style={{ fontSize: '10px', color: '#8b949e', marginBottom: '4px' }}>{tag}</div>
+          {!data && <div style={{ fontSize: '10px', color: '#484f58' }}>нет данных</div>}
+          {data?.error && <div style={{ fontSize: '10px', color: '#ff7b72' }}>⚠️ {data.error}</div>}
+          {data?.probabilities && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {Object.entries(data.probabilities)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, pct]) => {
+                  const color = IDENTITY_COLORS[name] || '#8b949e';
+                  const isBest = name === data.best_match;
+                  return (
+                    <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '60px', fontSize: '11px', color: isBest ? '#e6edf3' : '#8b949e', fontWeight: isBest ? 'bold' : 'normal', flexShrink: 0 }}>
+                        {isBest ? '★ ' : ''}{name}
+                      </div>
+                      <div style={{ flex: 1, height: '8px', background: '#21262d', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '999px', transition: 'width 0.5s ease' }} />
+                      </div>
+                      <div style={{ width: '46px', fontSize: '11px', color, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{pct.toFixed(1)}%</div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Клиентская прогресс-полоса для синхронных запросов к бэкенду (реального прогресса нет).
+function ProgressBar({ visible, fading, value, label }) {
+  if (!visible) return null;
+  const color = value >= 100 ? '#3fb950' : '#00ffaa';
+  return (
+    <div style={{
+      opacity: fading ? 0 : 1,
+      transition: 'opacity 0.4s ease',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '5px',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#8b949e' }}>
+        <span>{value >= 100 ? '✅ Готово' : `⏳ ${label || 'Обработка…'}`}</span>
+        <span style={{ color, fontVariantNumeric: 'tabular-nums' }}>{Math.round(value)}%</span>
+      </div>
+      <div style={{ position: 'relative', height: '8px', background: '#21262d', borderRadius: '999px', overflow: 'hidden', border: '1px solid #30363d' }}>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          width: `${value}%`,
+          background: `linear-gradient(90deg, ${color}cc, ${color})`,
+          borderRadius: '999px',
+          transition: 'width 0.25s ease-out',
+          boxShadow: `0 0 10px ${color}66`,
+        }} />
+        {value < 100 && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            width: '33%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
+            animation: 'progressShimmer 1.4s linear infinite',
+          }} />
+        )}
+      </div>
+    </div>
+  );
 }
 
 function MorphabilityBar({ value }) {
@@ -900,7 +1102,7 @@ function ZoneScoresPanel({ zones, globalScore, onRecompute, recomputing }) {
         // morph-pair отдаёт плоский mean_dist по зоне
         const score = (val !== null && typeof val === 'object')
           ? (val.identity_score ?? val.similarity ?? 0)
-          : Math.max(0, Math.min(100, (1.0 - val / 0.15) * 100));
+          : Math.max(0, Math.min(100, (1.0 - val / SATURATION_RMS) * 100));
         const color = getMorphabilityColor(score);
         return (
           <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

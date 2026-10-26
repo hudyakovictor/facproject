@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { HEAT_FULL_SCALE_RMS } from '../constants/normalization';
 
 export const MorphShaderMaterialDefinition = {
   uniforms: {
@@ -9,6 +10,13 @@ export const MorphShaderMaterialDefinition = {
     u_textureD: { value: null },
     u_textureDiff: { value: null },
     u_showHeatmap: { value: 0.0 },
+    // Девиация, при которой heatmap доходит до красного. По умолчанию историческое
+    // 1/18 в боевых единицах (RMS по 106 ландмаркам); бэкенд отдаёт
+    // metadata.heat_full_scale по калибровке шума ракурса.
+    u_heatFull: { value: HEAT_FULL_SCALE_RMS },
+    // Пол шкалы: девиации ниже него — шум конвейера этого ракурса, и они рисуются
+    // самым холодным цветом. 0 = историческая шкала от нуля.
+    u_heatBase: { value: 0.0 },
     u_showUVDiff: { value: 0.0 },
     u_wireframeMode: { value: 0.0 },
     u_lightDirection: { value: new THREE.Vector3(0.5, 1.0, 1.5).normalize() },
@@ -53,13 +61,17 @@ export const MorphShaderMaterialDefinition = {
     uniform sampler2D u_textureDiff;
     uniform vec4 u_weights;
     uniform float u_showHeatmap;
+    uniform float u_heatFull;
+    uniform float u_heatBase;
     uniform float u_showUVDiff;
     uniform float u_wireframeMode;
     uniform float u_useLighting;
     uniform vec3 u_lightDirection;
 
     vec3 getHeatmapColor(float val) {
-      float v = clamp(val * 18.0, 0.0, 1.0);
+      float full = max(u_heatFull, 1e-6);
+      float base = clamp(u_heatBase, 0.0, full);
+      float v = clamp((val - base) / max(full - base, 1e-6), 0.0, 1.0);
       vec3 col = vec3(0.0);
       col.r = clamp(2.0 * v - 0.5, 0.0, 1.0);
       col.g = clamp(1.0 - abs(2.0 * v - 1.0), 0.0, 1.0);

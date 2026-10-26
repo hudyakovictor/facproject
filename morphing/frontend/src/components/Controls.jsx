@@ -259,7 +259,7 @@ export default function Controls({
           flexDirection: 'column',
           gap: '4px'
         }}>
-          <div style={{ color: '#58a6ff', fontWeight: 'bold' }}>✓ Каноническое выравнивание в (0°, 0°, 0°)</div>
+          <PoseAlignmentLine metadata={metadata} />
           {metadata.photo_a_yaw !== undefined && <div>Исходный ракурс A: <b>{metadata.photo_a_yaw > 0 ? `+${metadata.photo_a_yaw}°` : `${metadata.photo_a_yaw}°`}</b></div>}
           {metadata.photo_b_yaw !== undefined && <div>Исходный ракурс B: <b>{metadata.photo_b_yaw > 0 ? `+${metadata.photo_b_yaw}°` : `${metadata.photo_b_yaw}°`}</b></div>}
           {metadata.mean_3d_difference !== undefined && <div>Средняя 3D-девиация: <b>{metadata.mean_3d_difference}</b></div>}
@@ -301,6 +301,114 @@ export default function Controls({
       </details>
 
     </div>
+  );
+}
+
+const POSE_BINS_RU = {
+  left_profile: 'левый профиль',
+  left_deep: 'левый глубокий',
+  left_mid: 'левый средний',
+  left_light: 'левый лёгкий',
+  frontal: 'фронтальный',
+  right_light: 'правый лёгкий',
+  right_mid: 'правый средний',
+  right_deep: 'правый глубокий',
+  right_profile: 'правый профиль',
+};
+
+function PoseAlignmentLine({ metadata }) {
+  const pose = metadata?.pose;
+  if (!pose) {
+    return <div style={{ color: '#58a6ff', fontWeight: 'bold' }}>✓ Каноническое выравнивание сетки</div>;
+  }
+  const binLabel = POSE_BINS_RU[pose.canonical_bin] || pose.canonical_bin;
+  const num = (value) => (Number.isFinite(value) ? `${value > 0 ? '+' : ''}${Number(value).toFixed(1)}°` : '—');
+  const frac = (value) => (Number.isFinite(value) ? Number(value).toFixed(4) : '—');
+  const noise = metadata?.noise;
+  const noiseColor = noise?.verdict === 'above_noise' ? '#f85149' : (noise?.verdict === 'near_noise' ? '#d29922' : '#3fb950');
+  return (
+    <>
+      <div style={{ color: pose.same_pose_bin ? '#58a6ff' : '#f85149', fontWeight: 'bold' }}>
+        {pose.same_pose_bin ? '✓' : '⚠'} Ракурс: {binLabel} (канон yaw {num(pose.canonical_yaw)})
+      </div>
+      {pose.per_photo?.length > 1 && (
+        <div>
+          {pose.per_photo.map((photo, index) => (
+            <span key={`${photo.pose_bin}-${index}`} style={{ marginRight: '8px' }}>
+              {String.fromCharCode(65 + index)}: {POSE_BINS_RU[photo.pose_bin] || photo.pose_bin} {num(photo.yaw)}
+            </span>
+          ))}
+        </div>
+      )}
+      {pose.warning && <div style={{ color: '#f85149' }}>{pose.warning}</div>}
+      {noise?.available && (
+        <div>
+          {noise.band_source === 'reshoot_photos'
+            ? `Разброс двух съёмок одного человека в этом ракурсе (пар n=${noise.band_pairs})`
+            : 'Повторяемость этого ракурса внутри серии'}
+          {noise.band_source === 'drift_bucket' && Array.isArray(noise.band_dyaw_deg)
+            ? ` при Δyaw ${noise.band_dyaw_deg[0]}–${noise.band_dyaw_deg[1]}°`
+            : ''}
+          : p50 <b>{frac(noise.expected_p50)}</b> · p95 <b>{frac(noise.expected_p95)}</b>
+          {' '}· у вас <b>{frac(noise.mean_delta)}</b> →{' '}
+          <b style={{ color: noiseColor }}>{noise.verdict_label}</b>
+        </div>
+      )}
+      {noise?.available && noise.band_source === 'reshoot_photos' && (
+        <div style={{ color: '#8b949e' }}>
+          Кадры одной видеосерии того же ракурса (нижняя оценка): p50 {frac(noise.video_p50)} ·
+          p95 {frac(noise.video_p95)} — ваша девиация в {noise.video_band_ratio_p95}× от неё
+        </div>
+      )}
+      {noise?.available && noise.reshoot?.available && !noise.reshoot.operative && (
+        <div style={{ color: '#8b949e' }}>
+          По независимым съёмкам этого ракурса измерено {noise.reshoot.spread?.pairs || 0} пар с
+          разным интервалом дат (p50 {frac(noise.reshoot.spread?.p50)} · p95{' '}
+          {frac(noise.reshoot.spread?.p95)}); ближних пар (≤{noise.reshoot.near_days} дн.) всего{' '}
+          {noise.reshoot.near?.pairs || 0} — этого мало, чтобы быть границей, поэтому вердикт идёт
+          по видео-полосе, которая на пересъёмках занижена
+        </div>
+      )}
+      {noise?.available && noise.person_baseline_separable === false && (
+        <div style={{ color: '#8b949e' }}>
+          Опора «типичное различие между людьми» в этом ракурсе почти ничего не
+          утверждает: {(noise.same_person_above_between_share * 100).toFixed(0)}% пар одного
+          человека (разные съёмки) лежат выше её медианы
+        </div>
+      )}
+      {noise?.available && (
+        <div style={{ color: '#8b949e' }}>
+          Тот же ракурс, соседние кадры (Δyaw &lt; 2°): p50 {frac(noise.floor_p50)} ·
+          p95 {frac(noise.floor_p95)} — нижняя оценка; разрыв до полосы выше —
+          наблюдаемый размах при дрейфе позы внутри серии, а не выделенный вклад позы
+          {Number.isFinite(metadata?.heat_full_scale)
+            ? `· на heatmap: ниже ${frac(metadata.heat_base_scale)} — в пределах этого разброса, полный красный = ${frac(metadata.heat_full_scale)}`
+            : ''}
+        </div>
+      )}
+      {noise?.available && noise.band_status && (
+        <div style={{ color: '#8b949e', fontStyle: 'italic' }}>
+          Полосы измерены так: {noise.band_status}
+          {noise.calibration_version ? ` (калибровка ${noise.calibration_version})` : ''}
+        </div>
+      )}
+      {noise?.available && (noise.transfer_note || noise.attribution_note) && (
+        <details style={{ color: '#8b949e' }}>
+          <summary style={{ cursor: 'pointer' }}>Откуда взялась эта полоса и чем она занижена</summary>
+          {noise.transfer_note && <div style={{ marginTop: '4px' }}>{noise.transfer_note}</div>}
+          {noise.attribution_note && (
+            <div style={{ marginTop: '4px', fontStyle: 'italic' }}>{noise.attribution_note}</div>
+          )}
+        </details>
+      )}
+      {noise && !noise.available && (
+        <div style={{ color: '#8b949e' }}>
+          {noise.reason === 'pose_mismatch'
+            ? 'Ракурсы различаются — полоса повторяемости не применима.'
+            : 'Полоса повторяемости для этого ракурса не откалибрована.'}
+        </div>
+      )}
+    </>
   );
 }
 
