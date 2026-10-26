@@ -11,10 +11,12 @@
 одной стороны его не убирает. Блок (L кадров подряд) сохраняет автокорреляцию прогона;
 отношение SE_block / SE_iid даёт коэффициент оптимизма прошлой цифры.
 
-Единицы: общие с advisor_tests.load() — canon нормирован по max-radius=1 по 106 точкам,
-v17 пересчитан из этих же canon (одна нормировка на облака и метрики). Для читаемости
-всё продублировано в долях IPD (eye_anchor_spacing_3d ровного эталона) и в мм при
-допущении IPD = 63 мм.
+Единицы: общие с advisor_tests.load() — canon юстируется боевой нормировкой
+`aligner.normalize_ldm106` (центр и RMS по 106 точкам, патч 04), v17 пересчитан из этих же
+canon (одна нормировка на облака и метрики). В этих единицах абсолютные пороги примерно
+в 1.6 раза больше прежних (max-радиус в RMS-единицах ~1.6): сравнивать цифры T8 с
+прошлыми прогонами напрямую нельзя. Для читаемости всё продублировано в долях IPD
+(eye_anchor_spacing_3d ровного эталона) и в мм при допущении IPD = 63 мм.
 
 Запуск: PYTHONPATH=/Users/victorkhudyakov/work python app9/validation/t8_absolute.py
 """
@@ -31,6 +33,11 @@ IPD_MM = 63.0                      # грубое допущение тольк�
 ALAR_L, ALAR_R = 58, 62
 BLOCK_L = 5                        # длина блока: кадр прогона скоррелирован с ~5 соседями
 N_BOOT = 2000
+# Зазор меньше этой величины закрылся бы только за пределом `N_BOOT` кадров: при типовой
+# полосе bin(20) ~ 0.002 экстраполяция SE ~ 1/sqrt(n) даёт 2*SE_block(2000) ~ 1e-4..2e-4.
+# Для такой метрики писать «нужно N кадров» некорректно — ближайшая реальная пара людей
+# совпадает до пятого знака, то есть метрика различия между людьми не несёт.
+INDISTINCT_GAP = 1e-4
 RNG = np.random.default_rng(20261026)
 
 from advisor_tests import level_set, load  # noqa: E402  (общая загрузка, отбор ровных кадров, единицы)
@@ -130,6 +137,30 @@ def worst(sts: list[dict], key: str, n: int, use_bias: bool) -> float:
     return max((s[key][n] * 2 + (s["bias"] if use_bias else 0.0)) for s in sts)
 
 
+def gap_tag(vals: list, gap_min: float, per: dict, n_obs: int, with_bias: bool) -> str:
+    """Метка колонки «сколько кадров»: причина отсутствия числа, а не голое None.
+
+    `gap_min < INDISTINCT_GAP` — метрика не различает людей вообще; `bias >= gap_min`
+    (только для сравнения с фронтальным эталоном) — биас стороны сам съедает зазор;
+    None из `n_needed` — зазор закрылся бы только за пределами `big` кадров. Число больше
+    `n_obs` — экстраполяция SE ~ 1/sqrt(n) за пределы данных, помечаем звёздочкой.
+    """
+    if gap_min < INDISTINCT_GAP:
+        return "не различает"
+    if with_bias and any(side["bias"] >= gap_min for st in per.values() for side in st):
+        return "BIAS"
+    if any(v is None for v in vals):
+        return ">2000*"
+    m = max(vals)
+    return f"{m}{'*' if m > n_obs else ''}"
+
+
+def as_n(label: str) -> int | None:
+    """Число из метки `gap_tag`; None, если в метке числа нет."""
+    digits = label.rstrip("*")
+    return int(digits) if digits.isdigit() else None
+
+
 def main() -> None:
     rows = load()
     lvl, tilt = splits(rows)
@@ -146,12 +177,19 @@ def main() -> None:
     print("- прежняя формула (t/Дельта)^2, которая считает остаток независимым шумом.")
     print("порог фронта = биас + 2*SE_block (кадр против ровного эталона);")
     print("порог бина  = 2*SE_block (тот же канонический yaw у обоих, биас сокращается).")
-    print("n_фронт / n_бин: кадров до минимального реального зазора между людьми;")
-    print("BIAS = биас сам больше зазора, >2000 = зазор не закрывается в разумных n.\n")
+    print("n_фронт / n_бин: кадров до минимального реального зазора между людьми.\n")
     ns = (1, 5, 20)
+    print("n_фр / n_бин с цифрой и без звёздочки — измерено по реальным кадрам той же стороны.")
+    print("* — число больше количества наклонных кадров на сторону (столбец n/стор): это")
+    print("экстраполяция SE ~ 1/sqrt(n) за пределы данных, допущение, а не измерение.")
+    print(f"'не различает' — зазор_min < {INDISTINCT_GAP:g}: ближайшая пара людей совпадает до")
+    print("пятого знака, и усреднением кадров такой разрыв не закрывается ни при каком n")
+    print("(метрика не несёт различия), поэтому вместо числа кадров так и пишем.")
+    print("'BIAS' — биас стороны сам не меньше зазора; '>2000*' — зазор закрывался бы")
+    print("только за пределами разумного n.\n")
     head = (f"{'метрика':24s}{'зазор_min':>10s}{'зазор_med':>10s}{'биас':>9s}"
             f"{'фронт(1)':>9s}{'фронт(5)':>9s}{'фронт(20)':>10s}{'bin(1)':>8s}{'bin(20)':>8s}"
-            f"{'VIF(5)':>7s}{'n_фр':>7s}{'n_бин':>7s}")
+            f"{'VIF(5)':>7s}{'n/стор':>7s}{'n_фр':>14s}{'n_бин':>14s}")
     print(head)
     table = {}
     for i, nm in enumerate(I.FEATURE_ORDER):
@@ -176,27 +214,34 @@ def main() -> None:
                 if s["iid"][5] > 1e-12 and s["L"] >= 3]
         biases = [s["bias"] for st in per.values() for s in st]
         med_bias = float(np.median(biases))
+        n_obs = max(s["n"] for st in per.values() for s in st)
         n_f = [n_needed(s["bias"], s["block"], gap_min) for st in per.values() for s in st]
         n_b = [n_needed(0.0, s["block"], gap_min) for st in per.values() for s in st]
-        tag_f = "BIAS" if any(x is None for x in n_f) else str(max(n_f))
-        tag_b = ">" + str(2000) if any(x is None for x in n_b) else str(max(n_b))
+        tag_f, tag_b = gap_tag(n_f, gap_min, per, n_obs, True), gap_tag(n_b, gap_min, per, n_obs, False)
         row = {"gap_min": gap_min, "gap_median": gap_med, "bias_median": med_bias,
                "bias_worst": max(biases),
                "detect_front": thr_f, "detect_bin": thr_b, "detect_iid_20": thr_iid,
                "vif_at_5": float(np.median(vif5)) if vif5 else None,
-               "n_to_close_gap_front": None if tag_f == "BIAS" else int(tag_f),
-               "n_to_close_gap_bin": None if tag_b.startswith(">") else int(tag_b),
+               "tilted_frames_per_side_max": n_obs,
+               "indistinct_gap": gap_min < INDISTINCT_GAP,
+               "n_to_close_gap_front": as_n(tag_f),
+               "n_to_close_gap_bin": as_n(tag_b),
                "bias_blocks_gap": tag_f == "BIAS", "n_people": len(per)}
         table[nm] = row
         vif_s = f"{row['vif_at_5']:.2f}" if row["vif_at_5"] else "-"
         print(f"{nm:24s}{gap_min:10.5f}{gap_med:10.5f}{med_bias:9.5f}"
               f"{thr_f[1]:9.5f}{thr_f[5]:9.5f}{thr_f[20]:10.5f}"
-              f"{thr_b[1]:8.5f}{thr_b[20]:8.5f}{vif_s:>7s}{tag_f:>7s}{tag_b:>7s}")
+              f"{thr_b[1]:8.5f}{thr_b[20]:8.5f}{vif_s:>7s}{n_obs:>7d}{tag_f:>14s}{tag_b:>14s}")
     print("\n(зазор_min = ближайшая реальная пара людей, зазор_med = медиана 15 пар)")
+    print("n/стор = максимум наклонных кадров одной стороны в данных: правее этой границы")
+    print("числа n — оценка по 1/sqrt(n), а не измерение; столбцы *(20) опираются на то же")
+    print("допущение, когда у стороны кадров меньше 20")
 
     # ---------------- T8b: нос в геометрии, биас стороны + блок-бутстрап ----------------
     print("\n### T8b: ширина носа (58-62) по сторонам: биас ракурса + 2*SE_block(n)")
     print("шаг добавки виден на n кадрах одной стороны, если s*средняя_ширина > порог(n)")
+    print("звёздочка у n — наклонных кадров этой стороны меньше, чем n: порог построен на")
+    print("экстраполированном SE(1/sqrt(n)), а не на разбросе реального набора кадров")
     for p in sorted(lvl):
         if not tilt[p]:
             continue
@@ -218,8 +263,9 @@ def main() -> None:
                 shift = s * float(np.mean(own))
                 verdict = {n: ("виден" if shift > st["bias"] + 2 * st["block"][n] else "нет") for n in ns}
                 verdict_iid = "виден" if shift > 2 * st["iid"][1] else "нет"
+                lab = {n: f"{n}{'*' if n > base.size else ''}" for n in ns}
                 print(f"     +{100 * s:4.1f}%: сдвиг {units(shift, ipd[p])}  "
-                      f"n=1:{verdict[1]}  n=5:{verdict[5]}  n=20:{verdict[20]}"
+                      f"{lab[1]}:{verdict[1]}  {lab[5]}:{verdict[5]}  {lab[20]}:{verdict[20]}"
                       f"   (по старой формуле 1 кадр: {verdict_iid})")
 
     out = HERE / "report" / "t8_absolute.json"
