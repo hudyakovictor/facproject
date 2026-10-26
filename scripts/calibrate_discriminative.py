@@ -39,7 +39,7 @@ sys.path.insert(0, str(ROOT))
 
 from app8.reconstruction import reconstruct_image  # noqa: E402
 from morphing.backend.aligner import MAXR_TO_RMS106, align_identity_mesh  # noqa: E402
-from morphing.backend.analysis import similarity_metrics, zone_ranges  # noqa: E402
+from morphing.backend.analysis import similarity_metrics  # noqa: E402
 
 DS_ROOT = Path("/Volumes/SDCARD/photo/calibration_dataset")
 CSV_PATH = DS_ROOT / "calibration_datasets" / "all_calibration_index.csv"
@@ -196,7 +196,7 @@ def main() -> None:
     margins = []
     confusion: dict[str, int] = {}
     for true_p, v in probes:
-        ds = sorted(((float(np.linalg.norm(v - protos[q], axis=1).mean()), q) for q in proto_labels))
+        ds = sorted((float(np.linalg.norm(v - protos[q], axis=1).mean()), q) for q in proto_labels)
         d_best, p_best = ds[0]
         d_second, p_second = ds[1] if len(ds) > 1 else (float("inf"), None)
         if p_best == true_p:
