@@ -87,8 +87,11 @@ def compensate_quality_disparity(
     out["quality_disparity"] = disparity
     out["quality_limited"] = quality_limited
 
-    # Защита: при ограниченном качестве текстурный счёт не опускается ниже
-    # нейтрального. Размытость источника не должна читаться как признак материала.
+    # Защита: при ограниченном качестве текстурные выводы запрещены. Измеренный счёт при
+    # этом остаётся как есть — подменять его «нейтральным» 0.5 значит придумывать число;
+    # нейтральное значение здесь = None («данных нет»), и оно пишется только когда
+    # измерения и правда нет. Размытость источника не должна читаться как признак
+    # материала, но и не должна превращаться в фиктивную середину шкалы.
     if quality_limited or disparity:
         current = pair_metrics.get("texture_score_0_1")
         try:
@@ -96,7 +99,7 @@ def compensate_quality_disparity(
         except (TypeError, ValueError):
             current_f = float("nan")
         if not np.isfinite(current_f):
-            out["texture_score_0_1"] = None
+            out["texture_score_0_1"] = NEUTRAL_TEXTURE_SCORE
             out["texture_score_source"] = "neutral_default_quality_limited"
         else:
             out["texture_score_0_1"] = current_f
@@ -128,7 +131,8 @@ def resolution_quality_gate(
         - resolution_ratio
         - quality_disparity
         - quality_limited (from photo qualities)
-        - texture_score_0_1 (neutral if limited/disparity)
+        - texture_score_0_1 (measured value kept; NEUTRAL_TEXTURE_SCORE=None when there is
+          no measurement, and `texture_conclusions_allowed` is what blocks the readout)
         - texture_conclusions_allowed
         - quality_gate_reason
     """
@@ -156,8 +160,11 @@ def resolution_quality_gate(
     out["quality_disparity"] = disparity
     out["quality_limited"] = quality_limited
 
-    # Защита: при ограниченном качестве текстурный счёт не опускается ниже
-    # нейтрального. Размытость источника не должна читаться как признак материала.
+    # Защита: при ограниченном качестве текстурные выводы запрещены. Измеренный счёт при
+    # этом остаётся как есть — подменять его «нейтральным» 0.5 значит придумывать число;
+    # нейтральное значение здесь = None («данных нет»), и оно пишется только когда
+    # измерения и правда нет. Размытость источника не должна читаться как признак
+    # материала, но и не должна превращаться в фиктивную середину шкалы.
     if quality_limited or disparity:
         current = pair_metrics.get("texture_score_0_1")
         try:
@@ -165,7 +172,7 @@ def resolution_quality_gate(
         except (TypeError, ValueError):
             current_f = float("nan")
         if not np.isfinite(current_f):
-            out["texture_score_0_1"] = None
+            out["texture_score_0_1"] = NEUTRAL_TEXTURE_SCORE
             out["texture_score_source"] = "neutral_default_quality_limited"
         else:
             out["texture_score_0_1"] = current_f

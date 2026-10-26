@@ -50,12 +50,15 @@ class CumulativeDriftTests(unittest.TestCase):
 class EvidenceLayerTests(unittest.TestCase):
     """Идея 2: downgrade и reportable gate."""
 
-    def test_quality_limited_downgrades_non_noise(self):
+    def test_quality_limited_downgrades_every_state(self):
         self.assertEqual(evidence_state("coherent_jump_candidate", quality_limited=True),
                          "quality_limited")
-        # Шум не понижается: это не аномалия.
+        # Fail-closed (ff9548f7): прежняя льгота «шум не понижается» отменена.
+        # «within_noise» — это тоже утверждение (разница не превышает полосу шума),
+        # а при ограниченном качестве сама полоса шума недооценена: размытая пара может
+        # прятать скачок, поэтому понижается и «null»-статус.
         self.assertEqual(evidence_state("within_reconstruction_noise", quality_limited=True),
-                         "within_noise")
+                         "quality_limited")
 
     def test_calibration_and_pose_downgrade(self):
         self.assertEqual(evidence_state("coherent_jump_candidate", calibration_limited=True),

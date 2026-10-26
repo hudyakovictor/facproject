@@ -15,6 +15,19 @@ def _stage2(path: Path, *, status: str = "complete", created_at: str = "2026-08-
     (path / "pair_metrics.csv").write_text("photo_a,photo_b\n", encoding="utf-8")
 
 
+def _stage3(path: Path) -> None:
+    """Вывод Stage 3 в текущей раскладке: `report_meta.json` + `report_sections/*.json`.
+
+    Прежний единый `report_data.json` Stage 3 не пишет (`stage3/engine.py`), и API-гейт
+    `_stage3_root()` смотрит на `report_meta.json`.
+    """
+    path.mkdir()
+    (path / "report_meta.json").write_text(json.dumps({"schema_version": "v1"}), encoding="utf-8")
+    sections = path / "report_sections"
+    sections.mkdir()
+    (sections / "summary.json").write_text(json.dumps({"x": 1}), encoding="utf-8")
+
+
 def test_storage_root_prefers_canonical_external_storage(monkeypatch, tmp_path: Path):
     monkeypatch.delenv("DEEPUTIN_STORAGE_ROOT", raising=False)
     monkeypatch.setattr(server, "_CANONICAL_STORAGE_ROOT", tmp_path / "canonical")
@@ -52,8 +65,7 @@ def test_stage3_is_resolved_from_storage_when_env_is_absent(monkeypatch, tmp_pat
     monkeypatch.delenv("DEEPUTIN_STAGE3_ROOT", raising=False)
     monkeypatch.setattr(server, "_CANONICAL_STORAGE_ROOT", tmp_path)
     stage3 = tmp_path / "stage3"
-    stage3.mkdir()
-    (stage3 / "report_data.json").write_text("{}", encoding="utf-8")
+    _stage3(stage3)
     assert server._stage3_root() == stage3
 
 
@@ -72,8 +84,7 @@ def test_health_exposes_selected_run(monkeypatch, tmp_path: Path):
     (tmp_path / "stage1").mkdir()
     (tmp_path / "stage1" / "main_timeline.csv").write_text("photo_id,date\n", encoding="utf-8")
     _stage2(tmp_path / "stage2", created_at="2026-08-16T02:15:22Z")
-    (tmp_path / "stage3").mkdir()
-    (tmp_path / "stage3" / "report_data.json").write_text("{}", encoding="utf-8")
+    _stage3(tmp_path / "stage3")
     payload = server.health()
     assert payload["source_mode"] == "research"
     assert payload["stage1_ready"] is True

@@ -55,15 +55,29 @@ class QualityGateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolution_ratio(float("nan"), 50)
 
-    def test_quality_limited_uses_neutral_texture(self):
+    def test_quality_limited_blocks_texture_conclusions_without_inventing_score(self):
+        # Прежняя семантика «подменить счёт нейтральным 0.5» отменена: 0.5 — это придуманное
+        # число (NEUTRAL_TEXTURE_SCORE=None, «данных нет»). За блокировку выводов отвечает
+        # texture_conclusions_allowed, измеренный счёт остаётся измеренным.
         out = compensate_quality_disparity(
             {"photo_a": "A", "photo_b": "B", "texture_score_0_1": 0.1},
             {"A": {"pixels": 1000, "texture_score_0_1": 0.1, "quality_limited": True},
              "B": {"pixels": 1000, "texture_score_0_1": 0.9, "quality_limited": False}},
         )
-        self.assertEqual(out["texture_score_0_1"], 0.5)  # нейтральный уровень
+        self.assertEqual(out["texture_score_0_1"], 0.1)
+        self.assertEqual(out["texture_score_source"], "measured")
         self.assertFalse(out["texture_conclusions_allowed"])
         self.assertEqual(out["quality_gate_reason"], "quality_limited")
+
+    def test_quality_limited_without_measurement_is_none_not_midpoint(self):
+        out = compensate_quality_disparity(
+            {"photo_a": "A", "photo_b": "B", "texture_score_0_1": None},
+            {"A": {"pixels": 1000, "texture_score_0_1": 0.1, "quality_limited": True},
+             "B": {"pixels": 1000, "texture_score_0_1": 0.9, "quality_limited": False}},
+        )
+        self.assertIsNone(out["texture_score_0_1"])
+        self.assertEqual(out["texture_score_source"], "neutral_default_quality_limited")
+        self.assertFalse(out["texture_conclusions_allowed"])
 
     def test_missing_quality_metadata_fails_closed(self):
         pair = compensate_quality_disparity(
@@ -430,20 +444,29 @@ class ApiPairMetricsTests(unittest.TestCase):
 class ApiReportTests(unittest.TestCase):
     """Идея 10: API report."""
 
+    def _stage3_root(self, root: Path, *, validation: bool = True) -> Path:
+        """Разкладка Stage 3: `report_meta.json` + `report_sections/summary.json`
+        (+ `report_validation.json`, без которого отчёт считается непригодным)."""
+        (root / "report_meta.json").write_text(
+            json.dumps({"schema_version": "v1", "summary": {"x": 1}}), encoding="utf-8")
+        sections = root / "report_sections"
+        sections.mkdir()
+        (sections / "summary.json").write_text(json.dumps({"x": 1}), encoding="utf-8")
+        if validation:
+            (root / "report_validation.json").write_text(
+                json.dumps({"status": "complete"}), encoding="utf-8")
+        return root
+
     def test_summary_reports_withheld_prefixes(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            (root / "report_data.json").write_text(
-                json.dumps({"schema_version": "v1", "summary": {"x": 1}}), encoding="utf-8")
-            summary = load_report_summary(root)
+            summary = load_report_summary(self._stage3_root(Path(td)))
             self.assertIn("texture_", summary["withheld_column_prefixes"])
             self.assertIn("uv_", summary["withheld_column_prefixes"])
             self.assertIn("status_semantics", summary)
 
     def test_unknown_section_rejected(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            (root / "report_data.json").write_text(json.dumps({}), encoding="utf-8")
+            root = self._stage3_root(Path(td))
             with self.assertRaises(KeyError):
                 load_report_section(root, "not_a_section")
 
@@ -451,7 +474,12 @@ class ApiReportTests(unittest.TestCase):
         self.assertFalse(report_available(None))
         with tempfile.TemporaryDirectory() as td:
             self.assertFalse(report_available(Path(td)))
-            (Path(td) / "report_data.json").write_text("{}", encoding="utf-8")
+            self._stage3_root(Path(td), validation=False)
+            # Один meta недостаточно: без `report_validation.json` со статусом complete
+            # вывод Stage 3 считается непригодным (неопубликуемый отчёт).
+            self.assertFalse(report_available(Path(td)))
+            (Path(td) / "report_validation.json").write_text(
+                json.dumps({"status": "complete"}), encoding="utf-8")
             self.assertTrue(report_available(Path(td)))
 
 

@@ -58,11 +58,15 @@ class ResolveDateSemanticsTests(unittest.TestCase):
         self.assertEqual(out["date"], None)
         self.assertEqual(out["date_provenance_status"], "missing")
 
-    def test_exif_takes_priority_over_filename(self):
-        # D-002: EXIF — corroboration-надёжнее имени; source=exif.
+    def test_exif_never_overrides_filename_authority(self):
+        # E7 (docs/final/01_FINAL_REMEDIATION_PLAN.md): имя файла — единственный авторитет
+        # хронологии, EXIF/claimed только подтверждают её и помечают конфликт. Раньше эти
+        # четыре теста проверяли отменённую семантику «EXIF приоритетнее имени».
         out = resolve_date(filename="2020_01_01.jpg", exif_date="2020-01-10")
-        self.assertEqual(out["date_source"], "exif")
-        self.assertEqual(out["date"], "2020-01-10")
+        self.assertEqual(out["date_source"], "filename")
+        self.assertEqual(out["date"], "2020-01-01")
+        self.assertEqual(out["date_provenance_status"], "conflict")
+        self.assertEqual(out["date_conflict_sources"], ["exif"])
 
     def test_exif_far_future_ignored_as_scan_date(self):
         # Пересканированные фото: EXIF далеко в будущем — датировка по имени.
@@ -72,16 +76,17 @@ class ResolveDateSemanticsTests(unittest.TestCase):
 
     def test_close_exif_within_conflict_window_resolved_clean(self):
         out = resolve_date(filename="2020_01_01.jpg", exif_date="2020-01-02")
-        self.assertEqual(out["date_provenance_status"], "resolved_exif")
+        self.assertEqual(out["date_provenance_status"], "resolved_filename")
         self.assertEqual(out["date_conflict_sources"], [])
 
     def test_conflicting_sources_report_conflict(self):
         # EXIF на 20 дней позже имени: не отсеян как «перескан» (>365 дн),
-        # но расхождение > CONFLICT_DAYS => конфликт.
+        # но расхождение > CONFLICT_DAYS => конфликт. Датировка остаётся за именем,
+        # в конфликтах перечисляются остальные источники.
         out = resolve_date(filename="2020_01_01.jpg", exif_date="2020-01-20")
-        self.assertEqual(out["date_source"], "exif")
+        self.assertEqual(out["date_source"], "filename")
         self.assertEqual(out["date_provenance_status"], "conflict")
-        self.assertIn("filename", out["date_conflict_sources"])
+        self.assertIn("exif", out["date_conflict_sources"])
         self.assertGreaterEqual(out["date_delta_days"], CONFLICT_DAYS)
 
     def test_rescan_exif_more_than_year_future_ignored(self):

@@ -55,6 +55,14 @@ STATUS_TO_EVIDENCE_STATE = {
 
 
 def evidence_state(status: str, *, quality_limited: bool = False, calibration_limited: bool = False, pose_leakage_limited: bool = False, residual_tilt_limited: bool = False) -> str:
+    """🚧 GATE → Состояние свидетельства с понижением при неприменимости.
+
+    Понижающие флаги применяются ко ВСЕМ статусам, включая «null»-статус `within_noise`:
+    fail-closed-политика отменила прежнюю льготу «шум не понижается». Причина в том, что
+    «разница в пределах полосы реконструкционного шума» — это тоже утверждение, а при
+    ограниченном качестве (или утечке позы) сама полоса недооценена, поэтому отсутствие
+    изменения в таких условиях доказать нельзя.
+    """
     log_status("evidence_state", "complete")
     if status not in STATUS_TO_EVIDENCE_STATE:
         return "unknown_status_not_interpretable"

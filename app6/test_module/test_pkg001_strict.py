@@ -192,7 +192,8 @@ class DateAndTemporalStrictEvidence(unittest.TestCase):
 
     def test_resolve_date_conflicts_invalid_fail_closed_and_repeat(self):
         got = resolve_date(filename="2020_02_29(2).jpg", exif_date="2020-03-04", claimed_date="2020-02-29")
-        self.assertEqual(got["date_source"], "exif")
+        # E7: имя файла — авторитет даты, EXIF только источник конфликта (см. date_provenance).
+        self.assertEqual(got["date_source"], "filename")
         self.assertEqual(got["date_provenance_status"], "conflict")
         self.assertEqual(got["date_delta_days"], 4)
         self.assertEqual(got, resolve_date(filename="2020_02_29(2).jpg", exif_date="2020-03-04", claimed_date="2020-02-29"))

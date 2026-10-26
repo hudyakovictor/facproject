@@ -111,9 +111,12 @@ def full_mesh_compare(photo_a: Record, photo_b: Record) -> dict[str, Any] | None
     """
     if not is_bfm_available():
         return None
-    bfm = load_bfm_model()
+    # Дешёвый гейт идёт ДО загрузки геометрии: `load_bfm_model` распаковывает
+    # face_model.tar.gz (~100 МБ) и в CI/на машине без ассета бросает FileNotFoundError.
+    # Неприменимая пара (alpha не конечен) должна деградировать по docstring, а не падать.
     if not (np.isfinite(photo_a.alpha_id).all() and np.isfinite(photo_b.alpha_id).all()):
         return None
+    bfm = load_bfm_model()
     shape_a = bfm.compute_shape(photo_a.alpha_id, np.zeros(64, np.float32)).astype(np.float64)
     shape_b = bfm.compute_shape(photo_b.alpha_id, np.zeros(64, np.float32)).astype(np.float64)
 

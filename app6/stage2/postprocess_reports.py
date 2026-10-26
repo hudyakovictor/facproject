@@ -7,7 +7,7 @@ from app6.stage1.status_logger import log_status
 
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 import numpy as np
 import re
@@ -63,7 +63,7 @@ def _write_manual_review_queue(out: Path, rows: list[dict[str, Any]]) -> int:
     return len(queue)
 
 
-DEFORBIDDEN_TERM_FIELDS: Final[tuple[str, ...]] = (
+FORBIDDEN_TERM_FIELDS: Final[tuple[str, ...]] = (
     "summary", "narrative", "note", "interpretation",
     "evidence_state", "status", "primary_zone_or_family",
     "alternative_explanations",
@@ -102,7 +102,7 @@ def _write_public_safety(out: Path, evidence_packets: list[dict[str, Any]]) -> d
     hits: list[dict[str, Any]] = []
     for pkt in evidence_packets:
         text_fields: list[str] = []
-        for key in DEFORBIDDEN_TERM_FIELDS:
+        for key in FORBIDDEN_TERM_FIELDS:
             val = pkt.get(key)
             if val is not None:
                 text_fields.append(str(val))
@@ -118,7 +118,7 @@ def _write_public_safety(out: Path, evidence_packets: list[dict[str, Any]]) -> d
                     "pair_id": pkt.get("pair_id"),
                     "term": term,
                     "field": _field_name(
-                        [k for k in DEFORBIDDEN_TERM_FIELDS if pkt.get(k) is not None][0] if any(pkt.get(k) is not None for k in DEFORBIDDEN_TERM_FIELDS) else "unknown",
+                        [k for k in FORBIDDEN_TERM_FIELDS if pkt.get(k) is not None][0] if any(pkt.get(k) is not None for k in FORBIDDEN_TERM_FIELDS) else "unknown",
                     ),
                 })
     report = {
