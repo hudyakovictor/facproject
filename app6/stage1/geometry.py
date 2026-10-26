@@ -1,12 +1,15 @@
 """
 🎯 CRITICAL → Геометрия поз: canonical alignment и chronology alignment.
 
-КЛЮЧЕВОЙ КОНТРАКТ (патч 02): фото в одном pose bin
-приводятся к ИДЕНТИЧНОЙ позе (0, canonical_yaw, 0) поворотом к каноническому yaw бина.
-Хронология сравнивает vertices_identity (поза в них уже снята базисом 3DDFA), поэтому
-полная коррекция pitch+yaw+roll здесь применялась дважды и доворачивала кадр на -yaw
-сверх нормы - убрана (см. compute_chronology_alignment). Шум наклона головы внутри бина
-остаётся и измеряется в app9/validation.
+КЛЮЧЕВОЙ КОНТРАКТ (патч 03): хронология хранит identity-сетку в объектном каноне 3DMM —
+ни полной коррекции позы, ни доворота к каноническому yaw бина она не получает.
+История: патч 01 убрал двойной поворот (полная коррекция pitch+yaw+roll применялась к
+vertices_identity, у которых поза уже снята базисом 3DDFA, и доворачивала кадр на -yaw
+сверх нормы), патч 02 оставил только поворот к canonical_yaw бина, патч 03 убрал и его:
+внутри бина это общая изометрия (расстояния не меняет), а между бинами и против
+фронтального эталона добавляет искусственную разницу. canonical_yaw остаётся метаданным
+для проверки согласованности бинов. Шум наклона головы внутри бина не убирается и
+измеряется в app9/validation.
 🔗 DEPENDS ON: config.POSE_BINS (9 бинов yaw), используется reconstruction.py/engine.py.
 💡 NOTE: row_rotation_matrix — конвенция row-vector (Rz@Ry@Rx)^T; координаты согласованы с 3DDFA_V3.
 ⚠️ nearest_canonical_yaw (#17) — soft assignment, в пайплайн пока не интегрирована.
@@ -137,8 +140,9 @@ def full_pose_correction_matrix(actual_pose_deg: list[float] | np.ndarray,
 def normalize_mesh(mesh: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
     """Normalize mesh to canonical scale and center.
 
-    Uses RMS scale over the entire mesh. For chronology, this is applied
-    BEFORE pose correction so that scale is consistent across all photos.
+    Uses RMS scale over the entire mesh. For chronology this is the ONLY
+    transform applied: с патча 03 поворота после нормализации нет (identity-сетка
+    уже без позы), поэтому scale/center и есть вся юстировка.
     """
     log_status("normalize_mesh", "complete")
     mesh = np.asarray(mesh, np.float32)
@@ -211,34 +215,40 @@ def compute_chronology_alignment(vertices: np.ndarray,
 
     Steps:
     1. Normalize mesh (center + scale)
-    2. Rotate by the bin's canonical yaw ONLY
-    3. Apply rotation to get chronology-aligned vertices
+    2. NO rotation — the identity-only mesh is already pose-free
 
-    Почему не full_pose_correction: вход (`vertices_identity`) строится базисом 3DDFA
-    с нулевыми параметрами позы, то есть поза уже снята. Вычитать из него измеренные
-    pitch/yaw/roll второй раз — двойной поворот: сетку доворачивало на -yaw сверх нормы,
-    что давало ratio 4.87 против 2.15 у канона (замеры в app9/validation, фронтал). Внутри бина
-    R_target — общая изометрия, поэтому для сравнения кадров одного бина она безвредна,
-    но портит оси симметризации и сравнение с фронтальным эталоном.
+    Why there is no rotation (патч 03, после 01 и 02):
+    - полный R_corr(actual -> target) на этом входе был двойным поворотом: базис 3DDFA
+      строит `vertices_identity` с нулевыми параметрами позы, поэтому вычитать
+      измеренные pitch/yaw/roll второй раз значит довернуть кадр на -yaw сверх нормы
+      (app9/validation: ratio к шумовому полу 4.87 против 2.15, фронтал);
+    - доворот даже на общий канонический yaw бина (патч 02) тоже убран: внутри бина это
+      общая изометрия, то есть расстояния между кадрами она не меняет и проверить её
+      нельзя, а при сравнении РАЗНЫХ бинов и против фронтального эталона она добавляет
+      искусственную разницу ровно на canonical_yaw и портит ось зеркальной
+      симметризации. `morphing/backend/aligner.py` описывает тот же вывод для своего
+      конвейера — теперь прод и валидация согласованы.
 
     Args:
         vertices: (N, 3) vertex array (identity-only recommended)
         actual_pose_deg: [pitch, yaw, roll] from 3DDFA — сохраняется только как диагностика
-        canonical_yaw: target yaw for the pose bin
+        canonical_yaw: канонический yaw бина; НЕ применяется, возвращается как метаданные
+            (потребители: проверка согласованности бинов и отчёты)
         normalization: "rms" for full-mesh RMS, "landmark" for eye-distance anchored
 
     Returns:
         dict with:
-            - vertices_aligned: (N, 3) aligned vertices
-            - correction_matrix: (3, 3) applied rotation (Ry(canonical_yaw))
+            - vertices_aligned: (N, 3) aligned vertices (normalized, без поворота)
+            - correction_matrix: (3, 3) единичная матрица — поворот не выполняется
             - center: (3,) applied translation
             - scale: float applied scale
-            - target_pose: [0, canonical_yaw, 0]
+            - target_pose: [0, 0, 0] — реальная поза сохранённой сетки (identity-only)
+            - bin_canonical_yaw: [canonical_yaw] — метаданные бина, не применено
             - actual_pose: original [pitch, yaw, roll]
     """
     log_status("compute_chronology_alignment", "complete")
     actual = np.asarray(actual_pose_deg, np.float64)
-    target = np.array([0.0, float(canonical_yaw), 0.0], np.float64)
+    target = np.zeros(3, np.float64)
 
     # Step 1: Normalize
     if normalization == "landmark":
@@ -248,11 +258,9 @@ def compute_chronology_alignment(vertices: np.ndarray,
     else:
         raise ValueError("normalization must be 'rms' or 'landmark'")
 
-    # Step 2: Rotation to the bin's canonical yaw (позу вычитать нельзя — см. docstring)
-    R_corr = row_rotation_matrix(0.0, float(canonical_yaw), 0.0)
-
-    # Step 3: Apply correction
-    aligned = (normalized @ R_corr).astype(np.float32)
+    # Step 2: поворота нет — см. docstring. Сетка остаётся в объектном каноне 3DMM.
+    R_corr = np.eye(3, dtype=np.float32)
+    aligned = normalized.astype(np.float32)
 
     return {
         "vertices_aligned": aligned,
@@ -260,6 +268,7 @@ def compute_chronology_alignment(vertices: np.ndarray,
         "center": center,
         "scale": scale,
         "target_pose": target.astype(np.float32),
+        "bin_canonical_yaw": np.asarray([float(canonical_yaw)], np.float32),
         "actual_pose": actual.astype(np.float32),
     }
 

@@ -261,10 +261,13 @@ class ReconstructionEngine:
         canonical_rotation = row_rotation_matrix(0.0, canonical_yaw, 0.0)
         canonical = (normalized @ canonical_rotation).astype(np.float32)
 
-        # Chronology alignment: поворот к каноническому yaw бина.
+        # Chronology alignment: патч 03 - без какого-либо поворота.
         # Вход — identity-only сетка, у неё поза уже снята базисом 3DDFA, поэтому
-        # измеренные pitch/yaw/roll здесь вычитать нельзя (двойной поворот).
-        # actual_pose_deg передаётся только как диагностика в метаданные.
+        # измеренные pitch/yaw/roll вычитать здесь нельзя (двойной поворот), а доворот к
+        # canonical_yaw бина — общая изометрия внутри бина и искусственная разница между
+        # бинами. actual_pose_deg и canonical_yaw уходят только в метаданные.
+        # Поза бина по-прежнему доступна в отдельном пространстве vertices_bin_canonical
+        # (строка выше), если нужен именно «повёрнутый в бин» вид.
         chrono = compute_chronology_alignment(
             vertices=vertices_identity,
             actual_pose_deg=[float(angles_deg[0]), float(angles_deg[1]), float(angles_deg[2])],

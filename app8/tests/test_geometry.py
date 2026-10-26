@@ -83,14 +83,21 @@ def test_pose_correction_on_identity_mesh_is_double_rotation():
     assert float(np.mean(np.linalg.norm(over - v_id, axis=1))) > 0.1
 
 
-def test_chronology_correction_does_not_depend_on_measured_pose():
-    """Продный путь (reconstruction.run_reconstruction): доворот только к канону бина.
+def test_chronology_rotation_would_move_the_frontal_reference():
+    """Почему доворот к канону бина убрали (патч 03): он виден как разница сеток.
 
-    Для всех кадров одного бина коррекция обязана быть одной и той же матрицей
-    Ry(canonical_yaw) и не содержать измеренные pitch/yaw/roll.
+    Кадр с yaw=24 (бин right_light, канон 17.5) после доворота не совпадает сам с
+    собой без доворота - а внутри бина эта разница была бы общей изометрией, то есть
+    невидимой в расстояниях между кадрами одного бина и полностью видимой при
+    сравнении с фронтальным эталоном и между бинами.
     """
+    rng = np.random.default_rng(13)
+    v_id = rng.normal(size=(300, 3)).astype(np.float32)
     _, canon = classify_pose(24.0)
     assert canon == 17.5
-    for measured in ([0.0, 20.0, 0.0], [5.0, 24.9, -3.0], [-4.0, 21.2, 2.0]):
-        r_chron = row_rotation_matrix(0.0, nearest_canonical_yaw(measured[1])[1], 0.0)
-        np.testing.assert_allclose(r_chron, row_rotation_matrix(0.0, canon, 0.0), atol=1e-6)
+    rotated = v_id @ row_rotation_matrix(0.0, canon, 0.0)
+    moved = float(np.mean(np.linalg.norm(rotated - v_id, axis=1)))
+    assert moved > 0.1, "доворот обязан сдвинуть сетку — иначе тест ничего не проверяет"
+    # ...но длина каждой точки сохраняется: это изометрия, а не измерение формы.
+    np.testing.assert_allclose(np.linalg.norm(rotated, axis=1),
+                               np.linalg.norm(v_id, axis=1), atol=1e-5)

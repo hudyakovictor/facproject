@@ -115,7 +115,7 @@ def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | N
     """Прямой проход реконструкции одного изображения."""
     import torch
     from PIL import Image
-    from .geometry import apply_pose_correction, classify_pose, row_rotation_matrix
+    from .geometry import classify_pose
     from .visibility import compute_vertex_confidence
     from .expression_qc import compute_expression_qc
     from .imaging import decode_oriented_bgr
@@ -206,14 +206,16 @@ def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | N
     
     # Хронологическое выравнивание позы (Pose Bins).
     # v_id построен с нулевыми параметрами позы (compute_shape(id, 0)), поэтому вычитать
-    # измеренные углы повторно нельзя — это двойной поворот: сетку доворачивало на -yaw сверх
-    # уже снятой позы (замеры app9/validation/advisor_tests.py, фронтал: ratio к полу 4.87
-    # против 2.15 у canon и 2.19 у корректного cam × Fz × R_corr). Остаётся только общий для
-    # бина доворот к каноническому yaw.
+    # измеренные углы повторно нельзя — это двойной поворот (замеры app9/validation:
+    # ratio к полу 4.87 против 2.15). Но и доворот к каноническому yaw бина не нужен:
+    # внутри бина это общая изометрия (расстояния между кадрами не меняет), а между
+    # бинами и против фронтального эталона он добавляет искусственную разницу ровно на
+    # канонический yaw. Поэтому в хронологию уходит неизменённая identity-сетка, а
+    # канонический yaw бина остаётся только метаданным (проверка согласованности бинов).
     yaw = float(angles_deg[1])
     pose_bin, canonical_yaw = classify_pose(yaw)
-    r_corr = row_rotation_matrix(0.0, canonical_yaw, 0.0)
-    v_chronology = apply_pose_correction(v_id, r_corr)
+    r_corr = np.eye(3, dtype=np.float32)
+    v_chronology = np.asarray(v_id, np.float32).copy()
     
     # Топологические ориентиры
     ldm134_idx = np.asarray(basis["ldm134"], dtype=np.int64)
@@ -236,7 +238,7 @@ def reconstruct_image(img_path: Path, device: str = "cpu") -> dict[str, Any] | N
         "rotation_matrix": rot_mat,
         "translation": trans,
         "trans_params": trans_p,
-        "chronology_correction_matrix": r_corr,
+        "chronology_correction_matrix": r_corr,  # единичная: см. блок «Хронологическое выравнивание»
         "vertices_object": v_obj,
         "vertices_camera": v_cam,
         "vertices_2d_orig": v2d_orig,

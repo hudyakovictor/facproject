@@ -473,14 +473,17 @@ class Stage1Engine:
             _ = EXPRESSION_MAGNITUDE_THRESHOLD  # используется stage2/engine.py
             # Compute alignment quality: how much correction was applied
             # Lower is better (less correction needed = more reliable)
+            # ⚠️ С патча 03 сетка не доворачивается вообще (см. compute_chronology_alignment),
+            # поэтому эти величины — не «применённая коррекция», а дистанция ракурса кадра
+            # от центра бина: QC-сигнал о том, насколько фото наклонено.
             actual_pose = np.array([float(rec.angles_deg[0]), float(rec.angles_deg[1]), float(rec.angles_deg[2])])
             target_pose = np.array([0.0, float(rec.canonical_yaw), 0.0])
             correction_per_axis = np.abs(actual_pose - target_pose)
 
             # Compute residual pose after correction
-            # This is the remaining pose difference after applying chronology alignment
-            # Ideally should be close to [0, 0, 0]
-            # Residual = actual - target (what we tried to correct)
+            # С патча 03 коррекция не применяется, поэтому это буквально разница позы
+            # кадра с центром бина. Идеал — [0, 0, 0].
+            # Residual = actual - target
             residual_pose = actual_pose - target_pose
             residual_pitch = float(residual_pose[0])
             residual_yaw = float(residual_pose[1])
@@ -579,7 +582,7 @@ class Stage1Engine:
                 "image": {"width": int(bgr.shape[1]), "height": int(bgr.shape[0]), "extension": path.suffix.lower(), "decode": decode_meta, "pixels": int(bgr.shape[1]) * int(bgr.shape[0])},
                 "pose": pose_payload,
                 "chronology": {
-                    "alignment_method": "canonical_yaw_rotation_v2",
+                    "alignment_method": "identity_object_space_v3",
                     "applied_rotation": rec.chronology_correction_matrix.tolist(),
                     "applied_scale": float(rec.normalization_scale),
                     "applied_center": rec.normalization_center.tolist(),

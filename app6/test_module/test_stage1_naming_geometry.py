@@ -13,6 +13,7 @@ import numpy as np
 
 from app6.stage1.geometry import (
     classify_pose,
+    compute_chronology_alignment,
     full_pose_correction_matrix,
     nearest_canonical_yaw,
     normalize_mesh,
@@ -115,6 +116,35 @@ class GeometryHelperTests(unittest.TestCase):
     def test_pose_correction_rejects_bad_input(self):
         with self.assertRaises(ValueError):
             full_pose_correction_matrix([1.0, 2.0], [0.0, 0.0, 0.0])
+
+    def test_chronology_ignores_pose_and_bin(self):
+        """Патч 03: хронология = нормализованная identity-сетка, поворота нет.
+
+        Ни измеренная поза, ни канонический yaw бина не должны влиять на сетку:
+        внутри бина доворот — общая изометрия (расстояний не меняет), а между бинами
+        и против фронтального эталона он добавляет искусственную разницу.
+        """
+        mesh = np.random.default_rng(0).normal(size=(200, 3)).astype(np.float32)
+        a = compute_chronology_alignment(mesh, [3.0, 25.0, -4.0], canonical_yaw=-17.5)
+        b = compute_chronology_alignment(mesh, [0.0, 0.0, 0.0], canonical_yaw=-17.5)
+        c = compute_chronology_alignment(mesh, [3.0, 25.0, -4.0], canonical_yaw=0.0)
+        np.testing.assert_allclose(a["vertices_aligned"], b["vertices_aligned"], atol=1e-6)
+        np.testing.assert_allclose(a["vertices_aligned"], c["vertices_aligned"], atol=1e-6)
+        np.testing.assert_allclose(a["correction_matrix"], np.eye(3), atol=1e-6)
+        np.testing.assert_allclose(a["target_pose"], np.zeros(3), atol=1e-6)
+        # canonical_yaw остаётся только метаданными бина
+        self.assertEqual(float(a["bin_canonical_yaw"][0]), -17.5)
+
+    def test_chronology_scale_is_the_rms_normalization(self):
+        """Доворота нет, поэтому масштаб и центр — единственное, что применяет хронология."""
+        mesh = np.random.default_rng(1).normal(size=(120, 3)).astype(np.float32) * 4.0
+        out = compute_chronology_alignment(mesh, [0.0, 40.0, 0.0], canonical_yaw=45.0)
+        centered = mesh - mesh.mean(axis=0)
+        rms = float(np.sqrt(np.mean(np.sum(centered * centered, axis=1))))
+        self.assertAlmostEqual(float(out["scale"]), rms, places=4)
+        self.assertAlmostEqual(float(np.mean(out["vertices_aligned"])), 0.0, places=6)
+        self.assertAlmostEqual(float(np.sqrt(np.mean(np.sum(out["vertices_aligned"] ** 2, axis=1)))),
+                               1.0, places=5)
 
     def test_normalize_mesh_centers_and_scales(self):
         mesh = np.array([[10.0, 0, 0], [12.0, 0, 0], [11.0, 0, 0]], np.float32)
