@@ -6,6 +6,8 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from morphing.backend.aligner import MAXR_TO_RMS106
+
 
 @dataclass(frozen=True)
 class QualityThresholds:
@@ -21,6 +23,11 @@ class QualityThresholds:
     max_center_offset_fraction: float = 0.30
     min_entropy_bits: float = 1.0
     max_nonfinite_fraction: float = 0.0
+    # Sanity-граница канонической сетки: сравнивается с radius_max (максимальный радиус по
+    # всем вершинам). В боевых единицах (RMS по 106 ландмаркам) типичный radius_max ≈ 1.56
+    # и до 1.64 по измеренным кадрам, то есть запас примерно в 6 раз; смена нормировки
+    # (max-радиус → RMS) границу не сдвигает, потому что она ловит сломанную сетку, а не
+    # шум формы.
     max_mesh_extent: float = 10.0
 
     def __post_init__(self) -> None:
@@ -250,7 +257,14 @@ def mesh_metrics(vertices: np.ndarray, triangles: np.ndarray | None = None) -> d
     return metrics
 
 
-def displacement_metrics(vertices_a: np.ndarray, vertices_b: np.ndarray, threshold: float = 0.025) -> dict[str, float]:
+def displacement_metrics(vertices_a: np.ndarray, vertices_b: np.ndarray,
+                         threshold: float = round(0.025 * MAXR_TO_RMS106, 5)) -> dict[str, float]:
+    """Средняя/хвостовая девиация вершин двух сеток и доля выше порога.
+
+    Порог — в боевых единицах (доли RMS-масштаба по 106 ландмаркам,
+    `aligner.normalize_ldm106`); историческое значение 0.025 было долей max-радиуса
+    сетки и пересчитано через `MAXR_TO_RMS106`, как и насыщение в `analysis.py`.
+    """
     a = np.asarray(vertices_a, dtype=np.float64)
     b = np.asarray(vertices_b, dtype=np.float64)
     if a.shape != b.shape or a.ndim != 2 or a.shape[1] != 3 or len(a) == 0:
