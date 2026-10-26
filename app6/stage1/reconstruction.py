@@ -280,18 +280,25 @@ class ReconstructionEngine:
         # Validate chronology alignment: must be finite (no NaN/Inf from bad reconstruction)
         if not np.isfinite(vertices_chronology_aligned).all():
             raise RuntimeError("chronology alignment produced NaN/Inf vertices — bad 3DDFA reconstruction")
-        # 🎯 CRITICAL: Outlier detection for chronology vertices
-        # Vertices with extreme displacement may indicate bad reconstruction
-        # Compute displacement from normalized (before rotation)
-        displacement = np.linalg.norm(vertices_chronology_aligned - normalized, axis=1)
+        # 🎯 CRITICAL: гейт выбросов в разнице «мимика плюс масштаб».
+        # Сравниваем identity-сетку с объектной, обе нормированы одной функцией
+        # normalize_mesh (свой центр и свой RMS-масштаб). Раньше сюда попадала
+        # vertices_chronology_aligned, которая до патча 03 была довёрнута к
+        # canonical_yaw бина: в профильных бинах смещение создавал сам поворот,
+        # а не дефект реконструкции. Это НЕ проверка качества реконструкции —
+        # реальную даёт reprojection p95 ниже, — поэтому счётчик называется
+        # expression_outlier_count: он считает вершины, где мимика ушла слишком
+        # далеко от identity-базы.
+        identity_norm, _, _ = normalize_mesh(vertices_identity)
+        displacement = np.linalg.norm(identity_norm - normalized, axis=1)
         outlier_threshold = np.percentile(displacement, 99) * 3
         outlier_mask = displacement > outlier_threshold
-        outlier_count = int(outlier_mask.sum())
+        expression_outlier_count = int(outlier_mask.sum())
 
-        if outlier_count > 100:  # More than 100 outliers = bad reconstruction
+        if expression_outlier_count > 100:  # More than 100 outliers = bad reconstruction
             raise RuntimeError(
-                f"Too many outlier vertices ({outlier_count}) in chronology alignment — "
-                f"bad 3DDFA reconstruction for {path.name}"
+                f"Too many outlier vertices ({expression_outlier_count}) between identity and "
+                f"object mesh (expression/mimic blow-up) for {path.name}"
             )
 
         idx106 = self._np(self.model.ldm106).reshape(-1).astype(np.int64)
