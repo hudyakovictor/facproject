@@ -3,7 +3,7 @@
   "units": "доли RMS-радиуса по 106 ландмаркам (aligner.normalize_ldm106: центр и RMS по 106 точкам)",
   "space": "identity-only mesh in 3DMM object space (pose-free), RMS-of-106-landmarks scale",
   "source": "/Volumes/SDCARD/calibration_rakurs",
-  "band_status": "внутри-сессионная повторяемость реконструкции на видеокадрах одной серии (6 человек × 9 бинов, по 10 кадров на бин), условная по |Δyaw|; на независимых пересъёмках проверена и занижена — см. assess_band_transfer.py и reshoot_bands.json (78% пар одного человека легли выше этого p95)",
+  "band_status": "внутри-сессионная повторяемость реконструкции на видеокадрах одной серии (6 человек × 9 бинов, по 10 кадров на бин), условная по |Δyaw|; на независимых пересъёмках проверена и занижена — см. assess_band_transfer.py и reshoot_bands.json (84% пар одного человека легли выше этого p95)",
   "sampling": {
     "frame_ids": true,
     "groups": 54,
