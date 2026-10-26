@@ -1,0 +1,65 @@
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/albumentations/__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.22). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTATIONS_UPDATE to 1.
+  check_for_updates()
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=None`.
+  warnings.warn(msg)
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torch/functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at /Users/runner/miniforge3/conda-bld/libtorch_1744320385493/work/aten/src/ATen/native/TensorShape.cpp:3596.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+use retinaface for face box
+A new=25 fail=0 126s
+A new=50 fail=0 250s
+A new=75 fail=0 378s
+A new=100 fail=0 516s
+A new=125 fail=0 636s
+A new=150 fail=0 756s
+A new=175 fail=0 878s
+A new=200 fail=0 998s
+A new=225 fail=0 1143s
+A new=250 fail=0 1267s
+A new=275 fail=0 1377s
+A new=300 fail=0 1485s
+A new=325 fail=0 1593s
+A new=350 fail=0 1698s
+A new=375 fail=0 1816s
+A new=400 fail=0 1948s
+A new=425 fail=0 2077s
+A new=450 fail=0 2198s
+A new=475 fail=0 2318s
+фаза A: новых=478 пропуск=0 сбой=0
+размеры страт: {'full': 478, 'strict': 207, 'light': 117, 'off': 154, 'sharp': 239, 'blurry': 239, 'neutral': 0, 'expressive': 478}
+
+=== Ансамбль vs база по стратам (CV-LDA acc) ===
+stratum      base17   alpha  a+norm
+full          0.868   0.933   0.948
+strict        0.889   0.947   0.893
+light         0.864   0.726   0.589
+off           0.825   0.857    0.76
+sharp         0.837   0.908   0.929
+blurry        0.879   0.925   0.916
+neutral        None    None    None
+expressive    0.868   0.933   0.948
+
+=== Топ метрик: raw full/expressive/off + хрупкость ===
+  A8_chin_projection   full=0.726 expr=0.726 off=0.617 | normed full=0.659 expr=0.659 | frag=0.178
+  B7_verticality       full=0.659 expr=0.659 off=0.585 | normed full=0.556 expr=0.556 | frag=0.127
+  A15_nasolabial       full=0.657 expr=0.657 off=0.578 | normed full=0.613 expr=0.613 | frag=0.156
+  A1_gonial_angle      full=0.653 expr=0.653 off=0.571 | normed full=0.556 expr=0.556 | frag=0.158
+  A6_lower_thirds      full=0.646 expr=0.646 off=0.553 | normed full=0.632 expr=0.632 | frag=0.156
+  central_depth_ref    full=0.615 expr=0.615 off=0.545 | normed full=0.571 expr=0.571 | frag=0.107
+  A9_canthal_tilt      full=0.588 expr=0.588 off=0.564 | normed full=0.563 expr=0.563 | frag=0.136
+  B15_bifrontal        full=0.588 expr=0.588 off=0.532 | normed full=0.556 expr=0.556 | frag=0.135
+  B17_mouth_retraction full=0.58 expr=0.58 off=0.571 | normed full=0.565 expr=0.565 | frag=0.134
+  A11_alar_flare       full=0.573 expr=0.573 off=0.519 | normed full=0.552 expr=0.552 | frag=0.121
+  B14_lower_proportion full=0.571 expr=0.571 off=0.532 | normed full=0.554 expr=0.554 | frag=0.117
+  A13_philtrum         full=0.565 expr=0.565 off=0.506 | normed full=0.552 expr=0.552 | frag=0.138
+  B20_malar_height     full=0.559 expr=0.559 off=0.494 | normed full=0.556 expr=0.556 | frag=0.126
+  B8_jaw_flare         full=0.557 expr=0.557 off=0.552 | normed full=0.556 expr=0.556 | frag=0.134
+  A5_lip_area          full=0.556 expr=0.556 off=0.442 | normed full=0.556 expr=0.556 | frag=0.182
+  B11_interorbital     full=0.556 expr=0.556 off=0.48 | normed full=0.548 expr=0.548 | frag=0.143
+  B13_chin_length      full=0.556 expr=0.556 off=0.467 | normed full=0.554 expr=0.554 | frag=0.156
+  B5_brow_ridge        full=0.554 expr=0.554 off=0.442 | normed full=0.548 expr=0.548 | frag=0.169
+  B12_dorsum_taper     full=0.554 expr=0.554 off=0.525 | normed full=0.536 expr=0.536 | frag=0.098
+  A10_forehead_flare   full=0.542 expr=0.542 off=0.461 | normed full=0.546 expr=0.546 | frag=0.148
+
+Отчёт: /Users/victorkhudyakov/work/.runtime/robustness_check.json

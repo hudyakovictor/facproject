@@ -1,0 +1,828 @@
+{
+  "n_rows": 792,
+  "people": [
+    "person_01",
+    "person_02",
+    "person_03",
+    "person_04",
+    "person_05",
+    "person_06",
+    "person_07"
+  ],
+  "n_groups": 21,
+  "acc_grouped_cv": {
+    "v17": 0.841,
+    "v17sym": 0.821,
+    "canon": 0.729,
+    "canonsym": 0.749,
+    "univ": 0.893,
+    "alpha_id": 0.872,
+    "v17+alpha": 0.875,
+    "canonsym+alpha": 0.857
+  },
+  "acc_by_stratum": {
+    "strict": {
+      "n": 141,
+      "v17": null,
+      "v17sym": null,
+      "canon": null,
+      "canonsym": null,
+      "univ": null,
+      "alpha_id": null
+    },
+    "light": {
+      "n": 68,
+      "v17": 1.0,
+      "v17sym": 1.0,
+      "canon": 1.0,
+      "canonsym": 1.0,
+      "univ": 1.0,
+      "alpha_id": 1.0
+    },
+    "off": {
+      "n": 118,
+      "v17": 1.0,
+      "v17sym": 1.0,
+      "canon": 1.0,
+      "canonsym": 1.0,
+      "univ": 1.0,
+      "alpha_id": 1.0
+    },
+    "hard": {
+      "n": 465,
+      "v17": 0.918,
+      "v17sym": 0.878,
+      "canon": 0.857,
+      "canonsym": 0.66,
+      "univ": 0.914,
+      "alpha_id": 0.925
+    },
+    "all": {
+      "n": 792,
+      "v17": 0.841,
+      "v17sym": 0.821,
+      "canon": 0.729,
+      "canonsym": 0.749,
+      "univ": 0.893,
+      "alpha_id": 0.872
+    }
+  },
+  "noise_median_infl_p0": {
+    "frontal": 1.0,
+    "left_light": 1.28,
+    "right_light": 1.14,
+    "left_mid": 1.26,
+    "right_mid": 1.04,
+    "left_deep": 0.99,
+    "right_deep": 1.04,
+    "left_profile": 1.34,
+    "right_profile": 1.62
+  },
+  "noise_median_infl_sym": {
+    "frontal": 1.0,
+    "left_light": 1.13,
+    "right_light": 1.12,
+    "left_mid": 1.26,
+    "right_mid": 1.07,
+    "left_deep": 0.96,
+    "right_deep": 1.17,
+    "left_profile": 1.34,
+    "right_profile": 1.74
+  },
+  "noise_median_infl_canon": {
+    "frontal": 1.0,
+    "left_light": 1.22,
+    "right_light": 1.14,
+    "left_mid": 1.22,
+    "right_mid": 1.02,
+    "left_deep": 0.95,
+    "right_deep": 1.22,
+    "left_profile": 1.48,
+    "right_profile": 1.71
+  },
+  "v17_noise_by_bin_p0": {
+    "brow_span_3d": {
+      "frontal": 0.0038,
+      "left_light": 0.0054,
+      "right_light": 0.004,
+      "left_mid": 0.0051,
+      "right_mid": 0.0078,
+      "left_deep": 0.0037,
+      "right_deep": 0.0052,
+      "left_profile": 0.0027,
+      "right_profile": 0.004
+    },
+    "brow_height_asym": {
+      "frontal": 0.0024,
+      "left_light": 0.0017,
+      "right_light": 0.0019,
+      "left_mid": 0.0018,
+      "right_mid": 0.0023,
+      "left_deep": 0.0014,
+      "right_deep": 0.0016,
+      "left_profile": 0.0024,
+      "right_profile": 0.0022
+    },
+    "eye_anchor_spacing_3d": {
+      "frontal": 0.0023,
+      "left_light": 0.0038,
+      "right_light": 0.003,
+      "left_mid": 0.0038,
+      "right_mid": 0.005,
+      "left_deep": 0.0023,
+      "right_deep": 0.0035,
+      "left_profile": 0.0035,
+      "right_profile": 0.0029
+    },
+    "eye_level_asym": {
+      "frontal": 0.0011,
+      "left_light": 0.0015,
+      "right_light": 0.0018,
+      "left_mid": 0.002,
+      "right_mid": 0.0009,
+      "left_deep": 0.0014,
+      "right_deep": 0.0008,
+      "left_profile": 0.0015,
+      "right_profile": 0.0019
+    },
+    "brow_eye_left_3d": {
+      "frontal": 0.0026,
+      "left_light": 0.0036,
+      "right_light": 0.0032,
+      "left_mid": 0.0092,
+      "right_mid": 0.0042,
+      "left_deep": 0.0027,
+      "right_deep": 0.0025,
+      "left_profile": 0.004,
+      "right_profile": 0.0109
+    },
+    "brow_eye_right_3d": {
+      "frontal": 0.0027,
+      "left_light": 0.0036,
+      "right_light": 0.0039,
+      "left_mid": 0.0061,
+      "right_mid": 0.0026,
+      "left_deep": 0.0019,
+      "right_deep": 0.0048,
+      "left_profile": 0.0042,
+      "right_profile": 0.008
+    },
+    "brow_eye_asym": {
+      "frontal": 0.0012,
+      "left_light": 0.0013,
+      "right_light": 0.0019,
+      "left_mid": 0.0032,
+      "right_mid": 0.0017,
+      "left_deep": 0.0012,
+      "right_deep": 0.0008,
+      "left_profile": 0.0022,
+      "right_profile": 0.0029
+    },
+    "nose_ridge_length_3d": {
+      "frontal": 0.0026,
+      "left_light": 0.0036,
+      "right_light": 0.0034,
+      "left_mid": 0.0032,
+      "right_mid": 0.0022,
+      "left_deep": 0.0033,
+      "right_deep": 0.0068,
+      "left_profile": 0.0048,
+      "right_profile": 0.0063
+    },
+    "nose_base_width_3d": {
+      "frontal": 0.0023,
+      "left_light": 0.0034,
+      "right_light": 0.0024,
+      "left_mid": 0.0033,
+      "right_mid": 0.0027,
+      "left_deep": 0.0022,
+      "right_deep": 0.0028,
+      "left_profile": 0.0027,
+      "right_profile": 0.0037
+    },
+    "nose_axis_bend_3d": {
+      "frontal": 0.0005,
+      "left_light": 0.0004,
+      "right_light": 0.0004,
+      "left_mid": 0.0003,
+      "right_mid": 0.0005,
+      "left_deep": 0.0004,
+      "right_deep": 0.0004,
+      "left_profile": 0.0005,
+      "right_profile": 0.0006
+    },
+    "nose_base_asym": {
+      "frontal": 0.0006,
+      "left_light": 0.0005,
+      "right_light": 0.0006,
+      "left_mid": 0.0009,
+      "right_mid": 0.0007,
+      "left_deep": 0.0007,
+      "right_deep": 0.0002,
+      "left_profile": 0.0004,
+      "right_profile": 0.0003
+    },
+    "nose_projection_3d": {
+      "frontal": 0.0023,
+      "left_light": 0.003,
+      "right_light": 0.0027,
+      "left_mid": 0.0023,
+      "right_mid": 0.003,
+      "left_deep": 0.0024,
+      "right_deep": 0.005,
+      "left_profile": 0.0031,
+      "right_profile": 0.0033
+    },
+    "midface_ratio": {
+      "frontal": 0.0072,
+      "left_light": 0.0099,
+      "right_light": 0.0081,
+      "left_mid": 0.0044,
+      "right_mid": 0.0073,
+      "left_deep": 0.0046,
+      "right_deep": 0.0074,
+      "left_profile": 0.0118,
+      "right_profile": 0.0177
+    },
+    "mouth_width_3d": {
+      "frontal": 0.0054,
+      "left_light": 0.0052,
+      "right_light": 0.0033,
+      "left_mid": 0.0049,
+      "right_mid": 0.0047,
+      "left_deep": 0.0035,
+      "right_deep": 0.0036,
+      "left_profile": 0.0053,
+      "right_profile": 0.0032
+    },
+    "mouth_height_3d": {
+      "frontal": 0.0023,
+      "left_light": 0.0023,
+      "right_light": 0.0029,
+      "left_mid": 0.0029,
+      "right_mid": 0.0028,
+      "left_deep": 0.0027,
+      "right_deep": 0.0039,
+      "left_profile": 0.0056,
+      "right_profile": 0.0051
+    },
+    "mouth_nose_offset": {
+      "frontal": 0.0015,
+      "left_light": 0.0013,
+      "right_light": 0.0011,
+      "left_mid": 0.0015,
+      "right_mid": 0.0014,
+      "left_deep": 0.0013,
+      "right_deep": 0.0008,
+      "left_profile": 0.0012,
+      "right_profile": 0.0013
+    },
+    "central_depth_contrast": {
+      "frontal": 0.0034,
+      "left_light": 0.0038,
+      "right_light": 0.0034,
+      "left_mid": 0.0033,
+      "right_mid": 0.0036,
+      "left_deep": 0.0045,
+      "right_deep": 0.0057,
+      "left_profile": 0.0035,
+      "right_profile": 0.0059
+    }
+  },
+  "v17_snr_by_bin": {
+    "brow_span_3d": {
+      "frontal": 9.99,
+      "left_light": 6.19,
+      "right_light": 6.12,
+      "left_mid": 6.41,
+      "right_mid": 2.22,
+      "left_deep": 10.36,
+      "right_deep": 4.35,
+      "left_profile": 14.63,
+      "right_profile": 7.26
+    },
+    "brow_height_asym": {
+      "frontal": 1.06,
+      "left_light": 3.59,
+      "right_light": 2.62,
+      "left_mid": 5.83,
+      "right_mid": 1.15,
+      "left_deep": 6.49,
+      "right_deep": 1.56,
+      "left_profile": 2.62,
+      "right_profile": 2.47
+    },
+    "eye_anchor_spacing_3d": {
+      "frontal": 10.18,
+      "left_light": 4.78,
+      "right_light": 6.38,
+      "left_mid": 5.13,
+      "right_mid": 2.85,
+      "left_deep": 10.38,
+      "right_deep": 3.41,
+      "left_profile": 7.21,
+      "right_profile": 6.08
+    },
+    "eye_level_asym": {
+      "frontal": 3.9,
+      "left_light": 1.77,
+      "right_light": 2.81,
+      "left_mid": 2.41,
+      "right_mid": 5.16,
+      "left_deep": 4.6,
+      "right_deep": 4.73,
+      "left_profile": 4.66,
+      "right_profile": 1.71
+    },
+    "brow_eye_left_3d": {
+      "frontal": 12.95,
+      "left_light": 9.96,
+      "right_light": 14.21,
+      "left_mid": 3.62,
+      "right_mid": 7.58,
+      "left_deep": 13.03,
+      "right_deep": 9.93,
+      "left_profile": 9.13,
+      "right_profile": 2.26
+    },
+    "brow_eye_right_3d": {
+      "frontal": 13.1,
+      "left_light": 9.99,
+      "right_light": 9.15,
+      "left_mid": 5.68,
+      "right_mid": 11.2,
+      "left_deep": 18.71,
+      "right_deep": 5.54,
+      "left_profile": 8.41,
+      "right_profile": 3.45
+    },
+    "brow_eye_asym": {
+      "frontal": 4.92,
+      "left_light": 4.2,
+      "right_light": 2.38,
+      "left_mid": 1.74,
+      "right_mid": 2.11,
+      "left_deep": 6.01,
+      "right_deep": 5.84,
+      "left_profile": 2.68,
+      "right_profile": 1.06
+    },
+    "nose_ridge_length_3d": {
+      "frontal": 4.32,
+      "left_light": 1.84,
+      "right_light": 3.99,
+      "left_mid": 3.97,
+      "right_mid": 7.9,
+      "left_deep": 5.61,
+      "right_deep": 1.33,
+      "left_profile": 3.17,
+      "right_profile": 3.65
+    },
+    "nose_base_width_3d": {
+      "frontal": 2.41,
+      "left_light": 2.16,
+      "right_light": 3.1,
+      "left_mid": 2.31,
+      "right_mid": 3.56,
+      "left_deep": 4.96,
+      "right_deep": 4.73,
+      "left_profile": 3.08,
+      "right_profile": 3.02
+    },
+    "nose_axis_bend_3d": {
+      "frontal": 4.08,
+      "left_light": 4.72,
+      "right_light": 3.76,
+      "left_mid": 3.28,
+      "right_mid": 3.38,
+      "left_deep": 2.32,
+      "right_deep": 4.18,
+      "left_profile": 2.41,
+      "right_profile": 4.05
+    },
+    "nose_base_asym": {
+      "frontal": 4.38,
+      "left_light": 4.42,
+      "right_light": 4.09,
+      "left_mid": 0.91,
+      "right_mid": 1.21,
+      "left_deep": 1.5,
+      "right_deep": 1.74,
+      "left_profile": 2.69,
+      "right_profile": 1.54
+    },
+    "nose_projection_3d": {
+      "frontal": 6.61,
+      "left_light": 3.67,
+      "right_light": 6.69,
+      "left_mid": 4.93,
+      "right_mid": 7.49,
+      "left_deep": 4.35,
+      "right_deep": 4.23,
+      "left_profile": 4.06,
+      "right_profile": 5.64
+    },
+    "midface_ratio": {
+      "frontal": 3.15,
+      "left_light": 2.34,
+      "right_light": 3.9,
+      "left_mid": 5.38,
+      "right_mid": 7.16,
+      "left_deep": 5.63,
+      "right_deep": 3.52,
+      "left_profile": 3.16,
+      "right_profile": 1.83
+    },
+    "mouth_width_3d": {
+      "frontal": 4.23,
+      "left_light": 5.3,
+      "right_light": 9.2,
+      "left_mid": 3.8,
+      "right_mid": 5.35,
+      "left_deep": 5.86,
+      "right_deep": 2.93,
+      "left_profile": 4.24,
+      "right_profile": 7.46
+    },
+    "mouth_height_3d": {
+      "frontal": 24.19,
+      "left_light": 20.89,
+      "right_light": 15.41,
+      "left_mid": 18.59,
+      "right_mid": 13.73,
+      "left_deep": 18.83,
+      "right_deep": 9.75,
+      "left_profile": 7.74,
+      "right_profile": 7.22
+    },
+    "mouth_nose_offset": {
+      "frontal": 2.8,
+      "left_light": 6.53,
+      "right_light": 2.68,
+      "left_mid": 8.34,
+      "right_mid": 2.8,
+      "left_deep": 9.64,
+      "right_deep": 4.43,
+      "left_profile": 10.76,
+      "right_profile": 2.16
+    },
+    "central_depth_contrast": {
+      "frontal": 5.94,
+      "left_light": 4.88,
+      "right_light": 8.96,
+      "left_mid": 3.97,
+      "right_mid": 10.31,
+      "left_deep": 2.99,
+      "right_deep": 5.8,
+      "left_profile": 6.11,
+      "right_profile": 4.47
+    }
+  },
+  "even_leak_R2_on_absyaw_yaw2": {
+    "p0": {
+      "brow_span_3d": 0.191,
+      "brow_height_asym": 0.063,
+      "eye_anchor_spacing_3d": 0.096,
+      "eye_level_asym": 0.017,
+      "brow_eye_left_3d": 0.035,
+      "brow_eye_right_3d": 0.065,
+      "brow_eye_asym": 0.11,
+      "nose_ridge_length_3d": 0.392,
+      "nose_base_width_3d": 0.089,
+      "nose_axis_bend_3d": 0.155,
+      "nose_base_asym": 0.317,
+      "nose_projection_3d": 0.189,
+      "midface_ratio": 0.079,
+      "mouth_width_3d": 0.053,
+      "mouth_height_3d": 0.137,
+      "mouth_nose_offset": 0.074,
+      "central_depth_contrast": 0.412
+    },
+    "p0sym": {
+      "brow_span_3d": 0.194,
+      "brow_height_asym": 0.063,
+      "eye_anchor_spacing_3d": 0.102,
+      "eye_level_asym": 0.029,
+      "brow_eye_left_3d": 0.036,
+      "brow_eye_right_3d": 0.061,
+      "brow_eye_asym": 0.172,
+      "nose_ridge_length_3d": 0.392,
+      "nose_base_width_3d": 0.089,
+      "nose_axis_bend_3d": 0.092,
+      "nose_base_asym": 0.254,
+      "nose_projection_3d": 0.189,
+      "midface_ratio": 0.086,
+      "mouth_width_3d": 0.055,
+      "mouth_height_3d": 0.137,
+      "mouth_nose_offset": 0.254,
+      "central_depth_contrast": 0.413
+    },
+    "canon": {
+      "brow_span_3d": 0.191,
+      "brow_height_asym": 0.063,
+      "eye_anchor_spacing_3d": 0.096,
+      "eye_level_asym": 0.017,
+      "brow_eye_left_3d": 0.035,
+      "brow_eye_right_3d": 0.065,
+      "brow_eye_asym": 0.11,
+      "nose_ridge_length_3d": 0.392,
+      "nose_base_width_3d": 0.089,
+      "nose_axis_bend_3d": 0.155,
+      "nose_base_asym": 0.912,
+      "nose_projection_3d": 0.867,
+      "midface_ratio": 0.079,
+      "mouth_width_3d": 0.053,
+      "mouth_height_3d": 0.137,
+      "mouth_nose_offset": 0.431,
+      "central_depth_contrast": 0.72
+    }
+  },
+  "signed_asym_left_right": {
+    "person_01": {
+      "brow_height_asym": {
+        "left": 0.0092,
+        "right": 0.0112,
+        "keep_sign": false,
+        "sym_range": 0.0085
+      },
+      "eye_level_asym": {
+        "left": 0.0128,
+        "right": 0.0063,
+        "keep_sign": false,
+        "sym_range": 0.0136
+      },
+      "brow_eye_asym": {
+        "left": 0.0238,
+        "right": 0.0101,
+        "keep_sign": false,
+        "sym_range": 0.0208
+      },
+      "nose_axis_bend_3d": {
+        "left": 0.003,
+        "right": 0.0044,
+        "keep_sign": false,
+        "sym_range": 0.0045
+      },
+      "nose_base_asym": {
+        "left": 0.0035,
+        "right": 0.0013,
+        "keep_sign": false,
+        "sym_range": 0.0142
+      },
+      "mouth_nose_offset": {
+        "left": 0.0028,
+        "right": 0.0097,
+        "keep_sign": false,
+        "sym_range": 0.0057
+      }
+    },
+    "person_02": {
+      "brow_height_asym": {
+        "left": 0.0013,
+        "right": 0.0059,
+        "keep_sign": false,
+        "sym_range": 0.0049
+      },
+      "eye_level_asym": {
+        "left": 0.0126,
+        "right": 0.0098,
+        "keep_sign": false,
+        "sym_range": 0.0095
+      },
+      "brow_eye_asym": {
+        "left": 0.012,
+        "right": 0.0064,
+        "keep_sign": false,
+        "sym_range": 0.0092
+      },
+      "nose_axis_bend_3d": {
+        "left": 0.0033,
+        "right": 0.003,
+        "keep_sign": false,
+        "sym_range": 0.0054
+      },
+      "nose_base_asym": {
+        "left": 0.0067,
+        "right": 0.001,
+        "keep_sign": false,
+        "sym_range": 0.013
+      },
+      "mouth_nose_offset": {
+        "left": 0.0011,
+        "right": 0.0015,
+        "keep_sign": false,
+        "sym_range": 0.0052
+      }
+    },
+    "person_03": {
+      "brow_height_asym": {
+        "left": 0.0028,
+        "right": 0.0013,
+        "keep_sign": false,
+        "sym_range": 0.0028
+      },
+      "eye_level_asym": {
+        "left": 0.0132,
+        "right": 0.0033,
+        "keep_sign": false,
+        "sym_range": 0.0155
+      },
+      "brow_eye_asym": {
+        "left": 0.0131,
+        "right": 0.0044,
+        "keep_sign": false,
+        "sym_range": 0.0187
+      },
+      "nose_axis_bend_3d": {
+        "left": 0.006,
+        "right": 0.0054,
+        "keep_sign": false,
+        "sym_range": 0.0074
+      },
+      "nose_base_asym": {
+        "left": 0.0037,
+        "right": 0.0015,
+        "keep_sign": false,
+        "sym_range": 0.0143
+      },
+      "mouth_nose_offset": {
+        "left": 0.0017,
+        "right": 0.0026,
+        "keep_sign": false,
+        "sym_range": 0.0057
+      }
+    },
+    "person_04": {
+      "brow_height_asym": {
+        "left": 0.0069,
+        "right": 0.004,
+        "keep_sign": false,
+        "sym_range": 0.0063
+      },
+      "eye_level_asym": {
+        "left": 0.0174,
+        "right": 0.0141,
+        "keep_sign": false,
+        "sym_range": 0.01
+      },
+      "brow_eye_asym": {
+        "left": 0.0153,
+        "right": 0.014,
+        "keep_sign": false,
+        "sym_range": 0.0096
+      },
+      "nose_axis_bend_3d": {
+        "left": 0.0027,
+        "right": 0.0028,
+        "keep_sign": false,
+        "sym_range": 0.002
+      },
+      "nose_base_asym": {
+        "left": 0.0056,
+        "right": 0.0054,
+        "keep_sign": false,
+        "sym_range": 0.0132
+      },
+      "mouth_nose_offset": {
+        "left": 0.0108,
+        "right": 0.0042,
+        "keep_sign": false,
+        "sym_range": 0.0053
+      }
+    },
+    "person_05": {
+      "brow_height_asym": {
+        "left": 0.0013,
+        "right": 0.002,
+        "keep_sign": false,
+        "sym_range": 0.002
+      },
+      "eye_level_asym": {
+        "left": 0.0173,
+        "right": 0.0073,
+        "keep_sign": false,
+        "sym_range": 0.014
+      },
+      "brow_eye_asym": {
+        "left": 0.018,
+        "right": 0.0144,
+        "keep_sign": false,
+        "sym_range": 0.0116
+      },
+      "nose_axis_bend_3d": {
+        "left": 0.0051,
+        "right": 0.0055,
+        "keep_sign": false,
+        "sym_range": 0.0044
+      },
+      "nose_base_asym": {
+        "left": 0.0029,
+        "right": 0.0018,
+        "keep_sign": false,
+        "sym_range": 0.0154
+      },
+      "mouth_nose_offset": {
+        "left": 0.0021,
+        "right": 0.0081,
+        "keep_sign": false,
+        "sym_range": 0.0062
+      }
+    },
+    "person_07": {
+      "brow_height_asym": {
+        "left": 0.0211,
+        "right": 0.0082,
+        "keep_sign": false,
+        "sym_range": 0.0067
+      },
+      "eye_level_asym": {
+        "left": 0.0141,
+        "right": 0.0152,
+        "keep_sign": false,
+        "sym_range": 0.0052
+      },
+      "brow_eye_asym": {
+        "left": 0.0216,
+        "right": 0.0148,
+        "keep_sign": false,
+        "sym_range": 0.009
+      },
+      "nose_axis_bend_3d": {
+        "left": 0.0024,
+        "right": 0.0047,
+        "keep_sign": false,
+        "sym_range": 0.0038
+      },
+      "nose_base_asym": {
+        "left": 0.0065,
+        "right": 0.0041,
+        "keep_sign": false,
+        "sym_range": 0.0123
+      },
+      "mouth_nose_offset": {
+        "left": 0.0287,
+        "right": 0.0028,
+        "keep_sign": false,
+        "sym_range": 0.0049
+      }
+    }
+  },
+  "transfer_from_frontal": {
+    "left_light": {
+      "n": 53,
+      "v17": 0.962,
+      "v17sym": 1.0,
+      "canon": 0.981,
+      "canonsym": 0.925
+    },
+    "right_light": {
+      "n": 61,
+      "v17": 0.885,
+      "v17sym": 0.885,
+      "canon": 0.885,
+      "canonsym": 0.934
+    },
+    "left_mid": {
+      "n": 51,
+      "v17": 0.686,
+      "v17sym": 0.863,
+      "canon": 0.647,
+      "canonsym": 0.216
+    },
+    "right_mid": {
+      "n": 48,
+      "v17": 0.812,
+      "v17sym": 0.812,
+      "canon": 0.771,
+      "canonsym": 0.167
+    },
+    "left_deep": {
+      "n": 43,
+      "v17": 0.558,
+      "v17sym": 0.628,
+      "canon": 0.233,
+      "canonsym": 0.209
+    },
+    "right_deep": {
+      "n": 44,
+      "v17": 0.727,
+      "v17sym": 0.75,
+      "canon": 0.568,
+      "canonsym": 0.25
+    },
+    "left_profile": {
+      "n": 169,
+      "v17": 0.349,
+      "v17sym": 0.349,
+      "canon": 0.189,
+      "canonsym": 0.018
+    },
+    "right_profile": {
+      "n": 154,
+      "v17": 0.753,
+      "v17sym": 0.747,
+      "canon": 0.24,
+      "canonsym": 0.149
+    }
+  }
+}

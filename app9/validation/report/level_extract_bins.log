@@ -1,0 +1,31 @@
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/albumentations/__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.22). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTATIONS_UPDATE to 1.
+  check_for_updates()
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=None`.
+  warnings.warn(msg)
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torch/functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at /Users/runner/miniforge3/conda-bld/libtorch_1744320385493/work/aten/src/ATen/native/TensorShape.cpp:3596.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+use retinaface for face box
+ok=20 fail=0 133s
+ok=40 fail=0 241s
+ok=60 fail=0 335s
+ok=80 fail=0 428s
+ok=100 fail=0 515s
+ok=120 fail=0 599s
+ok=140 fail=0 684s
+ok=160 fail=0 768s
+ok=180 fail=0 853s
+ok=200 fail=0 938s
+ok=220 fail=0 1022s
+ok=240 fail=0 1108s
+ok=260 fail=0 1194s
+ok=280 fail=0 1280s
+ok=300 fail=0 1363s
+ok=320 fail=0 1450s
+ok=340 fail=0 1535s
+ok=360 fail=0 1622s
+ok=380 fail=0 1708s
+ok=400 fail=0 1792s
+ok=420 fail=0 1874s
+готово: ok=433 fail=0 за 1928s

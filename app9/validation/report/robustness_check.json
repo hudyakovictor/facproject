@@ -1,0 +1,655 @@
+{
+  "generated": "2026-10-26 16:05:21",
+  "n_by_stratum": {
+    "full": 478,
+    "strict": 207,
+    "light": 117,
+    "off": 154,
+    "sharp": 239,
+    "blurry": 239,
+    "neutral": 239,
+    "expressive": 239,
+    "hard": 303
+  },
+  "strata": [
+    "full",
+    "strict",
+    "light",
+    "off",
+    "sharp",
+    "blurry",
+    "neutral",
+    "expressive",
+    "hard"
+  ],
+  "combos": {
+    "full": {
+      "baseline17": 0.868,
+      "alpha_only": 0.933,
+      "alpha+exprnorm": 0.948,
+      "17+alpha": 0.916
+    },
+    "strict": {
+      "baseline17": 0.889,
+      "alpha_only": 0.947,
+      "alpha+exprnorm": 0.893,
+      "17+alpha": 0.903
+    },
+    "light": {
+      "baseline17": 0.864,
+      "alpha_only": 0.726,
+      "alpha+exprnorm": 0.589,
+      "17+alpha": 0.571
+    },
+    "off": {
+      "baseline17": 0.825,
+      "alpha_only": 0.857,
+      "alpha+exprnorm": 0.76,
+      "17+alpha": 0.786
+    },
+    "sharp": {
+      "baseline17": 0.837,
+      "alpha_only": 0.908,
+      "alpha+exprnorm": 0.929,
+      "17+alpha": 0.887
+    },
+    "blurry": {
+      "baseline17": 0.879,
+      "alpha_only": 0.925,
+      "alpha+exprnorm": 0.916,
+      "17+alpha": 0.925
+    },
+    "neutral": {
+      "baseline17": 0.787,
+      "alpha_only": 0.887,
+      "alpha+exprnorm": 0.854,
+      "17+alpha": 0.866
+    },
+    "expressive": {
+      "baseline17": 0.895,
+      "alpha_only": 0.933,
+      "alpha+exprnorm": 0.929,
+      "17+alpha": 0.887
+    },
+    "hard": {
+      "baseline17": 0.868,
+      "alpha_only": 0.931,
+      "alpha+exprnorm": 0.921,
+      "17+alpha": 0.927
+    }
+  },
+  "metrics": [
+    {
+      "metric": "A8_chin_projection",
+      "raw": {
+        "full": 0.726,
+        "strict": 0.744,
+        "light": 0.795,
+        "off": 0.617,
+        "sharp": 0.707,
+        "blurry": 0.736,
+        "neutral": 0.691,
+        "expressive": 0.799,
+        "hard": 0.71
+      },
+      "expr_norm": {
+        "full": 0.659,
+        "strict": 0.671,
+        "light": 0.743,
+        "off": 0.572,
+        "sharp": 0.645,
+        "blurry": 0.682,
+        "neutral": 0.582,
+        "expressive": 0.749,
+        "hard": 0.63
+      },
+      "fragility": 0.182
+    },
+    {
+      "metric": "B7_verticality",
+      "raw": {
+        "full": 0.659,
+        "strict": 0.71,
+        "light": 0.693,
+        "off": 0.585,
+        "sharp": 0.627,
+        "blurry": 0.711,
+        "neutral": 0.582,
+        "expressive": 0.745,
+        "hard": 0.627
+      },
+      "expr_norm": {
+        "full": 0.556,
+        "strict": 0.57,
+        "light": 0.615,
+        "off": 0.461,
+        "sharp": 0.519,
+        "blurry": 0.628,
+        "neutral": 0.473,
+        "expressive": 0.699,
+        "hard": 0.551
+      },
+      "fragility": 0.163
+    },
+    {
+      "metric": "A15_nasolabial",
+      "raw": {
+        "full": 0.657,
+        "strict": 0.671,
+        "light": 0.734,
+        "off": 0.578,
+        "sharp": 0.619,
+        "blurry": 0.674,
+        "neutral": 0.632,
+        "expressive": 0.753,
+        "hard": 0.643
+      },
+      "expr_norm": {
+        "full": 0.613,
+        "strict": 0.652,
+        "light": 0.675,
+        "off": 0.552,
+        "sharp": 0.594,
+        "blurry": 0.632,
+        "neutral": 0.556,
+        "expressive": 0.716,
+        "hard": 0.601
+      },
+      "fragility": 0.175
+    },
+    {
+      "metric": "A1_gonial_angle",
+      "raw": {
+        "full": 0.653,
+        "strict": 0.729,
+        "light": 0.676,
+        "off": 0.571,
+        "sharp": 0.594,
+        "blurry": 0.707,
+        "neutral": 0.594,
+        "expressive": 0.72,
+        "hard": 0.634
+      },
+      "expr_norm": {
+        "full": 0.556,
+        "strict": 0.58,
+        "light": 0.607,
+        "off": 0.52,
+        "sharp": 0.477,
+        "blurry": 0.623,
+        "neutral": 0.515,
+        "expressive": 0.699,
+        "hard": 0.558
+      },
+      "fragility": 0.158
+    },
+    {
+      "metric": "A6_lower_thirds",
+      "raw": {
+        "full": 0.646,
+        "strict": 0.691,
+        "light": 0.709,
+        "off": 0.553,
+        "sharp": 0.641,
+        "blurry": 0.682,
+        "neutral": 0.527,
+        "expressive": 0.77,
+        "hard": 0.621
+      },
+      "expr_norm": {
+        "full": 0.632,
+        "strict": 0.652,
+        "light": 0.666,
+        "off": 0.572,
+        "sharp": 0.607,
+        "blurry": 0.678,
+        "neutral": 0.506,
+        "expressive": 0.753,
+        "hard": 0.624
+      },
+      "fragility": 0.243
+    },
+    {
+      "metric": "central_depth_ref",
+      "raw": {
+        "full": 0.615,
+        "strict": 0.642,
+        "light": 0.608,
+        "off": 0.545,
+        "sharp": 0.56,
+        "blurry": 0.653,
+        "neutral": 0.544,
+        "expressive": 0.732,
+        "hard": 0.591
+      },
+      "expr_norm": {
+        "full": 0.571,
+        "strict": 0.608,
+        "light": 0.608,
+        "off": 0.5,
+        "sharp": 0.502,
+        "blurry": 0.64,
+        "neutral": 0.519,
+        "expressive": 0.716,
+        "hard": 0.564
+      },
+      "fragility": 0.188
+    },
+    {
+      "metric": "A9_canthal_tilt",
+      "raw": {
+        "full": 0.588,
+        "strict": 0.594,
+        "light": 0.676,
+        "off": 0.564,
+        "sharp": 0.54,
+        "blurry": 0.636,
+        "neutral": 0.531,
+        "expressive": 0.724,
+        "hard": 0.578
+      },
+      "expr_norm": {
+        "full": 0.563,
+        "strict": 0.575,
+        "light": 0.589,
+        "off": 0.506,
+        "sharp": 0.502,
+        "blurry": 0.619,
+        "neutral": 0.427,
+        "expressive": 0.686,
+        "hard": 0.548
+      },
+      "fragility": 0.193
+    },
+    {
+      "metric": "B15_bifrontal",
+      "raw": {
+        "full": 0.588,
+        "strict": 0.613,
+        "light": 0.667,
+        "off": 0.532,
+        "sharp": 0.536,
+        "blurry": 0.657,
+        "neutral": 0.59,
+        "expressive": 0.703,
+        "hard": 0.571
+      },
+      "expr_norm": {
+        "full": 0.556,
+        "strict": 0.58,
+        "light": 0.599,
+        "off": 0.461,
+        "sharp": 0.498,
+        "blurry": 0.623,
+        "neutral": 0.519,
+        "expressive": 0.699,
+        "hard": 0.548
+      },
+      "fragility": 0.171
+    },
+    {
+      "metric": "B17_mouth_retraction",
+      "raw": {
+        "full": 0.58,
+        "strict": 0.575,
+        "light": 0.615,
+        "off": 0.571,
+        "sharp": 0.511,
+        "blurry": 0.644,
+        "neutral": 0.56,
+        "expressive": 0.711,
+        "hard": 0.584
+      },
+      "expr_norm": {
+        "full": 0.565,
+        "strict": 0.58,
+        "light": 0.599,
+        "off": 0.48,
+        "sharp": 0.489,
+        "blurry": 0.623,
+        "neutral": 0.452,
+        "expressive": 0.703,
+        "hard": 0.548
+      },
+      "fragility": 0.201
+    },
+    {
+      "metric": "A11_alar_flare",
+      "raw": {
+        "full": 0.573,
+        "strict": 0.584,
+        "light": 0.599,
+        "off": 0.519,
+        "sharp": 0.502,
+        "blurry": 0.623,
+        "neutral": 0.414,
+        "expressive": 0.711,
+        "hard": 0.574
+      },
+      "expr_norm": {
+        "full": 0.552,
+        "strict": 0.58,
+        "light": 0.599,
+        "off": 0.494,
+        "sharp": 0.494,
+        "blurry": 0.623,
+        "neutral": 0.402,
+        "expressive": 0.711,
+        "hard": 0.551
+      },
+      "fragility": 0.297
+    },
+    {
+      "metric": "B14_lower_proportion",
+      "raw": {
+        "full": 0.571,
+        "strict": 0.58,
+        "light": 0.615,
+        "off": 0.532,
+        "sharp": 0.515,
+        "blurry": 0.632,
+        "neutral": 0.46,
+        "expressive": 0.703,
+        "hard": 0.584
+      },
+      "expr_norm": {
+        "full": 0.554,
+        "strict": 0.575,
+        "light": 0.615,
+        "off": 0.5,
+        "sharp": 0.489,
+        "blurry": 0.619,
+        "neutral": 0.44,
+        "expressive": 0.699,
+        "hard": 0.571
+      },
+      "fragility": 0.243
+    },
+    {
+      "metric": "A13_philtrum",
+      "raw": {
+        "full": 0.565,
+        "strict": 0.604,
+        "light": 0.624,
+        "off": 0.506,
+        "sharp": 0.51,
+        "blurry": 0.644,
+        "neutral": 0.49,
+        "expressive": 0.699,
+        "hard": 0.561
+      },
+      "expr_norm": {
+        "full": 0.552,
+        "strict": 0.585,
+        "light": 0.615,
+        "off": 0.481,
+        "sharp": 0.485,
+        "blurry": 0.619,
+        "neutral": 0.427,
+        "expressive": 0.699,
+        "hard": 0.561
+      },
+      "fragility": 0.209
+    },
+    {
+      "metric": "B20_malar_height",
+      "raw": {
+        "full": 0.559,
+        "strict": 0.619,
+        "light": 0.615,
+        "off": 0.494,
+        "sharp": 0.523,
+        "blurry": 0.619,
+        "neutral": 0.469,
+        "expressive": 0.695,
+        "hard": 0.535
+      },
+      "expr_norm": {
+        "full": 0.556,
+        "strict": 0.575,
+        "light": 0.615,
+        "off": 0.48,
+        "sharp": 0.494,
+        "blurry": 0.619,
+        "neutral": 0.393,
+        "expressive": 0.699,
+        "hard": 0.551
+      },
+      "fragility": 0.225
+    },
+    {
+      "metric": "B8_jaw_flare",
+      "raw": {
+        "full": 0.557,
+        "strict": 0.58,
+        "light": 0.615,
+        "off": 0.552,
+        "sharp": 0.494,
+        "blurry": 0.628,
+        "neutral": 0.514,
+        "expressive": 0.699,
+        "hard": 0.571
+      },
+      "expr_norm": {
+        "full": 0.556,
+        "strict": 0.58,
+        "light": 0.615,
+        "off": 0.487,
+        "sharp": 0.485,
+        "blurry": 0.623,
+        "neutral": 0.464,
+        "expressive": 0.69,
+        "hard": 0.551
+      },
+      "fragility": 0.205
+    },
+    {
+      "metric": "A5_lip_area",
+      "raw": {
+        "full": 0.556,
+        "strict": 0.58,
+        "light": 0.615,
+        "off": 0.442,
+        "sharp": 0.46,
+        "blurry": 0.623,
+        "neutral": 0.435,
+        "expressive": 0.699,
+        "hard": 0.551
+      },
+      "expr_norm": {
+        "full": 0.556,
+        "strict": 0.58,
+        "light": 0.615,
+        "off": 0.448,
+        "sharp": 0.469,
+        "blurry": 0.623,
+        "neutral": 0.423,
+        "expressive": 0.699,
+        "hard": 0.551
+      },
+      "fragility": 0.263
+    },
+    {
+      "metric": "B11_interorbital",
+      "raw": {
+        "full": 0.556,
+        "strict": 0.57,
+        "light": 0.615,
+        "off": 0.48,
+        "sharp": 0.515,
+        "blurry": 0.623,
+        "neutral": 0.489,
+        "expressive": 0.699,
+        "hard": 0.551
+      },
+      "expr_norm": {
+        "full": 0.548,
+        "strict": 0.57,
+        "light": 0.615,
+        "off": 0.48,
+        "sharp": 0.523,
+        "blurry": 0.623,
+        "neutral": 0.439,
+        "expressive": 0.695,
+        "hard": 0.551
+      },
+      "fragility": 0.218
+    },
+    {
+      "metric": "B13_chin_length",
+      "raw": {
+        "full": 0.556,
+        "strict": 0.58,
+        "light": 0.615,
+        "off": 0.467,
+        "sharp": 0.49,
+        "blurry": 0.623,
+        "neutral": 0.439,
+        "expressive": 0.699,
+        "hard": 0.548
+      },
+      "expr_norm": {
+        "full": 0.554,
+        "strict": 0.575,
+        "light": 0.598,
+        "off": 0.5,
+        "sharp": 0.553,
+        "blurry": 0.623,
+        "neutral": 0.385,
+        "expressive": 0.695,
+        "hard": 0.541
+      },
+      "fragility": 0.259
+    },
+    {
+      "metric": "B5_brow_ridge",
+      "raw": {
+        "full": 0.554,
+        "strict": 0.575,
+        "light": 0.607,
+        "off": 0.442,
+        "sharp": 0.544,
+        "blurry": 0.611,
+        "neutral": 0.464,
+        "expressive": 0.703,
+        "hard": 0.535
+      },
+      "expr_norm": {
+        "full": 0.548,
+        "strict": 0.585,
+        "light": 0.607,
+        "off": 0.454,
+        "sharp": 0.531,
+        "blurry": 0.623,
+        "neutral": 0.435,
+        "expressive": 0.686,
+        "hard": 0.535
+      },
+      "fragility": 0.261
+    },
+    {
+      "metric": "B12_dorsum_taper",
+      "raw": {
+        "full": 0.554,
+        "strict": 0.546,
+        "light": 0.615,
+        "off": 0.525,
+        "sharp": 0.531,
+        "blurry": 0.623,
+        "neutral": 0.456,
+        "expressive": 0.699,
+        "hard": 0.551
+      },
+      "expr_norm": {
+        "full": 0.536,
+        "strict": 0.575,
+        "light": 0.607,
+        "off": 0.48,
+        "sharp": 0.536,
+        "blurry": 0.623,
+        "neutral": 0.447,
+        "expressive": 0.674,
+        "hard": 0.551
+      },
+      "fragility": 0.243
+    },
+    {
+      "metric": "A10_forehead_flare",
+      "raw": {
+        "full": 0.542,
+        "strict": 0.609,
+        "light": 0.582,
+        "off": 0.461,
+        "sharp": 0.577,
+        "blurry": 0.607,
+        "neutral": 0.339,
+        "expressive": 0.716,
+        "hard": 0.541
+      },
+      "expr_norm": {
+        "full": 0.546,
+        "strict": 0.585,
+        "light": 0.59,
+        "off": 0.468,
+        "sharp": 0.544,
+        "blurry": 0.607,
+        "neutral": 0.36,
+        "expressive": 0.703,
+        "hard": 0.545
+      },
+      "fragility": 0.377
+    },
+    {
+      "metric": "A12_brow_eye",
+      "raw": {
+        "full": 0.538,
+        "strict": 0.566,
+        "light": 0.582,
+        "off": 0.442,
+        "sharp": 0.557,
+        "blurry": 0.619,
+        "neutral": 0.381,
+        "expressive": 0.699,
+        "hard": 0.548
+      },
+      "expr_norm": {
+        "full": 0.542,
+        "strict": 0.556,
+        "light": 0.589,
+        "off": 0.461,
+        "sharp": 0.531,
+        "blurry": 0.623,
+        "neutral": 0.414,
+        "expressive": 0.699,
+        "hard": 0.548
+      },
+      "fragility": 0.318
+    },
+    {
+      "metric": "B6_ramus_orient",
+      "raw": {
+        "full": 0.531,
+        "strict": 0.57,
+        "light": 0.607,
+        "off": 0.442,
+        "sharp": 0.497,
+        "blurry": 0.615,
+        "neutral": 0.406,
+        "expressive": 0.699,
+        "hard": 0.545
+      },
+      "expr_norm": {
+        "full": 0.55,
+        "strict": 0.585,
+        "light": 0.615,
+        "off": 0.468,
+        "sharp": 0.489,
+        "blurry": 0.623,
+        "neutral": 0.41,
+        "expressive": 0.699,
+        "hard": 0.551
+      },
+      "fragility": 0.293
+    }
+  ]
+}

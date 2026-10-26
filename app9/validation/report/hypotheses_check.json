@@ -1,0 +1,320 @@
+{
+  "generated": "2026-10-26 15:03:17",
+  "baseline": {
+    "hypo": "BASELINE_17_metrics",
+    "cv_lda_acc": 0.876,
+    "score100": 87.6,
+    "n": [
+      150,
+      76,
+      31
+    ]
+  },
+  "n_per_identity": {
+    "put": 150,
+    "vas": 76,
+    "udmurt": 31
+  },
+  "results": [
+    {
+      "hypo": "B1_alpha_id_codebook(80d)",
+      "kind": "multi",
+      "cv_lda_acc": 0.926,
+      "score100": 92.6
+    },
+    {
+      "hypo": "B19_eye_eye_nose_procrustes",
+      "kind": "multi",
+      "cv_lda_acc": 0.895,
+      "score100": 89.5
+    },
+    {
+      "hypo": "B2_procrustes_106(3d)",
+      "kind": "multi",
+      "cv_lda_acc": 0.872,
+      "score100": 87.2
+    },
+    {
+      "hypo": "B3_shape_vs_global_mean",
+      "kind": "multi",
+      "cv_lda_acc": 0.872,
+      "score100": 87.2
+    },
+    {
+      "hypo": "B4_fourier_contour(8harm)",
+      "kind": "multi",
+      "cv_lda_acc": 0.864,
+      "score100": 86.4
+    },
+    {
+      "hypo": "A8_chin_projection",
+      "kind": "uni",
+      "cv_lda_acc": 0.767,
+      "score100": 76.7,
+      "eta2": 0.5764,
+      "medians": {
+        "put": -0.2065,
+        "vas": -0.1675,
+        "udmurt": -0.1588
+      }
+    },
+    {
+      "hypo": "A1_gonial_angle",
+      "kind": "uni",
+      "cv_lda_acc": 0.716,
+      "score100": 71.6,
+      "eta2": 0.3703,
+      "medians": {
+        "put": 130.5444,
+        "vas": 128.554,
+        "udmurt": 128.9308
+      }
+    },
+    {
+      "hypo": "B7_verticality",
+      "kind": "uni",
+      "cv_lda_acc": 0.712,
+      "score100": 71.2,
+      "eta2": 0.41,
+      "medians": {
+        "put": 1.2335,
+        "vas": 1.3014,
+        "udmurt": 1.303
+      }
+    },
+    {
+      "hypo": "A15_nasolabial",
+      "kind": "uni",
+      "cv_lda_acc": 0.692,
+      "score100": 69.2,
+      "eta2": 0.319,
+      "medians": {
+        "put": 148.8123,
+        "vas": 154.5544,
+        "udmurt": 155.8027
+      }
+    },
+    {
+      "hypo": "A6_lower_thirds",
+      "kind": "uni",
+      "cv_lda_acc": 0.689,
+      "score100": 68.9,
+      "eta2": 0.3063,
+      "medians": {
+        "put": 0.6232,
+        "vas": 0.6115,
+        "udmurt": 0.6173
+      }
+    },
+    {
+      "hypo": "B15_bifrontal",
+      "kind": "uni",
+      "cv_lda_acc": 0.638,
+      "score100": 63.8,
+      "eta2": 0.1206,
+      "medians": {
+        "put": 2.7644,
+        "vas": 2.8127,
+        "udmurt": 2.7952
+      }
+    },
+    {
+      "hypo": "central_depth_ref",
+      "kind": "uni",
+      "cv_lda_acc": 0.623,
+      "score100": 62.3,
+      "eta2": 0.2138,
+      "medians": {
+        "put": 0.2192,
+        "vas": 0.2078,
+        "udmurt": 0.2233
+      }
+    },
+    {
+      "hypo": "A13_philtrum",
+      "kind": "uni",
+      "cv_lda_acc": 0.611,
+      "score100": 61.1,
+      "eta2": 0.1007,
+      "medians": {
+        "put": 0.2357,
+        "vas": 0.2423,
+        "udmurt": 0.2337
+      }
+    },
+    {
+      "hypo": "A9_canthal_tilt",
+      "kind": "uni",
+      "cv_lda_acc": 0.599,
+      "score100": 59.9,
+      "eta2": 0.231,
+      "medians": {
+        "put": 24.1176,
+        "vas": 22.4604,
+        "udmurt": 19.6143
+      }
+    },
+    {
+      "hypo": "B20_malar_height",
+      "kind": "uni",
+      "cv_lda_acc": 0.596,
+      "score100": 59.6,
+      "eta2": 0.1022,
+      "medians": {
+        "put": 0.2162,
+        "vas": 0.2274,
+        "udmurt": 0.221
+      }
+    },
+    {
+      "hypo": "A10_forehead_flare",
+      "kind": "uni",
+      "cv_lda_acc": 0.595,
+      "score100": 59.5,
+      "eta2": 0.1617,
+      "medians": {
+        "put": 1.0929,
+        "vas": 1.0817,
+        "udmurt": 1.0797
+      }
+    },
+    {
+      "hypo": "B13_chin_length",
+      "kind": "uni",
+      "cv_lda_acc": 0.588,
+      "score100": 58.8,
+      "eta2": 0.0248,
+      "medians": {
+        "put": 0.3892,
+        "vas": 0.3901,
+        "udmurt": 0.3927
+      }
+    },
+    {
+      "hypo": "A5_lip_area",
+      "kind": "uni",
+      "cv_lda_acc": 0.584,
+      "score100": 58.4,
+      "eta2": 0.0,
+      "medians": {
+        "put": 0.0,
+        "vas": 0.0,
+        "udmurt": 0.0
+      }
+    },
+    {
+      "hypo": "B8_jaw_flare",
+      "kind": "uni",
+      "cv_lda_acc": 0.584,
+      "score100": 58.4,
+      "eta2": 0.0429,
+      "medians": {
+        "put": 0.8606,
+        "vas": 0.8606,
+        "udmurt": 0.8661
+      }
+    },
+    {
+      "hypo": "B14_lower_proportion",
+      "kind": "uni",
+      "cv_lda_acc": 0.584,
+      "score100": 58.4,
+      "eta2": 0.0824,
+      "medians": {
+        "put": 0.3827,
+        "vas": 0.3878,
+        "udmurt": 0.3766
+      }
+    },
+    {
+      "hypo": "B17_mouth_retraction",
+      "kind": "uni",
+      "cv_lda_acc": 0.583,
+      "score100": 58.3,
+      "eta2": 0.1444,
+      "medians": {
+        "put": 0.1334,
+        "vas": 0.1353,
+        "udmurt": 0.1399
+      }
+    },
+    {
+      "hypo": "A11_alar_flare",
+      "kind": "uni",
+      "cv_lda_acc": 0.58,
+      "score100": 58.0,
+      "eta2": 0.0621,
+      "medians": {
+        "put": 0.8921,
+        "vas": 0.899,
+        "udmurt": 0.9185
+      }
+    },
+    {
+      "hypo": "B5_brow_ridge",
+      "kind": "uni",
+      "cv_lda_acc": 0.58,
+      "score100": 58.0,
+      "eta2": 0.0826,
+      "medians": {
+        "put": 0.0531,
+        "vas": 0.054,
+        "udmurt": 0.058
+      }
+    },
+    {
+      "hypo": "B11_interorbital",
+      "kind": "uni",
+      "cv_lda_acc": 0.576,
+      "score100": 57.6,
+      "eta2": 0.015,
+      "medians": {
+        "put": 0.9238,
+        "vas": 0.9246,
+        "udmurt": 0.9255
+      }
+    },
+    {
+      "hypo": "B6_ramus_orient",
+      "kind": "uni",
+      "cv_lda_acc": 0.568,
+      "score100": 56.8,
+      "eta2": 0.1526,
+      "medians": {
+        "put": 90.0229,
+        "vas": 90.1804,
+        "udmurt": 90.3178
+      }
+    },
+    {
+      "hypo": "B12_dorsum_taper",
+      "kind": "uni",
+      "cv_lda_acc": 0.564,
+      "score100": 56.4,
+      "eta2": 0.0204,
+      "medians": {
+        "put": 0.505,
+        "vas": 0.5242,
+        "udmurt": 0.5238
+      }
+    },
+    {
+      "hypo": "A14_dense_mirror_rms",
+      "kind": "uni",
+      "cv_lda_acc": 0.564,
+      "score100": 56.4
+    },
+    {
+      "hypo": "A12_brow_eye",
+      "kind": "uni",
+      "cv_lda_acc": 0.549,
+      "score100": 54.9,
+      "eta2": 0.141,
+      "medians": {
+        "put": 0.1702,
+        "vas": 0.1614,
+        "udmurt": 0.1551
+      }
+    }
+  ]
+}

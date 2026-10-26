@@ -1,0 +1,51 @@
+[put] фронтальных фото: 150
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/albumentations/__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.22). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTATIONS_UPDATE to 1.
+  check_for_updates()
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=None`.
+  warnings.warn(msg)
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torch/functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at /Users/runner/miniforge3/conda-bld/libtorch_1744320385493/work/aten/src/ATen/native/TensorShape.cpp:3596.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+use retinaface for face box
+  прогресс 20,elapsed 100s
+  прогресс 40,elapsed 186s
+  прогресс 60,elapsed 273s
+  прогресс 80,elapsed 360s
+  прогресс 100,elapsed 447s
+  прогресс 120,elapsed 534s
+  прогресс 140,elapsed 619s
+[vas] фронтальных фото: 76
+  прогресс 160,elapsed 706s
+  прогресс 180,elapsed 791s
+  прогресс 200,elapsed 877s
+  прогресс 220,elapsed 963s
+[udmurt] фронтальных фото: 31
+  прогресс 240,elapsed 1048s
+
+=== ИТОГО ===
+фронтальных vectors/личность: {'put': 150, 'vas': 76, 'udmurt': 31}
+recon ok/fail/cached: 257 0 0
+
+Разделение 17 исходных метрик (анфас):
+  eta2=0.471 spread/MAD=1.23 mouth_height_3d        {'put': 0.12923, 'vas': 0.11078, 'udmurt': 0.11145}
+  eta2=0.319 spread/MAD=1.25 central_depth_contrast {'put': 0.36379, 'vas': 0.34696, 'udmurt': 0.36093}
+  eta2=0.218 spread/MAD=1.03 nose_ridge_length_3d   {'put': 0.37052, 'vas': 0.36195, 'udmurt': 0.36166}
+  eta2=0.202 spread/MAD=1.05 midface_ratio          {'put': 0.94874, 'vas': 0.93153, 'udmurt': 0.91953}
+  eta2=0.200 spread/MAD=1.31 mouth_width_3d         {'put': 0.46923, 'vas': 0.47473, 'udmurt': 0.48733}
+  eta2=0.162 spread/MAD=0.82 mouth_nose_offset      {'put': 0.00467, 'vas': 0.00253, 'udmurt': 0.00252}
+  eta2=0.110 spread/MAD=1.10 brow_eye_asym          {'put': 0.0047, 'vas': 0.00793, 'udmurt': 0.00349}
+  eta2=0.099 spread/MAD=1.15 nose_base_width_3d     {'put': 0.19816, 'vas': 0.19989, 'udmurt': 0.20759}
+  eta2=0.092 spread/MAD=0.89 brow_height_asym       {'put': 0.01055, 'vas': 0.00657, 'udmurt': 0.01173}
+  eta2=0.088 spread/MAD=0.96 brow_eye_right_3d      {'put': 0.24056, 'vas': 0.2359, 'udmurt': 0.22631}
+  eta2=0.082 spread/MAD=0.81 brow_eye_left_3d       {'put': 0.23658, 'vas': 0.23108, 'udmurt': 0.22492}
+  eta2=0.070 spread/MAD=0.75 nose_projection_3d     {'put': 0.19443, 'vas': 0.19163, 'udmurt': 0.19704}
+  eta2=0.049 spread/MAD=0.98 nose_axis_bend_3d      {'put': 0.00354, 'vas': 0.00329, 'udmurt': 0.0044}
+  eta2=0.044 spread/MAD=0.65 nose_base_asym         {'put': 0.00384, 'vas': 0.00296, 'udmurt': 0.00349}
+  eta2=0.022 spread/MAD=0.29 eye_level_asym         {'put': 0.00721, 'vas': 0.00659, 'udmurt': 0.00729}
+  eta2=0.018 spread/MAD=0.41 brow_span_3d           {'put': 0.57023, 'vas': 0.56863, 'udmurt': 0.57211}
+  eta2=0.009 spread/MAD=0.06 eye_anchor_spacing_3d  {'put': 0.5039, 'vas': 0.50333, 'udmurt': 0.50355}
+
+Accuracy классификатора на анфасе: {"overall": 0.7665, "n": 257, "per_identity": {"put": ["133/150", 0.887], "vas": ["46/76", 0.605], "udmurt": ["18/31", 0.581]}}
+
+Отчёт: /Users/victorkhudyakov/work/.runtime/frontal_17_check.json

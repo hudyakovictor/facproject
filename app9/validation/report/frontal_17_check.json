@@ -1,0 +1,266 @@
+{
+  "generated": "2026-10-26 14:09:55",
+  "elapsed_sec": 1121.5,
+  "counts_frontal": {
+    "put": 150,
+    "vas": 76,
+    "udmurt": 31
+  },
+  "recon_ok": 257,
+  "recon_fail": 0,
+  "cached_reused": 0,
+  "vectors_per_identity": {
+    "put": 150,
+    "vas": 76,
+    "udmurt": 31
+  },
+  "separation_by_eta2": [
+    {
+      "feature": "mouth_height_3d",
+      "eta2": 0.4715,
+      "spread_over_mad": 1.232,
+      "pooled_med": 0.12227,
+      "pooled_mad": 0.01497,
+      "medians": {
+        "put": 0.12923,
+        "vas": 0.11078,
+        "udmurt": 0.11145
+      }
+    },
+    {
+      "feature": "central_depth_contrast",
+      "eta2": 0.3189,
+      "spread_over_mad": 1.247,
+      "pooled_med": 0.35835,
+      "pooled_mad": 0.0135,
+      "medians": {
+        "put": 0.36379,
+        "vas": 0.34696,
+        "udmurt": 0.36093
+      }
+    },
+    {
+      "feature": "nose_ridge_length_3d",
+      "eta2": 0.2184,
+      "spread_over_mad": 1.029,
+      "pooled_med": 0.36705,
+      "pooled_mad": 0.00861,
+      "medians": {
+        "put": 0.37052,
+        "vas": 0.36195,
+        "udmurt": 0.36166
+      }
+    },
+    {
+      "feature": "midface_ratio",
+      "eta2": 0.2015,
+      "spread_over_mad": 1.052,
+      "pooled_med": 0.93985,
+      "pooled_mad": 0.02778,
+      "medians": {
+        "put": 0.94874,
+        "vas": 0.93153,
+        "udmurt": 0.91953
+      }
+    },
+    {
+      "feature": "mouth_width_3d",
+      "eta2": 0.2004,
+      "spread_over_mad": 1.315,
+      "pooled_med": 0.47236,
+      "pooled_mad": 0.01376,
+      "medians": {
+        "put": 0.46923,
+        "vas": 0.47473,
+        "udmurt": 0.48733
+      }
+    },
+    {
+      "feature": "mouth_nose_offset",
+      "eta2": 0.1621,
+      "spread_over_mad": 0.825,
+      "pooled_med": 0.00369,
+      "pooled_mad": 0.0026,
+      "medians": {
+        "put": 0.00467,
+        "vas": 0.00253,
+        "udmurt": 0.00252
+      }
+    },
+    {
+      "feature": "brow_eye_asym",
+      "eta2": 0.1104,
+      "spread_over_mad": 1.101,
+      "pooled_med": 0.00545,
+      "pooled_mad": 0.00403,
+      "medians": {
+        "put": 0.0047,
+        "vas": 0.00793,
+        "udmurt": 0.00349
+      }
+    },
+    {
+      "feature": "nose_base_width_3d",
+      "eta2": 0.0993,
+      "spread_over_mad": 1.147,
+      "pooled_med": 0.20027,
+      "pooled_mad": 0.00822,
+      "medians": {
+        "put": 0.19816,
+        "vas": 0.19989,
+        "udmurt": 0.20759
+      }
+    },
+    {
+      "feature": "brow_height_asym",
+      "eta2": 0.0917,
+      "spread_over_mad": 0.893,
+      "pooled_med": 0.00987,
+      "pooled_mad": 0.00577,
+      "medians": {
+        "put": 0.01055,
+        "vas": 0.00657,
+        "udmurt": 0.01173
+      }
+    },
+    {
+      "feature": "brow_eye_right_3d",
+      "eta2": 0.0879,
+      "spread_over_mad": 0.962,
+      "pooled_med": 0.23838,
+      "pooled_mad": 0.01481,
+      "medians": {
+        "put": 0.24056,
+        "vas": 0.2359,
+        "udmurt": 0.22631
+      }
+    },
+    {
+      "feature": "brow_eye_left_3d",
+      "eta2": 0.0815,
+      "spread_over_mad": 0.814,
+      "pooled_med": 0.23347,
+      "pooled_mad": 0.01432,
+      "medians": {
+        "put": 0.23658,
+        "vas": 0.23108,
+        "udmurt": 0.22492
+      }
+    },
+    {
+      "feature": "nose_projection_3d",
+      "eta2": 0.0699,
+      "spread_over_mad": 0.75,
+      "pooled_med": 0.19392,
+      "pooled_mad": 0.00721,
+      "medians": {
+        "put": 0.19443,
+        "vas": 0.19163,
+        "udmurt": 0.19704
+      }
+    },
+    {
+      "feature": "nose_axis_bend_3d",
+      "eta2": 0.0494,
+      "spread_over_mad": 0.976,
+      "pooled_med": 0.00361,
+      "pooled_mad": 0.00113,
+      "medians": {
+        "put": 0.00354,
+        "vas": 0.00329,
+        "udmurt": 0.0044
+      }
+    },
+    {
+      "feature": "nose_base_asym",
+      "eta2": 0.0438,
+      "spread_over_mad": 0.646,
+      "pooled_med": 0.00357,
+      "pooled_mad": 0.00136,
+      "medians": {
+        "put": 0.00384,
+        "vas": 0.00296,
+        "udmurt": 0.00349
+      }
+    },
+    {
+      "feature": "eye_level_asym",
+      "eta2": 0.0219,
+      "spread_over_mad": 0.293,
+      "pooled_med": 0.00713,
+      "pooled_mad": 0.00239,
+      "medians": {
+        "put": 0.00721,
+        "vas": 0.00659,
+        "udmurt": 0.00729
+      }
+    },
+    {
+      "feature": "brow_span_3d",
+      "eta2": 0.0175,
+      "spread_over_mad": 0.405,
+      "pooled_med": 0.56959,
+      "pooled_mad": 0.00858,
+      "medians": {
+        "put": 0.57023,
+        "vas": 0.56863,
+        "udmurt": 0.57211
+      }
+    },
+    {
+      "feature": "eye_anchor_spacing_3d",
+      "eta2": 0.0092,
+      "spread_over_mad": 0.063,
+      "pooled_med": 0.50344,
+      "pooled_mad": 0.00912,
+      "medians": {
+        "put": 0.5039,
+        "vas": 0.50333,
+        "udmurt": 0.50355
+      }
+    }
+  ],
+  "presence_flags": {
+    "strong(eta2>=0.20)": [
+      "mouth_height_3d",
+      "central_depth_contrast",
+      "nose_ridge_length_3d",
+      "midface_ratio",
+      "mouth_width_3d"
+    ],
+    "medium(0.08-0.20)": [
+      "mouth_nose_offset",
+      "brow_eye_asym",
+      "nose_base_width_3d",
+      "brow_height_asym",
+      "brow_eye_right_3d",
+      "brow_eye_left_3d"
+    ],
+    "weak(<0.08)": [
+      "nose_projection_3d",
+      "nose_axis_bend_3d",
+      "nose_base_asym",
+      "eye_level_asym",
+      "brow_span_3d",
+      "eye_anchor_spacing_3d"
+    ]
+  },
+  "accuracy_frontal": {
+    "overall": 0.7665,
+    "n": 257,
+    "per_identity": {
+      "put": [
+        "133/150",
+        0.887
+      ],
+      "vas": [
+        "46/76",
+        0.605
+      ],
+      "udmurt": [
+        "18/31",
+        0.581
+      ]
+    }
+  }
+}

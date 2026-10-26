@@ -1,0 +1,150 @@
+{
+  "raw_v17": {
+    "brow_height_asym": {
+      "median_abs_slope": 5e-05,
+      "median_R2_yaw": 0.288,
+      "ICC": 0.304,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0025,
+      "n_people": 6
+    },
+    "eye_level_asym": {
+      "median_abs_slope": 9e-05,
+      "median_R2_yaw": 0.744,
+      "ICC": 0.242,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0024,
+      "n_people": 6
+    },
+    "brow_eye_asym": {
+      "median_abs_slope": 3e-05,
+      "median_R2_yaw": 0.067,
+      "ICC": 0.58,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0051,
+      "n_people": 6
+    },
+    "nose_axis_bend_3d": {
+      "median_abs_slope": 4e-05,
+      "median_R2_yaw": 0.501,
+      "ICC": 0.118,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0008,
+      "n_people": 6
+    },
+    "nose_base_asym": {
+      "median_abs_slope": 2e-05,
+      "median_R2_yaw": 0.144,
+      "ICC": 0.236,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.001,
+      "n_people": 6
+    },
+    "mouth_nose_offset": {
+      "median_abs_slope": 3e-05,
+      "median_R2_yaw": 0.212,
+      "ICC": 0.291,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0018,
+      "n_people": 6
+    },
+    "nose_projection_3d": {
+      "median_abs_slope": 0.00013,
+      "median_R2_yaw": 0.222,
+      "ICC": 0.496,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0127,
+      "n_people": 6
+    },
+    "mouth_height_3d": {
+      "median_abs_slope": 5e-05,
+      "median_R2_yaw": 0.068,
+      "ICC": 0.913,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0281,
+      "n_people": 6
+    },
+    "eye_anchor_spacing_3d": {
+      "median_abs_slope": 0.00018,
+      "median_R2_yaw": 0.346,
+      "ICC": 0.655,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0176,
+      "n_people": 6
+    }
+  },
+  "sym_v17sym": {
+    "brow_height_asym": {
+      "median_abs_slope": 3e-05,
+      "median_R2_yaw": 0.418,
+      "ICC": 0.09,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0006,
+      "n_people": 6
+    },
+    "eye_level_asym": {
+      "median_abs_slope": 8e-05,
+      "median_R2_yaw": 0.778,
+      "ICC": 0.349,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0024,
+      "n_people": 6
+    },
+    "brow_eye_asym": {
+      "median_abs_slope": 4e-05,
+      "median_R2_yaw": 0.251,
+      "ICC": 0.623,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.004,
+      "n_people": 6
+    },
+    "nose_axis_bend_3d": {
+      "median_abs_slope": 2e-05,
+      "median_R2_yaw": 0.125,
+      "ICC": 0.168,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0007,
+      "n_people": 6
+    },
+    "nose_base_asym": {
+      "median_abs_slope": 6e-05,
+      "median_R2_yaw": 0.345,
+      "ICC": 0.203,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.002,
+      "n_people": 6
+    },
+    "mouth_nose_offset": {
+      "median_abs_slope": 2e-05,
+      "median_R2_yaw": 0.345,
+      "ICC": 0.203,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0008,
+      "n_people": 6
+    },
+    "nose_projection_3d": {
+      "median_abs_slope": 0.00013,
+      "median_R2_yaw": 0.222,
+      "ICC": 0.496,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0127,
+      "n_people": 6
+    },
+    "mouth_height_3d": {
+      "median_abs_slope": 5e-05,
+      "median_R2_yaw": 0.068,
+      "ICC": 0.913,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0281,
+      "n_people": 6
+    },
+    "eye_anchor_spacing_3d": {
+      "median_abs_slope": 0.00017,
+      "median_R2_yaw": 0.305,
+      "ICC": 0.664,
+      "sign_flip_frac": 0.0,
+      "abs_person_mean_spread": 0.0177,
+      "n_people": 6
+    }
+  }
+}

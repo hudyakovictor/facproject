@@ -1,0 +1,47 @@
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/albumentations/__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.22). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTATIONS_UPDATE to 1.
+  check_for_updates()
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=None`.
+  warnings.warn(msg)
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/torch/functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at /Users/runner/miniforge3/conda-bld/libtorch_1744320385493/work/aten/src/ATen/native/TensorShape.cpp:3596.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+use retinaface for face box
+A ok=30 fail=0 139s
+A ok=60 fail=0 277s
+A ok=90 fail=0 421s
+A ok=120 fail=0 564s
+A ok=150 fail=0 721s
+A ok=180 fail=0 905s
+A ok=210 fail=0 1100s
+A ok=240 fail=0 1310s
+фаза A: ok=256 fail=0
+фаза B: строк фич = 473  fail=
+
+=== медианный ШУМ метрик v17 по бинам (within-person std) ===
+metric                  front  left_  right  left_  right  left_  right  left_  right
+brow_span_3d            0.003  0.004  0.003  0.004  0.003  0.003  0.004  0.004  0.004
+brow_height_asym        0.002  0.001  0.001  0.002  0.001  0.001  0.001  0.002  0.002
+eye_anchor_spacing_3d   0.004  0.006  0.003  0.005  0.004  0.003  0.004  0.004  0.003
+eye_level_asym          0.001  0.001  0.001  0.001  0.001  0.001  0.001  0.001  0.001
+brow_eye_left_3d        0.006  0.002  0.006  0.006  0.006  0.002  0.004  0.004  0.010
+brow_eye_right_3d       0.005  0.002  0.006  0.004  0.004  0.002  0.004  0.003  0.007
+brow_eye_asym           0.002  0.002  0.001  0.002  0.002  0.001  0.001  0.002  0.003
+nose_ridge_length_3d    0.003  0.003  0.003  0.003  0.003  0.003  0.003  0.006  0.005
+nose_base_width_3d      0.003  0.003  0.003  0.003  0.002  0.003  0.004  0.005  0.005
+nose_axis_bend_3d       0.000  0.000  0.001  0.000  0.000  0.000  0.000  0.000  0.001
+nose_base_asym          0.001  0.001  0.001  0.000  0.001  0.000  0.000  0.001  0.001
+nose_projection_3d      0.003  0.002  0.003  0.004  0.003  0.002  0.004  0.005  0.004
+midface_ratio           0.006  0.009  0.006  0.007  0.006  0.003  0.004  0.005  0.016
+mouth_width_3d          0.005  0.003  0.006  0.005  0.005  0.005  0.003  0.007  0.005
+mouth_height_3d         0.003  0.003  0.003  0.003  0.002  0.003  0.003  0.003  0.004
+mouth_nose_offset       0.001  0.001  0.001  0.001  0.001  0.000  0.001  0.001  0.001
+central_depth_contrast  0.004  0.003  0.004  0.006  0.004  0.004  0.006  0.005  0.006
+
+inflation шума v17 (к frontal): {'frontal': 1.0, 'left_light': 0.83, 'right_light': 1.09, 'left_mid': 1.15, 'right_mid': 0.95, 'left_deep': 0.72, 'right_deep': 0.83, 'left_profile': 1.07, 'right_profile': 1.45}
+inflation шума v17sym(к frontal): {'frontal': 1.0, 'left_light': 0.79, 'right_light': 1.08, 'left_mid': 1.12, 'right_mid': 0.96, 'left_deep': 0.7, 'right_deep': 0.89, 'left_profile': 0.99, 'right_profile': 1.47}
+inflation шума univ (к frontal): {'frontal': 1.0, 'left_light': 0.92, 'right_light': 1.06, 'left_mid': 1.01, 'right_mid': 0.91, 'left_deep': 0.66, 'right_deep': 0.84, 'left_profile': 1.07, 'right_profile': 1.31}
+n_people/бин: {'frontal': 6, 'left_light': 6, 'right_light': 6, 'left_mid': 6, 'right_mid': 6, 'left_deep': 6, 'right_deep': 6, 'left_profile': 6, 'right_profile': 6} 
+yaw jitter: {'frontal': 5.5, 'left_light': 4.3, 'right_light': 4.5, 'left_mid': 4.4, 'right_mid': 4.2, 'left_deep': 2.6, 'right_deep': 2.9, 'left_profile': 8.2, 'right_profile': 8.3}
+
+Отчёт: /Users/victorkhudyakov/work/.runtime/rakurs_noise.json
