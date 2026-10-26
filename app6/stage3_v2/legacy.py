@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .config import Stage3V2Config
 
@@ -19,7 +19,7 @@ from .config import Stage3V2Config
 class LegacyIntegrator:
     """Интегратор legacy hypothesis данных."""
     
-    def __init__(self, config: Stage3V2Config, legacy_path: Optional[Path] = None):
+    def __init__(self, config: Stage3V2Config, legacy_path: Path | None = None):
         self.config = config
         self.legacy_path = legacy_path
         self._records: dict[str, dict] = {}
@@ -41,7 +41,7 @@ class LegacyIntegrator:
                     if photo_id:
                         self._records[photo_id] = record
     
-    def get_legacy_record(self, photo_id: str) -> Optional[dict]:
+    def get_legacy_record(self, photo_id: str) -> dict | None:
         """Получить legacy record для photo_id."""
         return self._records.get(photo_id)
     
@@ -146,7 +146,7 @@ class LegacyIntegrator:
         
         return likelihood
     
-    def get_correction_summary(self, photo_id: str, pose_bin: str) -> Optional[dict]:
+    def get_correction_summary(self, photo_id: str, pose_bin: str) -> dict | None:
         """Получить summary коррекции для UI."""
         record = self.get_legacy_record(photo_id)
         if not record:

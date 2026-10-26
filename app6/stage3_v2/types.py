@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 import numpy as np
 
 
@@ -48,7 +48,7 @@ class BayesianResult:
     update_history: list[dict[str, Any]] = field(default_factory=list)
     
     # Calibrated posterior (isotonic regression)
-    calibrated_posterior: Optional[dict[str, float]] = None
+    calibrated_posterior: dict[str, float] | None = None
     
     def primary_hypothesis(self) -> str:
         """Гипотеза с максимальной posterior probability."""
@@ -285,8 +285,8 @@ class PairAnalysis:
     pair_id: str
     photo_a: str
     photo_b: str
-    date_a: Optional[datetime]
-    date_b: Optional[datetime]
+    date_a: datetime | None
+    date_b: datetime | None
     pose_bin: str
     
     # Raw metrics from Stage 2
@@ -300,15 +300,15 @@ class PairAnalysis:
     bayesian: BayesianResult
     effect_size: EffectSizeResult
     bootstrap: BootstrapResult
-    cross_pose: Optional[CrossPoseResult]
+    cross_pose: CrossPoseResult | None
     
     # QC
     qc_passed: bool
     quality_score: float
     
     # Fast Pass (if used)
-    fast_pass_hypothesis: Optional[str] = None
-    fast_pass_agreed: Optional[bool] = None
+    fast_pass_hypothesis: str | None = None
+    fast_pass_agreed: bool | None = None
 
 
 # ═══════════════════════════════════════════

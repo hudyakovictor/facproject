@@ -29,7 +29,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import contract, geometry, stats, zones
+from . import geometry, stats, zones
 from .gates import Verdict, pair_gate, photo_gate, temporal_axis, visibility_intersection
 from .loader import LoadResult, Record, load_stage1
 from .params import Params
@@ -220,7 +220,7 @@ def plan_pairs(load: LoadResult, params: Params) -> list[tuple[Record, Record, s
     """
     planned: list[tuple[Record, Record, str]] = []
 
-    for pose_bin, records in load.by_bin().items():
+    for records in load.by_bin().values():
         if len(records) < 2:
             continue
 
@@ -467,7 +467,7 @@ def score_pairs(
         method=params["fdr_method"],
         level=params["fdr_level"],
     )
-    for pair, q_value, rejected in zip(scorable, result.q_values, result.rejected):
+    for pair, q_value, rejected in zip(scorable, result.q_values, result.rejected, strict=True):
         pair.q_value = float(q_value)
         pair.significant = bool(rejected)
         if not rejected:
@@ -702,7 +702,7 @@ def score_zones(
     )
 
     for (pair, zone, _), q_value, rejected in zip(
-        entries, result.q_values, result.rejected
+        entries, result.q_values, result.rejected, strict=True
     ):
         metrics = pair.zone_metrics[zone]
         metrics["zone_q"] = float(q_value)

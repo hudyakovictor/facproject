@@ -67,7 +67,7 @@ class DescriptorNoiseModel:
                         if x["status"]=="measured": vals[pose][person].append(x["values"])
         for pose,person_dict in vals.items():
             per_person_medians=[]
-            for person,arr in person_dict.items():
+            for arr in person_dict.values():
                 st=np.stack(arr)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore",RuntimeWarning)

@@ -15,11 +15,10 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from datetime import datetime
 import numpy as np
 
-from .types import PairAnalysis
 
 
 class Stage2Loader:
@@ -64,7 +63,7 @@ class Stage2Loader:
         
         return json.loads(path.read_text(encoding='utf-8'))
     
-    def load_noise_model(self) -> Optional[np.ndarray]:
+    def load_noise_model(self) -> np.ndarray | None:
         """Загрузить point_noise_model.npz."""
         path = self.root / "point_noise_model.npz"
         if not path.exists():
@@ -72,7 +71,7 @@ class Stage2Loader:
         
         return np.load(path, allow_pickle=False)
     
-    def load_motion_file(self, motion_path: str) -> Optional[dict[str, np.ndarray]]:
+    def load_motion_file(self, motion_path: str) -> dict[str, np.ndarray] | None:
         """Загрузить motion file для одной пары."""
         full_path = self.root / motion_path
         if not full_path.exists():
@@ -132,7 +131,7 @@ class Stage2Loader:
         pairs = self.load_all_pairs()
         return {p.get("pose_bin", "unknown") for p in pairs if p.get("pose_bin")}
     
-    def get_date_range(self) -> tuple[Optional[datetime], Optional[datetime]]:
+    def get_date_range(self) -> tuple[datetime | None, datetime | None]:
         """Получить диапазон дат."""
         pairs = self.get_adjacent_pairs()
         dates = []

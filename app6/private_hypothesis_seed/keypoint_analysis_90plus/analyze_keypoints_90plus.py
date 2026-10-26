@@ -1,4 +1,4 @@
-import pandas as pd, numpy as np, glob, os, re
+import pandas as pd, numpy as np, re
 from pathlib import Path
 BASE=Path('/data/raw/archive2'); OUT=Path('/data/analysis2'); OUT.mkdir(exist_ok=True)
 files=sorted(BASE.glob('ldm106_aligned_*.csv'))
@@ -44,7 +44,7 @@ metric_defs={
  'central_depth_contrast':([54,67,74,104,76,78,81,83,105],'Выступание носа относительно глазничной плоскости'),
 }
 rows=[]
-for rec,q in zip(records,Q):
+for rec,q in zip(records,Q,strict=True):  # рассинхрон records/Q раньше молча терял хвост выборки
  lb=centroid(q,[34,35,36,37,38,39,40]); rb=centroid(q,[42,43,44,45,47,48,49,50])
  le=centroid(q,[67,74,104]); re=centroid(q,[76,78,81,83,105]); nb=centroid(q,[58,59,60,61,62])
  ul=centroid(q,[86,87,88]); ll=centroid(q,[92,93,94]); mc=centroid(q,[84,86,87,88,90,91,92,93,94,95])

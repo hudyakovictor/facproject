@@ -290,8 +290,10 @@ def get_photo_landmarks(photo_id: str, count: int, space: str) -> dict[str, Any]
                         if lm:
                             points = lm  # type: ignore
                             break
-        except Exception:
-            pass  # JSON fallback failed - return empty points
+        except Exception:  # noqa: S110 — deliberate graceful degradation: bad/unknown record shape
+            # yields empty points and the UI renders "no data"; this module has no logger
+            # and introducing one just to satisfy the linter is out of scope here.
+            pass
 
     # If still no points, return empty (rather than error) - UI can handle gracefully
     if not points:

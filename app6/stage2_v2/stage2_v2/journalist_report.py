@@ -38,12 +38,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
 
-from . import narrative
 from .narrative import (
     COUNTER_EXPLANATIONS,
-    Claim,
     build_periods,
     localized_zone_claims,
     period_claim,

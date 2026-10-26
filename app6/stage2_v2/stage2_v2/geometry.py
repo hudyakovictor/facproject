@@ -114,7 +114,8 @@ def trimmed_kabsch(
     iterations = 0
     converged = False
 
-    for iterations in range(1, max_iterations + 1):
+    for _ in range(max_iterations):
+        iterations += 1
         aligned = moving @ rotation.T + translation
         residuals = np.linalg.norm(aligned - fixed, axis=1)
         # Keep the `keep` best correspondences and refit on those alone.

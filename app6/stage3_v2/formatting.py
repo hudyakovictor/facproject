@@ -17,10 +17,9 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 
-def fmt(value: float, format_type: str = "auto", precision: Optional[int] = None) -> str:
+def fmt(value: float, format_type: str = "auto", precision: int | None = None) -> str:
     """
     Format a number for Russian locale.
     
@@ -108,7 +107,7 @@ def _add_thousands_spaces_int(s: str) -> str:
     return "-" + result if negative else result
 
 
-def _fmt_auto(value: float, precision: Optional[int]) -> str:
+def _fmt_auto(value: float, precision: int | None) -> str:
     """Auto format."""
     p = precision if precision is not None else _auto_precision(value)
     
@@ -121,7 +120,7 @@ def _fmt_auto(value: float, precision: Optional[int]) -> str:
     return _apply_locale(s)
 
 
-def _fmt_percentage(value: float, precision: Optional[int]) -> str:
+def _fmt_percentage(value: float, precision: int | None) -> str:
     """Format as percentage (value is 0-1)."""
     pct = value * 100
     p = precision if precision is not None else 1
@@ -129,14 +128,14 @@ def _fmt_percentage(value: float, precision: Optional[int]) -> str:
     return _apply_locale(s)
 
 
-def _fmt_z_score(value: float, precision: Optional[int]) -> str:
+def _fmt_z_score(value: float, precision: int | None) -> str:
     """Format z-score."""
     p = precision if precision is not None else 1
     s = f"{value:.{p}f}"
     return _apply_locale(s)
 
 
-def _fmt_distance(value: float, precision: Optional[int]) -> str:
+def _fmt_distance(value: float, precision: int | None) -> str:
     """Format distance in mm."""
     if value < 0.01:
         # Convert to micrometers
@@ -148,7 +147,7 @@ def _fmt_distance(value: float, precision: Optional[int]) -> str:
     return _apply_locale(s)
 
 
-def _fmt_ratio(value: float, precision: Optional[int]) -> str:
+def _fmt_ratio(value: float, precision: int | None) -> str:
     """Format ratio."""
     p = precision if precision is not None else 3
     s = f"{value:.{p}f}"
@@ -172,7 +171,7 @@ def _fmt_days(value: float) -> str:
         return f"{d} дн."
 
 
-def _fmt_bf(value: float, precision: Optional[int]) -> str:
+def _fmt_bf(value: float, precision: int | None) -> str:
     """Format Bayes Factor."""
     if value >= 1000:
         return f"{value:.0f}"
@@ -181,7 +180,7 @@ def _fmt_bf(value: float, precision: Optional[int]) -> str:
     return _apply_locale(s)
 
 
-def _fmt_angle(value: float, precision: Optional[int]) -> str:
+def _fmt_angle(value: float, precision: int | None) -> str:
     """Format angle in degrees."""
     p = precision if precision is not None else 1
     s = f"{value:.{p}f}°"

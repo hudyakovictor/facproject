@@ -130,7 +130,7 @@ def apply_chronology_rate_flags(rows: list[dict]) -> dict[str,dict[str,float]]:
     # from the analyzed dataset, NOT from an independent calibration set.
     # This is a known limitation — thresholds derived from the same data
     # they flag are circular. Future fix: calibrate on independent longitudinal data.
-    for pose, ref in refs.items():
+    for ref in refs.values():
         ref['baseline_source'] = 'self_calibrating_from_analyzed_pairs'
         ref['baseline_warning'] = 'rate thresholds derived from analyzed data, not independent calibration; interpret as diagnostic only'
     return refs

@@ -136,7 +136,6 @@ def resolution_quality_gate(
         - texture_conclusions_allowed
         - quality_gate_reason
     """
-    from .quality_stratification import quality_gate as _qg
 
     out = dict(pair_metrics)
     out["quality_gate_schema"] = QUALITY_GATE_SCHEMA

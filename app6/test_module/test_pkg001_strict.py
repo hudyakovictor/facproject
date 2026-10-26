@@ -155,7 +155,9 @@ class InputProvenanceStrictEvidence(unittest.TestCase):
                 arr, meta = decode_oriented(p); self.assertEqual(arr.shape, (3, 4, 3)); self.assertEqual(meta["encoded_mode"], mode)
             for name, raw in (("empty.jpg", b""), ("truncated.jpg", path.read_bytes()[:30])):
                 p = root / name; p.write_bytes(raw)
-                with self.assertRaises(Exception): decode_oriented(p)
+                # Пустой файл -> PIL.UnidentifiedImageError, обрезанный -> OSError;
+                # оба — потомки OSError, так что проверка конкретная, а не «любая ошибка».
+                with self.assertRaises(OSError): decode_oriented(p)
 
 
 class DuplicateAndSidecarStrictEvidence(unittest.TestCase):
@@ -174,7 +176,7 @@ class DuplicateAndSidecarStrictEvidence(unittest.TestCase):
             self.assertEqual(hamming_distance(ha, hb), hamming_distance(hb, ha))
             with self.assertRaises((ValueError, TypeError)): hamming_distance("nothex", ha)
             empty = root / "empty"; empty.write_bytes(b"")
-            with self.assertRaises(Exception): perceptual_dhash(empty)
+            with self.assertRaises(OSError): perceptual_dhash(empty)  # PIL.UnidentifiedImageError — потомок OSError
 
     def test_sidecar_candidates_digest_schema_null_symlink_and_repeat(self):
         with workspace() as td:

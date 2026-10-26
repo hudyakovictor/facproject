@@ -11,8 +11,6 @@
 from __future__ import annotations
 
 import numpy as np
-from datetime import datetime, timedelta
-from typing import Any
 
 from .config import Stage3V2Config
 from .types import CrossPoseResult, PoseConfirmation, PairAnalysis
@@ -41,9 +39,6 @@ class CrossPoseAnalyzer:
         """
         if not primary.date_b:
             return None
-        
-        # Time window
-        window = timedelta(days=self.config.cross_pose_time_window_days)
         
         # Find confirming pairs
         confirmations: list[PoseConfirmation] = []

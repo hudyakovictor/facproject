@@ -21,17 +21,15 @@ from datetime import datetime
 
 from .config import Stage3V2Config
 from .types import (
-    PairAnalysis, BayesianResult, EffectSizeResult, BootstrapResult,
-    ChangePointResult, ZoneAnalysisResult, ZoneSummary,
-    NarrativeResult, FullReport, CalibrationSuggestion
+    PairAnalysis, ZoneAnalysisResult, ZoneSummary,
+    FullReport, CalibrationSuggestion
 )
 from .loader import Stage2Loader, load_stage2_data
-from .bayesian import analyze_pair_bayesian, BayesianUpdater, LikelihoodCalculator
+from .bayesian import analyze_pair_bayesian
 from .effect_size import compute_effect_size, ZONE_LABELS_RU
 from .bootstrap import compute_bootstrap_ci
 from .change_point import detect_change_points
 from .narrative import NarrativeEngine
-from .formatting import fmt
 from .cross_pose import apply_cross_pose_confirmation
 from .legacy import LegacyIntegrator
 from .feedback import run_feedback_loop

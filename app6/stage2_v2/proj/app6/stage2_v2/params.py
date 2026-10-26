@@ -589,7 +589,7 @@ class Params:
 
     # -- construction ------------------------------------------------------
     @classmethod
-    def defaults(cls, name: str = "default") -> "Params":
+    def defaults(cls, name: str = "default") -> Params:
         return cls({s.key: s.default for s in SPECS}, name=name)
 
     @classmethod
@@ -600,7 +600,7 @@ class Params:
         name: str = "custom",
         notes: str = "",
         strict: bool = True,
-    ) -> "Params":
+    ) -> Params:
         """Build from a partial dict, filling any gap with the declared default."""
         values: dict[str, Any] = {s.key: s.default for s in SPECS}
         unknown = sorted(set(raw) - set(values))
@@ -624,7 +624,7 @@ class Params:
         return cls(values, name=name, notes=notes)
 
     @classmethod
-    def load(cls, path: Path) -> "Params":
+    def load(cls, path: Path) -> Params:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
         if payload.get("schema") != PARAMS_SCHEMA:
             raise ParamError(
@@ -645,7 +645,7 @@ class Params:
     def get(self, key: str, default: Any = None) -> Any:
         return self.values.get(key, default)
 
-    def replace(self, **changes: Any) -> "Params":
+    def replace(self, **changes: Any) -> Params:
         merged = dict(self.values)
         merged.update(changes)
         return Params.from_dict(merged, name=self.name, notes=self.notes)
@@ -702,7 +702,7 @@ class Params:
         tmp.replace(path)
         return path
 
-    def diff(self, other: "Params") -> dict[str, dict[str, Any]]:
+    def diff(self, other: Params) -> dict[str, dict[str, Any]]:
         """Parameters that differ, with impact - used by the admin panel."""
         out: dict[str, dict[str, Any]] = {}
         for key in sorted(BY_KEY):

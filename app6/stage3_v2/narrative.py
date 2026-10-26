@@ -13,13 +13,12 @@ Tone: journalistic (нейтральный, для расследователь�
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from .config import Stage3V2Config
 from .types import (
     NarrativeResult, ChangePointResult, ZoneAnalysisResult,
-    PairAnalysis, FullReport
+    PairAnalysis
 )
 from .formatting import fmt, fmt_ci
 
@@ -99,7 +98,6 @@ class NarrativeEngine:
         """Generate headline."""
         n_photos = manifest.get("main_record_count", 0)
         n_changes = len([a for a in analyses if a.bayesian.primary_hypothesis() == "H2_DIFFERENT"])
-        n_cp = len(change_points.change_points)
         
         if n_changes > 20:
             return f"Обнаружены значительные изменения лица: анализ {fmt(n_photos, 'count')} фотографий"

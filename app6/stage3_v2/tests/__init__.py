@@ -7,7 +7,6 @@ from pathlib import Path
 from datetime import datetime
 
 import pytest
-import numpy as np
 
 
 class TestConfig:
@@ -130,7 +129,6 @@ class TestBayesian:
         """Likelihood calculator produces valid probabilities."""
         from app6.stage3_v2.config import Stage3V2Config
         from app6.stage3_v2.bayesian import LikelihoodCalculator
-        import tempfile
         
         with tempfile.TemporaryDirectory() as tmp:
             stage2 = Path(tmp) / "stage2"
@@ -150,7 +148,6 @@ class TestBayesian:
         """Bayesian updater correctly updates posterior."""
         from app6.stage3_v2.config import Stage3V2Config
         from app6.stage3_v2.bayesian import BayesianUpdater
-        import tempfile
         
         with tempfile.TemporaryDirectory() as tmp:
             stage2 = Path(tmp) / "stage2"
@@ -170,7 +167,6 @@ class TestBayesian:
         """LR computed correctly."""
         from app6.stage3_v2.config import Stage3V2Config
         from app6.stage3_v2.bayesian import BayesianUpdater
-        import tempfile
         
         with tempfile.TemporaryDirectory() as tmp:
             stage2 = Path(tmp) / "stage2"
@@ -195,7 +191,6 @@ class TestEffectSize:
         """Cohen's d computed correctly."""
         from app6.stage3_v2.config import Stage3V2Config
         from app6.stage3_v2.effect_size import compute_effect_size
-        import tempfile
         
         with tempfile.TemporaryDirectory() as tmp:
             stage2 = Path(tmp) / "stage2"
@@ -212,7 +207,6 @@ class TestEffectSize:
         """Journalist phrases generated for significant zones."""
         from app6.stage3_v2.config import Stage3V2Config
         from app6.stage3_v2.effect_size import compute_effect_size
-        import tempfile
         
         with tempfile.TemporaryDirectory() as tmp:
             stage2 = Path(tmp) / "stage2"
@@ -233,7 +227,6 @@ class TestBootstrap:
         """Bootstrap CI computed correctly."""
         from app6.stage3_v2.config import Stage3V2Config
         from app6.stage3_v2.bootstrap import compute_bootstrap_ci
-        import tempfile
         
         with tempfile.TemporaryDirectory() as tmp:
             stage2 = Path(tmp) / "stage2"
@@ -257,7 +250,6 @@ class TestChangePoint:
         """Change points detected in time series."""
         from app6.stage3_v2.config import Stage3V2Config
         from app6.stage3_v2.change_point import detect_change_points
-        import tempfile
         
         with tempfile.TemporaryDirectory() as tmp:
             stage2 = Path(tmp) / "stage2"

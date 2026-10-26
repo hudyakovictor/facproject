@@ -37,7 +37,7 @@ class Verdict:
     #: Human-readable trace: what was checked, against what, and what happened.
     trace: list[dict] = field(default_factory=list)
 
-    def skip(self, reason: str, **detail) -> "Verdict":
+    def skip(self, reason: str, **detail) -> Verdict:
         self.admitted = False
         # Keep the first reason: it is the earliest and most specific cause.
         if self.skip_reason is None:
@@ -45,16 +45,16 @@ class Verdict:
         self.trace.append({"gate": reason, "outcome": "skip", **detail})
         return self
 
-    def limit(self, name: str, **detail) -> "Verdict":
+    def limit(self, name: str, **detail) -> Verdict:
         self.limits.add(name)
         self.trace.append({"gate": name, "outcome": "limit", **detail})
         return self
 
-    def note(self, gate: str, **detail) -> "Verdict":
+    def note(self, gate: str, **detail) -> Verdict:
         self.trace.append({"gate": gate, "outcome": "pass", **detail})
         return self
 
-    def merge(self, other: "Verdict") -> "Verdict":
+    def merge(self, other: Verdict) -> Verdict:
         if not other.admitted:
             self.admitted = False
             if self.skip_reason is None:

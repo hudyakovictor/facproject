@@ -4,10 +4,8 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import pytest
-import numpy as np
 
 
 # ═══════════════════════════════════════════
@@ -275,7 +273,7 @@ class TestEdgeCases:
         report = FullReport(
             schema_version="test",
             created_at=datetime.now(),
-            stage2_root="/tmp/test",
+            stage2_root=str(Path(tempfile.gettempdir()) / "stage3-test"),
             total_pairs=10,
             pairs_analyzed=8,
             pairs_with_changes=3,

@@ -30,7 +30,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from app6.stage1.utils import atomic_json,json_ready,digest_file,digest_json,write_csv
+from app6.stage1.utils import atomic_json,digest_file,digest_json,write_csv
 from app6.stage1.status_logger import log_status, status_warning
 from .calibration import CalibrationModel
 from .calibration_sensitivity import leave_one_dataset_sensitivity
@@ -62,7 +62,7 @@ from .temporal_axis import TEMPORAL_AXIS_SCHEMA, require_temporal_axis
 from .corroboration import apply_cross_bin_corroboration, aggregate_events
 from .pose_leakage import pose_leakage_diagnostic
 from .metric_registry import build_metric_catalog
-from .evidence import EVIDENCE_SCHEMA, evidence_state, packet_from_pair, is_reportable_change
+from .evidence import evidence_state, packet_from_pair, is_reportable_change
 from .validation import validate_analysis_contract
 from .pair_planner import plan_pairs
 
@@ -98,7 +98,7 @@ def _atomic_npz(path:Path,**arrays:Any)->None:
  os.replace(tmp,path)
 
 def _read_checkpoint(path:Path)->dict[str,Any]:
- with path.open('rb') as f:payload=pickle.load(f)
+ with path.open('rb') as f:payload=pickle.load(f)  # noqa: S301 — checkpoint is written by _write_checkpoint above and schema-checked on the next line; not an untrusted input
  if not isinstance(payload,dict) or payload.get('schema')!=CHECKPOINT_SCHEMA:raise RuntimeError(f'invalid Stage 2 checkpoint: {path}')
  return payload
 

@@ -124,7 +124,6 @@ class PointNoiseModel:
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore',RuntimeWarning)
                 median=np.nanmedian(agg,axis=0);mad=np.nanmedian(np.abs(agg-median),axis=0)
-                p99_per_person=np.nanpercentile(agg,99,axis=0)
                 p95=np.nanmedian(np.stack([np.nanpercentile(np.stack(arrs),95,axis=0) for arrs in person_dict.values()]),axis=0)
             n_persons=len(per_person_medians)
             cnt=np.full(len(median),n_persons,dtype=np.int32)
