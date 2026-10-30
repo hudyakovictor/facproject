@@ -1,0 +1,34 @@
+{
+  "people": 7,
+  "test_photos": 177,
+  "skipped_rows": 759,
+  "yaw_range_observed": [
+    -9.96,
+    9.94
+  ],
+  "M1_by_person_mean": {
+    "median": 0.008662,
+    "p95": 0.01133,
+    "mean": 0.008997
+  },
+  "M3_by_person_mean": {
+    "median": 0.090401,
+    "p95": 0.145375
+  },
+  "M3_by_photo": {
+    "n": 177,
+    "median": 0.080642,
+    "frac_gt0": 1.0
+  },
+  "control": {
+    "n": 177,
+    "accuracy": 0.9831
+  },
+  "gates": {
+    "median_m1<=0.03": true,
+    "p95_m1<=0.06": true,
+    "frac_m3>0>=0.80": true,
+    "control>=0.95": true
+  },
+  "verdict": "пройден"
+}

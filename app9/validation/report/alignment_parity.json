@@ -1,0 +1,139 @@
+{
+  "photos_checked": 3,
+  "worst_validation_vs_prod": 0.0,
+  "tolerance": 1e-05,
+  "shared_code": {
+    "aligner_is_prod_module": true,
+    "server_uses_same_aligner": true,
+    "server_uses_same_form_vector": true,
+    "alignment_space_label": "identity_object_space_rms106_v2"
+  },
+  "photo_scale_old_to_new": [
+    1.59522,
+    1.6032,
+    1.56017
+  ],
+  "per_feature": [
+    {
+      "feature": "brow_span_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 1e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "brow_height_asym",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 0.000129,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "eye_anchor_spacing_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 1e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "eye_level_asym",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 6.8e-05,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "brow_eye_left_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 2e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "brow_eye_right_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 2e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "brow_eye_asym",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 0.000142,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "nose_ridge_length_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 1e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "nose_base_width_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 3e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "nose_axis_bend_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 0.000168,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "nose_base_asym",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 0.000188,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "nose_projection_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 3e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "midface_ratio",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 1e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "mouth_width_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 1e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "mouth_height_3d",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 5e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "mouth_nose_offset",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 0.00071,
+      "verdict": "значений нет даже с учётом шума кэша"
+    },
+    {
+      "feature": "central_depth_contrast",
+      "dev_scale": null,
+      "dev_unit": null,
+      "cache_noise": 2e-06,
+      "verdict": "значений нет даже с учётом шума кэша"
+    }
+  ],
+  "changed_features": [],
+  "baseline_difference_is_scale_only": true
+}

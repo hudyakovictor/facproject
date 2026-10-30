@@ -11,6 +11,54 @@ __all__ = ["compute_triangle_visibility", "compute_vertex_visibility"]
 logger = logging.getLogger(__name__)
 
 
+def rasterize_depth(vertices_2d, depths, triangles, image_size, front_mask=None, max_side=1024):
+    h, w = image_size
+    ratio = min(1.0, max_side / max(h, w))
+    bh, bw = max(2, int(round(h * ratio))), max(2, int(round(w * ratio)))
+    scale = np.array([(bw - 1) / max(w - 1, 1), (bh - 1) / max(h - 1, 1)])
+    points = np.asarray(vertices_2d, dtype=float) * scale
+    z = np.asarray(depths, dtype=float)
+    faces = np.asarray(triangles, dtype=int)
+    depth = np.full((bh, bw), np.inf, dtype=np.float32)
+    owners = np.full((bh, bw), -1, dtype=np.int32)
+    mask = np.ones(len(faces), dtype=bool) if front_mask is None else front_mask
+    for index in np.flatnonzero(mask):
+        indices = faces[index]
+        p, tz = points[indices], z[indices]
+        if not np.isfinite(p).all() or not np.isfinite(tz).all() or np.any(tz <= 0):
+            continue
+        edges = np.column_stack((p[1] - p[0], p[2] - p[0]))
+        if abs(np.linalg.det(edges)) < 1e-10:
+            continue
+        low = np.maximum(np.floor(p.min(axis=0)).astype(int), 0)
+        high = np.minimum(np.ceil(p.max(axis=0)).astype(int), [bw - 1, bh - 1])
+        if np.any(low > high):
+            continue
+        gx, gy = np.meshgrid(np.arange(low[0], high[0] + 1), np.arange(low[1], high[1] + 1))
+        coordinates = np.column_stack((gx.ravel(), gy.ravel()))
+        tail = (coordinates - p[0]) @ np.linalg.inv(edges).T
+        bary = np.column_stack((1 - tail.sum(axis=1), tail))
+        inside = (bary >= -1e-6).all(axis=1)
+        coordinates, bary = coordinates[inside].astype(int), bary[inside]
+        predicted = 1 / np.sum(bary / tz, axis=1)
+        x, y = coordinates[:, 0], coordinates[:, 1]
+        closer = predicted < depth[y, x]
+        depth[y[closer], x[closer]] = predicted[closer]
+        owners[y[closer], x[closer]] = index
+    return {"depth": depth, "triangle_id": owners, "scale": scale, "image_size": tuple(image_size)}
+
+
+def query_visibility(source_xy, expected_depth, triangle_id, buffers):
+    xy = np.asarray(source_xy)
+    h, w = buffers["image_size"]
+    in_bounds = np.isfinite(xy).all(axis=1) & (xy[:, 0] >= 0) & (xy[:, 0] <= w - 1) & (xy[:, 1] >= 0) & (xy[:, 1] <= h - 1)
+    scaled = np.rint(np.nan_to_num(xy) * buffers["scale"]).astype(int)
+    bh, bw = buffers["depth"].shape
+    x, y = np.clip(scaled[:, 0], 0, bw - 1), np.clip(scaled[:, 1], 0, bh - 1)
+    depth, owner = buffers["depth"][y, x], buffers["triangle_id"][y, x]
+    return in_bounds & np.isfinite(depth) & ((owner == triangle_id) | (expected_depth <= depth + buffers["z_tolerance"]))
+
+
 def compute_triangle_visibility(
     vertices_3d: np.ndarray,
     triangles: np.ndarray,
@@ -22,7 +70,8 @@ def compute_triangle_visibility(
     image_size: Optional[tuple[int, int]] = None,
     z_tolerance: float = 1e-3,
     occlusion_falloff: float = 0.1,
-) -> np.ndarray:
+    return_buffers: bool = False,
+) -> np.ndarray | tuple[np.ndarray, dict]:
     """Return per-triangle visibility weights in the [0, 1] range.
 
     Args:
@@ -31,11 +80,11 @@ def compute_triangle_visibility(
         view_dir: Optional (3,) view direction. Defaults to +Z.
         angle_threshold_deg: Maximum allowed angle between normal and view dir.
         gamma: Falloff exponent applied to cos(angle).
-        use_zbuffer: Enable lightweight centroid z-buffer test.
+        use_zbuffer: Enable full triangle-rasterized depth visibility.
         vertices_2d: (N, 2) projected vertices (required for z-buffer mode).
         image_size: (H, W) image resolution for z-buffer grid.
         z_tolerance: Allowed depth slack before marking as occluded.
-        occlusion_falloff: Multiplier applied to occluded triangles.
+        occlusion_falloff: Legacy argument; occluded triangles now receive zero analytical weight.
 
     Returns:
         (T,) float32 weights.
@@ -71,28 +120,26 @@ def compute_triangle_visibility(
     )
 
     cos_angle = np.clip((normals @ view).astype(np.float32), -1.0, 1.0)
-    mask = valid_normals
+    front = valid_normals & (cos_angle > 0)
+    mask = front & (cos_angle >= np.cos(np.deg2rad(angle_threshold_deg)))
 
     weights = np.zeros(tris.shape[0], dtype=np.float32)
-    # Даем базовый минимальный вес 0.001 даже почти перпендикулярным или отвернутым участкам (чтобы избежать дыр в сетке)
-    weights[mask] = np.maximum(np.power(np.maximum(cos_angle[mask], 0.0), gamma), 0.001).astype(
-        np.float32
-    )
+    weights[mask] = np.power(cos_angle[mask], gamma).astype(np.float32)
+    buffers = None
 
     if use_zbuffer:
         if vertices_2d is None or image_size is None:
-            logger.warning("Z-buffer requested but vertices_2d/image_size missing")
+            raise ValueError("z-buffer requires original-pixel projections and image size")
         else:
-            _apply_centroid_zbuffer(
-                weights=weights,
-                mask=mask,
-                verts=verts,
-                tris=tris,
-                vertices_2d=vertices_2d,
-                image_size=image_size,
-                z_tolerance=z_tolerance,
-                occlusion_falloff=occlusion_falloff,
-            )
+            buffers = rasterize_depth(vertices_2d, verts[:, 2], tris, image_size, front)
+            buffers.update({"z_tolerance": float(z_tolerance), "vertex_depth": verts[:, 2], "front_facing": front})
+            projected = np.asarray(vertices_2d)[tris]
+            centres = projected.mean(axis=1)
+            expected = 1 / np.mean(1 / verts[tris, 2], axis=1)
+            visible = query_visibility(centres, expected, np.arange(len(tris)), buffers)
+            for corner in range(3):
+                visible |= query_visibility(projected[:, corner], verts[tris[:, corner], 2], np.arange(len(tris)), buffers)
+            weights[~visible] = 0
 
     logger.debug(
         "Visibility: %d/%d total valid normal tris processed for occlusion",
@@ -100,45 +147,7 @@ def compute_triangle_visibility(
         tris.shape[0],
     )
 
-    return weights
-
-
-def _apply_centroid_zbuffer(
-    weights: np.ndarray,
-    mask: np.ndarray,
-    verts: np.ndarray,
-    tris: np.ndarray,
-    vertices_2d: np.ndarray,
-    image_size: tuple[int, int],
-    z_tolerance: float,
-    occlusion_falloff: float,
-) -> None:
-    """Lightweight centroid-based occlusion test."""
-
-    h, w = int(image_size[0]), int(image_size[1])
-    if h <= 0 or w <= 0:
-        return
-
-    verts_2d = np.asarray(vertices_2d, dtype=np.float32)
-    centroids_2d = verts_2d[tris].mean(axis=1)
-    centroids_z = verts[tris].mean(axis=1)[:, 2]
-
-    cx = np.clip(np.rint(centroids_2d[:, 0]).astype(int), 0, w - 1)
-    cy = np.clip(np.rint(centroids_2d[:, 1]).astype(int), 0, h - 1)
-
-    zbuffer = np.full((h, w), np.inf, dtype=np.float32)
-
-    for idx in np.where(mask)[0]:
-        z = centroids_z[idx]
-        x, y = cx[idx], cy[idx]
-        if z < zbuffer[y, x]:
-            zbuffer[y, x] = z
-
-    for idx in np.where(mask)[0]:
-        z = centroids_z[idx]
-        x, y = cx[idx], cy[idx]
-        if z > zbuffer[y, x] + z_tolerance:
-            weights[idx] *= occlusion_falloff
+    return (weights, buffers) if return_buffers else weights
 
 
 def compute_vertex_visibility(

@@ -1,0 +1,27 @@
+person_01 204->209 euclid           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 204->209 normal           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 204->209 weighted_euclid  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 204->209 weighted_normal  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 213->218 euclid           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 213->218 normal           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 213->218 weighted_euclid  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 213->218 weighted_normal  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 222->227 euclid           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 222->227 normal           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 222->227 weighted_euclid  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_01 222->227 weighted_normal  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 113->120 euclid           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 113->120 normal           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 113->120 weighted_euclid  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 113->120 weighted_normal  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 126->133 euclid           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 126->133 normal           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 126->133 weighted_euclid  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 126->133 weighted_normal  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 140->147 euclid           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 140->147 normal           preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 140->147 weighted_euclid  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+person_02 140->147 weighted_normal  preview/export 0.00e+00 browser 0.00e+00 color 0.00e+00
+http {'heat_status': 200, 'heat_count': 35709, 'heat_vmax': 4.0, 'heat_count_ok': True, 'preview_status': 200, 'preview_png': True, 'runtime_block': {'metric': 'euclid', 'weighting': 'none', 'calibration_profile': 'reports/calibration/weights.json'}}
+config {'base': {'status': 200, 'metric': 'euclid', 'weighting': 'none', 'vmax': 0.06}, 'switched': {'status': 200, 'metric': 'normal', 'weighting': 'calibrated', 'vmax': 4.0}, 'restored': {'status': 200, 'metric': 'euclid', 'weighting': 'none', 'vmax': 0.06}, 'ok': True}
+max 0.00e+00 passed True -> reports/calibration/v4-parity.json

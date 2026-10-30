@@ -1,0 +1,466 @@
+{
+  "index": "/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets/all_calibration_index.csv",
+  "photos_root": "/Volumes/SDCARD/photo/calibration_dataset/photos",
+  "datasets": [
+    {
+      "id": "person_01",
+      "frames": 30,
+      "bins": [
+        "frontal",
+        "left_light",
+        "left_mid",
+        "left_profile",
+        "right_deep",
+        "right_light",
+        "right_mid",
+        "right_profile"
+      ]
+    },
+    {
+      "id": "person_02",
+      "frames": 30,
+      "bins": [
+        "frontal",
+        "left_deep",
+        "left_light",
+        "left_mid",
+        "left_profile",
+        "right_deep",
+        "right_light",
+        "right_mid",
+        "right_profile"
+      ]
+    },
+    {
+      "id": "person_03",
+      "frames": 30,
+      "bins": [
+        "frontal",
+        "left_deep",
+        "left_light",
+        "left_mid",
+        "left_profile",
+        "right_deep",
+        "right_light",
+        "right_mid",
+        "right_profile"
+      ]
+    },
+    {
+      "id": "person_04",
+      "frames": 30,
+      "bins": [
+        "frontal",
+        "left_deep",
+        "left_light",
+        "left_mid",
+        "left_profile",
+        "right_deep",
+        "right_light",
+        "right_mid",
+        "right_profile"
+      ]
+    },
+    {
+      "id": "person_05",
+      "frames": 30,
+      "bins": [
+        "frontal",
+        "left_deep",
+        "left_light",
+        "left_mid",
+        "left_profile",
+        "right_deep",
+        "right_light",
+        "right_mid",
+        "right_profile"
+      ]
+    },
+    {
+      "id": "person_06",
+      "frames": 30,
+      "bins": [
+        "frontal",
+        "left_deep",
+        "left_light",
+        "left_mid",
+        "left_profile",
+        "right_deep",
+        "right_light",
+        "right_mid",
+        "right_profile"
+      ]
+    },
+    {
+      "id": "person_07",
+      "frames": 30,
+      "bins": [
+        "frontal",
+        "left_deep",
+        "left_light",
+        "left_mid",
+        "left_profile",
+        "right_deep",
+        "right_light",
+        "right_mid",
+        "right_profile"
+      ]
+    }
+  ],
+  "sampled": 210,
+  "n_within": 1856,
+  "n_between": 18900,
+  "min_gap": 30,
+  "command": "OPENBLAS_NUM_THREADS=2 python scripts/calibration_check.py --per-person 30 --min-frame-gap 30",
+  "process": {
+    "photos": 210,
+    "cache_hits": 210,
+    "seconds_per_photo": null
+  },
+  "verify": {
+    "missing": {},
+    "sample": {
+      "ldm68": [
+        68,
+        3
+      ],
+      "ldm106": [
+        106,
+        3
+      ],
+      "ldm134": [
+        134,
+        3
+      ]
+    },
+    "photos": 210
+  },
+  "modes": {
+    "old_identity": {
+      "within_all": {
+        "n": 1856,
+        "mean": 0.043109,
+        "median": 0.040817,
+        "p90": 0.065808,
+        "p99": 0.096371,
+        "std": 0.017159
+      },
+      "within_same": {
+        "n": 25,
+        "mean": 0.015287,
+        "median": 0.009653,
+        "p90": 0.0278,
+        "p99": 0.063033,
+        "std": 0.014349
+      },
+      "within_cross": {
+        "n": 1831,
+        "mean": 0.043489,
+        "median": 0.04105,
+        "p90": 0.065879,
+        "p99": 0.096455,
+        "std": 0.016883
+      },
+      "between_all": {
+        "n": 18900,
+        "mean": 0.057055,
+        "median": 0.05373,
+        "p90": 0.087506,
+        "p99": 0.11899,
+        "std": 0.022383
+      },
+      "between_same": {
+        "n": 2708,
+        "mean": 0.051409,
+        "median": 0.047753,
+        "p90": 0.078758,
+        "p99": 0.128229,
+        "std": 0.024187
+      },
+      "between_cross": {
+        "n": 16192,
+        "mean": 0.058,
+        "median": 0.054698,
+        "p90": 0.088297,
+        "p99": 0.11784,
+        "std": 0.021926
+      },
+      "ratio": 1.324,
+      "cohen_d": 0.699,
+      "auc": 0.6949,
+      "identification": {
+        "probes": 105,
+        "identities": 7,
+        "accuracy_pct": 56.19,
+        "median_margin": 0.004815
+      }
+    },
+    "old_vertices": {
+      "within_all": {
+        "n": 1856,
+        "mean": 0.049032,
+        "median": 0.047714,
+        "p90": 0.070836,
+        "p99": 0.102447,
+        "std": 0.017268
+      },
+      "within_same": {
+        "n": 25,
+        "mean": 0.017587,
+        "median": 0.01218,
+        "p90": 0.031269,
+        "p99": 0.069627,
+        "std": 0.015615
+      },
+      "within_cross": {
+        "n": 1831,
+        "mean": 0.049461,
+        "median": 0.047907,
+        "p90": 0.071369,
+        "p99": 0.102559,
+        "std": 0.016893
+      },
+      "between_all": {
+        "n": 18900,
+        "mean": 0.068416,
+        "median": 0.067284,
+        "p90": 0.096531,
+        "p99": 0.124759,
+        "std": 0.022216
+      },
+      "between_same": {
+        "n": 2708,
+        "mean": 0.062637,
+        "median": 0.061196,
+        "p90": 0.091475,
+        "p99": 0.136183,
+        "std": 0.026068
+      },
+      "between_cross": {
+        "n": 16192,
+        "mean": 0.069383,
+        "median": 0.068129,
+        "p90": 0.097106,
+        "p99": 0.122551,
+        "std": 0.021353
+      },
+      "ratio": 1.395,
+      "cohen_d": 0.974,
+      "auc": 0.7664,
+      "identification": {
+        "probes": 105,
+        "identities": 7,
+        "accuracy_pct": 67.62,
+        "median_margin": 0.005643
+      }
+    },
+    "new_identity_metric": {
+      "within_all": {
+        "n": 1856,
+        "mean": 0.179474,
+        "median": 0.151443,
+        "p90": 0.312725,
+        "p99": 0.629658,
+        "std": 0.108318
+      },
+      "within_same": {
+        "n": 25,
+        "mean": 0.167491,
+        "median": 0.112476,
+        "p90": 0.340119,
+        "p99": 0.409582,
+        "std": 0.121973
+      },
+      "within_cross": {
+        "n": 1831,
+        "mean": 0.179638,
+        "median": 0.151829,
+        "p90": 0.311079,
+        "p99": 0.630427,
+        "std": 0.108148
+      },
+      "between_all": {
+        "n": 18900,
+        "mean": 0.178447,
+        "median": 0.155533,
+        "p90": 0.298164,
+        "p99": 0.535373,
+        "std": 0.098181
+      },
+      "between_same": {
+        "n": 2708,
+        "mean": 0.161729,
+        "median": 0.137513,
+        "p90": 0.275188,
+        "p99": 0.602467,
+        "std": 0.096981
+      },
+      "between_cross": {
+        "n": 16192,
+        "mean": 0.181243,
+        "median": 0.158584,
+        "p90": 0.300848,
+        "p99": 0.519927,
+        "std": 0.098106
+      },
+      "ratio": 0.994,
+      "cohen_d": -0.01,
+      "auc": 0.5108,
+      "identification": {
+        "probes": 105,
+        "identities": 7,
+        "accuracy_pct": 49.52,
+        "median_margin": 0.014595
+      }
+    },
+    "diag_kabsch_template": {
+      "within_all": {
+        "n": 1856,
+        "mean": 0.043749,
+        "median": 0.041317,
+        "p90": 0.066586,
+        "p99": 0.095803,
+        "std": 0.017058
+      },
+      "within_same": {
+        "n": 25,
+        "mean": 0.015351,
+        "median": 0.009741,
+        "p90": 0.027293,
+        "p99": 0.061513,
+        "std": 0.013859
+      },
+      "within_cross": {
+        "n": 1831,
+        "mean": 0.044137,
+        "median": 0.041503,
+        "p90": 0.066652,
+        "p99": 0.095938,
+        "std": 0.016771
+      },
+      "between_all": {
+        "n": 18900,
+        "mean": 0.057441,
+        "median": 0.054282,
+        "p90": 0.087441,
+        "p99": 0.118357,
+        "std": 0.022218
+      },
+      "between_same": {
+        "n": 2708,
+        "mean": 0.051651,
+        "median": 0.048154,
+        "p90": 0.079785,
+        "p99": 0.125026,
+        "std": 0.024122
+      },
+      "between_cross": {
+        "n": 16192,
+        "mean": 0.058409,
+        "median": 0.055244,
+        "p90": 0.088328,
+        "p99": 0.117079,
+        "std": 0.021734
+      },
+      "ratio": 1.313,
+      "cohen_d": 0.691,
+      "auc": 0.6916,
+      "identification": {
+        "probes": 105,
+        "identities": 7,
+        "accuracy_pct": 55.24,
+        "median_margin": 0.004804
+      }
+    },
+    "diag_kabsch_pair": {
+      "within_all": {
+        "n": 1200,
+        "mean": 0.040764,
+        "median": 0.038871,
+        "p90": 0.060097,
+        "p99": 0.095559,
+        "std": 0.016485
+      },
+      "within_same": {},
+      "within_cross": {},
+      "between_all": {
+        "n": 2400,
+        "mean": 0.053781,
+        "median": 0.051904,
+        "p90": 0.077568,
+        "p99": 0.097698,
+        "std": 0.01713
+      },
+      "between_same": {},
+      "between_cross": {},
+      "ratio": 1.319,
+      "cohen_d": 0.774,
+      "auc": 0.7218,
+      "identification": {
+        "probes": 0,
+        "identities": 0,
+        "accuracy_pct": null,
+        "median_margin": null
+      }
+    }
+  },
+  "heatmaps": [
+    {
+      "file": "reports/calibration/same_person_near.png",
+      "kind": "same_person_near",
+      "old": 0.0057869539596140385,
+      "new": 0.008535366505384445
+    },
+    {
+      "file": "reports/calibration/same_person_far.png",
+      "kind": "same_person_far",
+      "old": 0.03129856660962105,
+      "new": 0.18479754030704498
+    },
+    {
+      "file": "reports/calibration/different_person.png",
+      "kind": "different_person",
+      "old": 0.10139864683151245,
+      "new": 0.31802234053611755
+    },
+    {
+      "file": "reports/calibration/chain.png",
+      "kind": "chronological_chain",
+      "old": null,
+      "new": null
+    }
+  ],
+  "chain": {
+    "person": "person_01",
+    "frames": [
+      204,
+      250,
+      290,
+      336
+    ],
+    "bins": [
+      "left_profile",
+      "frontal",
+      "frontal",
+      "right_profile"
+    ],
+    "modes": {
+      "old_identity": {
+        "join_jump": 0.0,
+        "step_max": 0.123949,
+        "path_mean": 0.089184,
+        "direct": 0.041365,
+        "ratio": 2.156
+      },
+      "new_identity_metric": {
+        "join_jump": 0.0,
+        "step_max": 0.254795,
+        "path_mean": 0.273796,
+        "direct": 0.206838,
+        "ratio": 1.324
+      }
+    }
+  },
+  "metric_layer": true,
+  "verdict": "within-person mean 0.04311 → 0.17947; cross-bin within 0.04349 → 0.17964; AUC 0.69490 → 0.51080; between/within 1.32400 → 0.99400. Metric layer does not pay off on this corpus — keep it experimental."
+}

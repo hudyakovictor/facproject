@@ -1,0 +1,109 @@
+{
+ "n_invalid": 8,
+ "frames": [
+  {
+   "person": "person_10",
+   "frame": 116,
+   "id": "a2ec6f2609cbbd15",
+   "filename": "tom_cruise_0116.jpg",
+   "pred_yaw": -89.1,
+   "pred_bin": "left_profile",
+   "manual_yaw": 35,
+   "manual_bin": "right_mid",
+   "discrepancy": 124.1,
+   "invalid": true,
+   "reason": "label_mismatch: |35 - -89| = 124 > 90"
+  },
+  {
+   "person": "person_10",
+   "frame": 347,
+   "id": "27e5f4f52e66a170",
+   "filename": "tom_cruise_0347.jpg",
+   "pred_yaw": 66.1,
+   "pred_bin": "right_profile",
+   "manual_yaw": null,
+   "manual_bin": null,
+   "discrepancy": null,
+   "invalid": true,
+   "reason": "non_face: съёмка со спины, лица нет"
+  },
+  {
+   "person": "person_10",
+   "frame": 636,
+   "id": "52e0ddb059a2a0c7",
+   "filename": "tom_cruise_0636.jpg",
+   "pred_yaw": 91.9,
+   "pred_bin": "right_profile",
+   "manual_yaw": null,
+   "manual_bin": null,
+   "discrepancy": null,
+   "invalid": true,
+   "reason": "non_face: субъект отвернут, фронтальной составляющей лица нет"
+  },
+  {
+   "person": "person_11",
+   "frame": 55,
+   "id": "fecb21a5cc0483a5",
+   "filename": "george_w._bush_0055.jpg",
+   "pred_yaw": 39.2,
+   "pred_bin": "right_mid",
+   "manual_yaw": null,
+   "manual_bin": null,
+   "discrepancy": null,
+   "invalid": true,
+   "reason": "non_face: бронзовая статуя, не живое лицо"
+  },
+  {
+   "person": "person_11",
+   "frame": 109,
+   "id": "be2b95c85acf48bd",
+   "filename": "george_w._bush_0109.jpg",
+   "pred_yaw": 62.9,
+   "pred_bin": "right_profile",
+   "manual_yaw": null,
+   "manual_bin": null,
+   "discrepancy": null,
+   "invalid": true,
+   "reason": "non_face: в кадре только другие люди, субъекта нет"
+  },
+  {
+   "person": "person_11",
+   "frame": 702,
+   "id": "f54abb3ffa479837",
+   "filename": "george_w._bush_0702.jpg",
+   "pred_yaw": -11.8,
+   "pred_bin": "left_light",
+   "manual_yaw": null,
+   "manual_bin": null,
+   "discrepancy": null,
+   "invalid": true,
+   "reason": "non_face: обложка книги с миниатюрным фото"
+  },
+  {
+   "person": "person_11",
+   "frame": 811,
+   "id": "d7f10b51224fd7e3",
+   "filename": "george_w._bush_0811.jpg",
+   "pred_yaw": 78.8,
+   "pred_bin": "right_profile",
+   "manual_yaw": -55,
+   "manual_bin": "left_profile",
+   "discrepancy": 133.8,
+   "invalid": true,
+   "reason": "label_mismatch: |-55 - 79| = 134 > 90"
+  },
+  {
+   "person": "person_11",
+   "frame": 919,
+   "id": "cb3285b49a9756c1",
+   "filename": "george_w._bush_0919.jpg",
+   "pred_yaw": -10.7,
+   "pred_bin": "left_light",
+   "manual_yaw": null,
+   "manual_bin": null,
+   "discrepancy": null,
+   "invalid": true,
+   "reason": "non_face: кинопостер, на постере другие актёры"
+  }
+ ]
+}

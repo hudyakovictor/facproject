@@ -1,0 +1,202 @@
+{
+  "photos": [
+    {
+      "id": "b36fe1392c3e2778",
+      "hash": "de52e53347de73888c267570b834a773e2595b38862bd9c5127a4f8c60145a4f",
+      "name": "2019_01_12.jpg",
+      "group": "Демо _ один синтетический портрет",
+      "path": "data/groups/Демо _ один синтетический портрет/b36fe1392c3e2778.jpg",
+      "date": "2019-01-12",
+      "precropped": false,
+      "demo": true,
+      "angle_override": null,
+      "deleted_at": 1792439267.1292095
+    },
+    {
+      "id": "8bd0727b5e8bf64b",
+      "hash": "4ac7d485cf968dc232c58e967c88b2aaaca3b26f6eeb992e76de82562ea05aae",
+      "name": "2019_04_12.jpg",
+      "group": "Демо _ один синтетический портрет",
+      "path": "data/groups/Демо _ один синтетический портрет/8bd0727b5e8bf64b.jpg",
+      "date": "2019-04-12",
+      "precropped": false,
+      "demo": true,
+      "angle_override": null,
+      "deleted_at": 1792439267.1292117
+    },
+    {
+      "id": "b651523bcba2c27c",
+      "hash": "9338af66400910b1e87845f3dd5123bd0a5ca3216dc1289e187d9a7022c77161",
+      "name": "2020_06_12.jpg",
+      "group": "Демо _ один синтетический портрет",
+      "path": "data/groups/Демо _ один синтетический портрет/b651523bcba2c27c.jpg",
+      "date": "2020-06-12",
+      "precropped": false,
+      "demo": true,
+      "angle_override": null,
+      "deleted_at": 1792439267.1292124
+    },
+    {
+      "id": "91e0981d1aae2e87",
+      "hash": "cd5798d6eac7242e225106269b3508da84015799c605eca06bbbc26c863c2f36",
+      "name": "2021_02_12.jpg",
+      "group": "Демо _ один синтетический портрет",
+      "path": "data/groups/Демо _ один синтетический портрет/91e0981d1aae2e87.jpg",
+      "date": "2021-02-12",
+      "precropped": false,
+      "demo": true,
+      "angle_override": null,
+      "deleted_at": 1792439267.1292126
+    },
+    {
+      "id": "d75eaed50c0c5638",
+      "hash": "7ec5178f926b5277fdd5c084b995b172d992f8d08dd6f4fd533cb69ba9fde798",
+      "name": "2022_02_12.jpg",
+      "group": "Демо _ один синтетический портрет",
+      "path": "data/groups/Демо _ один синтетический портрет/d75eaed50c0c5638.jpg",
+      "date": "2022-02-12",
+      "precropped": false,
+      "demo": true,
+      "angle_override": null,
+      "deleted_at": 1792439267.129213
+    },
+    {
+      "id": "b5d156f0ddd0cc5f",
+      "hash": "7b7f3ff40298239d5d63faf04395da106391b7099ff2f9b81f318e6a2f1e4fe9",
+      "name": "2022_10_31.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/b5d156f0ddd0cc5f.jpg",
+      "date": "2022-10-31",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null,
+      "deleted_at": 1792439276.8435278
+    },
+    {
+      "id": "0b8d468a49ed24ab",
+      "hash": "b2d68eb48c10900fd0a63369ba78c8f033b9e1cfebaa4abf428fe073d07743b2",
+      "name": "2017_03_01.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/0b8d468a49ed24ab.jpg",
+      "date": "2017-03-01",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null,
+      "deleted_at": 1792439276.8435285
+    },
+    {
+      "id": "2a29f955863593e6",
+      "hash": "ef64da3b5efba453e3b0dfdf221f0c5625e63c1d19fab7bfb17264b4e386343f",
+      "name": "2016_07_19-2.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/2a29f955863593e6.jpg",
+      "date": "2016-07-19",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null,
+      "deleted_at": 1792439276.8435287
+    },
+    {
+      "id": "bd9d88d51a18c66a",
+      "hash": "dd90fa8ec1eab24695b93eceebac022fb3c5f59676b859cea969e2fc13fb1853",
+      "name": "2014_09_02-1.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/bd9d88d51a18c66a.jpg",
+      "date": "2014-09-02",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null,
+      "deleted_at": 1792439276.843529
+    },
+    {
+      "id": "abeac331ffacc790",
+      "hash": "c2a5dc0197425be2f845e1b7cd5dc164d1ae5e351d9330d856e72a6144f0fc6b",
+      "name": "2013_10_24.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/abeac331ffacc790.jpg",
+      "date": "2013-10-24",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null,
+      "deleted_at": 1792439276.8435292
+    },
+    {
+      "id": "a6381a1ea038b7f3",
+      "hash": "2ff17858e6febb085421df2412041805b27db3565defa5ff2c77326e4292fc32",
+      "name": "1998_05_07__frame15.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/a6381a1ea038b7f3.jpg",
+      "date": "1998-05-07",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "dfcbf5e52d181c22",
+      "hash": "09faf6f88e83a39d154f4573ae6d26de6ee979fd7ddd4942fb826468015558cc",
+      "name": "1998_05_13__frame20.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/dfcbf5e52d181c22.jpg",
+      "date": "1998-05-13",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "3707897d37c2c482",
+      "hash": "c0cc70ac1436814c0eb3c41da9aa9779fd9a3878a25c239f11ec69ad2324606f",
+      "name": "1998_05_08__frame16.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/3707897d37c2c482.jpg",
+      "date": "1998-05-08",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "30b0cc961d7bd653",
+      "hash": "aa26c437c98057676223bcfc223d0cf58ab810fd29a0e5d5a98744d6d05a4819",
+      "name": "1998_05_03__frame11.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/30b0cc961d7bd653.jpg",
+      "date": "1998-05-03",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "823ef4603c3ad219",
+      "hash": "0cedc1db507627b32bb4c65ffe52ba5f6faa47804f24ae3403ac9725de0da223",
+      "name": "1998_05_12__frame2.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/823ef4603c3ad219.jpg",
+      "date": "1998-05-12",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "a2f1b28dc232b35e",
+      "hash": "8f3f399be819e3c5615ab8b280bbe61a2f8f2388c9aaba6f81de86bb8b155599",
+      "name": "1998_05_29__frame7.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/a2f1b28dc232b35e.jpg",
+      "date": "1998-05-29",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "1da2c35c3e99bca8",
+      "hash": "3b7d73e346be5912726b323946cd7bfa974cc75c5893c72142ff1c8fd83b673f",
+      "name": "1998_05_27__frame5.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/1da2c35c3e99bca8.jpg",
+      "date": "1998-05-27",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    }
+  ],
+  "demo": true
+}

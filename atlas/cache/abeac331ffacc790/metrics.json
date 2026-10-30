@@ -1,0 +1,107 @@
+{
+  "ada_cos_to_centroid": {
+    "key": "126fddc254b839ab",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_norm_quality": {
+    "key": "377376526800a0d3",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_pair_cos": {
+    "key": "ba26cc8b10df68fa",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_eye_area": {
+    "key": "712a7e0c65c520d8",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_jaw_ratio": {
+    "key": "f7d091a833babb72",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_nose_projection": {
+    "key": "873e91143a1f489c",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_canthal_tilt": {
+    "key": "79fa1a1f9656352c",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  },
+  "mp_eye_area": {
+    "key": "44c84ad0d3884168",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_mouth_ratio": {
+    "key": "c737819f0dd90336",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  },
+  "mesh_eye_area": {
+    "key": "c6034d6ace9d8a86",
+    "result": {
+      "value": 0.03572177073783222,
+      "reason": null
+    }
+  },
+  "mesh_jaw_ratio": {
+    "key": "4bc4abc691a9d2af",
+    "result": {
+      "value": 0.7895848155021667,
+      "reason": null
+    }
+  },
+  "mesh_nose_projection": {
+    "key": "712d962a1ee52bfb",
+    "result": {
+      "value": 0.3297481834888458,
+      "reason": null
+    }
+  },
+  "mesh_height_example": {
+    "key": "f007ba1894227bd1",
+    "result": {
+      "value": 2.5500407218933105,
+      "reason": null
+    }
+  },
+  "iris_width_ratio": {
+    "key": "984bf8443498a7d5",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  },
+  "iris_height_ratio": {
+    "key": "b419d0e64d9f9f3c",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  }
+}

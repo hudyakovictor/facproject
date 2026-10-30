@@ -1,0 +1,22 @@
+{
+  "schema_version": "3ddfa-v3-mbnet-e153858-pos-yunet-v3-exif",
+  "yaw_range": [
+    -10.0,
+    10.0
+  ],
+  "canonical_yaw": 0.0,
+  "expression": {
+    "corner_lift": 0.005,
+    "jaw_open": 0.28,
+    "magnitude_12_0": "не используется (atlas: мимика по ldm68-геометрии)"
+  },
+  "confidence_min": 0.5,
+  "seed": 42,
+  "normalization": "центр глаз (ldm68 36:42/42:48) + IOD",
+  "thresholds": {
+    "median_m1": 0.03,
+    "p95_m1": 0.06,
+    "frac_m3_gt0": 0.8,
+    "control_acc": 0.95
+  }
+}

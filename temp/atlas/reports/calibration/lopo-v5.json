@@ -1,0 +1,305 @@
+{
+ "iteration": 5,
+ "step": 2,
+ "generated_at": "2026-10-21T10:09:15",
+ "runtime_sec": 85.7,
+ "gap": 30,
+ "seed": 42,
+ "note": "LOPO профиль пересобирается на остальных людях когорты; в когорте из 7 дикие predicted-люди не участвуют ни в обучении, ни в оценке.",
+ "modes_compared": [
+  "normal",
+  "weighted_euclid",
+  "weighted_normal"
+ ],
+ "labeled_source": "manual+yaw (person_01..07)",
+ "predicted_source": "predicted (person_9/10/11)",
+ "cohort_7_labeled": {
+  "rows": [
+   {
+    "person": "person_01",
+    "sigma_pairs": 387,
+    "n_within": 66,
+    "n_between": 1335,
+    "auc_euclid": 0.8445,
+    "auc_normal": 0.888,
+    "auc_weighted_euclid": 0.8409,
+    "auc_weighted_normal": 0.9007,
+    "delta_normal": 0.0435,
+    "delta_weighted_euclid": -0.0036,
+    "delta_weighted_normal": 0.0562
+   },
+   {
+    "person": "person_02",
+    "sigma_pairs": 375,
+    "n_within": 78,
+    "n_between": 1335,
+    "auc_euclid": 0.7831,
+    "auc_normal": 0.6937,
+    "auc_weighted_euclid": 0.837,
+    "auc_weighted_normal": 0.747,
+    "delta_normal": -0.0894,
+    "delta_weighted_euclid": 0.0539,
+    "delta_weighted_normal": -0.0361
+   },
+   {
+    "person": "person_03",
+    "sigma_pairs": 398,
+    "n_within": 55,
+    "n_between": 1335,
+    "auc_euclid": 0.8227,
+    "auc_normal": 0.8358,
+    "auc_weighted_euclid": 0.8323,
+    "auc_weighted_normal": 0.8454,
+    "delta_normal": 0.0131,
+    "delta_weighted_euclid": 0.0096,
+    "delta_weighted_normal": 0.0227
+   },
+   {
+    "person": "person_04",
+    "sigma_pairs": 375,
+    "n_within": 78,
+    "n_between": 1335,
+    "auc_euclid": 0.6505,
+    "auc_normal": 0.7808,
+    "auc_weighted_euclid": 0.6571,
+    "auc_weighted_normal": 0.7771,
+    "delta_normal": 0.1303,
+    "delta_weighted_euclid": 0.0066,
+    "delta_weighted_normal": 0.1266
+   },
+   {
+    "person": "person_05",
+    "sigma_pairs": 398,
+    "n_within": 55,
+    "n_between": 1335,
+    "auc_euclid": 0.8526,
+    "auc_normal": 0.6846,
+    "auc_weighted_euclid": 0.9057,
+    "auc_weighted_normal": 0.7363,
+    "delta_normal": -0.168,
+    "delta_weighted_euclid": 0.0531,
+    "delta_weighted_normal": -0.1163
+   },
+   {
+    "person": "person_06",
+    "sigma_pairs": 387,
+    "n_within": 67,
+    "n_between": 1260,
+    "auc_euclid": 0.7152,
+    "auc_normal": 0.7429,
+    "auc_weighted_euclid": 0.7317,
+    "auc_weighted_normal": 0.7353,
+    "delta_normal": 0.0277,
+    "delta_weighted_euclid": 0.0165,
+    "delta_weighted_normal": 0.0201
+   },
+   {
+    "person": "person_07",
+    "sigma_pairs": 398,
+    "n_within": 55,
+    "n_between": 1335,
+    "auc_euclid": 0.7353,
+    "auc_normal": 0.7787,
+    "auc_weighted_euclid": 0.7502,
+    "auc_weighted_normal": 0.7702,
+    "delta_normal": 0.0434,
+    "delta_weighted_euclid": 0.0149,
+    "delta_weighted_normal": 0.0349
+   }
+  ],
+  "n": 7,
+  "normal": {
+   "wins": 5,
+   "n": 7,
+   "mean_delta_auc": 0.0001,
+   "min_delta_auc": -0.168
+  },
+  "weighted_euclid": {
+   "wins": 6,
+   "n": 7,
+   "mean_delta_auc": 0.0216,
+   "min_delta_auc": -0.0036
+  },
+  "weighted_normal": {
+   "wins": 5,
+   "n": 7,
+   "mean_delta_auc": 0.0154,
+   "min_delta_auc": -0.1163
+  }
+ },
+ "cohort_10_all": {
+  "rows": [
+   {
+    "person": "person_01",
+    "sigma_pairs": 497,
+    "n_within": 66,
+    "n_between": 1755,
+    "auc_euclid": 0.8718,
+    "auc_normal": 0.9113,
+    "auc_weighted_euclid": 0.8699,
+    "auc_weighted_normal": 0.9167,
+    "delta_normal": 0.0395,
+    "delta_weighted_euclid": -0.0019,
+    "delta_weighted_normal": 0.0449
+   },
+   {
+    "person": "person_02",
+    "sigma_pairs": 485,
+    "n_within": 78,
+    "n_between": 1755,
+    "auc_euclid": 0.8209,
+    "auc_normal": 0.7357,
+    "auc_weighted_euclid": 0.8719,
+    "auc_weighted_normal": 0.7971,
+    "delta_normal": -0.0852,
+    "delta_weighted_euclid": 0.051,
+    "delta_weighted_normal": -0.0238
+   },
+   {
+    "person": "person_03",
+    "sigma_pairs": 508,
+    "n_within": 55,
+    "n_between": 1755,
+    "auc_euclid": 0.8552,
+    "auc_normal": 0.8635,
+    "auc_weighted_euclid": 0.8621,
+    "auc_weighted_normal": 0.8617,
+    "delta_normal": 0.0083,
+    "delta_weighted_euclid": 0.0069,
+    "delta_weighted_normal": 0.0065
+   },
+   {
+    "person": "person_04",
+    "sigma_pairs": 485,
+    "n_within": 78,
+    "n_between": 1755,
+    "auc_euclid": 0.6533,
+    "auc_normal": 0.7929,
+    "auc_weighted_euclid": 0.6585,
+    "auc_weighted_normal": 0.7854,
+    "delta_normal": 0.1396,
+    "delta_weighted_euclid": 0.0052,
+    "delta_weighted_normal": 0.1321
+   },
+   {
+    "person": "person_05",
+    "sigma_pairs": 508,
+    "n_within": 55,
+    "n_between": 1755,
+    "auc_euclid": 0.861,
+    "auc_normal": 0.7093,
+    "auc_weighted_euclid": 0.9074,
+    "auc_weighted_normal": 0.7621,
+    "delta_normal": -0.1517,
+    "delta_weighted_euclid": 0.0464,
+    "delta_weighted_normal": -0.0989
+   },
+   {
+    "person": "person_06",
+    "sigma_pairs": 497,
+    "n_within": 67,
+    "n_between": 1652,
+    "auc_euclid": 0.756,
+    "auc_normal": 0.7729,
+    "auc_weighted_euclid": 0.7568,
+    "auc_weighted_normal": 0.7527,
+    "delta_normal": 0.0169,
+    "delta_weighted_euclid": 0.0008,
+    "delta_weighted_normal": -0.0033
+   },
+   {
+    "person": "person_07",
+    "sigma_pairs": 508,
+    "n_within": 55,
+    "n_between": 1755,
+    "auc_euclid": 0.7781,
+    "auc_normal": 0.8176,
+    "auc_weighted_euclid": 0.7686,
+    "auc_weighted_normal": 0.7986,
+    "delta_normal": 0.0395,
+    "delta_weighted_euclid": -0.0095,
+    "delta_weighted_normal": 0.0205
+   },
+   {
+    "person": "person_10",
+    "sigma_pairs": 527,
+    "n_within": 36,
+    "n_between": 1107,
+    "auc_euclid": 0.5399,
+    "auc_normal": 0.5122,
+    "auc_weighted_euclid": 0.5384,
+    "auc_weighted_normal": 0.501,
+    "delta_normal": -0.0277,
+    "delta_weighted_euclid": -0.0015,
+    "delta_weighted_normal": -0.0389
+   },
+   {
+    "person": "person_11",
+    "sigma_pairs": 527,
+    "n_within": 36,
+    "n_between": 1107,
+    "auc_euclid": 0.4961,
+    "auc_normal": 0.6014,
+    "auc_weighted_euclid": 0.5192,
+    "auc_weighted_normal": 0.6169,
+    "delta_normal": 0.1053,
+    "delta_weighted_euclid": 0.0231,
+    "delta_weighted_normal": 0.1208
+   },
+   {
+    "person": "person_9",
+    "sigma_pairs": 525,
+    "n_within": 38,
+    "n_between": 1220,
+    "auc_euclid": 0.5542,
+    "auc_normal": 0.5194,
+    "auc_weighted_euclid": 0.5738,
+    "auc_weighted_normal": 0.5339,
+    "delta_normal": -0.0348,
+    "delta_weighted_euclid": 0.0196,
+    "delta_weighted_normal": -0.0203
+   }
+  ],
+  "n": 10,
+  "normal": {
+   "wins": 6,
+   "n": 10,
+   "mean_delta_auc": 0.005,
+   "min_delta_auc": -0.1517
+  },
+  "weighted_euclid": {
+   "wins": 7,
+   "n": 10,
+   "mean_delta_auc": 0.014,
+   "min_delta_auc": -0.0095
+  },
+  "weighted_normal": {
+   "wins": 5,
+   "n": 10,
+   "mean_delta_auc": 0.014,
+   "min_delta_auc": -0.0989
+  }
+ },
+ "comparison": {
+  "weighted_euclid": {
+   "wins_7": 6,
+   "wins_10": 7,
+   "min_delta_7": -0.0036,
+   "min_delta_10": -0.0095,
+   "mean_delta_7": 0.0216,
+   "mean_delta_10": 0.014
+  },
+  "weighted_normal": {
+   "wins_7": 5,
+   "wins_10": 5,
+   "min_delta_7": -0.1163,
+   "min_delta_10": -0.0989
+  }
+ },
+ "gates": {
+  "weighted_euclid_wins_at_least_5_of_7": true,
+  "weighted_euclid_min_delta_not_worse_than_-0.02": true
+ },
+ "interpretation": "На 7 размеченных weighted_euclid заметно стабильнее, чем на 10 (мин ΔAUC -0.0036 против -0.0095): просадка на 10 людях объясняется шумом предсказанных поз wild-людей. Шаг 3 (разметка person_9/10/11) релевантен.",
+ "figure": "reports/figures/v5-lopo-7vs10.png"
+}

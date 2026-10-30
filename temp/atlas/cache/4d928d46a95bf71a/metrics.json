@@ -1,0 +1,240 @@
+{
+  "ada_cos_to_centroid": {
+    "key": "a0b920da0d89264f",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_norm_quality": {
+    "key": "3166c749f583cd47",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_pair_cos": {
+    "key": "aee4022e6e77abd6",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_eye_area": {
+    "key": "e4707733322863e1",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_jaw_ratio": {
+    "key": "a3b2b386cf6458af",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_nose_projection": {
+    "key": "8f2dd88c5221e9fb",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_canthal_tilt": {
+    "key": "a1ece0624cac5a15",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  },
+  "iris_width_ratio": {
+    "key": "1417989050fbabe3",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  },
+  "iris_height_ratio": {
+    "key": "b43afeb6bd347451",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  },
+  "mp_mouth_ratio": {
+    "key": "53e78952f5474773",
+    "result": {
+      "value": null,
+      "reason": "Кадр не прошёл фильтр или разметка не проверена"
+    }
+  },
+  "archive_v7_nose_side_l_tetra_volume_mean": {
+    "key": "0961f5b188d47bf6",
+    "result": {
+      "value": 0.004268588979117166,
+      "reason": null
+    }
+  },
+  "archive_v5_tetra_lower_face": {
+    "key": "d002ff95d348cd02",
+    "result": {
+      "value": 0.045757716727248494,
+      "reason": null
+    }
+  },
+  "archive_triangle_compactness_midface_l": {
+    "key": "c9c12dcb8c944caf",
+    "result": {
+      "value": 0.54986440196569,
+      "reason": null
+    }
+  },
+  "archive_chin_jaw_ratio": {
+    "key": "69ce6a5e82a5fa83",
+    "result": {
+      "value": 0.4020639555351856,
+      "reason": null
+    }
+  },
+  "archive_prop_outer_eye_mouth_r": {
+    "key": "736e119af0e04753",
+    "result": {
+      "value": 0.6367202594976504,
+      "reason": null
+    }
+  },
+  "archive_prop_outer_eye_mouth_l": {
+    "key": "b0a09dea3b5242ff",
+    "result": {
+      "value": 0.6391838217078345,
+      "reason": null
+    }
+  },
+  "archive_v5_tetra_cheek_r": {
+    "key": "1f614b5d0b7eb1ae",
+    "result": {
+      "value": -0.03806206014867587,
+      "reason": null
+    }
+  },
+  "archive_v7_central_midface_distance_gini": {
+    "key": "b1a737d2a75ff7bd",
+    "result": {
+      "value": 0.2198373981222252,
+      "reason": null
+    }
+  },
+  "archive_v7_lower_face_tetra_volume_mean": {
+    "key": "bd370fa5d59971f6",
+    "result": {
+      "value": 0.009752930142517382,
+      "reason": null
+    }
+  },
+  "archive_v7_lower_face_triangle_quality_median": {
+    "key": "4a715a31d657b07f",
+    "result": {
+      "value": 0.805769966755478,
+      "reason": null
+    }
+  },
+  "archive_v7_lower_face_distance_gini": {
+    "key": "a84079b65bab9fa5",
+    "result": {
+      "value": 0.17094766274993922,
+      "reason": null
+    }
+  },
+  "archive_v7_nose_full_tetra_volume_mean": {
+    "key": "b6bce5745e39ee1a",
+    "result": {
+      "value": 0.007878066125733295,
+      "reason": null
+    }
+  },
+  "archive_v5_quad_eyes_mouth_inner": {
+    "key": "87f28519d3c903a1",
+    "result": {
+      "value": 0.3281170734896999,
+      "reason": null
+    }
+  },
+  "archive_v5_quad_mouth_jaw": {
+    "key": "b54625da0d57dc3b",
+    "result": {
+      "value": 1.4072492128385228,
+      "reason": null
+    }
+  },
+  "archive_v4_nose_pca_flat": {
+    "key": "5cc5532ea443bf0d",
+    "result": {
+      "value": 0.5788545350978428,
+      "reason": null
+    }
+  },
+  "archive_mouth_width": {
+    "key": "4341ae8dc636a8ea",
+    "result": {
+      "value": 0.923921108729743,
+      "reason": null
+    }
+  },
+  "archive_v5_quad_nose_wings_base": {
+    "key": "7d05c3e43d1188e1",
+    "result": {
+      "value": 5.165912852371165,
+      "reason": null
+    }
+  },
+  "archive_v7_nasal_ridge_distance_gini": {
+    "key": "3c3736f3beb1e593",
+    "result": {
+      "value": 0.24116356411002302,
+      "reason": null
+    }
+  },
+  "archive_v7_nose_base_triangle_quality_median": {
+    "key": "c77417444295125e",
+    "result": {
+      "value": 0.5524045933389681,
+      "reason": null
+    }
+  },
+  "archive_nose_width_length": {
+    "key": "d5baf81ee7aaa1fa",
+    "result": {
+      "value": 0.7015172631466123,
+      "reason": null
+    }
+  },
+  "mesh_eye_area": {
+    "key": "d523fbf3aa08caae",
+    "result": {
+      "value": 0.032805514031744656,
+      "reason": null
+    }
+  },
+  "mesh_jaw_ratio": {
+    "key": "4ce3f342b1f932aa",
+    "result": {
+      "value": 0.7889959812164307,
+      "reason": null
+    }
+  },
+  "mesh_nose_projection": {
+    "key": "851c6f4db5754860",
+    "result": {
+      "value": 0.3569640558314477,
+      "reason": null
+    }
+  },
+  "mesh_height_example": {
+    "key": "d49cfacac7fee0c3",
+    "result": {
+      "value": 2.7021865844726562,
+      "reason": null
+    }
+  }
+}

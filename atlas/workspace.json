@@ -1,0 +1,250 @@
+{
+  "version": 3,
+  "nodes": [
+    {
+      "id": "scene",
+      "type": "scene",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "style": {
+        "width": 950,
+        "height": 760
+      },
+      "data": {
+        "title": "3D · морфинг · фотографии",
+        "previewHidden": false
+      },
+      "hidden": false,
+      "width": 947,
+      "height": 788
+    },
+    {
+      "id": "timeline",
+      "type": "timeline",
+      "position": {
+        "x": 0,
+        "y": 790
+      },
+      "style": {
+        "width": 950,
+        "height": 390
+      },
+      "data": {
+        "title": "Таймлайн · измерения"
+      },
+      "hidden": false
+    },
+    {
+      "id": "source",
+      "type": "source",
+      "position": {
+        "x": -672.6115704872498,
+        "y": 51.401184320205154
+      },
+      "style": {
+        "width": 260
+      },
+      "data": {
+        "title": "Библиотека",
+        "collapsed": false
+      },
+      "hidden": false
+    },
+    {
+      "id": "recon",
+      "type": "processor",
+      "position": {
+        "x": -347.5312341282679,
+        "y": 491.18083871597815
+      },
+      "style": {
+        "width": 260
+      },
+      "data": {
+        "title": "3DDFA_V3",
+        "collapsed": true
+      }
+    },
+    {
+      "id": "metrics",
+      "type": "metricProcessor",
+      "position": {
+        "x": -313.3702050728748,
+        "y": 789.092937741991
+      },
+      "style": {
+        "width": 260
+      },
+      "data": {
+        "title": "Реестр метрик",
+        "collapsed": true
+      }
+    },
+    {
+      "id": "cluster",
+      "type": "cluster",
+      "position": {
+        "x": 1097.6918667879315,
+        "y": 971.5734963284891
+      },
+      "style": {
+        "width": 420
+      },
+      "data": {
+        "title": "Облако α_id",
+        "compact": false
+      }
+    },
+    {
+      "id": "eyes",
+      "type": "eyes",
+      "position": {
+        "x": 990,
+        "y": 0
+      },
+      "style": {
+        "width": 500
+      },
+      "data": {
+        "title": "Глаза · контроль измерений",
+        "collapsed": false
+      },
+      "hidden": false
+    },
+    {
+      "id": "poses",
+      "type": "poses",
+      "position": {
+        "x": 1550,
+        "y": 0
+      },
+      "style": {
+        "width": 660
+      },
+      "data": {
+        "title": "Пять ракурсов"
+      },
+      "hidden": true
+    },
+    {
+      "id": "registry",
+      "type": "registry",
+      "position": {
+        "x": 1550,
+        "y": 650
+      },
+      "style": {
+        "width": 660
+      },
+      "data": {
+        "title": "Метрики и пороги"
+      },
+      "hidden": true
+    }
+  ],
+  "edges": [
+    {
+      "id": "photos-recon",
+      "source": "source",
+      "sourceHandle": "photos",
+      "target": "recon",
+      "targetHandle": "photos",
+      "type": "default",
+      "style": {
+        "stroke": "#68b9ca",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "mesh-scene",
+      "source": "recon",
+      "sourceHandle": "mesh",
+      "target": "scene",
+      "targetHandle": "mesh",
+      "style": {
+        "stroke": "#ae9bec",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "landmarks-metrics",
+      "source": "recon",
+      "sourceHandle": "landmarks",
+      "target": "metrics",
+      "targetHandle": "landmarks",
+      "style": {
+        "stroke": "#e6b96f",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "series-timeline",
+      "source": "metrics",
+      "sourceHandle": "series",
+      "target": "timeline",
+      "targetHandle": "series",
+      "style": {
+        "stroke": "#58ccb1",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "id-cluster",
+      "source": "recon",
+      "sourceHandle": "alpha_id",
+      "target": "cluster",
+      "targetHandle": "embedding",
+      "style": {
+        "stroke": "#a997e9",
+        "strokeWidth": 1.5
+      }
+    }
+  ],
+  "viewport": {
+    "x": 286.71510152284264,
+    "y": 46,
+    "zoom": 0.9784263959390863
+  },
+  "preferences": {
+    "group": "Моя группа",
+    "activeId": "3707897d37c2c482",
+    "route": [
+      "30b0cc961d7bd653",
+      "3707897d37c2c482",
+      "dfcbf5e52d181c22"
+    ],
+    "heat": {
+      "enabled": false,
+      "photoTexture": true,
+      "noiseCorrection": true,
+      "metric": "distance",
+      "reference": "first",
+      "vmin": 0.0202,
+      "vmax": 0.0471,
+      "auto": false,
+      "percentile": 75,
+      "gamma": 1,
+      "opacity": 0.93,
+      "outsideOpacity": 0.22,
+      "palette": "turbo",
+      "inverse": false,
+      "onlyAbove": false,
+      "smoothing": 0,
+      "low": "#3155c6",
+      "mid": "#5bd8b1",
+      "high": "#ed6558",
+      "midPosition": 0.5,
+      "texture": false,
+      "wireframe": false,
+      "ldm68": false,
+      "ldm106": false,
+      "ldm134": false,
+      "pointSize": 2.3,
+      "view": "front"
+    },
+    "visibleMetrics": null
+  },
+  "saved_at": "2026-10-19T20:41:14.664Z"
+}

@@ -1,0 +1,227 @@
+{
+  "summary": {
+    "projectName": "work",
+    "locale": "en",
+    "modelId": "agent-work-loop-v4",
+    "reportContractVersion": 26,
+    "overview": "The repository has real harness mechanisms — a blocking CI gate, pytest and ruff configuration, run scripts, and per-subtree test suites — but they are wired to the old app6 core while all recent work lands in morphing/**. The three highest-impact moves: widen the CI gate to the active subtree, fix the default startup route that points at a deleted directory, and re-point the root README so project context matches the current tree.",
+    "aiAgentPractice": {
+      "inspectedSurfaces": [
+        "Workflows"
+      ],
+      "coverageRows": [
+        {
+          "surface": "Skills",
+          "scopes": [
+            "Plugin"
+          ],
+          "count": 6,
+          "paths": [
+            "~/.qoder/plugins/cache/qoder-bundler/better-harness/skills/better-harness/SKILL.md",
+            "~/.qoder/plugins/cache/qoder-bundler/computer-use/skills/computer-use/SKILL.md",
+            "~/.qoder/plugins/cache/qoder-bundler/qoder-create-plugin/skills/create-plugin/SKILL.md",
+            "~/.qoder/plugins/cache/qoder-marketplace/Presentations/0.1.1/skills/pptx/SKILL.md",
+            "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/skills/qoder-context-knowledge-plan/SKILL.md",
+            "~/.qoder/plugins/cache/qoder-bundler/security-scan/skills/security-scan/SKILL.md"
+          ]
+        },
+        {
+          "surface": "Hooks",
+          "scopes": [
+            "Plugin"
+          ],
+          "count": 8,
+          "paths": [
+            "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/hooks/hooks.json",
+            "~/.qoder/plugins/cache/qoder-bundler/security-scan/.qoder-plugin/qoder-hooks.json"
+          ]
+        },
+        {
+          "surface": "MCP",
+          "scopes": [
+            "Plugin"
+          ],
+          "count": 3,
+          "paths": [
+            "~/.qoder/plugins/cache/qoder-bundler/computer-use/.mcp.json",
+            "~/.qoder/plugins/cache/qoder-marketplace/Presentations/0.1.1/.mcp.json",
+            "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/mcp.json"
+          ]
+        },
+        {
+          "surface": "Workflows",
+          "scopes": [
+            "Project"
+          ],
+          "count": 1,
+          "paths": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "surface": "Plugins",
+          "scopes": [
+            "Plugin"
+          ],
+          "count": 6,
+          "paths": [
+            "~/.qoder/plugins/cache/qoder-bundler/better-harness/.qoder-plugin/plugin.json",
+            "~/.qoder/plugins/cache/qoder-bundler/computer-use/.qoder-plugin/plugin.json",
+            "~/.qoder/plugins/cache/qoder-marketplace/Presentations/0.1.1/.qoder-plugin/plugin.json",
+            "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/.qoder-plugin/plugin.json",
+            "~/.qoder/plugins/cache/qoder-bundler/qoder-create-plugin",
+            "~/.qoder/plugins/cache/qoder-bundler/security-scan/.qoder-plugin/plugin.json"
+          ]
+        },
+        {
+          "surface": "Memories",
+          "scopes": [
+            "Project",
+            "Global"
+          ],
+          "count": 48
+        },
+        {
+          "surface": "Rules",
+          "scopes": [
+            "Project"
+          ],
+          "count": 0
+        },
+        {
+          "surface": "Commands",
+          "scopes": [
+            "Project"
+          ],
+          "count": 0
+        },
+        {
+          "surface": "Custom Agents",
+          "scopes": [
+            "Project"
+          ],
+          "count": 0
+        }
+      ],
+      "repositorySourceRows": []
+    },
+    "assignmentSummaries": [],
+    "dimensions": [
+      {
+        "id": "task-understanding",
+        "label": "Task Understanding",
+        "score": 62,
+        "summary": "Requests and scope boundaries are recoverable in session evidence, but the only authoritative context owner (the root README) describes a legacy area and documents commands that do not resolve from the repo root.",
+        "findingRefs": [
+          "readme-context-misdirects"
+        ]
+      },
+      {
+        "id": "controlled-execution",
+        "label": "Controlled Execution",
+        "score": 55,
+        "summary": "A self-cleaning run script exists for the active subtree, but the project's default startup mode addresses a directory that no longer exists, and no doctor or reset route was found.",
+        "findingRefs": [
+          "default-startup-route-deleted-dir"
+        ]
+      },
+      {
+        "id": "change-validation",
+        "label": "Change Validation",
+        "score": 48,
+        "summary": "Deep test suites and a deliberately scoped ruff gate exist for app6, but neither the blocking CI job nor the local pytest routing reaches the code that is actually changing, and no check execution was observable in the reviewed sessions.",
+        "findingRefs": [
+          "ci-gate-misses-active-subtree",
+          "pytest-routing-two-of-six-roots",
+          "registry-failure-silent"
+        ]
+      },
+      {
+        "id": "reliable-delivery",
+        "label": "Reliable Delivery",
+        "score": 62,
+        "summary": "Changes reach a real review-and-merge boundary through pull requests with CI running before merge, which was exercised in this window. The CI result, however, carries no signal about the changed subtree, and recovery rests only on an ad-hoc git bundle.",
+        "findingRefs": []
+      },
+      {
+        "id": "learning-capture",
+        "label": "Learning Capture",
+        "score": 42,
+        "summary": "A bounded review completed with 48 project memory titles reviewed clean at metadata level; the session window could not attribute requests for eight of ten episodes, so repeated-work and clean-window decisions stay inside the evidence boundary and remain unobserved.",
+        "findingRefs": []
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "ci-gate-misses-active-subtree",
+      "title": "Morphing changes merge green while the blocking CI gate only checks app6",
+      "severity": "Medium",
+      "reason": "Every primary hot file in the 30-day window lives under morphing/** (App.jsx, server.py, Canvas3D.jsx, analysis.py, timeline.py), and recent commits merged through pull requests are all morphing features. The blocking CI job, however, hardcodes its steps to app6: compileall -q app6, pytest -q app6/test_module app6/api/tests, ruff check app6. A grep for morphing across ci.yml, pyproject.toml, RUN_ALL.sh and RUN_PROJECT.sh returns nothing, while morphing/backend/tests already holds five test files with a documented discover route in morphing/README.md. The cheapest existing verifier therefore never runs against the code that is actually changing, and a green merge signal carries no information about the active subtree. CI execution status itself was not observed; this is the static wiring gap.",
+      "expectedOutput": [
+        "Update the existing Config owner identified by the reviewed evidence and retain a focused validation result."
+      ],
+      "expectedArtifact": "Config",
+      "aiFixPrompt": "/better-harness fix this issue\n\nWiden the blocking CI gate in .github/workflows/ci.yml so it exercises the active morphing subtree instead of only app6. First discover which morphing checks are collectible under the CI-pinned Python (the documented route is python3 -m unittest discover -s morphing/backend/tests from morphing/README.md); then add a step running them, and extend the ruff step to cover the morphing backend. Keep the existing app6 steps and timeouts unchanged.\n\n## Validation\n\n- Run the new morphing test step locally in the project venv and confirm non-zero collection with passing results\n- Confirm ruff check on the widened scope reports only intended findings\n- Verify the workflow YAML parses (actionlint or a draft PR) and the job still completes within its timeout",
+      "dimensionRefs": [
+        "change-validation"
+      ]
+    },
+    {
+      "id": "pytest-routing-two-of-six-roots",
+      "title": "Bare pytest silently runs only two of the project's six test roots",
+      "severity": "Medium",
+      "reason": "pyproject.toml sets testpaths = [\"app6/test_module\", \"app6/api/tests\"]. git ls-files shows 70 tracked test files across six roots, including morphing/backend/tests (5 files) and app8/tests (6 files); a bare pytest from the repo root never collects them, and no conftest.py exists anywhere to widen import paths. An agent or developer who runs the most obvious validation command gets a passing result that excludes the twelve newest-area test files, and the distorted scope already propagated into the analyzer's own suggested validation targets.",
+      "expectedOutput": [
+        "Update the existing Config owner identified by the reviewed evidence and retain a focused validation result."
+      ],
+      "expectedArtifact": "Config",
+      "aiFixPrompt": "/better-harness fix this issue\n\nExtend [tool.pytest.ini_options].testpaths in pyproject.toml to name every tracked Python test root (app6/test_module, app6/api/tests, app6/stage3_v2/tests, app8/tests, morphing/backend/tests). Before editing, run python -m pytest --collect-only -q per candidate root in the project venv to discover which roots are collectible without new import configuration; for roots that fail collection, record the exact import blocker rather than silently omitting them, and add the minimum conftest or rootdir setting only if collection requires it.\n\n## Validation\n\n- Compare python -m pytest --collect-only -q | tail -1 against the count from git ls-files '*test_*.py' and explain any remaining difference\n- Run bare pytest from the repo root and confirm the previously excluded roots are collected\n- Confirm the CI job's explicit paths still pass unchanged",
+      "dimensionRefs": [
+        "change-validation"
+      ]
+    },
+    {
+      "id": "default-startup-route-deleted-dir",
+      "title": "Running the project's start script with no arguments fails on a deleted ui directory",
+      "severity": "Medium",
+      "reason": "RUN_PROJECT.sh sets MODE=\"${1:-ui}\" and the ui branch executes cd \"$ROOT/ui\", but the ui/ directory is absent from the working tree (verified: ls -d ui → No such file or directory), alongside ui-v4/, fabl/ and errors/ from a prior mass deletion that history-derived guidance still references. Under set -euo pipefail the default no-argument invocation exits before starting anything, so the project's own entry script cannot bring up any environment, and its check mode only runs pytest -q app6/test_module. The exact runtime failure output was not observed; the defect is the script's present path.",
+      "expectedOutput": [
+        "Update the existing Script owner identified by the reviewed evidence and retain a focused validation result."
+      ],
+      "expectedArtifact": "Script",
+      "aiFixPrompt": "/better-harness fix this issue\n\nRepair RUN_PROJECT.sh so every mode addresses a directory that exists. Discover the current live surfaces first (morphing/frontend with its documented dev/build scripts, and the morphing backend started by morphing/run.sh), then either retarget the default mode to a live surface or make the removed ui mode fail with an explicit message naming the replacement route. Apply the same existence check to the check and preflight modes.\n\n## Validation\n\n- bash -n RUN_PROJECT.sh passes\n- For each mode, confirm its cd target exists or the script exits with the intended explicit message\n- Run the default mode in a dry-run shell (echo/trace) and confirm it reaches a live start command",
+      "dimensionRefs": [
+        "controlled-execution"
+      ]
+    },
+    {
+      "id": "readme-context-misdirects",
+      "title": "The root README directs agents to a legacy module whose documented commands cannot run",
+      "severity": "Medium",
+      "reason": "The root README is the repository's only identity evidence, yet it documents stage2_v2 as the project focus with run commands python -m stage2_v2.cli and python -m app6.stage2_v2.fixtures. Verification shows no top-level stage2_v2/ package exists, the real package sits at app6/stage2_v2/stage2_v2/, no conftest.py, packaging config, or installed distribution provides the documented import path, and the README never mentions morphing/** or app8/** — the areas where all recent work lands. An agent that trusts the entrypoint context gets the wrong active area and a start command that cannot resolve; there is no AGENTS.md or Rule to correct it.",
+      "expectedOutput": [
+        "Update the existing Document owner identified by the reviewed evidence and retain a focused validation result."
+      ],
+      "expectedArtifact": "Document",
+      "aiFixPrompt": "/better-harness fix this issue\n\nUpdate README.md so the root context matches the current tree: name the actually active areas (morphing frontend and backend, app6, app8) with their real startup routes (morphing/run.sh, RUN_PROJECT.sh modes after their own repair), and correct or remove the stage2_v2 command lines that do not resolve from the repo root. Keep the existing structure and language of the file; do not add new sections beyond what the correction requires.\n\n## Validation\n\n- From the repo root, run python -c \"import importlib.util as u; print(bool(u.find_spec('stage2_v2')))\" and confirm the README no longer claims a route whose result contradicts it\n- Check every remaining command line in the README against a file or package that exists\n- Confirm the README names the subtree that recent commits actually touch",
+      "dimensionRefs": [
+        "task-understanding"
+      ]
+    },
+    {
+      "id": "registry-failure-silent",
+      "title": "Backend registry failures vanish behind a placeholder with no log anywhere",
+      "severity": "Low",
+      "reason": "morphing/backend/server.py — the hottest backend file of the window — resolves its parameter registry through two nested imports inside _registry(), each wrapped in a bare except Exception: that finally returns {\"schema\": \"unavailable\", \"groups\": [], \"params\": []}. A targeted grep found zero logging, logger, or print calls in the file, and no configured gate would flag it (CI ruff targets app6 only, and the selected rule set omits blind-except checks). The two import targets are separate copies of params.py (724 vs 747 lines, both defining registry_json()), so a real import failure in either copy is indistinguishable from an intentionally empty registry, for the API consumer and for any later debugging pass. How the frontend renders the unavailable schema was not inspected.",
+      "expectedOutput": [
+        "Update the existing Code owner identified by the reviewed evidence and retain a focused validation result."
+      ],
+      "expectedArtifact": "Code",
+      "aiFixPrompt": "/better-harness fix this issue\n\nMake registry failures in morphing/backend/server.py _registry() attributable without changing its fallback behavior. Add a module logger and record which import path failed and why at each except, and include a machine-readable reason (failed import vs configured empty) in the unavailable placeholder payload. Then add one test under morphing/backend/tests that forces the first import path to fail and asserts the distinguishable signal.\n\n## Validation\n\n- Run python3 -m unittest discover -s morphing/backend/tests and confirm the new test passes\n- Confirm the endpoint response still degrades safely when both imports fail\n- Check ruff on the touched file reports no new issues",
+      "dimensionRefs": [
+        "change-validation"
+      ]
+    }
+  ]
+}

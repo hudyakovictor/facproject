@@ -1,0 +1,96 @@
+{
+  "checks": [
+    {
+      "label": "Production: real PCA result",
+      "pass": true
+    },
+    {
+      "label": "Production: five dated frames",
+      "pass": true
+    },
+    {
+      "label": "Production: three measured metric tracks",
+      "pass": true
+    },
+    {
+      "label": "Production: true 3D cluster view",
+      "pass": true
+    },
+    {
+      "label": "Production: live WebGL heat threshold",
+      "pass": true
+    },
+    {
+      "label": "Production: exact photo selection",
+      "pass": true
+    },
+    {
+      "label": "Production: Ctrl multiple selection",
+      "pass": true
+    },
+    {
+      "label": "Production: transition morph",
+      "pass": true
+    },
+    {
+      "label": "Production: eased scrub matches timeline",
+      "pass": true
+    },
+    {
+      "label": "Production: playback advances",
+      "pass": true
+    },
+    {
+      "label": "Production: five pose editors",
+      "pass": true
+    },
+    {
+      "label": "Production: model × pose configuration",
+      "pass": true
+    },
+    {
+      "label": "CPU: no WebGL required",
+      "pass": true
+    },
+    {
+      "label": "CPU: 3D cluster safely shows marked XY projection without WebGL",
+      "pass": true
+    },
+    {
+      "label": "CPU: percentile/histogram statistics computed",
+      "pass": true
+    },
+    {
+      "label": "CPU: actual 3D landmark overlay",
+      "pass": true
+    },
+    {
+      "label": "CPU: simultaneous independent landmark layers",
+      "pass": true
+    },
+    {
+      "label": "CPU: manual heat range applied",
+      "pass": true
+    },
+    {
+      "label": "CPU: morph produces intermediate frames, not a starving debounce",
+      "pass": true
+    },
+    {
+      "label": "CPU: 3D orbit updates render",
+      "pass": true
+    },
+    {
+      "label": "Production and CPU: no browser errors",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "cpuFrameSamples": [
+    "0.007",
+    "0.258",
+    "0.717",
+    "0.998",
+    "1.000"
+  ]
+}

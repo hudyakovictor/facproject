@@ -1,0 +1,100 @@
+{
+  "schema_version": "3ddfa-v3-mbnet-e153858-pos-yunet-v3-exif",
+  "git_hash": "7cddc569",
+  "pose_bins": {
+    "left_profile": {
+      "bounds": [
+        -95.0,
+        -50.0
+      ],
+      "canonical": -70.0
+    },
+    "left_deep": {
+      "bounds": [
+        -50.0,
+        -40.0
+      ],
+      "canonical": -45.0
+    },
+    "left_mid": {
+      "bounds": [
+        -40.0,
+        -25.0
+      ],
+      "canonical": -32.5
+    },
+    "left_light": {
+      "bounds": [
+        -25.0,
+        -10.0
+      ],
+      "canonical": -17.5
+    },
+    "frontal": {
+      "bounds": [
+        -10.0,
+        10.0
+      ],
+      "canonical": 0.0
+    },
+    "right_light": {
+      "bounds": [
+        10.0,
+        25.0
+      ],
+      "canonical": 17.5
+    },
+    "right_mid": {
+      "bounds": [
+        25.0,
+        40.0
+      ],
+      "canonical": 32.5
+    },
+    "right_deep": {
+      "bounds": [
+        40.0,
+        50.0
+      ],
+      "canonical": 45.0
+    },
+    "right_profile": {
+      "bounds": [
+        50.0,
+        95.0
+      ],
+      "canonical": 70.0
+    }
+  },
+  "thresholds": {
+    "light": {
+      "median_m1": 0.03,
+      "p95_m1": 0.06,
+      "frac_m3_gt0": 0.8
+    },
+    "mid": {
+      "median_m1": 0.05,
+      "p95_m1": 0.09,
+      "frac_m3_gt0": 0.75
+    }
+  },
+  "group_map": {
+    "frontal": "light",
+    "left_light": "light",
+    "right_light": "light",
+    "left_mid": "mid",
+    "right_mid": "mid",
+    "left_deep": "mid",
+    "right_deep": "mid",
+    "left_profile": null,
+    "right_profile": null
+  },
+  "expression": {
+    "corner_lift": 0.005,
+    "jaw_open": 0.28
+  },
+  "confidence_min": 0.5,
+  "normalization": "center eyes (ldm68 36:42/42:48) + IOD",
+  "negative_control_offset": 15.0,
+  "seed": 42
+}

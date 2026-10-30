@@ -1,0 +1,27 @@
+version: 1
+models:
+  - id: 3ddfa_v3
+    title: 3DDFA_V3
+    state: implemented
+    adapter: server.models.tddfa.TDDFA
+    outputs: [vertices, identity, albedo, alpha, ldm68, ldm106, ldm134, pose]
+    metric_package: metrics.tddfa_v3
+    metric_configs: configs/metrics/3ddfa_v3
+  - id: mediapipe
+    title: MediaPipe
+    state: planned
+    outputs: [mp478, blendshapes]
+    metric_package: metrics.mediapipe
+    metric_configs: configs/metrics/mediapipe
+  - id: fan
+    title: FAN
+    state: planned
+    outputs: [fan68]
+    metric_package: metrics.fan
+    metric_configs: configs/metrics/fan
+  - id: adaface
+    title: AdaFace
+    state: planned
+    outputs: [ada_embedding, ada_centroid, ada_previous]
+    metric_package: metrics.adaface
+    metric_configs: configs/metrics/adaface

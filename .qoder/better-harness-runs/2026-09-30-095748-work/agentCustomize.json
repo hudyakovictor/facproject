@@ -1,0 +1,380 @@
+{
+  "status": "available",
+  "data": {
+    "kind": "agent-asset-baseline",
+    "schemaVersion": 1,
+    "status": "complete",
+    "scope": {
+      "provider": "qoder",
+      "workspace": "/Users/victorkhudyakov/work",
+      "includeUserHome": true,
+      "includeMemories": true
+    },
+    "envelopes": {
+      "lint": {
+        "status": "available",
+        "data": {
+          "kind": "agent-lint",
+          "profile": "agent-assets-review",
+          "summary": {
+            "entrypoints": 0,
+            "documents": 0,
+            "links": 0,
+            "references": 0,
+            "missingReferences": 0,
+            "findings": 0,
+            "errors": 0,
+            "warnings": 0,
+            "advisories": 0
+          },
+          "assetInventory": {
+            "provider": "qoder",
+            "summary": {
+              "skills": 0,
+              "mcps": 0,
+              "commands": 0,
+              "hooks": 0,
+              "rules": 0,
+              "agents": 0,
+              "customAgents": 0,
+              "builtinAgentOverrides": 0,
+              "plugins": 0
+            }
+          },
+          "findings": {
+            "items": [],
+            "total": 0,
+            "omitted": 0
+          }
+        }
+      },
+      "inventory": {
+        "status": "available",
+        "data": {
+          "scope": {
+            "platform": "qoder",
+            "includeUserHome": true,
+            "includeMemories": true
+          },
+          "summary": {
+            "projectAssets": 1,
+            "userAssets": 0,
+            "pluginAssets": 4,
+            "sessionSourceHints": 1,
+            "memories": 2,
+            "builtinAgentOverrides": 0
+          },
+          "coverageRows": [
+            {
+              "surface": "Skills",
+              "scopes": [
+                "Plugin"
+              ],
+              "count": 6,
+              "paths": [
+                "~/.qoder/plugins/cache/qoder-bundler/better-harness/skills/better-harness/SKILL.md",
+                "~/.qoder/plugins/cache/qoder-bundler/computer-use/skills/computer-use/SKILL.md",
+                "~/.qoder/plugins/cache/qoder-bundler/qoder-create-plugin/skills/create-plugin/SKILL.md",
+                "~/.qoder/plugins/cache/qoder-marketplace/Presentations/0.1.1/skills/pptx/SKILL.md",
+                "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/skills/qoder-context-knowledge-plan/SKILL.md"
+              ]
+            },
+            {
+              "surface": "Hooks",
+              "scopes": [
+                "Plugin"
+              ],
+              "count": 8,
+              "paths": [
+                "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/hooks/hooks.json",
+                "~/.qoder/plugins/cache/qoder-bundler/security-scan/.qoder-plugin/qoder-hooks.json"
+              ]
+            },
+            {
+              "surface": "MCP",
+              "scopes": [
+                "Plugin"
+              ],
+              "count": 3,
+              "paths": [
+                "~/.qoder/plugins/cache/qoder-bundler/computer-use/.mcp.json",
+                "~/.qoder/plugins/cache/qoder-marketplace/Presentations/0.1.1/.mcp.json",
+                "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/mcp.json"
+              ]
+            },
+            {
+              "surface": "Workflows",
+              "scopes": [
+                "Project"
+              ],
+              "count": 1,
+              "paths": [
+                ".github/workflows/ci.yml"
+              ]
+            },
+            {
+              "surface": "Plugins",
+              "scopes": [
+                "Plugin"
+              ],
+              "count": 6,
+              "paths": [
+                "~/.qoder/plugins/cache/qoder-bundler/better-harness/.qoder-plugin/plugin.json",
+                "~/.qoder/plugins/cache/qoder-bundler/computer-use/.qoder-plugin/plugin.json",
+                "~/.qoder/plugins/cache/qoder-marketplace/Presentations/0.1.1/.qoder-plugin/plugin.json",
+                "~/.qoder/plugins/cache/qoderapp-bundler/qoder-context/1.0.61.d5594762/.qoder-plugin/plugin.json",
+                "~/.qoder/plugins/cache/qoder-bundler/qoder-create-plugin"
+              ]
+            },
+            {
+              "surface": "Memories",
+              "scopes": [
+                "Project",
+                "Global"
+              ],
+              "count": 48
+            }
+          ],
+          "ownerRoutes": {
+            "items": [
+              {
+                "kind": "skills",
+                "scope": "plugin",
+                "name": "better-harness",
+                "owner": "better-harness"
+              },
+              {
+                "kind": "plugins",
+                "scope": "plugin",
+                "name": "Better Harness",
+                "version": "0.2.9",
+                "owner": "Better Harness"
+              },
+              {
+                "kind": "mcps",
+                "scope": "plugin",
+                "name": "computer-use",
+                "owner": "computer-use"
+              },
+              {
+                "kind": "hooks",
+                "scope": "plugin",
+                "name": "Post Tool Use Bash",
+                "owner": "security-scan"
+              },
+              {
+                "kind": "workflows",
+                "scope": "project",
+                "name": "ci.yml",
+                "route": ".github/workflows/ci.yml"
+              },
+              {
+                "kind": "skills",
+                "scope": "plugin",
+                "name": "computer-use",
+                "owner": "computer-use"
+              },
+              {
+                "kind": "plugins",
+                "scope": "plugin",
+                "name": "Computer Use",
+                "version": "1.0.1",
+                "owner": "Computer Use"
+              },
+              {
+                "kind": "mcps",
+                "scope": "plugin",
+                "name": "office",
+                "owner": "Presentations"
+              },
+              {
+                "kind": "hooks",
+                "scope": "plugin",
+                "name": "Post Tool Use Edit|Write|MultiEdit|NotebookEdit",
+                "owner": "security-scan"
+              },
+              {
+                "kind": "skills",
+                "scope": "plugin",
+                "name": "create-plugin",
+                "owner": "qoder-create-plugin"
+              },
+              {
+                "kind": "plugins",
+                "scope": "plugin",
+                "name": "Presentations",
+                "version": "0.1.1",
+                "owner": "Presentations"
+              },
+              {
+                "kind": "mcps",
+                "scope": "plugin",
+                "name": "qoder-context",
+                "owner": "qoder-context"
+              },
+              {
+                "kind": "hooks",
+                "scope": "plugin",
+                "name": "qoder-context-post-tool-use",
+                "owner": "qoder-context"
+              },
+              {
+                "kind": "skills",
+                "scope": "plugin",
+                "name": "pptx",
+                "owner": "Presentations"
+              },
+              {
+                "kind": "plugins",
+                "scope": "plugin",
+                "name": "Qoder Context",
+                "version": "1.0.61.d5594762",
+                "owner": "Qoder Context"
+              },
+              {
+                "kind": "hooks",
+                "scope": "plugin",
+                "name": "qoder-context-prompt",
+                "owner": "qoder-context"
+              }
+            ],
+            "total": 24,
+            "omitted": 8
+          },
+          "memories": {
+            "included": true,
+            "contentPolicy": "raw-memory-content-not-read",
+            "categories": [
+              {
+                "category": "common_pitfalls_experience",
+                "count": 12
+              },
+              {
+                "category": "development_code_specification",
+                "count": 1
+              },
+              {
+                "category": "development_comment_specification",
+                "count": 1
+              },
+              {
+                "category": "development_practice_specification",
+                "count": 2
+              },
+              {
+                "category": "development_test_specification",
+                "count": 1
+              },
+              {
+                "category": "project_build_configuration",
+                "count": 2
+              },
+              {
+                "category": "project_environment_configuration",
+                "count": 2
+              },
+              {
+                "category": "project_environment_configuration",
+                "count": 9
+              },
+              {
+                "category": "project_introduction",
+                "count": 1
+              },
+              {
+                "category": "project_introduction",
+                "count": 8
+              },
+              {
+                "category": "project_scm_configuration",
+                "count": 5
+              },
+              {
+                "category": "project_tech_stack",
+                "count": 1
+              },
+              {
+                "category": "project_tech_stack",
+                "count": 1
+              },
+              {
+                "category": "tool_experience",
+                "count": 1
+              },
+              {
+                "category": "user_info",
+                "count": 1
+              }
+            ],
+            "titleCount": 48,
+            "details": {
+              "contentPolicy": "metadata-only",
+              "scanState": "scanned-present",
+              "scopeCounts": [
+                {
+                  "scope": "Project",
+                  "count": 47
+                },
+                {
+                  "scope": "Global",
+                  "count": 1
+                }
+              ],
+              "integrity": {
+                "status": "reviewed",
+                "titleCount": 48,
+                "reviewedTitleCount": 48,
+                "truncated": false,
+                "exactCollisionGroups": 0,
+                "similarityCandidates": 0
+              }
+            }
+          },
+          "warnings": []
+        }
+      },
+      "integrity": {
+        "status": "available",
+        "data": {
+          "kind": "asset-integrity-review",
+          "profile": "asset-integrity-review",
+          "status": "reviewed",
+          "contentPolicy": "memory-title-and-path-metadata-only",
+          "summary": {
+            "findingCount": 0,
+            "memories": {
+              "titleCount": 48,
+              "reviewedTitleCount": 48,
+              "truncated": false,
+              "exactCollisionGroups": 0,
+              "similarityCandidates": 0
+            },
+            "plugins": {
+              "enabledPluginCount": 6,
+              "nameCollisionGroups": 0,
+              "capabilityOverlapGroups": 0,
+              "familyCandidates": 0
+            },
+            "hooks": {
+              "enabledHookCount": 0,
+              "overRecommendedLimit": false,
+              "exactDuplicateGroups": 0,
+              "fanoutCandidates": 0
+            }
+          },
+          "findings": {
+            "items": [],
+            "total": 0,
+            "omitted": 0
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "sharedInventorySnapshot": true,
+      "compact": true,
+      "findingLimitPerEnvelope": 16,
+      "ownerRouteLimit": 16
+    }
+  }
+}

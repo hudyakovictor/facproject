@@ -1,0 +1,28 @@
+version: 1
+model: adaface
+pose: three_quarter_left
+profile_defaults:
+  normalize: iod
+  zscore: robust_mad
+metrics:
+- id: ada_cos_to_centroid
+  enabled: true
+  title: Cosine до центроида
+  unit: cosine
+  thresholds:
+    warn: 2.5
+    alert: 3.5
+- id: ada_pair_cos
+  enabled: true
+  title: Cosine к предыдущему
+  unit: cosine
+  thresholds:
+    warn: 2.5
+    alert: 3.5
+- id: ada_norm_quality
+  enabled: true
+  title: Норма эмбеддинга
+  unit: norm
+  thresholds:
+    warn: 2.5
+    alert: 3.5

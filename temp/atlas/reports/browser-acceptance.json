@@ -1,0 +1,102 @@
+{
+  "checks": [
+    {
+      "label": "Five dated photo keyframes",
+      "pass": true
+    },
+    {
+      "label": "Three live metric tracks",
+      "pass": true
+    },
+    {
+      "label": "Real PCA scatterplot loaded",
+      "pass": true
+    },
+    {
+      "label": "Heatmap responds to upper threshold",
+      "pass": true
+    },
+    {
+      "label": "Photo click selects exact 3D frame",
+      "pass": true
+    },
+    {
+      "label": "Ctrl-click multi-selection",
+      "pass": true
+    },
+    {
+      "label": "Pair transition drives 3D morph",
+      "pass": true
+    },
+    {
+      "label": "Scrub uses same ease-in-out as 3D scene",
+      "pass": true
+    },
+    {
+      "label": "Playback advances timeline",
+      "pass": true
+    },
+    {
+      "label": "Manual date/angle editor opens",
+      "pass": true
+    },
+    {
+      "label": "Five adjustable pose profiles",
+      "pass": true
+    },
+    {
+      "label": "Per-pose config-driven metric editor",
+      "pass": true
+    },
+    {
+      "label": "Virtualized metric rows (90 tracks)",
+      "pass": true
+    },
+    {
+      "label": "Scroll renders late metric rows",
+      "pass": true
+    },
+    {
+      "label": "No browser runtime errors",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "nodeBounds": [
+    {
+      "id": "source",
+      "x": 139.59552001953125,
+      "y": 79,
+      "w": 238.50222778320312,
+      "h": 262.8407897949219
+    },
+    {
+      "id": "recon",
+      "x": 139.59552001953125,
+      "y": 362.7354431152344,
+      "w": 238.50222778320312,
+      "h": 226.98837280273438
+    },
+    {
+      "id": "metrics",
+      "x": 139.59552001953125,
+      "y": 601.2376708984375,
+      "w": 238.50222778320312,
+      "h": 44.4107666015625
+    },
+    {
+      "id": "scene",
+      "x": 424.1533508300781,
+      "y": 79,
+      "w": 1036.251220703125,
+      "h": 917.0000610351562
+    },
+    {
+      "id": "cluster",
+      "x": 139.59552001953125,
+      "y": 664.5641479492188,
+      "w": 238.50222778320312,
+      "h": 310.8753662109375
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "recon",
+      "type": "processor",
+      "position": {
+        "x": 24,
+        "y": 385
+      },
+      "style": {
+        "width": 290
+      },
+      "data": {
+        "title": "3DDFA_V3"
+      }
+    },
+    {
+      "id": "metrics",
+      "type": "metricProcessor",
+      "position": {
+        "x": 24,
+        "y": 675
+      },
+      "style": {
+        "width": 290
+      },
+      "data": {
+        "title": "Реестр метрик",
+        "collapsed": true
+      }
+    },
+    {
+      "id": "scene",
+      "type": "scene",
+      "position": {
+        "x": 370,
+        "y": 40
+      },
+      "style": {
+        "width": 1260,
+        "height": 1115
+      },
+      "data": {
+        "title": "3D-сцена + таймлайн"
+      }
+    },
+    {
+      "id": "cluster",
+      "type": "cluster",
+      "position": {
+        "x": 24,
+        "y": 752
+      },
+      "style": {
+        "width": 290
+      },
+      "data": {
+        "title": "Облако α_id",
+        "compact": true,
+        "settings": {
+          "method": "tsne",
+          "dimensions": 2,
+          "distance": "cosine",
+          "n_neighbors": 15,
+          "min_dist": 0.1,
+          "perplexity": 15,
+          "seed": 42,
+          "clusters": 3
+        }
+      }
+    },
+    {
+      "id": "poses",
+      "type": "poses",
+      "position": {
+        "x": 400,
+        "y": 1120
+      },
+      "style": {
+        "width": 720
+      },
+      "data": {
+        "title": "Пять ракурсов"
+      },
+      "hidden": true
+    },
+    {
+      "id": "registry",
+      "type": "registry",
+      "position": {
+        "x": 1170,
+        "y": 1120
+      },
+      "style": {
+        "width": 680
+      },
+      "data": {
+        "title": "Метрики и пороги"
+      },
+      "hidden": true
+    },
+    {
+      "id": "source",
+      "type": "source",
+      "position": {
+        "x": 24,
+        "y": 40
+      },
+      "style": {
+        "width": 290
+      },
+      "data": {
+        "title": "Фото и серии"
+      },
+      "hidden": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "mesh-scene",
+      "source": "recon",
+      "sourceHandle": "mesh",
+      "target": "scene",
+      "targetHandle": "mesh",
+      "style": {
+        "stroke": "#ae9bec",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "landmarks-metrics",
+      "source": "recon",
+      "sourceHandle": "landmarks",
+      "target": "metrics",
+      "targetHandle": "landmarks",
+      "style": {
+        "stroke": "#e6b96f",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "series-scene",
+      "source": "metrics",
+      "sourceHandle": "series",
+      "target": "scene",
+      "targetHandle": "series",
+      "style": {
+        "stroke": "#58ccb1",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "id-cluster",
+      "source": "recon",
+      "sourceHandle": "alpha_id",
+      "target": "cluster",
+      "targetHandle": "embedding",
+      "style": {
+        "stroke": "#a997e9",
+        "strokeWidth": 1.5
+      }
+    },
+    {
+      "id": "photos-recon",
+      "source": "source",
+      "sourceHandle": "photos",
+      "target": "recon",
+      "targetHandle": "photos",
+      "type": "default",
+      "style": {
+        "stroke": "#68b9ca",
+        "strokeWidth": 1.5
+      }
+    }
+  ],
+  "viewport": {
+    "x": 278.3063226642286,
+    "y": 135.40833016690323,
+    "zoom": 0.9693677335771402
+  },
+  "preferences": {
+    "group": "__all",
+    "activeId": "b651523bcba2c27c",
+    "route": [
+      "b36fe1392c3e2778",
+      "b651523bcba2c27c",
+      "d75eaed50c0c5638"
+    ],
+    "heat": {
+      "enabled": false,
+      "metric": "distance",
+      "reference": "first",
+      "vmin": 0.0111,
+      "vmax": 0.0448,
+      "auto": false,
+      "percentile": 95,
+      "gamma": 1,
+      "opacity": 0.86,
+      "outsideOpacity": 0.85,
+      "palette": "turbo",
+      "inverse": false,
+      "onlyAbove": false,
+      "smoothing": 0,
+      "low": "#3155c6",
+      "mid": "#5bd8b1",
+      "high": "#ed6558",
+      "midPosition": 0.5,
+      "texture": true,
+      "wireframe": false,
+      "ldm68": false,
+      "ldm106": false,
+      "ldm134": false,
+      "pointSize": 5,
+      "view": "right"
+    },
+    "visibleMetrics": null
+  },
+  "saved_at": "2026-10-19T15:21:17.050Z"
+}

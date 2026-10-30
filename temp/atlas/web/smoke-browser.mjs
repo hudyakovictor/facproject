@@ -1,0 +1,12 @@
+import { chromium } from '@playwright/test';
+const browser=await chromium.launch({headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
+const page=await browser.newPage({viewport:{width:1600,height:1040},deviceScaleFactor:1});
+const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+await page.goto('http://127.0.0.1:5173',{waitUntil:'domcontentloaded'});
+await page.waitForSelector('.scene-node canvas',{timeout:60000});
+await page.waitForFunction(()=>[...document.querySelectorAll('.heat-summary b')].some(e=>parseFloat(e.textContent)>0),{timeout:30000});
+await page.waitForTimeout(1200);
+await page.screenshot({path:'../reports/initial-ui.png',fullPage:true});
+console.log('ERRORS',errors);console.log('BODY',await page.locator('.app-status').innerText());
+console.log('NODES',await page.locator('.react-flow__node').evaluateAll(nodes=>nodes.map(n=>({id:n.getAttribute('data-id'),box:{x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y,w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height},inline:n.getAttribute('style')}))));
+await browser.close();

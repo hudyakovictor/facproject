@@ -47,6 +47,8 @@ class ObjData:
     texture_beauty_path: str = ""
     confidence_path: str = ""
     mask_visible_path: str = ""
+    texture_raw_path: str = ""
+    provenance_path: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +147,7 @@ class UVIOExporter:
         texture_path = p(self.texture_suffix, tex_ext)
         obj_path = p("", ".obj")
         mtl_path = p("", ".mtl")
+        raw_path, provenance_path = "", ""
 
         # --- 1. Main texture only ---
         self.save_image(texture_path, uv_tex_beauty, use_jpeg=(self.texture_format == "jpg"))
@@ -160,6 +163,15 @@ class UVIOExporter:
             self.save_image(analysis_path, uv_tex_analysis)
             self.save_mask(mask_path, uv_mask_visible)
             self.save_confidence(confidence_path, uv_confidence)
+            if "uv_texture_raw" in aux:
+                raw_path = p("_raw")
+                self.save_image(raw_path, aux["uv_texture_raw"])
+                np.savez_compressed(p("_raw_float", ".npz"), texture=np.asarray(aux["uv_texture_raw"], dtype=np.float32))
+            if "provenance" in aux:
+                provenance_path = p("_provenance", ".npz")
+                np.savez_compressed(provenance_path, **aux["provenance"])
+            if "triangle_warp_metrics" in aux:
+                np.savez_compressed(p("_warp_metrics", ".npz"), **aux["triangle_warp_metrics"])
 
             if "uv_is_original" in aux:
                 self.save_mask(is_orig_path, aux["uv_is_original"])
@@ -206,6 +218,12 @@ class UVIOExporter:
             texture_path=os.path.abspath(texture_path),
             obj_path=os.path.abspath(obj_path),
             mtl_path=os.path.abspath(mtl_path),
+            texture_analysis_path=os.path.abspath(analysis_path) if self.save_auxiliary else "",
+            confidence_path=os.path.abspath(confidence_path) if self.save_auxiliary else "",
+            mask_visible_path=os.path.abspath(mask_path) if self.save_auxiliary else "",
+            texture_beauty_path=os.path.abspath(texture_path),
+            texture_raw_path=os.path.abspath(raw_path) if raw_path else "",
+            provenance_path=os.path.abspath(provenance_path) if provenance_path else "",
         )
 
         logger.info("Export complete → %s  (%d verts, %d tris)",

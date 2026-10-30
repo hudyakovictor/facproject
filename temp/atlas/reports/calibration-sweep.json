@@ -1,0 +1,2204 @@
+{
+  "index": "/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets/all_calibration_index.csv",
+  "json": "/Users/victorkhudyakov/work/temp/atlas/reports/calibration-sweep.json",
+  "sampled": 210,
+  "n_within": 1856,
+  "n_between": 4000,
+  "space": "center + IOD",
+  "min_gap": 30,
+  "coverage": [
+    {
+      "person": "person_01",
+      "bin": "left_profile",
+      "n": 7,
+      "yaw_min": -80.0,
+      "yaw_max": -54.2,
+      "yaw_spread": 25.8,
+      "sharpness": 90.7,
+      "frames": [
+        204,
+        209,
+        213,
+        218,
+        222,
+        227,
+        231
+      ]
+    },
+    {
+      "person": "person_01",
+      "bin": "left_mid",
+      "n": 2,
+      "yaw_min": -40.6,
+      "yaw_max": -25.6,
+      "yaw_spread": 15.1,
+      "sharpness": 45.8,
+      "frames": [
+        236,
+        240
+      ]
+    },
+    {
+      "person": "person_01",
+      "bin": "left_light",
+      "n": 1,
+      "yaw_min": -13.8,
+      "yaw_max": -13.8,
+      "yaw_spread": 0.0,
+      "sharpness": 72.5,
+      "frames": [
+        245
+      ]
+    },
+    {
+      "person": "person_01",
+      "bin": "frontal",
+      "n": 11,
+      "yaw_min": -8.6,
+      "yaw_max": 4.6,
+      "yaw_spread": 13.2,
+      "sharpness": 60.1,
+      "frames": [
+        250,
+        254,
+        259,
+        263,
+        268,
+        272,
+        277,
+        281,
+        286,
+        290,
+        295
+      ]
+    },
+    {
+      "person": "person_01",
+      "bin": "right_light",
+      "n": 1,
+      "yaw_min": 15.2,
+      "yaw_max": 15.2,
+      "yaw_spread": 0.0,
+      "sharpness": 30.4,
+      "frames": [
+        300
+      ]
+    },
+    {
+      "person": "person_01",
+      "bin": "right_mid",
+      "n": 1,
+      "yaw_min": 26.2,
+      "yaw_max": 26.2,
+      "yaw_spread": 0.0,
+      "sharpness": 28.7,
+      "frames": [
+        304
+      ]
+    },
+    {
+      "person": "person_01",
+      "bin": "right_deep",
+      "n": 1,
+      "yaw_min": 40.8,
+      "yaw_max": 40.8,
+      "yaw_spread": 0.0,
+      "sharpness": 41.8,
+      "frames": [
+        309
+      ]
+    },
+    {
+      "person": "person_01",
+      "bin": "right_profile",
+      "n": 6,
+      "yaw_min": 49.6,
+      "yaw_max": 73.5,
+      "yaw_spread": 23.9,
+      "sharpness": 75.0,
+      "frames": [
+        313,
+        318,
+        322,
+        327,
+        331,
+        336
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "left_profile",
+      "n": 6,
+      "yaw_min": -66.3,
+      "yaw_max": -51.0,
+      "yaw_spread": 15.3,
+      "sharpness": 53.3,
+      "frames": [
+        274,
+        281,
+        288,
+        295,
+        301,
+        308
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "left_deep",
+      "n": 2,
+      "yaw_min": -47.1,
+      "yaw_max": -41.1,
+      "yaw_spread": 6.1,
+      "sharpness": 45.7,
+      "frames": [
+        261,
+        268
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "left_mid",
+      "n": 2,
+      "yaw_min": -33.0,
+      "yaw_max": -25.8,
+      "yaw_spread": 7.1,
+      "sharpness": 36.9,
+      "frames": [
+        247,
+        254
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "left_light",
+      "n": 1,
+      "yaw_min": -17.7,
+      "yaw_max": -17.7,
+      "yaw_spread": 0.0,
+      "sharpness": 34.9,
+      "frames": [
+        241
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "frontal",
+      "n": 4,
+      "yaw_min": -8.2,
+      "yaw_max": 7.9,
+      "yaw_spread": 16.1,
+      "sharpness": 34.1,
+      "frames": [
+        214,
+        221,
+        227,
+        234
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "right_light",
+      "n": 3,
+      "yaw_min": 13.2,
+      "yaw_max": 22.9,
+      "yaw_spread": 9.6,
+      "sharpness": 38.3,
+      "frames": [
+        194,
+        200,
+        207
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "right_mid",
+      "n": 2,
+      "yaw_min": 27.2,
+      "yaw_max": 33.1,
+      "yaw_spread": 5.9,
+      "sharpness": 43.2,
+      "frames": [
+        180,
+        187
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "right_deep",
+      "n": 2,
+      "yaw_min": 38.9,
+      "yaw_max": 46.0,
+      "yaw_spread": 7.1,
+      "sharpness": 48.0,
+      "frames": [
+        167,
+        174
+      ]
+    },
+    {
+      "person": "person_02",
+      "bin": "right_profile",
+      "n": 8,
+      "yaw_min": 53.3,
+      "yaw_max": 81.6,
+      "yaw_spread": 28.3,
+      "sharpness": 53.9,
+      "frames": [
+        113,
+        120,
+        126,
+        133,
+        140,
+        147,
+        153,
+        160
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "left_profile",
+      "n": 9,
+      "yaw_min": -69.3,
+      "yaw_max": -53.1,
+      "yaw_spread": 16.2,
+      "sharpness": 14.1,
+      "frames": [
+        122,
+        125,
+        128,
+        131,
+        135,
+        138,
+        141,
+        144,
+        147
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "left_deep",
+      "n": 1,
+      "yaw_min": -45.6,
+      "yaw_max": -45.6,
+      "yaw_spread": 0.0,
+      "sharpness": 8.2,
+      "frames": [
+        119
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "left_mid",
+      "n": 1,
+      "yaw_min": -36.6,
+      "yaw_max": -36.6,
+      "yaw_spread": 0.0,
+      "sharpness": 7.5,
+      "frames": [
+        116
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "left_light",
+      "n": 3,
+      "yaw_min": -26.8,
+      "yaw_max": -11.8,
+      "yaw_spread": 15.1,
+      "sharpness": 7.6,
+      "frames": [
+        107,
+        110,
+        113
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "frontal",
+      "n": 4,
+      "yaw_min": -4.9,
+      "yaw_max": 7.4,
+      "yaw_spread": 12.3,
+      "sharpness": 7.9,
+      "frames": [
+        94,
+        97,
+        100,
+        104
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "right_light",
+      "n": 3,
+      "yaw_min": 10.8,
+      "yaw_max": 21.9,
+      "yaw_spread": 11.1,
+      "sharpness": 6.2,
+      "frames": [
+        85,
+        88,
+        91
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "right_mid",
+      "n": 1,
+      "yaw_min": 32.0,
+      "yaw_max": 32.0,
+      "yaw_spread": 0.0,
+      "sharpness": 6.5,
+      "frames": [
+        82
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "right_deep",
+      "n": 1,
+      "yaw_min": 41.1,
+      "yaw_max": 41.1,
+      "yaw_spread": 0.0,
+      "sharpness": 7.3,
+      "frames": [
+        79
+      ]
+    },
+    {
+      "person": "person_03",
+      "bin": "right_profile",
+      "n": 7,
+      "yaw_min": 52.2,
+      "yaw_max": 71.2,
+      "yaw_spread": 19.1,
+      "sharpness": 19.5,
+      "frames": [
+        57,
+        60,
+        63,
+        66,
+        69,
+        73,
+        76
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "left_profile",
+      "n": 9,
+      "yaw_min": -62.7,
+      "yaw_max": -56.3,
+      "yaw_spread": 6.4,
+      "sharpness": 186.6,
+      "frames": [
+        206,
+        212,
+        217,
+        223,
+        229,
+        235,
+        240,
+        246,
+        252
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "left_deep",
+      "n": 1,
+      "yaw_min": -49.1,
+      "yaw_max": -49.1,
+      "yaw_spread": 0.0,
+      "sharpness": 26.3,
+      "frames": [
+        200
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "left_mid",
+      "n": 2,
+      "yaw_min": -37.4,
+      "yaw_max": -29.2,
+      "yaw_spread": 8.3,
+      "sharpness": 29.3,
+      "frames": [
+        189,
+        194
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "left_light",
+      "n": 1,
+      "yaw_min": -19.1,
+      "yaw_max": -19.1,
+      "yaw_spread": 0.0,
+      "sharpness": 33.9,
+      "frames": [
+        183
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "frontal",
+      "n": 7,
+      "yaw_min": -9.4,
+      "yaw_max": 4.8,
+      "yaw_spread": 14.2,
+      "sharpness": 81.8,
+      "frames": [
+        143,
+        148,
+        154,
+        160,
+        166,
+        171,
+        177
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "right_light",
+      "n": 2,
+      "yaw_min": 9.9,
+      "yaw_max": 17.1,
+      "yaw_spread": 7.1,
+      "sharpness": 26.8,
+      "frames": [
+        131,
+        137
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "right_mid",
+      "n": 2,
+      "yaw_min": 28.3,
+      "yaw_max": 35.7,
+      "yaw_spread": 7.4,
+      "sharpness": 27.6,
+      "frames": [
+        120,
+        125
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "right_deep",
+      "n": 1,
+      "yaw_min": 45.5,
+      "yaw_max": 45.5,
+      "yaw_spread": 0.0,
+      "sharpness": 33.7,
+      "frames": [
+        114
+      ]
+    },
+    {
+      "person": "person_04",
+      "bin": "right_profile",
+      "n": 5,
+      "yaw_min": 55.0,
+      "yaw_max": 60.4,
+      "yaw_spread": 5.4,
+      "sharpness": 107.7,
+      "frames": [
+        85,
+        91,
+        97,
+        102,
+        108
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "left_profile",
+      "n": 1,
+      "yaw_min": -52.4,
+      "yaw_max": -52.4,
+      "yaw_spread": 0.0,
+      "sharpness": 109.0,
+      "frames": [
+        302
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "left_deep",
+      "n": 3,
+      "yaw_min": -47.6,
+      "yaw_max": -39.1,
+      "yaw_spread": 8.6,
+      "sharpness": 113.2,
+      "frames": [
+        305,
+        308,
+        311
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "left_mid",
+      "n": 1,
+      "yaw_min": -32.4,
+      "yaw_max": -32.4,
+      "yaw_spread": 0.0,
+      "sharpness": 98.3,
+      "frames": [
+        314
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "left_light",
+      "n": 3,
+      "yaw_min": -22.7,
+      "yaw_max": -14.5,
+      "yaw_spread": 8.2,
+      "sharpness": 92.8,
+      "frames": [
+        318,
+        321,
+        324
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "frontal",
+      "n": 6,
+      "yaw_min": -9.7,
+      "yaw_max": 5.2,
+      "yaw_spread": 14.9,
+      "sharpness": 80.7,
+      "frames": [
+        327,
+        330,
+        333,
+        336,
+        339,
+        342
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "right_light",
+      "n": 2,
+      "yaw_min": 12.0,
+      "yaw_max": 20.4,
+      "yaw_spread": 8.4,
+      "sharpness": 72.5,
+      "frames": [
+        345,
+        349
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "right_mid",
+      "n": 3,
+      "yaw_min": 27.4,
+      "yaw_max": 38.2,
+      "yaw_spread": 10.8,
+      "sharpness": 66.4,
+      "frames": [
+        352,
+        355,
+        358
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "right_deep",
+      "n": 3,
+      "yaw_min": 41.9,
+      "yaw_max": 47.5,
+      "yaw_spread": 5.6,
+      "sharpness": 77.6,
+      "frames": [
+        361,
+        364,
+        367
+      ]
+    },
+    {
+      "person": "person_05",
+      "bin": "right_profile",
+      "n": 8,
+      "yaw_min": 49.5,
+      "yaw_max": 58.1,
+      "yaw_spread": 8.6,
+      "sharpness": 80.1,
+      "frames": [
+        370,
+        373,
+        376,
+        380,
+        383,
+        386,
+        389,
+        392
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "left_profile",
+      "n": 5,
+      "yaw_min": -59.5,
+      "yaw_max": -47.7,
+      "yaw_spread": 11.8,
+      "sharpness": 65.6,
+      "frames": [
+        1,
+        7,
+        13,
+        19,
+        25
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "left_deep",
+      "n": 1,
+      "yaw_min": -42.5,
+      "yaw_max": -42.5,
+      "yaw_spread": 0.0,
+      "sharpness": 62.7,
+      "frames": [
+        31
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "left_mid",
+      "n": 3,
+      "yaw_min": -39.9,
+      "yaw_max": -27.9,
+      "yaw_spread": 11.9,
+      "sharpness": 57.2,
+      "frames": [
+        37,
+        43,
+        49
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "left_light",
+      "n": 3,
+      "yaw_min": -22.1,
+      "yaw_max": -10.6,
+      "yaw_spread": 11.5,
+      "sharpness": 57.2,
+      "frames": [
+        55,
+        61,
+        67
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "frontal",
+      "n": 4,
+      "yaw_min": -5.4,
+      "yaw_max": 9.5,
+      "yaw_spread": 14.9,
+      "sharpness": 53.5,
+      "frames": [
+        73,
+        79,
+        85,
+        92
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "right_light",
+      "n": 3,
+      "yaw_min": 14.3,
+      "yaw_max": 24.7,
+      "yaw_spread": 10.5,
+      "sharpness": 51.0,
+      "frames": [
+        98,
+        104,
+        110
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "right_mid",
+      "n": 3,
+      "yaw_min": 27.3,
+      "yaw_max": 36.9,
+      "yaw_spread": 9.6,
+      "sharpness": 51.0,
+      "frames": [
+        116,
+        122,
+        128
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "right_deep",
+      "n": 2,
+      "yaw_min": 40.9,
+      "yaw_max": 47.0,
+      "yaw_spread": 6.1,
+      "sharpness": 50.3,
+      "frames": [
+        134,
+        140
+      ]
+    },
+    {
+      "person": "person_06",
+      "bin": "right_profile",
+      "n": 6,
+      "yaw_min": -102.5,
+      "yaw_max": 61.1,
+      "yaw_spread": 163.6,
+      "sharpness": 57.3,
+      "frames": [
+        146,
+        152,
+        158,
+        164,
+        170,
+        176
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "left_profile",
+      "n": 5,
+      "yaw_min": -56.3,
+      "yaw_max": -50.4,
+      "yaw_spread": 6.0,
+      "sharpness": 49.1,
+      "frames": [
+        76,
+        79,
+        82,
+        85,
+        88
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "left_deep",
+      "n": 4,
+      "yaw_min": -50.1,
+      "yaw_max": -40.5,
+      "yaw_spread": 9.6,
+      "sharpness": 50.9,
+      "frames": [
+        64,
+        67,
+        70,
+        73
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "left_mid",
+      "n": 3,
+      "yaw_min": -38.0,
+      "yaw_max": -29.5,
+      "yaw_spread": 8.4,
+      "sharpness": 46.4,
+      "frames": [
+        55,
+        58,
+        61
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "left_light",
+      "n": 2,
+      "yaw_min": -23.3,
+      "yaw_max": -16.3,
+      "yaw_spread": 7.1,
+      "sharpness": 42.0,
+      "frames": [
+        49,
+        52
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "frontal",
+      "n": 5,
+      "yaw_min": -10.1,
+      "yaw_max": 10.7,
+      "yaw_spread": 20.8,
+      "sharpness": 43.9,
+      "frames": [
+        34,
+        37,
+        40,
+        43,
+        46
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "right_light",
+      "n": 2,
+      "yaw_min": 17.5,
+      "yaw_max": 23.0,
+      "yaw_spread": 5.5,
+      "sharpness": 44.4,
+      "frames": [
+        28,
+        31
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "right_mid",
+      "n": 3,
+      "yaw_min": 27.5,
+      "yaw_max": 35.9,
+      "yaw_spread": 8.4,
+      "sharpness": 47.6,
+      "frames": [
+        19,
+        22,
+        25
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "right_deep",
+      "n": 3,
+      "yaw_min": 42.8,
+      "yaw_max": 48.9,
+      "yaw_spread": 6.1,
+      "sharpness": 44.6,
+      "frames": [
+        10,
+        13,
+        16
+      ]
+    },
+    {
+      "person": "person_07",
+      "bin": "right_profile",
+      "n": 3,
+      "yaw_min": 55.7,
+      "yaw_max": 62.7,
+      "yaw_spread": 7.0,
+      "sharpness": 40.7,
+      "frames": [
+        1,
+        4,
+        7
+      ]
+    }
+  ],
+  "sweep": {
+    "identity": {
+      "sigma_pairs": 465,
+      "all": {
+        "euclid": {
+          "within": {
+            "n": 1856,
+            "mean": 0.03617,
+            "median": 0.0333,
+            "p90": 0.05657,
+            "std": 0.01579
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.04858,
+            "median": 0.04739,
+            "p90": 0.06806,
+            "std": 0.01583
+          },
+          "ratio": 1.343,
+          "auc": 0.7472
+        },
+        "normal": {
+          "within": {
+            "n": 1856,
+            "mean": 0.0167,
+            "median": 0.01584,
+            "p90": 0.02413,
+            "std": 0.0068
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.02556,
+            "median": 0.0252,
+            "p90": 0.03868,
+            "std": 0.00954
+          },
+          "ratio": 1.53,
+          "auc": 0.7764
+        },
+        "weighted": {
+          "within": {
+            "n": 1856,
+            "mean": 0.03146,
+            "median": 0.0293,
+            "p90": 0.0476,
+            "std": 0.01291
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.04332,
+            "median": 0.04315,
+            "p90": 0.05896,
+            "std": 0.01312
+          },
+          "ratio": 1.377,
+          "auc": 0.7721
+        },
+        "z_mean": {
+          "within": {
+            "n": 1856,
+            "mean": 1.56185,
+            "median": 1.45453,
+            "p90": 2.3632,
+            "std": 0.64113
+          },
+          "between": {
+            "n": 4000,
+            "mean": 2.15049,
+            "median": 2.14213,
+            "p90": 2.92694,
+            "std": 0.65126
+          },
+          "ratio": 1.377,
+          "auc": 0.7721
+        }
+      },
+      "odd": {
+        "euclid": {
+          "within": {
+            "n": 465,
+            "mean": 0.03615,
+            "median": 0.03397,
+            "p90": 0.05539,
+            "std": 0.01502
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04808,
+            "median": 0.0473,
+            "p90": 0.06654,
+            "std": 0.01543
+          },
+          "ratio": 1.33,
+          "auc": 0.7425
+        },
+        "normal": {
+          "within": {
+            "n": 465,
+            "mean": 0.01675,
+            "median": 0.01599,
+            "p90": 0.02447,
+            "std": 0.00657
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.02535,
+            "median": 0.02489,
+            "p90": 0.03885,
+            "std": 0.00967
+          },
+          "ratio": 1.514,
+          "auc": 0.7658
+        },
+        "weighted": {
+          "within": {
+            "n": 465,
+            "mean": 0.03143,
+            "median": 0.02977,
+            "p90": 0.04663,
+            "std": 0.0122
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04281,
+            "median": 0.04317,
+            "p90": 0.05733,
+            "std": 0.01282
+          },
+          "ratio": 1.362,
+          "auc": 0.7657
+        },
+        "z_mean": {
+          "within": {
+            "n": 465,
+            "mean": 1.56017,
+            "median": 1.47798,
+            "p90": 2.31497,
+            "std": 0.60567
+          },
+          "between": {
+            "n": 1013,
+            "mean": 2.12557,
+            "median": 2.14345,
+            "p90": 2.84619,
+            "std": 0.63623
+          },
+          "ratio": 1.362,
+          "auc": 0.7657
+        },
+        "z_p95": {
+          "within": {
+            "n": 465,
+            "mean": 2.48566,
+            "median": 2.41294,
+            "p90": 3.49767,
+            "std": 0.88849
+          },
+          "between": {
+            "n": 1013,
+            "mean": 3.6043,
+            "median": 3.70568,
+            "p90": 4.71528,
+            "std": 0.98073
+          },
+          "ratio": 1.45,
+          "auc": 0.8177
+        },
+        "z_frac3": {
+          "within": {
+            "n": 465,
+            "mean": 0.05612,
+            "median": 0.00053,
+            "p90": 0.17256,
+            "std": 0.13793
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.19251,
+            "median": 0.15467,
+            "p90": 0.46033,
+            "std": 0.18059
+          },
+          "ratio": 3.43,
+          "auc": 0.8132
+        },
+        "region_jaw": {
+          "within": {
+            "n": 465,
+            "mean": 0.05851,
+            "median": 0.0521,
+            "p90": 0.09484,
+            "std": 0.02914
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.07836,
+            "median": 0.07483,
+            "p90": 0.11736,
+            "std": 0.03102
+          },
+          "ratio": 1.339,
+          "auc": 0.71
+        },
+        "region_brows": {
+          "within": {
+            "n": 465,
+            "mean": 0.02735,
+            "median": 0.02597,
+            "p90": 0.04182,
+            "std": 0.01154
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04333,
+            "median": 0.04193,
+            "p90": 0.06534,
+            "std": 0.01749
+          },
+          "ratio": 1.584,
+          "auc": 0.789
+        },
+        "region_nose": {
+          "within": {
+            "n": 465,
+            "mean": 0.03403,
+            "median": 0.02887,
+            "p90": 0.05585,
+            "std": 0.02246
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04682,
+            "median": 0.04539,
+            "p90": 0.07045,
+            "std": 0.01929
+          },
+          "ratio": 1.376,
+          "auc": 0.7159
+        },
+        "region_eyes": {
+          "within": {
+            "n": 465,
+            "mean": 0.01666,
+            "median": 0.01664,
+            "p90": 0.02537,
+            "std": 0.00642
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.02033,
+            "median": 0.02051,
+            "p90": 0.02845,
+            "std": 0.0065
+          },
+          "ratio": 1.22,
+          "auc": 0.6534
+        },
+        "region_mouth": {
+          "within": {
+            "n": 465,
+            "mean": 0.03677,
+            "median": 0.03386,
+            "p90": 0.05762,
+            "std": 0.0207
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04845,
+            "median": 0.04335,
+            "p90": 0.07979,
+            "std": 0.0235
+          },
+          "ratio": 1.318,
+          "auc": 0.6688
+        }
+      }
+    },
+    "vertices": {
+      "sigma_pairs": 465,
+      "all": {
+        "euclid": {
+          "within": {
+            "n": 1856,
+            "mean": 0.0381,
+            "median": 0.03517,
+            "p90": 0.0565,
+            "std": 0.01584
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.05049,
+            "median": 0.05042,
+            "p90": 0.06655,
+            "std": 0.01527
+          },
+          "ratio": 1.325,
+          "auc": 0.757
+        },
+        "normal": {
+          "within": {
+            "n": 1856,
+            "mean": 0.01643,
+            "median": 0.01549,
+            "p90": 0.02307,
+            "std": 0.00686
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.02554,
+            "median": 0.0252,
+            "p90": 0.03764,
+            "std": 0.00921
+          },
+          "ratio": 1.554,
+          "auc": 0.7943
+        },
+        "weighted": {
+          "within": {
+            "n": 1856,
+            "mean": 0.03188,
+            "median": 0.02971,
+            "p90": 0.04633,
+            "std": 0.01266
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.04364,
+            "median": 0.04438,
+            "p90": 0.05686,
+            "std": 0.01265
+          },
+          "ratio": 1.369,
+          "auc": 0.7807
+        },
+        "z_mean": {
+          "within": {
+            "n": 1856,
+            "mean": 1.57092,
+            "median": 1.46374,
+            "p90": 2.2828,
+            "std": 0.62395
+          },
+          "between": {
+            "n": 4000,
+            "mean": 2.15018,
+            "median": 2.18652,
+            "p90": 2.80192,
+            "std": 0.62345
+          },
+          "ratio": 1.369,
+          "auc": 0.7807
+        }
+      },
+      "odd": {
+        "euclid": {
+          "within": {
+            "n": 465,
+            "mean": 0.03818,
+            "median": 0.03614,
+            "p90": 0.05533,
+            "std": 0.01467
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04972,
+            "median": 0.05009,
+            "p90": 0.06566,
+            "std": 0.01455
+          },
+          "ratio": 1.302,
+          "auc": 0.7484
+        },
+        "normal": {
+          "within": {
+            "n": 465,
+            "mean": 0.01651,
+            "median": 0.0156,
+            "p90": 0.02306,
+            "std": 0.00653
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.02529,
+            "median": 0.02494,
+            "p90": 0.03784,
+            "std": 0.00926
+          },
+          "ratio": 1.532,
+          "auc": 0.7816
+        },
+        "weighted": {
+          "within": {
+            "n": 465,
+            "mean": 0.03189,
+            "median": 0.03021,
+            "p90": 0.04536,
+            "std": 0.01164
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04294,
+            "median": 0.04398,
+            "p90": 0.05618,
+            "std": 0.01218
+          },
+          "ratio": 1.346,
+          "auc": 0.7718
+        },
+        "z_mean": {
+          "within": {
+            "n": 465,
+            "mean": 1.57142,
+            "median": 1.48869,
+            "p90": 2.2349,
+            "std": 0.57375
+          },
+          "between": {
+            "n": 1013,
+            "mean": 2.11572,
+            "median": 2.16705,
+            "p90": 2.76841,
+            "std": 0.6
+          },
+          "ratio": 1.346,
+          "auc": 0.7718
+        },
+        "z_p95": {
+          "within": {
+            "n": 465,
+            "mean": 2.54938,
+            "median": 2.43744,
+            "p90": 3.53088,
+            "std": 0.8579
+          },
+          "between": {
+            "n": 1013,
+            "mean": 3.85996,
+            "median": 3.91791,
+            "p90": 5.33299,
+            "std": 1.13943
+          },
+          "ratio": 1.514,
+          "auc": 0.8276
+        },
+        "z_frac3": {
+          "within": {
+            "n": 465,
+            "mean": 0.06125,
+            "median": 0.00109,
+            "p90": 0.18085,
+            "std": 0.1347
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.18347,
+            "median": 0.1599,
+            "p90": 0.37797,
+            "std": 0.15587
+          },
+          "ratio": 2.996,
+          "auc": 0.8055
+        },
+        "region_jaw": {
+          "within": {
+            "n": 465,
+            "mean": 0.06248,
+            "median": 0.05721,
+            "p90": 0.09894,
+            "std": 0.02771
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.07943,
+            "median": 0.07603,
+            "p90": 0.1129,
+            "std": 0.02865
+          },
+          "ratio": 1.271,
+          "auc": 0.6951
+        },
+        "region_brows": {
+          "within": {
+            "n": 465,
+            "mean": 0.02681,
+            "median": 0.02589,
+            "p90": 0.03911,
+            "std": 0.00948
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.05471,
+            "median": 0.05133,
+            "p90": 0.09007,
+            "std": 0.02519
+          },
+          "ratio": 2.041,
+          "auc": 0.8457
+        },
+        "region_nose": {
+          "within": {
+            "n": 465,
+            "mean": 0.03554,
+            "median": 0.03108,
+            "p90": 0.05316,
+            "std": 0.02182
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04481,
+            "median": 0.04079,
+            "p90": 0.07065,
+            "std": 0.02119
+          },
+          "ratio": 1.261,
+          "auc": 0.6626
+        },
+        "region_eyes": {
+          "within": {
+            "n": 465,
+            "mean": 0.01853,
+            "median": 0.01856,
+            "p90": 0.02818,
+            "std": 0.00825
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.02201,
+            "median": 0.02274,
+            "p90": 0.03169,
+            "std": 0.00815
+          },
+          "ratio": 1.188,
+          "auc": 0.6224
+        },
+        "region_mouth": {
+          "within": {
+            "n": 465,
+            "mean": 0.0472,
+            "median": 0.04216,
+            "p90": 0.0828,
+            "std": 0.02619
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.06122,
+            "median": 0.05618,
+            "p90": 0.09544,
+            "std": 0.02923
+          },
+          "ratio": 1.297,
+          "auc": 0.6756
+        }
+      }
+    },
+    "identity+0.3exp": {
+      "sigma_pairs": 465,
+      "all": {
+        "euclid": {
+          "within": {
+            "n": 1856,
+            "mean": 0.03587,
+            "median": 0.03281,
+            "p90": 0.05553,
+            "std": 0.0158
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.04777,
+            "median": 0.04691,
+            "p90": 0.06586,
+            "std": 0.01524
+          },
+          "ratio": 1.332,
+          "auc": 0.7479
+        },
+        "normal": {
+          "within": {
+            "n": 1856,
+            "mean": 0.0163,
+            "median": 0.01538,
+            "p90": 0.02374,
+            "std": 0.00684
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.02524,
+            "median": 0.02489,
+            "p90": 0.03804,
+            "std": 0.00939
+          },
+          "ratio": 1.549,
+          "auc": 0.7829
+        },
+        "weighted": {
+          "within": {
+            "n": 1856,
+            "mean": 0.03054,
+            "median": 0.02826,
+            "p90": 0.04571,
+            "std": 0.01269
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.04167,
+            "median": 0.04183,
+            "p90": 0.05552,
+            "std": 0.01232
+          },
+          "ratio": 1.364,
+          "auc": 0.7734
+        },
+        "z_mean": {
+          "within": {
+            "n": 1856,
+            "mean": 1.56233,
+            "median": 1.44542,
+            "p90": 2.33793,
+            "std": 0.64924
+          },
+          "between": {
+            "n": 4000,
+            "mean": 2.13169,
+            "median": 2.13956,
+            "p90": 2.84009,
+            "std": 0.6303
+          },
+          "ratio": 1.364,
+          "auc": 0.7734
+        }
+      },
+      "odd": {
+        "euclid": {
+          "within": {
+            "n": 465,
+            "mean": 0.03588,
+            "median": 0.03389,
+            "p90": 0.05388,
+            "std": 0.01487
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04717,
+            "median": 0.04679,
+            "p90": 0.06449,
+            "std": 0.01472
+          },
+          "ratio": 1.315,
+          "auc": 0.7418
+        },
+        "normal": {
+          "within": {
+            "n": 465,
+            "mean": 0.01635,
+            "median": 0.01551,
+            "p90": 0.02385,
+            "std": 0.00657
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.02501,
+            "median": 0.02464,
+            "p90": 0.03819,
+            "std": 0.00951
+          },
+          "ratio": 1.53,
+          "auc": 0.7713
+        },
+        "weighted": {
+          "within": {
+            "n": 465,
+            "mean": 0.03052,
+            "median": 0.0291,
+            "p90": 0.04431,
+            "std": 0.01184
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04111,
+            "median": 0.0417,
+            "p90": 0.05421,
+            "std": 0.01192
+          },
+          "ratio": 1.347,
+          "auc": 0.7661
+        },
+        "z_mean": {
+          "within": {
+            "n": 465,
+            "mean": 1.56129,
+            "median": 1.48873,
+            "p90": 2.2664,
+            "std": 0.60541
+          },
+          "between": {
+            "n": 1013,
+            "mean": 2.10288,
+            "median": 2.13302,
+            "p90": 2.77282,
+            "std": 0.60962
+          },
+          "ratio": 1.347,
+          "auc": 0.7661
+        },
+        "z_p95": {
+          "within": {
+            "n": 465,
+            "mean": 2.50212,
+            "median": 2.39952,
+            "p90": 3.5182,
+            "std": 0.89861
+          },
+          "between": {
+            "n": 1013,
+            "mean": 3.65886,
+            "median": 3.75356,
+            "p90": 4.81598,
+            "std": 1.00972
+          },
+          "ratio": 1.462,
+          "auc": 0.8209
+        },
+        "z_frac3": {
+          "within": {
+            "n": 465,
+            "mean": 0.05865,
+            "median": 0.00106,
+            "p90": 0.16846,
+            "std": 0.13934
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.18216,
+            "median": 0.14761,
+            "p90": 0.40367,
+            "std": 0.16642
+          },
+          "ratio": 3.106,
+          "auc": 0.8104
+        },
+        "region_jaw": {
+          "within": {
+            "n": 465,
+            "mean": 0.05904,
+            "median": 0.0529,
+            "p90": 0.09509,
+            "std": 0.02867
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.07795,
+            "median": 0.07429,
+            "p90": 0.11502,
+            "std": 0.03015
+          },
+          "ratio": 1.32,
+          "auc": 0.7062
+        },
+        "region_brows": {
+          "within": {
+            "n": 465,
+            "mean": 0.0262,
+            "median": 0.02508,
+            "p90": 0.03974,
+            "std": 0.01051
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04435,
+            "median": 0.04027,
+            "p90": 0.07034,
+            "std": 0.01878
+          },
+          "ratio": 1.693,
+          "auc": 0.8099
+        },
+        "region_nose": {
+          "within": {
+            "n": 465,
+            "mean": 0.0337,
+            "median": 0.02921,
+            "p90": 0.05321,
+            "std": 0.02195
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04451,
+            "median": 0.04254,
+            "p90": 0.06746,
+            "std": 0.01906
+          },
+          "ratio": 1.321,
+          "auc": 0.6994
+        },
+        "region_eyes": {
+          "within": {
+            "n": 465,
+            "mean": 0.0153,
+            "median": 0.01463,
+            "p90": 0.02387,
+            "std": 0.00623
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.01727,
+            "median": 0.01687,
+            "p90": 0.02496,
+            "std": 0.00546
+          },
+          "ratio": 1.129,
+          "auc": 0.6004
+        },
+        "region_mouth": {
+          "within": {
+            "n": 465,
+            "mean": 0.03678,
+            "median": 0.03274,
+            "p90": 0.06041,
+            "std": 0.02159
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.0475,
+            "median": 0.04271,
+            "p90": 0.07878,
+            "std": 0.02361
+          },
+          "ratio": 1.291,
+          "auc": 0.6704
+        }
+      }
+    },
+    "identity+0.6exp": {
+      "sigma_pairs": 465,
+      "all": {
+        "euclid": {
+          "within": {
+            "n": 1856,
+            "mean": 0.03635,
+            "median": 0.03333,
+            "p90": 0.05533,
+            "std": 0.0158
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.04817,
+            "median": 0.04768,
+            "p90": 0.06515,
+            "std": 0.01499
+          },
+          "ratio": 1.325,
+          "auc": 0.751
+        },
+        "normal": {
+          "within": {
+            "n": 1856,
+            "mean": 0.01616,
+            "median": 0.01521,
+            "p90": 0.02323,
+            "std": 0.00685
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.0252,
+            "median": 0.02491,
+            "p90": 0.03764,
+            "std": 0.00928
+          },
+          "ratio": 1.559,
+          "auc": 0.7889
+        },
+        "weighted": {
+          "within": {
+            "n": 1856,
+            "mean": 0.0305,
+            "median": 0.02813,
+            "p90": 0.04489,
+            "std": 0.01257
+          },
+          "between": {
+            "n": 4000,
+            "mean": 0.04148,
+            "median": 0.04177,
+            "p90": 0.05442,
+            "std": 0.01206
+          },
+          "ratio": 1.36,
+          "auc": 0.7758
+        },
+        "z_mean": {
+          "within": {
+            "n": 1856,
+            "mean": 1.56536,
+            "median": 1.44375,
+            "p90": 2.30382,
+            "std": 0.64501
+          },
+          "between": {
+            "n": 4000,
+            "mean": 2.12859,
+            "median": 2.14387,
+            "p90": 2.79298,
+            "std": 0.6191
+          },
+          "ratio": 1.36,
+          "auc": 0.7758
+        }
+      },
+      "odd": {
+        "euclid": {
+          "within": {
+            "n": 465,
+            "mean": 0.0364,
+            "median": 0.0342,
+            "p90": 0.05465,
+            "std": 0.01474
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04749,
+            "median": 0.04736,
+            "p90": 0.06387,
+            "std": 0.01436
+          },
+          "ratio": 1.305,
+          "auc": 0.7435
+        },
+        "normal": {
+          "within": {
+            "n": 465,
+            "mean": 0.01623,
+            "median": 0.01536,
+            "p90": 0.02316,
+            "std": 0.00655
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.02496,
+            "median": 0.02458,
+            "p90": 0.03784,
+            "std": 0.00938
+          },
+          "ratio": 1.538,
+          "auc": 0.7769
+        },
+        "weighted": {
+          "within": {
+            "n": 465,
+            "mean": 0.0305,
+            "median": 0.02891,
+            "p90": 0.04424,
+            "std": 0.01161
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04086,
+            "median": 0.04154,
+            "p90": 0.05358,
+            "std": 0.0116
+          },
+          "ratio": 1.34,
+          "auc": 0.7675
+        },
+        "z_mean": {
+          "within": {
+            "n": 465,
+            "mean": 1.56518,
+            "median": 1.4838,
+            "p90": 2.27061,
+            "std": 0.59565
+          },
+          "between": {
+            "n": 1013,
+            "mean": 2.09682,
+            "median": 2.13177,
+            "p90": 2.74975,
+            "std": 0.59531
+          },
+          "ratio": 1.34,
+          "auc": 0.7675
+        },
+        "z_p95": {
+          "within": {
+            "n": 465,
+            "mean": 2.52127,
+            "median": 2.41162,
+            "p90": 3.53636,
+            "std": 0.89157
+          },
+          "between": {
+            "n": 1013,
+            "mean": 3.73585,
+            "median": 3.78287,
+            "p90": 4.9472,
+            "std": 1.05969
+          },
+          "ratio": 1.482,
+          "auc": 0.8236
+        },
+        "z_frac3": {
+          "within": {
+            "n": 465,
+            "mean": 0.06021,
+            "median": 0.00106,
+            "p90": 0.16828,
+            "std": 0.13836
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.17878,
+            "median": 0.14699,
+            "p90": 0.38588,
+            "std": 0.15791
+          },
+          "ratio": 2.969,
+          "auc": 0.8089
+        },
+        "region_jaw": {
+          "within": {
+            "n": 465,
+            "mean": 0.06019,
+            "median": 0.05447,
+            "p90": 0.09608,
+            "std": 0.02819
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.07819,
+            "median": 0.07499,
+            "p90": 0.11358,
+            "std": 0.02939
+          },
+          "ratio": 1.299,
+          "auc": 0.7019
+        },
+        "region_brows": {
+          "within": {
+            "n": 465,
+            "mean": 0.02592,
+            "median": 0.0251,
+            "p90": 0.03871,
+            "std": 0.00975
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.04773,
+            "median": 0.04257,
+            "p90": 0.07868,
+            "std": 0.02095
+          },
+          "ratio": 1.841,
+          "auc": 0.8346
+        },
+        "region_nose": {
+          "within": {
+            "n": 465,
+            "mean": 0.03407,
+            "median": 0.03013,
+            "p90": 0.05289,
+            "std": 0.02168
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.0436,
+            "median": 0.04019,
+            "p90": 0.06648,
+            "std": 0.01958
+          },
+          "ratio": 1.28,
+          "auc": 0.6797
+        },
+        "region_eyes": {
+          "within": {
+            "n": 465,
+            "mean": 0.01562,
+            "median": 0.01494,
+            "p90": 0.02457,
+            "std": 0.00677
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.0174,
+            "median": 0.01708,
+            "p90": 0.02503,
+            "std": 0.0061
+          },
+          "ratio": 1.114,
+          "auc": 0.5855
+        },
+        "region_mouth": {
+          "within": {
+            "n": 465,
+            "mean": 0.03973,
+            "median": 0.03481,
+            "p90": 0.06803,
+            "std": 0.02324
+          },
+          "between": {
+            "n": 1013,
+            "mean": 0.0511,
+            "median": 0.04562,
+            "p90": 0.08252,
+            "std": 0.0253
+          },
+          "ratio": 1.286,
+          "auc": 0.6742
+        }
+      }
+    }
+  },
+  "sigma_pairs": 465,
+  "bootstrap": {
+    "lo": 0.03559,
+    "hi": 0.04011,
+    "rounds": 200
+  },
+  "auc_delta": {
+    "mean": 0.0228,
+    "lo": 0.0116,
+    "hi": 0.0343,
+    "p_positive": 1.0,
+    "rounds": 200
+  },
+  "breakdown": {
+    "same_bin": {
+      "n": 5,
+      "euclid": 0.01239,
+      "weighted": 0.01042,
+      "delta": -15.9
+    },
+    "cross_bin": {
+      "n": 460,
+      "euclid": 0.03846,
+      "weighted": 0.03213,
+      "delta": -16.5
+    },
+    "per_bin": {
+      "left_profile": {
+        "n": 3,
+        "euclid": 0.01203,
+        "weighted": 0.01004,
+        "delta": -16.5
+      },
+      "frontal": {
+        "n": 1,
+        "euclid": 0.00647,
+        "weighted": 0.00532,
+        "delta": -17.9
+      },
+      "right_profile": {
+        "n": 1,
+        "euclid": 0.0194,
+        "weighted": 0.01664,
+        "delta": -14.2
+      }
+    }
+  },
+  "frontal": {
+    "n": 13,
+    "gap": 10,
+    "euclid": 0.00843,
+    "weighted": 0.00696,
+    "delta": -17.4,
+    "frames": [
+      34,
+      46,
+      79,
+      92,
+      148,
+      160,
+      171,
+      214,
+      227,
+      254,
+      263,
+      272,
+      281,
+      290,
+      330,
+      342
+    ]
+  },
+  "lopo": {
+    "rows": [
+      {
+        "person": "person_01",
+        "sigma_pairs": 399,
+        "n_within": 66,
+        "within_euclid": 0.03621,
+        "within_weighted": 0.03184,
+        "auc_euclid": 0.8308,
+        "auc_weighted": 0.8322
+      },
+      {
+        "person": "person_02",
+        "sigma_pairs": 387,
+        "n_within": 78,
+        "within_euclid": 0.03418,
+        "within_weighted": 0.02784,
+        "auc_euclid": 0.7853,
+        "auc_weighted": 0.835
+      },
+      {
+        "person": "person_03",
+        "sigma_pairs": 410,
+        "n_within": 55,
+        "within_euclid": 0.03654,
+        "within_weighted": 0.03078,
+        "auc_euclid": 0.7762,
+        "auc_weighted": 0.7862
+      },
+      {
+        "person": "person_04",
+        "sigma_pairs": 387,
+        "n_within": 78,
+        "within_euclid": 0.0439,
+        "within_weighted": 0.03652,
+        "auc_euclid": 0.6851,
+        "auc_weighted": 0.7034
+      },
+      {
+        "person": "person_05",
+        "sigma_pairs": 410,
+        "n_within": 55,
+        "within_euclid": 0.02824,
+        "within_weighted": 0.02346,
+        "auc_euclid": 0.9259,
+        "auc_weighted": 0.9558
+      },
+      {
+        "person": "person_06",
+        "sigma_pairs": 387,
+        "n_within": 78,
+        "within_euclid": 0.04605,
+        "within_weighted": 0.03862,
+        "auc_euclid": 0.6613,
+        "auc_weighted": 0.6789
+      },
+      {
+        "person": "person_07",
+        "sigma_pairs": 410,
+        "n_within": 55,
+        "within_euclid": 0.03855,
+        "within_weighted": 0.03233,
+        "auc_euclid": 0.7525,
+        "auc_weighted": 0.785
+      }
+    ],
+    "n": 7,
+    "mean_delta_auc": 0.0228,
+    "min_delta_auc": 0.0014,
+    "wins": 7
+  },
+  "gap_counts": {
+    "1": {
+      "same": 427,
+      "cross": 2618
+    },
+    "5": {
+      "same": 353,
+      "cross": 2592
+    },
+    "10": {
+      "same": 204,
+      "cross": 2465
+    },
+    "20": {
+      "same": 77,
+      "cross": 2156
+    },
+    "30": {
+      "same": 25,
+      "cross": 1831
+    }
+  },
+  "yaw_outliers": [
+    {
+      "person": "person_06",
+      "frame": 164,
+      "bin": "right_profile",
+      "yaw": -102.5
+    }
+  ],
+  "heat": {
+    "file": "reports/calibration/calibration-sweep.png",
+    "pair": [
+      250,
+      204
+    ],
+    "person": "person_01",
+    "bins": [
+      "frontal",
+      "left_profile"
+    ],
+    "euclid": 0.0481,
+    "normal": 0.01909,
+    "z_mean": 2.096,
+    "z_p95": 3.516,
+    "z_frac_above_3": 0.116
+  },
+  "verdict": "- baseline `vertices`/euclid на всём корпусе: within 0.0381, between 0.05049, ratio 1.325, AUC 0.757.\n- лучший вариант на нечётных кадрах: `vertices`/normal — within 0.01651, ratio 1.532, AUC 0.7816.\n- within: -16.5% на переходах между бинами, -15.9% внутри бина.\n- фронтальные пары: -17.4% (n=13, зазор 10).\n- ΔAUC = 0.0228 [0.0116; 0.0343], доля итераций с ΔAUC > 0 — 1.0.\n- доля вершин z>3: внутри 6.1%, между 18.3%.\n- морфинг и паритет preview/export этим прогоном не затрагивались."
+}

@@ -1,0 +1,67 @@
+{
+  "control_1_discrimination": {
+    "n": 233,
+    "accuracy": 0.8927,
+    "threshold": 0.95,
+    "passed": false
+  },
+  "control_2_negative": {
+    "n": 233,
+    "frac_grew": 1.0,
+    "threshold": 0.9,
+    "passed": true
+  },
+  "control_3_null": {
+    "max_self_distance": 0.0,
+    "threshold": 0.0001,
+    "passed": true
+  },
+  "control_4_determinism": {
+    "results_hash": "efa99a2cf7d69940",
+    "note": "run twice and compare"
+  },
+  "control_1b_aligned_excl_06_07": {
+    "diagnostic_only": true,
+    "n": 164,
+    "correct": 160,
+    "accuracy": 0.9756,
+    "note": "same NN metric, person_06/07 excluded from test pool"
+  },
+  "control_1c_raw_discrimination": {
+    "diagnostic_only": true,
+    "n": 233,
+    "correct": 177,
+    "accuracy": 0.7597,
+    "note": "posed (unaligned) meshes vs posed references. WORSE than aligned. Proves alignment improves discrimination.",
+    "pair_06_07_raw_confused": "26/69 (37.7%)",
+    "pair_06_07_aligned_confused": "19/69 (27.5%)",
+    "conclusion": "alignment REDUCES confusion by 10.2 percentage points"
+  },
+  "profile_symmetry_bootstrap": {
+    "diagnostic_only": true,
+    "n_boot": 1000,
+    "seed": 42,
+    "left_profile": {
+      "n": 20,
+      "median": 0.021609,
+      "ci_95": [
+        0.01743,
+        0.02679
+      ]
+    },
+    "right_profile": {
+      "n": 24,
+      "median": 0.015551,
+      "ci_95": [
+        0.01233,
+        0.02418
+      ]
+    },
+    "difference_ci_95": [
+      -0.00428,
+      0.01193
+    ],
+    "significant": false,
+    "conclusion": "no statistically significant asymmetry at current sample size"
+  }
+}

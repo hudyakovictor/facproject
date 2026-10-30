@@ -1,0 +1,65 @@
+Collecting fastapi
+  Downloading fastapi-0.148.0-py3-none-any.whl.metadata (26 kB)
+Collecting uvicorn
+  Downloading uvicorn-0.54.0-py3-none-any.whl.metadata (6.6 kB)
+Collecting python-multipart
+  Downloading python_multipart-0.0.32-py3-none-any.whl.metadata (2.1 kB)
+Collecting imageio-ffmpeg
+  Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl.metadata (1.5 kB)
+Collecting Cython
+  Downloading cython-3.3.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (28 kB)
+Collecting onnxruntime
+  Downloading onnxruntime-1.31.0-cp313-cp313-manylinux_2_28_x86_64.whl.metadata (5.7 kB)
+Collecting umap-learn
+  Downloading umap_learn-0.5.12-py3-none-any.whl.metadata (24 kB)
+Requirement already satisfied: pytest in /usr/local/lib/python3.13/site-packages (9.0.3)
+Collecting starlette>=0.46.0 (from fastapi)
+  Downloading starlette-1.9.0-py3-none-any.whl.metadata (6.6 kB)
+Requirement already satisfied: pydantic>=2.9.0 in /usr/local/lib/python3.13/site-packages (from fastapi) (2.13.5)
+Requirement already satisfied: typing-extensions>=4.8.0 in /usr/local/lib/python3.13/site-packages (from fastapi) (4.16.0)
+Requirement already satisfied: typing-inspection>=0.4.2 in /usr/local/lib/python3.13/site-packages (from fastapi) (0.4.4)
+Requirement already satisfied: annotated-doc>=0.0.2 in /usr/local/lib/python3.13/site-packages (from fastapi) (0.0.5)
+Collecting opentelemetry-api>=1.44.0 (from fastapi)
+  Downloading opentelemetry_api-1.45.1-py3-none-any.whl.metadata (1.4 kB)
+Requirement already satisfied: click>=7.0 in /usr/local/lib/python3.13/site-packages (from uvicorn) (8.5.0)
+Requirement already satisfied: h11>=0.8 in /usr/local/lib/python3.13/site-packages (from uvicorn) (0.16.0)
+Collecting flatbuffers (from onnxruntime)
+  Downloading flatbuffers-25.12.19-py2.py3-none-any.whl.metadata (1.0 kB)
+Requirement already satisfied: numpy>=1.21.6 in /usr/local/lib/python3.13/site-packages (from onnxruntime) (2.3.5)
+Requirement already satisfied: packaging in /usr/local/lib/python3.13/site-packages (from onnxruntime) (26.3)
+Collecting protobuf>=4.25.8 (from onnxruntime)
+  Downloading protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl.metadata (595 bytes)
+Requirement already satisfied: scipy>=1.3.1 in /usr/local/lib/python3.13/site-packages (from umap-learn) (1.17.1)
+Requirement already satisfied: scikit-learn>=1.6 in /usr/local/lib/python3.13/site-packages (from umap-learn) (1.6.1)
+Requirement already satisfied: numba>=0.51.2 in /usr/local/lib/python3.13/site-packages (from umap-learn) (0.66.0)
+Collecting pynndescent>=0.5 (from umap-learn)
+  Downloading pynndescent-0.6.0-py3-none-any.whl.metadata (6.9 kB)
+Requirement already satisfied: tqdm in /usr/local/lib/python3.13/site-packages (from umap-learn) (4.70.1)
+Requirement already satisfied: iniconfig>=1.0.1 in /usr/local/lib/python3.13/site-packages (from pytest) (2.3.1)
+Requirement already satisfied: pluggy<2,>=1.5 in /usr/local/lib/python3.13/site-packages (from pytest) (1.6.0)
+Requirement already satisfied: pygments>=2.7.2 in /usr/local/lib/python3.13/site-packages (from pytest) (2.21.0)
+Requirement already satisfied: llvmlite<0.49,>=0.48.0dev0 in /usr/local/lib/python3.13/site-packages (from numba>=0.51.2->umap-learn) (0.48.0)
+Requirement already satisfied: annotated-types>=0.6.0 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.9.0->fastapi) (0.8.0)
+Requirement already satisfied: pydantic-core==2.46.5 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.9.0->fastapi) (2.46.5)
+Requirement already satisfied: joblib>=0.11 in /usr/local/lib/python3.13/site-packages (from pynndescent>=0.5->umap-learn) (1.5.3)
+Requirement already satisfied: threadpoolctl>=3.1.0 in /usr/local/lib/python3.13/site-packages (from scikit-learn>=1.6->umap-learn) (3.7.0)
+Requirement already satisfied: anyio<5,>=4.0.0 in /usr/local/lib/python3.13/site-packages (from starlette>=0.46.0->fastapi) (4.15.1)
+Requirement already satisfied: idna>=2.8 in /usr/local/lib/python3.13/site-packages (from anyio<5,>=4.0.0->starlette>=0.46.0->fastapi) (3.20)
+Downloading fastapi-0.148.0-py3-none-any.whl (145 kB)
+Downloading uvicorn-0.54.0-py3-none-any.whl (87 kB)
+Downloading python_multipart-0.0.32-py3-none-any.whl (30 kB)
+Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl (29.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.5/29.5 MB 18.1 MB/s  0:00:01
+Downloading cython-3.3.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.4/3.4 MB 30.7 MB/s  0:00:00
+Downloading onnxruntime-1.31.0-cp313-cp313-manylinux_2_28_x86_64.whl (23.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 23.8/23.8 MB 35.4 MB/s  0:00:00
+Downloading umap_learn-0.5.12-py3-none-any.whl (91 kB)
+Downloading opentelemetry_api-1.45.1-py3-none-any.whl (60 kB)
+Downloading protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl (343 kB)
+Downloading pynndescent-0.6.0-py3-none-any.whl (73 kB)
+Downloading starlette-1.9.0-py3-none-any.whl (80 kB)
+Downloading flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)
+Installing collected packages: flatbuffers, uvicorn, python-multipart, protobuf, opentelemetry-api, imageio-ffmpeg, Cython, starlette, onnxruntime, pynndescent, fastapi, umap-learn
+
+Successfully installed Cython-3.3.0 fastapi-0.148.0 flatbuffers-25.12.19 imageio-ffmpeg-0.6.0 onnxruntime-1.31.0 opentelemetry-api-1.45.1 protobuf-7.36.2 pynndescent-0.6.0 python-multipart-0.0.32 starlette-1.9.0 umap-learn-0.5.12 uvicorn-0.54.0

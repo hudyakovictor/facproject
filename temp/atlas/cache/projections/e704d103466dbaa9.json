@@ -1,0 +1,65 @@
+{
+  "points": [
+    {
+      "id": "1b41c38e417ace9d",
+      "group": "Моя группа",
+      "coords": [
+        -4.833803653717041,
+        -2.3212453470478067e-07
+      ],
+      "norm": 10.626504898071289,
+      "cluster": 0
+    },
+    {
+      "id": "77584badcaee4867",
+      "group": "Моя группа",
+      "coords": [
+        4.833803653717041,
+        -2.3212452049392596e-07
+      ],
+      "norm": 5.219681262969971,
+      "cluster": 1
+    }
+  ],
+  "matrix": [
+    [
+      0.0,
+      0.578980028629303
+    ],
+    [
+      0.578980028629303,
+      0.0
+    ]
+  ],
+  "groups": [
+    "Моя группа"
+  ],
+  "centroid_distances": [
+    [
+      0.0
+    ]
+  ],
+  "dispersion": {
+    "Моя группа": 23.36565589904785
+  },
+  "silhouette": null,
+  "explained_variance": 1.0,
+  "method": "pca",
+  "requested_method": "pca",
+  "note": null,
+  "seed": 42,
+  "params": {
+    "photo_ids": [
+      "1b41c38e417ace9d",
+      "77584badcaee4867"
+    ],
+    "method": "pca",
+    "dimensions": 2,
+    "distance": "cosine",
+    "seed": 42,
+    "clusters": 3
+  },
+  "cache_key": "e704d103466dbaa9",
+  "cache_hit": false,
+  "note_embedding": "α_id — параметры 3DMM, не AdaFace и не достоверность личности."
+}

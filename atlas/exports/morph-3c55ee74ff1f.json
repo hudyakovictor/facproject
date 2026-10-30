@@ -1,0 +1,44 @@
+{
+  "model": "3ddfa-v3-mbnet-e153858-pos-yunet-v2",
+  "seed": 42,
+  "config_version": "fccb87a5291cd1b3",
+  "params": {
+    "photo_ids": [
+      "b36fe1392c3e2778",
+      "b651523bcba2c27c",
+      "d75eaed50c0c5638"
+    ],
+    "seconds": 0.3,
+    "fps": 8,
+    "resolution": 256,
+    "easing": "smooth",
+    "heatmap": true,
+    "vmax": 0.03
+  },
+  "source_photos": [
+    {
+      "id": "b36fe1392c3e2778",
+      "hash": "de52e53347de73888c267570b834a773e2595b38862bd9c5127a4f8c60145a4f",
+      "date": "2019-01-12",
+      "group": "Демо _ один синтетический портрет"
+    },
+    {
+      "id": "b651523bcba2c27c",
+      "hash": "9338af66400910b1e87845f3dd5123bd0a5ca3216dc1289e187d9a7022c77161",
+      "date": "2020-06-12",
+      "group": "Демо _ один синтетический портрет"
+    },
+    {
+      "id": "d75eaed50c0c5638",
+      "hash": "7ec5178f926b5277fdd5c084b995b172d992f8d08dd6f4fd533cb69ba9fde798",
+      "date": "2022-02-12",
+      "group": "Демо _ один синтетический портрет"
+    }
+  ],
+  "frames": 5,
+  "duration_seconds": 0.625,
+  "camera": "fixed orthographic",
+  "geometry": "linear interpolation of 3DMM identity/expression and PCA albedo; smooth easing if selected",
+  "units": "template IOD",
+  "note": "Reconstruction and synthetic interpolation, not medical or biometric conclusions."
+}

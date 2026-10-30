@@ -1,0 +1,120 @@
+{
+  "checks": [
+    {
+      "label": "PCA 3D completed on 10 real cached reconstructions",
+      "pass": true,
+      "status": "completed",
+      "message": "Готово"
+    },
+    {
+      "label": "PCA: actual method / finite 3D / symmetric distances",
+      "pass": true
+    },
+    {
+      "label": "TSNE 3D completed on 10 real cached reconstructions",
+      "pass": true,
+      "status": "completed",
+      "message": "Готово"
+    },
+    {
+      "label": "TSNE: actual method / finite 3D / symmetric distances",
+      "pass": true
+    },
+    {
+      "label": "UMAP 3D completed on 10 real cached reconstructions",
+      "pass": true,
+      "status": "completed",
+      "message": "Готово"
+    },
+    {
+      "label": "UMAP: actual method / finite 3D / symmetric distances",
+      "pass": true
+    },
+    {
+      "label": "UMAP cache/seed reproducibility",
+      "pass": true
+    },
+    {
+      "label": "MP4 distance: external reference + custom palette/smoothing",
+      "pass": true,
+      "status": "completed",
+      "message": "Готово"
+    },
+    {
+      "label": "MP4 distance: decoded H264, 256², 8fps, five distinct frames",
+      "pass": true,
+      "filename": "morph-5a4950cf3a99.mp4",
+      "frames": 5,
+      "codec": "h264"
+    },
+    {
+      "label": "MP4 identity: external reference + custom palette/smoothing",
+      "pass": true,
+      "status": "completed",
+      "message": "Готово"
+    },
+    {
+      "label": "MP4 identity: decoded H264, 256², 8fps, five distinct frames",
+      "pass": true,
+      "filename": "morph-a60b4f72139f.mp4",
+      "frames": 5,
+      "codec": "h264"
+    },
+    {
+      "label": "MP4 normal: external reference + custom palette/smoothing",
+      "pass": true,
+      "status": "completed",
+      "message": "Готово"
+    },
+    {
+      "label": "MP4 normal: decoded H264, 256², 8fps, five distinct frames",
+      "pass": true,
+      "filename": "morph-7e530b46cd26.mp4",
+      "frames": 5,
+      "codec": "h264"
+    },
+    {
+      "label": "Cancellation stops long export and removes partial video",
+      "pass": true,
+      "status": "cancelled"
+    },
+    {
+      "label": "User uploads and canvas untouched",
+      "pass": true
+    }
+  ],
+  "jobs": [
+    {
+      "id": "8fac5a0f2b34",
+      "kind": "projection"
+    },
+    {
+      "id": "6c510055fc85",
+      "kind": "projection"
+    },
+    {
+      "id": "0460ee645e02",
+      "kind": "projection"
+    },
+    {
+      "id": "bc4e28942250",
+      "kind": "projection"
+    },
+    {
+      "id": "5a4950cf3a99",
+      "kind": "morph"
+    },
+    {
+      "id": "a60b4f72139f",
+      "kind": "morph"
+    },
+    {
+      "id": "7e530b46cd26",
+      "kind": "morph"
+    },
+    {
+      "id": "5d80f739e218",
+      "kind": "morph"
+    }
+  ]
+}

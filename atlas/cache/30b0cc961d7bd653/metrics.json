@@ -1,0 +1,100 @@
+{
+  "ada_cos_to_centroid": {
+    "key": "05ce5c8fa0530237",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_norm_quality": {
+    "key": "816a8de6d95112a2",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_pair_cos": {
+    "key": "870693c84ad25942",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_eye_area": {
+    "key": "6790251c6a5d2d1d",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_jaw_ratio": {
+    "key": "607584cc3107ce1e",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_nose_projection": {
+    "key": "910e270dc653ccef",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_canthal_tilt": {
+    "key": "f65f39168961aba9",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_width_ratio": {
+    "key": "ad8a43d69d8195ae",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_height_ratio": {
+    "key": "dbb598b8eceec007",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mp_mouth_ratio": {
+    "key": "ecbfb97b96b7fb2f",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mesh_eye_area": {
+    "key": "233e7fc02fe939cf",
+    "result": {
+      "value": 0.03641302513355359,
+      "reason": null
+    }
+  },
+  "mesh_jaw_ratio": {
+    "key": "74fb57d928baf2f2",
+    "result": {
+      "value": 0.7679479122161865,
+      "reason": null
+    }
+  },
+  "mesh_nose_projection": {
+    "key": "2566ceb169ae758f",
+    "result": {
+      "value": 0.35086309909820557,
+      "reason": null
+    }
+  },
+  "mesh_height_example": {
+    "key": "39d25ad3cfdecd68",
+    "result": {
+      "value": 2.405745267868042,
+      "reason": null
+    }
+  }
+}

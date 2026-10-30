@@ -26,13 +26,13 @@ class UVBeautyPostprocessor:
         sym_low_threshold: float = 0.2,
         sym_high_threshold: float = 0.6,
         inpaint_radius_ratio: float = 0.005,
-        seam_iterations: int = 30,
+        seam_iterations: int = 60,
         color_correct_kernel: int = 31,
     ) -> None:
         self.sym_low = float(sym_low_threshold)
         self.sym_high = float(sym_high_threshold)
         self.inpaint_radius_ratio = float(inpaint_radius_ratio)
-        self.seam_iterations = 60 # Increased from 30 for smoother seams
+        self.seam_iterations = int(seam_iterations)
         self.cc_kernel = int(color_correct_kernel)
 
     def process(
@@ -43,7 +43,8 @@ class UVBeautyPostprocessor:
         bfm_symmetry: Optional[np.ndarray] = None,
         uv_coords: Optional[np.ndarray] = None,
         enable_symmetry: bool = True,
-    ) -> np.ndarray:
+        return_masks: bool = False,
+    ) -> np.ndarray | tuple[np.ndarray, dict]:
         tex = np.clip(uv_tex_analysis, 0, 255).astype(np.uint8)
         conf = np.asarray(uv_confidence, dtype=np.float32)
 
@@ -86,6 +87,8 @@ class UVBeautyPostprocessor:
                 filled_tex, seam_zone, iterations=self.seam_iterations
             )
 
+        if return_masks:
+            return filled_tex, {"mirror": fill_mask, "inpaint": holes > 0, "seam": seam_zone}
         return filled_tex
 
     def _symmetry_fill(
@@ -153,4 +156,3 @@ class UVBeautyPostprocessor:
                 result[:, :, c] = np.where(seam, smoothed, result[:, :, c])
 
         return np.clip(result, 0, 255).astype(np.uint8)
-

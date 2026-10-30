@@ -1,0 +1,28 @@
+version: 1
+model: 3ddfa_v3
+pose: frontal
+profile_defaults:
+  normalize: iod
+  zscore: robust_mad
+metrics:
+- id: mesh_eye_area
+  enabled: true
+  title: Площадь глаз / IOD²
+  unit: IOD²
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: mesh_jaw_ratio
+  enabled: true
+  title: Нижняя челюсть / контур
+  unit: ratio
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: mesh_nose_projection
+  enabled: true
+  title: Проекция носа / IOD
+  unit: IOD
+  thresholds:
+    warn: 2.0
+    alert: 3.0

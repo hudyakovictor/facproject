@@ -42,14 +42,13 @@ OUT_DIR = _REPO / "app" / "masktest" / "uv_test_renders_fastest"
 
 
 def main() -> int:
-    from app.pipeline.hduv_texture import build_recon_dict_from_result, make_hduv_generator
-    from app.pipeline.reconstruction import ReconstructionAdapter
+    from uv_module.reconstruction_adapter import reconstruct_for_uv
+    from uv_module.hd_uv_generator import HDUVConfig, HDUVTextureGenerator
     from uv_module.analysis import build_uv_analysis_bundle
     from uv_module.forehead_wrinkle_roi import forehead_wrinkle_crop_and_mask
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    recon = ReconstructionAdapter(device="cpu")
-    gen = make_hduv_generator(uv_size=1024, super_sample=1)
+    gen = HDUVTextureGenerator(HDUVConfig(uv_size=1024, super_sample=1, device="cpu"))
 
     for idx, raw in enumerate(INPUT_IMAGES):
         p = Path(raw)
@@ -63,13 +62,13 @@ def main() -> int:
         stem = f"{idx:02d}_{p.stem}"[:120]
         print(f"… {p.name}")
 
-        res = recon.reconstruct(p)
-        if res.uv_coords is None:
+        img, recon_dict, _ = reconstruct_for_uv(p, _REPO / ".runtime/uv_quality/reconstruction_cache")
+        if recon_dict.get("uv_coords") is None:
             print(f"[skip] нет uv_coords: {p.name}", file=sys.stderr)
             continue
 
-        recon_dict = build_recon_dict_from_result(res)
-        uv_tex, uv_mask, uv_conf, aux = gen.generate(img, recon_dict)
+        recon_dict["projection_space"] = "original"
+        uv_tex, _, uv_mask, uv_conf, aux = gen.generate(img, recon_dict)
 
         cv2.imwrite(str(OUT_DIR / f"{stem}_uv.png"), uv_tex)
         cv2.imwrite(

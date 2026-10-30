@@ -1,0 +1,1616 @@
+{
+  "frontal": {
+    "photos": {
+      "put": 150,
+      "vas": 76,
+      "udmurt": 31
+    },
+    "idents": [
+      "put",
+      "vas",
+      "udmurt"
+    ],
+    "neutral": 204,
+    "total": 257,
+    "bonferroni_q": 0.99833333,
+    "n_perm": 2000
+  },
+  "sub": {
+    "photos": {
+      "put": 100,
+      "vas": 45,
+      "udmurt": 32
+    },
+    "idents": [
+      "put",
+      "vas",
+      "udmurt"
+    ],
+    "neutral": 147,
+    "total": 177,
+    "bonferroni_q": 0.99833333,
+    "n_perm": 2000
+  },
+  "gates": {
+    "auc_neutral": 0.8,
+    "eta2_neutral": 0.3,
+    "abs_rho_jawopen": 0.55
+  },
+  "level_shift_max": 1.5,
+  "yaw_leak_max": 0.6,
+  "verdicts": {
+    "держится": 9,
+    "переставилась": 1,
+    "деградирует": 19,
+    "не значимо": 1
+  },
+  "transfer": {
+    "all30": {
+      "frontal_loo": 0.8405,
+      "sub": 0.7627,
+      "sub_scored": 177,
+      "sub_refused": 0
+    },
+    "3ddfa_only": {
+      "frontal_loo": 0.8755,
+      "sub": 0.791,
+      "sub_scored": 177,
+      "sub_refused": 0
+    },
+    "mp_dependent": {
+      "frontal_loo": 0.7082,
+      "sub": 0.5763,
+      "sub_scored": 177,
+      "sub_refused": 0
+    },
+    "only_holding": {
+      "frontal_loo": 0.8249,
+      "sub": 0.7966,
+      "sub_scored": 177,
+      "sub_refused": 0,
+      "metrics": [
+        "midface_profile_convexity_3ddfa",
+        "lip_profile_convexity_134",
+        "brow_ridge_depth_l_134",
+        "chin_lip_protrusion_ratio_134",
+        "lip_vermilion_thickness_lower_134",
+        "wet_dry_border_length_ratio_134",
+        "mouth_aspect_ratio_3d",
+        "lateral_canthus_relief_r_134",
+        "lid_margin_depth_spread_r_134"
+      ]
+    }
+  },
+  "metrics": [
+    {
+      "metric": "midface_profile_convexity_3ddfa",
+      "framework": "3ddfa",
+      "group": "ldm_hypotheses",
+      "baseline": {
+        "eta2_neutral": 0.5923,
+        "auc_neutral": 0.8315,
+        "rho_jawopen": -0.2714
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5923,
+        "auc_neutral": 0.8315,
+        "gap_over_mad": 0.6855,
+        "rho_jawopen": -0.2714,
+        "rho_yaw": 0.2448,
+        "medians": [
+          -0.2443,
+          -0.2241,
+          -0.2289
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.5311,
+        "auc_neutral": 0.8472,
+        "gap_over_mad": 0.6954,
+        "rho_jawopen": -0.1422,
+        "rho_yaw": 0.2129,
+        "medians": [
+          -0.2457,
+          -0.2254,
+          -0.2307
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0612,
+      "d_auc_neutral": 0.0157,
+      "level_shift_mad": [
+        -0.1944,
+        -0.1688,
+        -0.3
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "lip_profile_convexity_134",
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "baseline": {
+        "eta2_neutral": 0.6732,
+        "auc_neutral": 0.8326,
+        "rho_jawopen": -0.4424
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.6732,
+        "auc_neutral": 0.8326,
+        "gap_over_mad": 0.5078,
+        "rho_jawopen": -0.4424,
+        "rho_yaw": 0.0812,
+        "medians": [
+          -0.1269,
+          -0.0879,
+          -0.0812
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.6492,
+        "auc_neutral": 0.8538,
+        "gap_over_mad": 0.1322,
+        "rho_jawopen": -0.1194,
+        "rho_yaw": 0.1287,
+        "medians": [
+          -0.1269,
+          -0.0886,
+          -0.0869
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.024,
+      "d_auc_neutral": 0.0212,
+      "level_shift_mad": [
+        0.0,
+        -0.0461,
+        -0.6404
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "brow_ridge_depth_l_134",
+      "framework": "3ddfa",
+      "group": "ldm134_brows",
+      "baseline": {
+        "eta2_neutral": 0.5818,
+        "auc_neutral": 0.8527,
+        "rho_jawopen": -0.1663
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5818,
+        "auc_neutral": 0.8527,
+        "gap_over_mad": 1.0815,
+        "rho_jawopen": -0.1663,
+        "rho_yaw": 0.2346,
+        "medians": [
+          -0.0976,
+          -0.0799,
+          -0.087
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.4951,
+        "auc_neutral": 0.8664,
+        "gap_over_mad": 1.1281,
+        "rho_jawopen": 0.0785,
+        "rho_yaw": 0.4161,
+        "medians": [
+          -0.1057,
+          -0.0853,
+          -0.0938
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0867,
+      "d_auc_neutral": 0.0137,
+      "level_shift_mad": [
+        -1.209,
+        -0.7714,
+        -1.1148
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "chin_lip_protrusion_ratio_134",
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "baseline": {
+        "eta2_neutral": 0.5852,
+        "auc_neutral": 0.8258,
+        "rho_jawopen": 0.4513
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5852,
+        "auc_neutral": 0.8258,
+        "gap_over_mad": 0.0857,
+        "rho_jawopen": 0.4513,
+        "rho_yaw": 0.0895,
+        "medians": [
+          0.692,
+          0.6198,
+          0.6224
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.6009,
+        "auc_neutral": 0.8604,
+        "gap_over_mad": 0.228,
+        "rho_jawopen": 0.0796,
+        "rho_yaw": 0.1459,
+        "medians": [
+          0.6989,
+          0.642,
+          0.6475
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0157,
+      "d_auc_neutral": 0.0346,
+      "level_shift_mad": [
+        0.2339,
+        0.6398,
+        0.9843
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "lip_vermilion_thickness_lower_134",
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "baseline": {
+        "eta2_neutral": 0.5361,
+        "auc_neutral": 0.8796,
+        "rho_jawopen": 0.252
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5361,
+        "auc_neutral": 0.8796,
+        "gap_over_mad": 0.1213,
+        "rho_jawopen": 0.252,
+        "rho_yaw": 0.2008,
+        "medians": [
+          0.1033,
+          0.0905,
+          0.0912
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.5742,
+        "auc_neutral": 0.8562,
+        "gap_over_mad": 0.2702,
+        "rho_jawopen": -0.0452,
+        "rho_yaw": 0.467,
+        "medians": [
+          0.1074,
+          0.0923,
+          0.0938
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0381,
+      "d_auc_neutral": -0.0234,
+      "level_shift_mad": [
+        0.5256,
+        0.3673,
+        0.7429
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "wet_dry_border_length_ratio_134",
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "baseline": {
+        "eta2_neutral": 0.4923,
+        "auc_neutral": 0.8799,
+        "rho_jawopen": -0.3506
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4923,
+        "auc_neutral": 0.8799,
+        "gap_over_mad": 0.9457,
+        "rho_jawopen": -0.3506,
+        "rho_yaw": 0.1614,
+        "medians": [
+          0.8238,
+          0.8344,
+          0.8397
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.4975,
+        "auc_neutral": 0.8188,
+        "gap_over_mad": 0.4814,
+        "rho_jawopen": -0.1907,
+        "rho_yaw": 0.1936,
+        "medians": [
+          0.8246,
+          0.8365,
+          0.8389
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0052,
+      "d_auc_neutral": -0.0611,
+      "level_shift_mad": [
+        0.1212,
+        0.4038,
+        -0.1569
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "mouth_aspect_ratio_3d",
+      "framework": "3ddfa",
+      "group": "ldm_top3d",
+      "baseline": {
+        "eta2_neutral": 0.5365,
+        "auc_neutral": 0.8653,
+        "rho_jawopen": 0.2884
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5365,
+        "auc_neutral": 0.8653,
+        "gap_over_mad": 0.1145,
+        "rho_jawopen": 0.2884,
+        "rho_yaw": 0.1379,
+        "medians": [
+          0.2764,
+          0.2318,
+          0.2289
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.5556,
+        "auc_neutral": 0.8232,
+        "gap_over_mad": 0.1566,
+        "rho_jawopen": 0.0308,
+        "rho_yaw": 0.3537,
+        "medians": [
+          0.2805,
+          0.2369,
+          0.2336
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0191,
+      "d_auc_neutral": -0.0421,
+      "level_shift_mad": [
+        0.1687,
+        0.2308,
+        0.1536
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "mentolabial_relief_3d_134",
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "baseline": {
+        "eta2_neutral": 0.5243,
+        "auc_neutral": 0.8089,
+        "rho_jawopen": -0.4195
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5243,
+        "auc_neutral": 0.8089,
+        "gap_over_mad": 0.4379,
+        "rho_jawopen": -0.4195,
+        "rho_yaw": 0.3081,
+        "medians": [
+          0.2461,
+          0.3317,
+          0.3499
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.5691,
+        "auc_neutral": 0.8188,
+        "gap_over_mad": 0.0686,
+        "rho_jawopen": -0.0764,
+        "rho_yaw": 0.3897,
+        "medians": [
+          0.2372,
+          0.3334,
+          0.3306
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0448,
+      "d_auc_neutral": 0.0099,
+      "level_shift_mad": [
+        -0.1695,
+        0.044,
+        -0.5693
+      ],
+      "order_kept": "НЕТ",
+      "verdict": "переставилась"
+    },
+    {
+      "metric": "lip_vermilion_thickness_upper_134",
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "baseline": {
+        "eta2_neutral": 0.4513,
+        "auc_neutral": 0.8017,
+        "rho_jawopen": 0.1978
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4513,
+        "auc_neutral": 0.8017,
+        "gap_over_mad": 0.1194,
+        "rho_jawopen": 0.1978,
+        "rho_yaw": 0.1389,
+        "medians": [
+          0.1412,
+          0.1252,
+          0.1244
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.4926,
+        "auc_neutral": 0.795,
+        "gap_over_mad": 0.1427,
+        "rho_jawopen": 0.131,
+        "rho_yaw": 0.4417,
+        "medians": [
+          0.1368,
+          0.1228,
+          0.1219
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0413,
+      "d_auc_neutral": -0.0067,
+      "level_shift_mad": [
+        -0.5176,
+        -0.4138,
+        -0.4464
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "lateral_canthus_relief_r_134",
+      "framework": "3ddfa",
+      "group": "ldm134_eyes",
+      "baseline": {
+        "eta2_neutral": 0.5532,
+        "auc_neutral": 0.8092,
+        "rho_jawopen": -0.363
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5532,
+        "auc_neutral": 0.8092,
+        "gap_over_mad": 0.5127,
+        "rho_jawopen": -0.363,
+        "rho_yaw": 0.1984,
+        "medians": [
+          -0.046,
+          -0.0384,
+          -0.0402
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.4913,
+        "auc_neutral": 0.8379,
+        "gap_over_mad": 0.473,
+        "rho_jawopen": -0.015,
+        "rho_yaw": 0.1646,
+        "medians": [
+          -0.0486,
+          -0.041,
+          -0.0427
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0619,
+      "d_auc_neutral": 0.0287,
+      "level_shift_mad": [
+        -0.6842,
+        -0.8966,
+        -0.641
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "lid_margin_depth_spread_r_134",
+      "framework": "3ddfa",
+      "group": "ldm134_eyes",
+      "baseline": {
+        "eta2_neutral": 0.5082,
+        "auc_neutral": 0.809,
+        "rho_jawopen": 0.2946
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5082,
+        "auc_neutral": 0.809,
+        "gap_over_mad": 0.1596,
+        "rho_jawopen": 0.2946,
+        "rho_yaw": 0.2177,
+        "medians": [
+          0.0363,
+          0.0334,
+          0.0336
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.5105,
+        "auc_neutral": 0.8481,
+        "gap_over_mad": 0.4222,
+        "rho_jawopen": 0.0318,
+        "rho_yaw": 0.2798,
+        "medians": [
+          0.0366,
+          0.0334,
+          0.034
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0023,
+      "d_auc_neutral": 0.0391,
+      "level_shift_mad": [
+        0.1579,
+        0.0,
+        0.4444
+      ],
+      "order_kept": "да",
+      "verdict": "держится"
+    },
+    {
+      "metric": "orbit_fissure_over_cheek_span_134",
+      "framework": "3ddfa",
+      "group": "ldm134_eyes",
+      "baseline": {
+        "eta2_neutral": 0.5075,
+        "auc_neutral": 0.8858,
+        "rho_jawopen": 0.448
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.5075,
+        "auc_neutral": 0.8858,
+        "gap_over_mad": 1.2677,
+        "rho_jawopen": 0.448,
+        "rho_yaw": 0.1165,
+        "medians": [
+          0.1326,
+          0.1219,
+          0.1134
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.4216,
+        "auc_neutral": 0.7665,
+        "gap_over_mad": 0.2977,
+        "rho_jawopen": 0.157,
+        "rho_yaw": 0.1884,
+        "medians": [
+          0.1312,
+          0.121,
+          0.1184
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0859,
+      "d_auc_neutral": -0.1193,
+      "level_shift_mad": [
+        -0.1918,
+        -0.1364,
+        0.8333
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "brow_medial_to_glabella_relief_l_134",
+      "framework": "3ddfa",
+      "group": "ldm134_brows",
+      "baseline": {
+        "eta2_neutral": 0.4021,
+        "auc_neutral": 0.8057,
+        "rho_jawopen": -0.0648
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4021,
+        "auc_neutral": 0.8057,
+        "gap_over_mad": 0.6818,
+        "rho_jawopen": -0.0648,
+        "rho_yaw": 0.254,
+        "medians": [
+          -0.0194,
+          -0.0126,
+          -0.0153
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.3173,
+        "auc_neutral": 0.7781,
+        "gap_over_mad": 0.599,
+        "rho_jawopen": 0.1319,
+        "rho_yaw": 0.6018,
+        "medians": [
+          -0.0239,
+          -0.0139,
+          -0.0171
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0848,
+      "d_auc_neutral": -0.0276,
+      "level_shift_mad": [
+        -0.9184,
+        -0.3714,
+        -0.5455
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "nose_ridge_to_mouth_width_3d",
+      "framework": "3ddfa",
+      "group": "ldm_top3d",
+      "baseline": {
+        "eta2_neutral": 0.3323,
+        "auc_neutral": 0.8196,
+        "rho_jawopen": 0.4474
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.3323,
+        "auc_neutral": 0.8196,
+        "gap_over_mad": 1.1416,
+        "rho_jawopen": 0.4474,
+        "rho_yaw": 0.3964,
+        "medians": [
+          0.7908,
+          0.7658,
+          0.74
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.1591,
+        "auc_neutral": 0.664,
+        "gap_over_mad": 0.4283,
+        "rho_jawopen": 0.2814,
+        "rho_yaw": 0.2598,
+        "medians": [
+          0.7938,
+          0.7699,
+          0.7572
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.1732,
+      "d_auc_neutral": -0.1556,
+      "level_shift_mad": [
+        0.1449,
+        0.176,
+        0.7926
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "lip_border_undulation_134",
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "baseline": {
+        "eta2_neutral": 0.3654,
+        "auc_neutral": 0.8106,
+        "rho_jawopen": 0.2019
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.3654,
+        "auc_neutral": 0.8106,
+        "gap_over_mad": 0.0403,
+        "rho_jawopen": 0.2019,
+        "rho_yaw": 0.0471,
+        "medians": [
+          0.2291,
+          0.2177,
+          0.2175
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.4433,
+        "auc_neutral": 0.7922,
+        "gap_over_mad": 0.0254,
+        "rho_jawopen": 0.0765,
+        "rho_yaw": 0.1796,
+        "medians": [
+          0.2321,
+          0.219,
+          0.2188
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.0779,
+      "d_auc_neutral": -0.0184,
+      "level_shift_mad": [
+        0.375,
+        0.194,
+        0.25
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "naso_orbital_expansion_3d",
+      "framework": "3ddfa",
+      "group": "ldm_top3d",
+      "baseline": {
+        "eta2_neutral": 0.3566,
+        "auc_neutral": 0.8558,
+        "rho_jawopen": 0.4526
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.3566,
+        "auc_neutral": 0.8558,
+        "gap_over_mad": 1.032,
+        "rho_jawopen": 0.4526,
+        "rho_yaw": 0.2375,
+        "medians": [
+          1.0203,
+          0.9824,
+          0.9504
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.1758,
+        "auc_neutral": 0.6787,
+        "gap_over_mad": 0.3267,
+        "rho_jawopen": 0.2338,
+        "rho_yaw": 0.2037,
+        "medians": [
+          1.0383,
+          0.9968,
+          0.9854
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.1808,
+      "d_auc_neutral": -0.1771,
+      "level_shift_mad": [
+        0.559,
+        0.4079,
+        1.3672
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "palpebral_to_bigonial_ratio",
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "baseline": {
+        "eta2_neutral": 0.4465,
+        "auc_neutral": 0.8301,
+        "rho_jawopen": 0.2446
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4465,
+        "auc_neutral": 0.8301,
+        "gap_over_mad": 0.1244,
+        "rho_jawopen": 0.2446,
+        "rho_yaw": 0.0528,
+        "medians": [
+          0.7518,
+          0.7082,
+          0.711
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.3531,
+        "auc_neutral": 0.7686,
+        "gap_over_mad": 0.2057,
+        "rho_jawopen": -0.0647,
+        "rho_yaw": 0.4413,
+        "medians": [
+          0.7639,
+          0.7252,
+          0.7312
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0934,
+      "d_auc_neutral": -0.0615,
+      "level_shift_mad": [
+        0.4783,
+        1.0,
+        0.771
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "mouth_width_to_lower_face_ratio",
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "baseline": {
+        "eta2_neutral": 0.3771,
+        "auc_neutral": 0.8117,
+        "rho_jawopen": -0.4506
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.3771,
+        "auc_neutral": 0.8117,
+        "gap_over_mad": 0.884,
+        "rho_jawopen": -0.4506,
+        "rho_yaw": 0.284,
+        "medians": [
+          0.7527,
+          0.8192,
+          0.857
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.2706,
+        "auc_neutral": 0.7348,
+        "gap_over_mad": 0.6649,
+        "rho_jawopen": -0.3871,
+        "rho_yaw": 0.2117,
+        "medians": [
+          0.7562,
+          0.8124,
+          0.8413
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.1065,
+      "d_auc_neutral": -0.0769,
+      "level_shift_mad": [
+        0.086,
+        -0.1219,
+        -0.4937
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "eye_aperture_right_over_eye_width_mp",
+      "framework": "mediapipe",
+      "group": "mp_hypotheses",
+      "baseline": {
+        "eta2_neutral": 0.4142,
+        "auc_neutral": 0.8807,
+        "rho_jawopen": 0.3118
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4142,
+        "auc_neutral": 0.8807,
+        "gap_over_mad": 1.0904,
+        "rho_jawopen": 0.3118,
+        "rho_yaw": 0.2109,
+        "medians": [
+          0.3674,
+          0.3332,
+          0.2894
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.1702,
+        "auc_neutral": 0.6808,
+        "gap_over_mad": 0.1233,
+        "rho_jawopen": 0.1306,
+        "rho_yaw": 0.2005,
+        "medians": [
+          0.3502,
+          0.3166,
+          0.3212
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.244,
+      "d_auc_neutral": -0.1999,
+      "level_shift_mad": [
+        -0.5621,
+        -0.484,
+        1.0816
+      ],
+      "order_kept": "НЕТ",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "palpebral_area_index",
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "baseline": {
+        "eta2_neutral": 0.4126,
+        "auc_neutral": 0.8729,
+        "rho_jawopen": 0.3056
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4126,
+        "auc_neutral": 0.8729,
+        "gap_over_mad": 0.7724,
+        "rho_jawopen": 0.3056,
+        "rho_yaw": 0.119,
+        "medians": [
+          16.6863,
+          13.8728,
+          12.3527
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.2438,
+        "auc_neutral": 0.7248,
+        "gap_over_mad": 0.2572,
+        "rho_jawopen": 0.0434,
+        "rho_yaw": 0.2522,
+        "medians": [
+          16.9383,
+          13.844,
+          14.4505
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.1688,
+      "d_auc_neutral": -0.1481,
+      "level_shift_mad": [
+        0.1116,
+        -0.0132,
+        1.4262
+      ],
+      "order_kept": "НЕТ",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "nasal_bridge_convergence_angle",
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "baseline": {
+        "eta2_neutral": 0.3892,
+        "auc_neutral": 0.8683,
+        "rho_jawopen": -0.4477
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.3892,
+        "auc_neutral": 0.8683,
+        "gap_over_mad": 1.1652,
+        "rho_jawopen": -0.4477,
+        "rho_yaw": 0.3468,
+        "medians": [
+          47.4658,
+          49.4936,
+          52.8148
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.2472,
+        "auc_neutral": 0.7162,
+        "gap_over_mad": 0.3604,
+        "rho_jawopen": -0.2479,
+        "rho_yaw": 0.309,
+        "medians": [
+          48.3432,
+          51.4387,
+          52.4305
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.142,
+      "d_auc_neutral": -0.1521,
+      "level_shift_mad": [
+        0.4474,
+        1.0801,
+        -0.2634
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "lower_lip_to_chin_over_lower_third_mp",
+      "framework": "mediapipe",
+      "group": "mp_hypotheses",
+      "baseline": {
+        "eta2_neutral": 0.4198,
+        "auc_neutral": 0.8695,
+        "rho_jawopen": -0.2893
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4198,
+        "auc_neutral": 0.8695,
+        "gap_over_mad": 0.6373,
+        "rho_jawopen": -0.2893,
+        "rho_yaw": 0.2618,
+        "medians": [
+          0.4343,
+          0.4842,
+          0.5041
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.3469,
+        "auc_neutral": 0.7659,
+        "gap_over_mad": 0.5062,
+        "rho_jawopen": -0.0562,
+        "rho_yaw": 0.2317,
+        "medians": [
+          0.4325,
+          0.4758,
+          0.4899
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0729,
+      "d_auc_neutral": -0.1036,
+      "level_shift_mad": [
+        -0.0476,
+        -0.2867,
+        -0.5338
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "nasal_dorsal_index",
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "baseline": {
+        "eta2_neutral": 0.4029,
+        "auc_neutral": 0.8882,
+        "rho_jawopen": -0.3859
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4029,
+        "auc_neutral": 0.8882,
+        "gap_over_mad": 1.0315,
+        "rho_jawopen": -0.3859,
+        "rho_yaw": 0.1913,
+        "medians": [
+          0.6565,
+          0.6864,
+          0.7334
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.2025,
+        "auc_neutral": 0.707,
+        "gap_over_mad": 0.1122,
+        "rho_jawopen": -0.205,
+        "rho_yaw": 0.3627,
+        "medians": [
+          0.6644,
+          0.709,
+          0.7132
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.2004,
+      "d_auc_neutral": -0.1812,
+      "level_shift_mad": [
+        0.2678,
+        0.9869,
+        -0.5821
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "mandibular_body_to_ramus_ratio",
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "baseline": {
+        "eta2_neutral": 0.411,
+        "auc_neutral": 0.8686,
+        "rho_jawopen": -0.4739
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.411,
+        "auc_neutral": 0.8686,
+        "gap_over_mad": 0.5893,
+        "rho_jawopen": -0.4739,
+        "rho_yaw": 0.1367,
+        "medians": [
+          1.1265,
+          1.1671,
+          1.1821
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.1998,
+        "auc_neutral": 0.6845,
+        "gap_over_mad": 0.4898,
+        "rho_jawopen": -0.3192,
+        "rho_yaw": 0.2533,
+        "medians": [
+          1.1642,
+          1.1929,
+          1.2091
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.2112,
+      "d_auc_neutral": -0.1841,
+      "level_shift_mad": [
+        1.2525,
+        1.3508,
+        0.9854
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "lip_thick_over_mouth_w",
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "baseline": {
+        "eta2_neutral": 0.3759,
+        "auc_neutral": 0.8297,
+        "rho_jawopen": 0.2802
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.3759,
+        "auc_neutral": 0.8297,
+        "gap_over_mad": 0.0003,
+        "rho_jawopen": 0.2802,
+        "rho_yaw": 0.1954,
+        "medians": [
+          0.3078,
+          0.2298,
+          0.2298
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.3899,
+        "auc_neutral": 0.7816,
+        "gap_over_mad": 0.0868,
+        "rho_jawopen": 0.1029,
+        "rho_yaw": 0.249,
+        "medians": [
+          0.3108,
+          0.23,
+          0.234
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": 0.014,
+      "d_auc_neutral": -0.0481,
+      "level_shift_mad": [
+        0.0503,
+        0.0041,
+        0.1364
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "probe_eye_open_l",
+      "framework": "mediapipe",
+      "group": "mp_probe",
+      "baseline": {
+        "eta2_neutral": 0.348,
+        "auc_neutral": 0.8369,
+        "rho_jawopen": 0.383
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.348,
+        "auc_neutral": 0.8369,
+        "gap_over_mad": 1.1039,
+        "rho_jawopen": 0.383,
+        "rho_yaw": 0.2383,
+        "medians": [
+          0.3649,
+          0.3311,
+          0.2915
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.1814,
+        "auc_neutral": 0.6825,
+        "gap_over_mad": 0.1129,
+        "rho_jawopen": -0.0322,
+        "rho_yaw": 0.5854,
+        "medians": [
+          0.3707,
+          0.3332,
+          0.3275
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.1666,
+      "d_auc_neutral": -0.1544,
+      "level_shift_mad": [
+        0.1726,
+        0.0568,
+        1.6822
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "inner_canthal_over_ipd_mp",
+      "framework": "mediapipe",
+      "group": "mp_hypotheses",
+      "baseline": {
+        "eta2_neutral": 0.309,
+        "auc_neutral": 0.8431,
+        "rho_jawopen": -0.1939
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.309,
+        "auc_neutral": 0.8431,
+        "gap_over_mad": 0.1693,
+        "rho_jawopen": -0.1939,
+        "rho_yaw": 0.1968,
+        "medians": [
+          0.5039,
+          0.5249,
+          0.528
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.0525,
+        "auc_neutral": 0.6152,
+        "gap_over_mad": 0.2041,
+        "rho_jawopen": -0.217,
+        "rho_yaw": 0.5788,
+        "medians": [
+          0.5201,
+          0.5366,
+          0.5423
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": false
+      },
+      "d_eta2_neutral": -0.2565,
+      "d_auc_neutral": -0.2279,
+      "level_shift_mad": [
+        0.9759,
+        0.6763,
+        0.6441
+      ],
+      "order_kept": "да",
+      "verdict": "не значимо"
+    },
+    {
+      "metric": "probe_lower_w_over_face_w",
+      "framework": "mediapipe",
+      "group": "mp_probe",
+      "baseline": {
+        "eta2_neutral": 0.3166,
+        "auc_neutral": 0.8325,
+        "rho_jawopen": -0.2278
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.3166,
+        "auc_neutral": 0.8325,
+        "gap_over_mad": 0.131,
+        "rho_jawopen": -0.2278,
+        "rho_yaw": 0.2059,
+        "medians": [
+          0.8813,
+          0.8986,
+          0.9006
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.2385,
+        "auc_neutral": 0.709,
+        "gap_over_mad": 0.0402,
+        "rho_jawopen": -0.0786,
+        "rho_yaw": 0.3578,
+        "medians": [
+          0.8861,
+          0.9035,
+          0.904
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.0781,
+      "d_auc_neutral": -0.1235,
+      "level_shift_mad": [
+        0.3158,
+        0.4804,
+        0.1659
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "cross_sclera_show_mean_x134mp",
+      "framework": "cross",
+      "group": "cross_iris_fissure",
+      "baseline": {
+        "eta2_neutral": 0.4437,
+        "auc_neutral": 0.8642,
+        "rho_jawopen": 0.3579
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4437,
+        "auc_neutral": 0.8642,
+        "gap_over_mad": 1.0514,
+        "rho_jawopen": 0.3579,
+        "rho_yaw": 0.1952,
+        "medians": [
+          -0.1876,
+          -0.3323,
+          -0.4364
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.2673,
+        "auc_neutral": 0.7078,
+        "gap_over_mad": 0.0893,
+        "rho_jawopen": 0.1114,
+        "rho_yaw": 0.1352,
+        "medians": [
+          -0.2005,
+          -0.3752,
+          -0.3638
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.1764,
+      "d_auc_neutral": -0.1564,
+      "level_shift_mad": [
+        -0.1259,
+        -0.3454,
+        1.0312
+      ],
+      "order_kept": "НЕТ",
+      "verdict": "деградирует"
+    },
+    {
+      "metric": "cross_sclera_band_lower_r_x134mp",
+      "framework": "cross",
+      "group": "cross_iris_fissure",
+      "baseline": {
+        "eta2_neutral": 0.4374,
+        "auc_neutral": 0.8699,
+        "rho_jawopen": 0.3364
+      },
+      "frontal": {
+        "n": 257,
+        "eta2_neutral": 0.4374,
+        "auc_neutral": 0.8699,
+        "gap_over_mad": 1.285,
+        "rho_jawopen": 0.3364,
+        "rho_yaw": 0.1358,
+        "medians": [
+          -0.0277,
+          -0.1203,
+          -0.2036
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "sub": {
+        "n": 177,
+        "eta2_neutral": 0.2727,
+        "auc_neutral": 0.7235,
+        "gap_over_mad": 0.1724,
+        "rho_jawopen": 0.0466,
+        "rho_yaw": 0.2122,
+        "medians": [
+          -0.0326,
+          -0.1311,
+          -0.1444
+        ],
+        "perm_checked": true,
+        "eta2_above_bonf": true,
+        "auc_above_bonf": true
+      },
+      "d_eta2_neutral": -0.1647,
+      "d_auc_neutral": -0.1464,
+      "level_shift_mad": [
+        -0.0775,
+        -0.1515,
+        0.9883
+      ],
+      "order_kept": "да",
+      "verdict": "деградирует"
+    }
+  ]
+}

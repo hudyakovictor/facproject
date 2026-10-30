@@ -1,0 +1,15 @@
+PCA 3D completed on 10 real cached reconstructions : True
+PCA: actual method / finite 3D / symmetric distances : True
+TSNE 3D completed on 10 real cached reconstructions : True
+TSNE: actual method / finite 3D / symmetric distances : True
+UMAP 3D completed on 10 real cached reconstructions : True
+UMAP: actual method / finite 3D / symmetric distances : True
+UMAP cache/seed reproducibility : True
+MP4 distance: external reference + custom palette/smoothing : True
+MP4 distance: decoded H264, 256², 8fps, five distinct frames : True
+MP4 identity: external reference + custom palette/smoothing : True
+MP4 identity: decoded H264, 256², 8fps, five distinct frames : True
+MP4 normal: external reference + custom palette/smoothing : True
+MP4 normal: decoded H264, 256², 8fps, five distinct frames : True
+Cancellation stops long export and removes partial video : True
+User uploads and canvas untouched : True

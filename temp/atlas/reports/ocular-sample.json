@@ -1,0 +1,353 @@
+{
+  "rows": [
+    {
+      "id": "0b8d468a49ed24ab",
+      "name": "2017_03_01.jpg",
+      "group": "Моя группа",
+      "cohort": "",
+      "date": "2017-03-01",
+      "angles": {
+        "yaw": -30.192167282104492,
+        "pitch": 13.282733917236328,
+        "roll": -0.7534686326980591
+      },
+      "eligible": false,
+      "exclusion_reasons": [
+        "За пределами строгого фронтального окна: yaw/pitch ±8°, roll ±5°"
+      ],
+      "reviewed": false,
+      "metrics": {
+        "iris_width_ratio": 0.4785346922941536,
+        "iris_height_ratio": 1.426881410149928,
+        "aperture_area_ratio": 0.2396197503297352,
+        "eye_aspect_ratio": 0.32284550236466114,
+        "canthal_tilt_left": 8.21480202319377,
+        "canthal_tilt_right": 6.901928924616521,
+        "eye_width_asymmetry": 0.23560554690755617,
+        "eye_height_asymmetry": 0.019654082089950845,
+        "intercanthal_ipd": 0.5089148436606806,
+        "eye_width_ipd": 0.44366925445181304,
+        "nose_width_ipd": 0.5784526059121716,
+        "nose_length_ipd": 0.987698467169099,
+        "bridge_width_ipd": 0.22140848182076378,
+        "nose_bridge_ratio": 2.6126036417179574,
+        "midface_width_ratio": 0.4138594350724221,
+        "face_height_width": 1.2618271196135546,
+        "jaw_cheek_ratio": 0.8230620787126767,
+        "lower_face_ratio": 0.3686242158389209,
+        "chin_jaw_ratio": 0.5539565461019241,
+        "jaw_contour_angle": 141.90468686398245
+      },
+      "frontal_score": 4.9958,
+      "gaze_offset_score": 0.5758,
+      "eye_width_px": 63.7,
+      "sharpness": 154.7224721329077,
+      "best_view_rank": 1
+    },
+    {
+      "id": "bd9d88d51a18c66a",
+      "name": "2014_09_02-1.jpg",
+      "group": "Моя группа",
+      "cohort": "",
+      "date": "2014-09-02",
+      "angles": {
+        "yaw": -29.22426414489746,
+        "pitch": 11.023153305053711,
+        "roll": 0.1375950276851654
+      },
+      "eligible": false,
+      "exclusion_reasons": [
+        "За пределами строгого фронтального окна: yaw/pitch ±8°, roll ±5°"
+      ],
+      "reviewed": false,
+      "metrics": {
+        "iris_width_ratio": 0.4418532415153471,
+        "iris_height_ratio": 1.114146578267654,
+        "aperture_area_ratio": 0.27854090888488525,
+        "eye_aspect_ratio": 0.37280042024551585,
+        "canthal_tilt_left": 8.506051898175118,
+        "canthal_tilt_right": 8.36120518830756,
+        "eye_width_asymmetry": 0.21759553581159757,
+        "eye_height_asymmetry": 0.12078753739334512,
+        "intercanthal_ipd": 0.5085138465251896,
+        "eye_width_ipd": 0.4445940375500068,
+        "nose_width_ipd": 0.5423687164479346,
+        "nose_length_ipd": 1.002220827918977,
+        "bridge_width_ipd": 0.22184523814947912,
+        "nose_bridge_ratio": 2.444806663294197,
+        "midface_width_ratio": 0.41886701778794905,
+        "face_height_width": 1.2726243265112105,
+        "jaw_cheek_ratio": 0.7992801143601636,
+        "lower_face_ratio": 0.35691607224490945,
+        "chin_jaw_ratio": 0.5325027681276598,
+        "jaw_contour_angle": 141.41715857379668
+      },
+      "frontal_score": 5.2591,
+      "gaze_offset_score": 0.9481,
+      "eye_width_px": 61.6,
+      "sharpness": 356.7303733202246,
+      "best_view_rank": 2
+    },
+    {
+      "id": "2a29f955863593e6",
+      "name": "2016_07_19-2.jpg",
+      "group": "Моя группа",
+      "cohort": "",
+      "date": "2016-07-19",
+      "angles": {
+        "yaw": -28.608726501464844,
+        "pitch": 13.47415828704834,
+        "roll": -2.8371779918670654
+      },
+      "eligible": false,
+      "exclusion_reasons": [
+        "За пределами строгого фронтального окна: yaw/pitch ±8°, roll ±5°",
+        "Взгляд не прошёл приближённый фильтр; нужна ручная проверка"
+      ],
+      "reviewed": false,
+      "metrics": {
+        "iris_width_ratio": 0.43153954770326086,
+        "iris_height_ratio": 1.0844295829230521,
+        "aperture_area_ratio": 0.28024231290144297,
+        "eye_aspect_ratio": 0.3788840453273173,
+        "canthal_tilt_left": 9.568814509588455,
+        "canthal_tilt_right": 9.501657763072604,
+        "eye_width_asymmetry": 0.2020149289499142,
+        "eye_height_asymmetry": 0.1300126742945655,
+        "intercanthal_ipd": 0.5099906243498245,
+        "eye_width_ipd": 0.4405639540442869,
+        "nose_width_ipd": 0.5648591803833414,
+        "nose_length_ipd": 0.998350560760379,
+        "bridge_width_ipd": 0.2216839038492929,
+        "nose_bridge_ratio": 2.548038764092448,
+        "midface_width_ratio": 0.4236672924327827,
+        "face_height_width": 1.2878982728398911,
+        "jaw_cheek_ratio": 0.8142831916681132,
+        "lower_face_ratio": 0.36017386891925174,
+        "chin_jaw_ratio": 0.5369630020413149,
+        "jaw_contour_angle": 141.74580206671132
+      },
+      "frontal_score": 5.37,
+      "gaze_offset_score": 1.1585,
+      "eye_width_px": 65.6,
+      "sharpness": 87.11770504822023,
+      "best_view_rank": 3
+    },
+    {
+      "id": "abeac331ffacc790",
+      "name": "2013_10_24.jpg",
+      "group": "Моя группа",
+      "cohort": "",
+      "date": "2013-10-24",
+      "angles": {
+        "yaw": -30.5894718170166,
+        "pitch": 14.42088508605957,
+        "roll": -0.4465392231941223
+      },
+      "eligible": false,
+      "exclusion_reasons": [
+        "За пределами строгого фронтального окна: yaw/pitch ±8°, roll ±5°"
+      ],
+      "reviewed": false,
+      "metrics": {
+        "iris_width_ratio": 0.4732287246534281,
+        "iris_height_ratio": 1.2766448558264685,
+        "aperture_area_ratio": 0.26787408702554594,
+        "eye_aspect_ratio": 0.35618429314248845,
+        "canthal_tilt_left": 10.99926385853715,
+        "canthal_tilt_right": 8.10640044448339,
+        "eye_width_asymmetry": 0.17659538617284817,
+        "eye_height_asymmetry": 0.03147523461359765,
+        "intercanthal_ipd": 0.4848175239129518,
+        "eye_width_ipd": 0.4509076209144955,
+        "nose_width_ipd": 0.5237585209605323,
+        "nose_length_ipd": 0.9526277469610024,
+        "bridge_width_ipd": 0.19723665202818846,
+        "nose_bridge_ratio": 2.6554827187275434,
+        "midface_width_ratio": 0.40784364806075274,
+        "face_height_width": 1.2359020333490125,
+        "jaw_cheek_ratio": 0.8119068835430592,
+        "lower_face_ratio": 0.34677816059940364,
+        "chin_jaw_ratio": 0.5258638275858276,
+        "jaw_contour_angle": 140.53249268458825
+      },
+      "frontal_score": 5.3816,
+      "gaze_offset_score": 0.9294,
+      "eye_width_px": 66.9,
+      "sharpness": 233.85444419234378,
+      "best_view_rank": 4
+    },
+    {
+      "id": "b5d156f0ddd0cc5f",
+      "name": "2022_10_31.jpg",
+      "group": "Моя группа",
+      "cohort": "",
+      "date": "2022-10-31",
+      "angles": {
+        "yaw": -31.627185821533203,
+        "pitch": 11.537129402160645,
+        "roll": -1.184757113456726
+      },
+      "eligible": false,
+      "exclusion_reasons": [
+        "За пределами строгого фронтального окна: yaw/pitch ±8°, roll ±5°",
+        "Взгляд не прошёл приближённый фильтр; нужна ручная проверка"
+      ],
+      "reviewed": false,
+      "metrics": {
+        "iris_width_ratio": 0.45192055946816134,
+        "iris_height_ratio": 1.5378991161570275,
+        "aperture_area_ratio": 0.20982610418073572,
+        "eye_aspect_ratio": 0.28435165071046115,
+        "canthal_tilt_left": 9.728750168586709,
+        "canthal_tilt_right": 6.8746000125411095,
+        "eye_width_asymmetry": 0.20044268721283742,
+        "eye_height_asymmetry": 0.08118425740592078,
+        "intercanthal_ipd": 0.5173824074108326,
+        "eye_width_ipd": 0.448058680632245,
+        "nose_width_ipd": 0.60146310856443,
+        "nose_length_ipd": 1.0081837354529546,
+        "bridge_width_ipd": 0.236795940383113,
+        "nose_bridge_ratio": 2.540005996687784,
+        "midface_width_ratio": 0.39668263757840605,
+        "face_height_width": 1.1910412499260676,
+        "jaw_cheek_ratio": 0.805441075694061,
+        "lower_face_ratio": 0.3515289067745741,
+        "chin_jaw_ratio": 0.5085407438260581,
+        "jaw_contour_angle": 139.4988978697748
+      },
+      "frontal_score": 5.7406,
+      "gaze_offset_score": 1.1227,
+      "eye_width_px": 60.4,
+      "sharpness": 152.20858837234132,
+      "best_view_rank": 5
+    }
+  ],
+  "selected": [],
+  "groups": {},
+  "catalog": [
+    {
+      "id": "iris_width_ratio",
+      "title": "Радужка / ширина глазной щели",
+      "unit": "ratio",
+      "description": "D радужки / расстояние между уголками; среднее двух глаз."
+    },
+    {
+      "id": "iris_height_ratio",
+      "title": "Радужка / высота глазной щели",
+      "unit": "ratio",
+      "description": "D радужки / раскрытие век. Значение >1 само по себе нормально: веки закрывают часть радужки."
+    },
+    {
+      "id": "aperture_area_ratio",
+      "title": "Площадь щели / ширина²",
+      "unit": "ratio",
+      "description": "Площадь контура век, нормированная на квадрат ширины."
+    },
+    {
+      "id": "eye_aspect_ratio",
+      "title": "EAR · раскрытие глаз",
+      "unit": "ratio",
+      "description": "Сумма двух вертикальных отрезков / удвоенная ширина."
+    },
+    {
+      "id": "canthal_tilt_left",
+      "title": "Наклон уголков · слева на фото",
+      "unit": "deg",
+      "description": "Наклон наружного уголка относительно внутреннего после устранения крена."
+    },
+    {
+      "id": "canthal_tilt_right",
+      "title": "Наклон уголков · справа на фото",
+      "unit": "deg",
+      "description": "То же для другого глаза; не медицинская оценка."
+    },
+    {
+      "id": "eye_width_asymmetry",
+      "title": "Асимметрия ширины глаз",
+      "unit": "ratio",
+      "description": "Абсолютная разность / средняя ширина."
+    },
+    {
+      "id": "eye_height_asymmetry",
+      "title": "Асимметрия раскрытия век",
+      "unit": "ratio",
+      "description": "Абсолютная разность / среднее раскрытие."
+    },
+    {
+      "id": "intercanthal_ipd",
+      "title": "Межуголковое расстояние / IPD",
+      "unit": "ratio",
+      "description": "Внутренние уголки / расстояние центров радужек."
+    },
+    {
+      "id": "eye_width_ipd",
+      "title": "Ширина глаза / IPD",
+      "unit": "ratio",
+      "description": "Средняя ширина щели / расстояние центров радужек."
+    },
+    {
+      "id": "nose_width_ipd",
+      "title": "Ширина крыльев носа / IPD",
+      "unit": "ratio",
+      "description": "Точки 98–327 / расстояние центров радужек."
+    },
+    {
+      "id": "nose_length_ipd",
+      "title": "Длина носа / IPD",
+      "unit": "ratio",
+      "description": "Переносица 168 – основание 2, в плоскости изображения."
+    },
+    {
+      "id": "bridge_width_ipd",
+      "title": "Ширина переносицы / IPD",
+      "unit": "ratio",
+      "description": "Точки 193–417; ориентировочная ширина мягких тканей, не кости."
+    },
+    {
+      "id": "nose_bridge_ratio",
+      "title": "Крылья носа / переносица",
+      "unit": "ratio",
+      "description": "Ширина 98–327 / ширина 193–417."
+    },
+    {
+      "id": "midface_width_ratio",
+      "title": "Средняя зона / ширина лица",
+      "unit": "ratio",
+      "description": "168–2 / 234–454; двумерная проекция."
+    },
+    {
+      "id": "face_height_width",
+      "title": "Высота лицевой сетки / ширина",
+      "unit": "ratio",
+      "description": "10–152 / 234–454. Не высота или форма черепа."
+    },
+    {
+      "id": "jaw_cheek_ratio",
+      "title": "Ширина челюсти / скулы",
+      "unit": "ratio",
+      "description": "172–397 / 234–454; контур мягких тканей."
+    },
+    {
+      "id": "lower_face_ratio",
+      "title": "Нижняя зона / высота лица",
+      "unit": "ratio",
+      "description": "2–152 / 10–152."
+    },
+    {
+      "id": "chin_jaw_ratio",
+      "title": "Ширина подбородка / челюсть",
+      "unit": "ratio",
+      "description": "149–378 / 172–397."
+    },
+    {
+      "id": "jaw_contour_angle",
+      "title": "Угол контура нижней челюсти",
+      "unit": "deg",
+      "description": "Среднее углов 234–172–152 и 454–397–152. Не костный гониальный угол."
+    }
+  ],
+  "warning": "Сопоставляйте только одинаковые ракурсы, взгляд, выражение и сопоставимое разрешение. Малые выборки и заданное K кластеров не доказывают три личности или накладку.",
+  "selection": "yaw/pitch ±8°, roll ±5°, взгляд ±0.16W / ±0.30H; глаз ≥45 px, радужка ≥10 px; без явного моргания",
+  "can_compare_three_groups": false
+}

@@ -1,0 +1,42 @@
+version: 1
+model: mediapipe
+pose: profile_right
+profile_defaults:
+  normalize: iod
+  zscore: robust_mad
+metrics:
+- id: mp_eye_area
+  enabled: true
+  title: Площадь глаз / IOD²
+  unit: IOD²
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: mp_canthal_tilt
+  enabled: true
+  title: Наклон глаз
+  unit: °
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: mp_mouth_ratio
+  enabled: true
+  title: Раскрытие рта / IOD
+  unit: IOD
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: iris_width_ratio
+  enabled: true
+  title: Радужка / ширина глазной щели
+  unit: ratio
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: iris_height_ratio
+  enabled: true
+  title: Радужка / высота глазной щели
+  unit: ratio
+  thresholds:
+    warn: 2.0
+    alert: 3.0

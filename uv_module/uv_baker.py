@@ -8,6 +8,9 @@ from typing import Optional
 import cv2
 import numpy as np
 
+from .provenance import DIRECT, TexelProvenance
+from .visibility import query_visibility
+
 
 @dataclass
 class UVBakerConfig:
@@ -38,6 +41,7 @@ class UVBaker:
         self.super_sample = int(super_sample)
         self.work_size = self.uv_size * self.super_sample
         self.config = config or UVBakerConfig()
+        self.last_provenance = None
 
     def bake(
         self,
@@ -47,6 +51,8 @@ class UVBaker:
         triangles: np.ndarray,
         tri_visibility_weights: np.ndarray,
         debug_output_dir: Optional[str] = None,
+        collect_provenance: bool = False,
+        visibility_buffers: Optional[dict] = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         h, w = image.shape[:2]
         work = self.work_size
@@ -75,12 +81,14 @@ class UVBaker:
                 100.0 * filled_mesh / (work * work),
             )
 
-        color_accum = np.zeros((work, work, 3), dtype=np.float64)
-        weight_accum = np.zeros((work, work), dtype=np.float64)
+        texture = np.zeros((work, work, 3), dtype=np.float32)
+        weight_accum = np.zeros((work, work), dtype=np.float32)
+        tracker = TexelProvenance(work) if collect_provenance else None
+        self.last_provenance = None
 
         for i in range(tris.shape[0]):
             w_i = float(w_tri[i])
-            if w_i <= 0.0:
+            if w_i <= 0.0 and tracker is None:
                 continue
 
             idx0, idx1, idx2 = tris[i]
@@ -125,6 +133,10 @@ class UVBaker:
             img_coords = M @ uv_pixels
             ix = img_coords[0]
             iy = img_coords[1]
+            uv_points = uv_pixels[:2].T
+            edge_matrix = np.column_stack((dst_pts[1] - dst_pts[0], dst_pts[2] - dst_pts[0]))
+            tail = (uv_points - dst_pts[0]) @ np.linalg.inv(edge_matrix).T
+            barycentric = np.column_stack((1 - tail.sum(axis=1), tail))
 
             sample_x = ix.astype(np.float32).reshape(1, -1)
             sample_y = iy.astype(np.float32).reshape(1, -1)
@@ -140,24 +152,18 @@ class UVBaker:
             write_y = ys + bb_min[1]
             write_x = xs + bb_min[0]
 
-            in_bounds = (ix >= 0.0) & (ix < w) & (iy >= 0.0) & (iy < h)
-            effective_weight = w_i * in_bounds.astype(np.float64)
-            color_accum[write_y, write_x] += colors * effective_weight[:, None]
-            weight_accum[write_y, write_x] += effective_weight
+            in_bounds = (ix >= 0.0) & (ix <= w - 1) & (iy >= 0.0) & (iy <= h - 1) & (barycentric >= -1e-6).all(axis=1)
+            geometry_visible = self._sample_visibility(i, np.column_stack((ix, iy)), barycentric, tris, visibility_buffers)
+            observed = in_bounds & geometry_visible & (w_i > 0)
+            if tracker is not None:
+                tracker.record(i, write_y, write_x, barycentric, np.column_stack((ix, iy)), w_i, in_bounds, geometry_visible)
+            update = observed & (w_i > weight_accum[write_y, write_x])
+            texture[write_y[update], write_x[update]] = colors[update]
+            weight_accum[write_y[update], write_x[update]] = w_i
 
         mask_visible = weight_accum > 0.0
-        uv_texture_raw = np.zeros((work, work, 3), dtype=np.float32)
-        uv_texture_raw[mask_visible] = (
-            color_accum[mask_visible] / weight_accum[mask_visible, None]
-        ).astype(np.float32)
-
-        uv_confidence = np.zeros((work, work), dtype=np.float32)
-        if np.any(mask_visible):
-            max_w = float(weight_accum[mask_visible].max())
-            if max_w > 0.0:
-                uv_confidence[mask_visible] = (
-                    weight_accum[mask_visible] / max_w
-                ).astype(np.float32)
+        uv_texture_raw = texture
+        uv_confidence = np.clip(weight_accum, 0, 1)
 
         uv_is_original = mask_visible.copy()
 
@@ -165,6 +171,10 @@ class UVBaker:
             uv_texture_raw, mask_visible, uv_confidence, uv_is_original = self._downsample_results(
                 uv_texture_raw, mask_visible, uv_confidence, uv_is_original
             )
+        if tracker is not None:
+            self.last_provenance = tracker.finish(self.super_sample)
+            if self.config.interpolation == cv2.INTER_NEAREST:
+                self.last_provenance["raw_method"][mask_visible] = DIRECT
 
         total_uv_pixels = work * work
         filled_pixels = int(mask_visible.sum())
@@ -178,7 +188,7 @@ class UVBaker:
             100.0 * filled_pixels / max(total_uv_pixels, 1),
         )
         logger.debug("[BAKER] weight_accum max:    %.4f", float(weight_accum.max()))
-        logger.debug("[BAKER] color_accum max:     %.1f", float(color_accum.max()))
+        logger.debug("[BAKER] texture max:         %.1f", float(texture.max()))
 
         return uv_texture_raw, mask_visible, uv_confidence, uv_is_original
 
@@ -189,6 +199,8 @@ class UVBaker:
         uv_coords: np.ndarray,
         triangles: np.ndarray,
         tri_visibility_weights: np.ndarray,
+        collect_provenance: bool = False,
+        visibility_buffers: Optional[dict] = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Бейкинг через растеризацию fillConvexPoly + барицентрическая интерполяция.
@@ -202,13 +214,15 @@ class UVBaker:
         verts2d = np.asarray(vertices_2d, dtype=np.float32)
         w_tri = np.asarray(tri_visibility_weights, dtype=np.float32).reshape(-1)
 
-        map_x_accum = np.zeros((work, work), dtype=np.float64)
-        map_y_accum = np.zeros((work, work), dtype=np.float64)
-        weight_accum = np.zeros((work, work), dtype=np.float64)
+        map_x_accum = np.zeros((work, work), dtype=np.float32)
+        map_y_accum = np.zeros((work, work), dtype=np.float32)
+        weight_accum = np.zeros((work, work), dtype=np.float32)
+        tracker = TexelProvenance(work) if collect_provenance else None
+        self.last_provenance = None
 
         for i in range(tris.shape[0]):
             w_i = float(w_tri[i])
-            if w_i <= 0.0:
+            if w_i <= 0.0 and tracker is None:
                 continue
 
             idx0, idx1, idx2 = tris[i]
@@ -251,7 +265,7 @@ class UVBaker:
             bary_u = 1.0 - bary_v - bary_w
 
             # Eps buffer avoids seam gaps
-            eps = 1e-4
+            eps = 1e-6
             inside = (bary_u >= -eps) & (bary_v >= -eps) & (bary_w >= -eps)
             if not inside.any():
                 continue
@@ -266,13 +280,19 @@ class UVBaker:
             img_y = bary_u * img_tri[0, 1] + bary_w * img_tri[1, 1] + bary_v * img_tri[2, 1]
 
             in_bounds = (img_x >= 0.0) & (img_x <= w - 1) & (img_y >= 0.0) & (img_y <= h - 1)
-            
-            ys_in = ys[in_bounds]
-            xs_in = xs[in_bounds]
-            
-            map_x_accum[ys_in, xs_in] += img_x[in_bounds] * w_i
-            map_y_accum[ys_in, xs_in] += img_y[in_bounds] * w_i
-            weight_accum[ys_in, xs_in] += w_i
+            barycentric = np.column_stack((bary_u, bary_w, bary_v))
+            source_xy = np.column_stack((img_x, img_y))
+            geometry_visible = self._sample_visibility(i, source_xy, barycentric, tris, visibility_buffers)
+            observed = in_bounds & geometry_visible & (w_i > 0)
+            if tracker is not None:
+                tracker.record(i, ys, xs, barycentric, source_xy, w_i, in_bounds, geometry_visible)
+            # Averaging coordinates of overlapping charts samples an unrelated image location.
+            # Keep the strongest actual contributor; equal-weight ties keep the first triangle.
+            update = observed & (w_i > weight_accum[ys, xs])
+            y, x = ys[update], xs[update]
+            map_x_accum[y, x] = img_x[update]
+            map_y_accum[y, x] = img_y[update]
+            weight_accum[y, x] = w_i
 
         valid = weight_accum > 0.0
         filled = int(valid.sum())
@@ -288,12 +308,12 @@ class UVBaker:
         map_y_final = np.zeros((work, work), dtype=np.float32)
         if filled > 0:
             map_x_final[valid] = np.clip(
-                (map_x_accum[valid] / weight_accum[valid]).astype(np.float32),
+                map_x_accum[valid],
                 0.0,
                 float(w - 1),
             )
             map_y_final[valid] = np.clip(
-                (map_y_accum[valid] / weight_accum[valid]).astype(np.float32),
+                map_y_accum[valid],
                 0.0,
                 float(h - 1),
             )
@@ -307,11 +327,7 @@ class UVBaker:
         ).astype(np.float32)
         uv_texture_raw[~valid] = 0.0
 
-        uv_confidence = np.zeros((work, work), dtype=np.float32)
-        if filled > 0:
-            max_w = weight_accum[valid].max()
-            if max_w > 0:
-                uv_confidence[valid] = (weight_accum[valid] / max_w).astype(np.float32)
+        uv_confidence = np.clip(weight_accum, 0, 1)
 
         uv_is_original = valid.copy()
 
@@ -319,8 +335,24 @@ class UVBaker:
             uv_texture_raw, valid, uv_confidence, uv_is_original = self._downsample_results(
                 uv_texture_raw, valid, uv_confidence, uv_is_original
             )
+        if tracker is not None:
+            self.last_provenance = tracker.finish(self.super_sample)
+            if self.config.interpolation == cv2.INTER_NEAREST:
+                self.last_provenance["raw_method"][valid] = DIRECT
 
         return uv_texture_raw, valid, uv_confidence, uv_is_original
+
+    @staticmethod
+    def _sample_visibility(triangle_id, source_xy, barycentric, triangles, buffers):
+        if buffers is None:
+            return np.ones(len(source_xy), dtype=bool)
+        if not buffers["front_facing"][triangle_id]:
+            return np.zeros(len(source_xy), dtype=bool)
+        depths = buffers["vertex_depth"][triangles[triangle_id]]
+        if np.any(depths <= 0):
+            return np.zeros(len(source_xy), dtype=bool)
+        expected = 1 / np.sum(barycentric / depths, axis=1)
+        return query_visibility(source_xy, expected, triangle_id, buffers)
 
     def bake_vertex_colors(
         self,
@@ -453,13 +485,12 @@ class UVBaker:
         uv_is_original: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         target = self.uv_size
-        texture = cv2.resize(uv_texture_raw, (target, target), interpolation=cv2.INTER_AREA)
-        mask = (
-            cv2.resize(mask_visible.astype(np.uint8), (target, target), interpolation=cv2.INTER_NEAREST) > 0
-        )
-        confidence = cv2.resize(uv_confidence, (target, target), interpolation=cv2.INTER_AREA)
-        is_original = (
-            cv2.resize(uv_is_original.astype(np.uint8), (target, target), interpolation=cv2.INTER_NEAREST) > 0
-        )
+        support = cv2.resize(mask_visible.astype(np.float32), (target, target), interpolation=cv2.INTER_AREA)
+        mask = support > 0
+        texture = cv2.resize(uv_texture_raw * mask_visible[..., None], (target, target), interpolation=cv2.INTER_AREA)
+        texture = np.divide(texture, support[..., None], out=np.zeros_like(texture), where=support[..., None] > 0)
+        confidence = cv2.resize(uv_confidence * mask_visible, (target, target), interpolation=cv2.INTER_AREA)
+        confidence = np.divide(confidence, support, out=np.zeros_like(confidence), where=support > 0)
+        original_support = cv2.resize((uv_is_original & mask_visible).astype(np.float32), (target, target), interpolation=cv2.INTER_AREA)
+        is_original = mask & (original_support >= support - 1e-6)
         return texture, mask, confidence, is_original
-

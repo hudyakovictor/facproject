@@ -1,0 +1,100 @@
+{
+  "ada_cos_to_centroid": {
+    "key": "02ed5bdd1e8e2c0f",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_norm_quality": {
+    "key": "11939019b966329f",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_pair_cos": {
+    "key": "f4dac4eee81a00c9",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_eye_area": {
+    "key": "ac4f9a75300a7ef9",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_jaw_ratio": {
+    "key": "d5f54fa8a38f6e51",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_nose_projection": {
+    "key": "702dee1e475c1c30",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_canthal_tilt": {
+    "key": "0cf6bf6b0c1c5bdc",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_width_ratio": {
+    "key": "5bd381c05cf5ebf0",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_height_ratio": {
+    "key": "e5cb9cf9dc569219",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mp_mouth_ratio": {
+    "key": "e699fd160b96247a",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mesh_eye_area": {
+    "key": "6f66f581eb5d01a8",
+    "result": {
+      "value": 0.03844472011162399,
+      "reason": null
+    }
+  },
+  "mesh_jaw_ratio": {
+    "key": "055bfb0c8fa58bbf",
+    "result": {
+      "value": 0.7757794857025146,
+      "reason": null
+    }
+  },
+  "mesh_nose_projection": {
+    "key": "0b3332cd2b399312",
+    "result": {
+      "value": 0.33167481422424316,
+      "reason": null
+    }
+  },
+  "mesh_height_example": {
+    "key": "5c0f445f11184d92",
+    "result": {
+      "value": 2.6139140129089355,
+      "reason": null
+    }
+  }
+}

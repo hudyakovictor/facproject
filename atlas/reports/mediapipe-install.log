@@ -1,0 +1,37 @@
+Found existing installation: opencv-python 4.11.0.86
+Uninstalling opencv-python-4.11.0.86:
+  Successfully uninstalled opencv-python-4.11.0.86
+Collecting mediapipe==0.10.35
+  Downloading mediapipe-0.10.35-py3-none-manylinux_2_28_x86_64.whl.metadata (9.8 kB)
+Collecting opencv-contrib-python==4.11.0.86
+  Downloading opencv_contrib_python-4.11.0.86-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (20 kB)
+Collecting absl-py~=2.3 (from mediapipe==0.10.35)
+  Downloading absl_py-2.5.1-py3-none-any.whl.metadata (3.3 kB)
+Requirement already satisfied: certifi in /usr/local/lib/python3.13/site-packages (from mediapipe==0.10.35) (2026.7.22)
+Requirement already satisfied: numpy in /usr/local/lib/python3.13/site-packages (from mediapipe==0.10.35) (2.3.5)
+Collecting sounddevice~=0.5 (from mediapipe==0.10.35)
+  Downloading sounddevice-0.5.6-py3-none-any.whl.metadata (1.4 kB)
+Collecting flatbuffers~=25.9 (from mediapipe==0.10.35)
+  Downloading flatbuffers-25.12.19-py2.py3-none-any.whl.metadata (1.0 kB)
+Requirement already satisfied: matplotlib in /usr/local/lib/python3.13/site-packages (from mediapipe==0.10.35) (3.10.9)
+Requirement already satisfied: cffi in /usr/local/lib/python3.13/site-packages (from sounddevice~=0.5->mediapipe==0.10.35) (2.1.1)
+Requirement already satisfied: pycparser in /usr/local/lib/python3.13/site-packages (from cffi->sounddevice~=0.5->mediapipe==0.10.35) (3.0)
+Requirement already satisfied: contourpy>=1.0.1 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (1.4.0)
+Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (0.12.1)
+Requirement already satisfied: fonttools>=4.22.0 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (4.66.1)
+Requirement already satisfied: kiwisolver>=1.3.1 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (1.5.1)
+Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (26.3)
+Requirement already satisfied: pillow>=8 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (12.3.0)
+Requirement already satisfied: pyparsing>=3 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (3.3.3)
+Requirement already satisfied: python-dateutil>=2.7 in /usr/local/lib/python3.13/site-packages (from matplotlib->mediapipe==0.10.35) (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.13/site-packages (from python-dateutil>=2.7->matplotlib->mediapipe==0.10.35) (1.17.0)
+Downloading mediapipe-0.10.35-py3-none-manylinux_2_28_x86_64.whl (12.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.4/12.4 MB 90.1 MB/s  0:00:00
+Downloading opencv_contrib_python-4.11.0.86-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (69.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 69.1/69.1 MB 125.6 MB/s  0:00:00
+Downloading absl_py-2.5.1-py3-none-any.whl (137 kB)
+Downloading flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)
+Downloading sounddevice-0.5.6-py3-none-any.whl (32 kB)
+Installing collected packages: flatbuffers, opencv-contrib-python, absl-py, sounddevice, mediapipe
+
+Successfully installed absl-py-2.5.1 flatbuffers-25.12.19 mediapipe-0.10.35 opencv-contrib-python-4.11.0.86 sounddevice-0.5.6

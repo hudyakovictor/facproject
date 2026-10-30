@@ -1,0 +1,28 @@
+version: 1
+model: fan
+pose: three_quarter_left
+profile_defaults:
+  normalize: iod
+  zscore: robust_mad
+metrics:
+- id: fan_eye_area
+  enabled: true
+  title: Площадь глаз / IOD²
+  unit: IOD²
+  thresholds:
+    warn: 2.5
+    alert: 3.5
+- id: fan_jaw_ratio
+  enabled: true
+  title: Нижняя челюсть / контур
+  unit: ratio
+  thresholds:
+    warn: 2.5
+    alert: 3.5
+- id: fan_nose_projection
+  enabled: true
+  title: Проекция носа / IOD
+  unit: IOD
+  thresholds:
+    warn: 2.5
+    alert: 3.5

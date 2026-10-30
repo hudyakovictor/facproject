@@ -1,0 +1,1400 @@
+{
+ "dataset": {
+  "index": "/Volumes/SDCARD/photo/calibration_dataset/calibration_datasets/all_calibration_index.csv",
+  "people": [
+   "person_01",
+   "person_02",
+   "person_03",
+   "person_04",
+   "person_05",
+   "person_06",
+   "person_07"
+  ],
+  "frames": 210,
+  "valid": 208,
+  "per_person": 30,
+  "min_gap": 30,
+  "space": "center + IOD (eye-contour means ldm68 36:42/42:48)"
+ },
+ "invalid": [
+  {
+   "person": "person_06",
+   "frame": 164,
+   "bin": "right_profile",
+   "yaw": -102.5,
+   "reason": "|yaw|=-102.5>95; label=right_profile yaw=67.1 vs -102.5"
+  },
+  {
+   "person": "person_06",
+   "frame": 170,
+   "bin": "right_profile",
+   "yaw": -32.6,
+   "reason": "label=right_profile yaw=71.2 vs -32.6"
+  }
+ ],
+ "invalid_leak": 0,
+ "sigma_pairs": 453,
+ "clip": {
+  "euclid": [
+   0.012676,
+   0.039998
+  ],
+  "normal": [
+   0.012914,
+   0.047833
+  ]
+ },
+ "counts": {
+  "within": 454,
+  "within_same": 5,
+  "within_cross": 449,
+  "between": 4635
+ },
+ "transitions": {
+  "deep_profile": {
+   "within": 45,
+   "between": 525
+  },
+  "frontal_light": {
+   "within": 7,
+   "between": 293
+  },
+  "light_mid": {
+   "within": 15,
+   "between": 175
+  },
+  "mid_deep": {
+   "within": 14,
+   "between": 154
+  },
+  "same_0": {
+   "within": 1,
+   "between": 168
+  },
+  "same_1": {
+   "within": 6,
+   "between": 123
+  },
+  "same_2": {
+   "within": 5,
+   "between": 60
+  },
+  "same_3": {
+   "within": 10,
+   "between": 91
+  },
+  "same_4": {
+   "within": 57,
+   "between": 677
+  },
+  "skip_0_2": {
+   "within": 14,
+   "between": 208
+  },
+  "skip_0_3": {
+   "within": 26,
+   "between": 258
+  },
+  "skip_0_4": {
+   "within": 107,
+   "between": 687
+  },
+  "skip_1_3": {
+   "within": 20,
+   "between": 218
+  },
+  "skip_1_4": {
+   "within": 80,
+   "between": 584
+  },
+  "skip_2_4": {
+   "within": 47,
+   "between": 414
+  }
+ },
+ "modes": {
+  "euclid": {
+   "within": {
+    "n": 454,
+    "mean": 0.05201,
+    "median": 0.05123,
+    "p90": 0.07231,
+    "std": 0.01719
+   },
+   "within_same": {
+    "n": 5,
+    "mean": 0.01777,
+    "median": 0.01933,
+    "p90": 0.02462,
+    "std": 0.00636
+   },
+   "within_cross": {
+    "n": 449,
+    "mean": 0.05239,
+    "median": 0.05137,
+    "p90": 0.07254,
+    "std": 0.01688
+   },
+   "between": {
+    "n": 4635,
+    "mean": 0.06958,
+    "median": 0.06833,
+    "p90": 0.09549,
+    "std": 0.02098
+   },
+   "ratio": 1.338,
+   "auc": 0.7527,
+   "z3_within": 0.1727,
+   "z3_between": 0.3768
+  },
+  "normal": {
+   "within": {
+    "n": 454,
+    "mean": 0.02244,
+    "median": 0.02133,
+    "p90": 0.03351,
+    "std": 0.00772
+   },
+   "within_same": {
+    "n": 5,
+    "mean": 0.00907,
+    "median": 0.00691,
+    "p90": 0.01535,
+    "std": 0.00538
+   },
+   "within_cross": {
+    "n": 449,
+    "mean": 0.02258,
+    "median": 0.02139,
+    "p90": 0.03369,
+    "std": 0.00761
+   },
+   "between": {
+    "n": 4635,
+    "mean": 0.03445,
+    "median": 0.03303,
+    "p90": 0.05279,
+    "std": 0.01319
+   },
+   "ratio": 1.535,
+   "auc": 0.7779,
+   "z3_within": 0.005,
+   "z3_between": 0.0715
+  },
+  "weighted_euclid": {
+   "within": {
+    "n": 454,
+    "mean": 0.04601,
+    "median": 0.04544,
+    "p90": 0.06449,
+    "std": 0.01492
+   },
+   "within_same": {
+    "n": 5,
+    "mean": 0.01557,
+    "median": 0.01706,
+    "p90": 0.02161,
+    "std": 0.00565
+   },
+   "within_cross": {
+    "n": 449,
+    "mean": 0.04635,
+    "median": 0.04555,
+    "p90": 0.0646,
+    "std": 0.01464
+   },
+   "between": {
+    "n": 4635,
+    "mean": 0.06277,
+    "median": 0.0628,
+    "p90": 0.08597,
+    "std": 0.01809
+   },
+   "ratio": 1.364,
+   "auc": 0.7731,
+   "z3_within": 0.1727,
+   "z3_between": 0.3768
+  },
+  "weighted_normal": {
+   "within": {
+    "n": 454,
+    "mean": 0.01943,
+    "median": 0.01887,
+    "p90": 0.02772,
+    "std": 0.00625
+   },
+   "within_same": {
+    "n": 5,
+    "mean": 0.00777,
+    "median": 0.00649,
+    "p90": 0.01247,
+    "std": 0.00403
+   },
+   "within_cross": {
+    "n": 449,
+    "mean": 0.01956,
+    "median": 0.01898,
+    "p90": 0.02789,
+    "std": 0.00615
+   },
+   "between": {
+    "n": 4635,
+    "mean": 0.03056,
+    "median": 0.03021,
+    "p90": 0.04544,
+    "std": 0.01104
+   },
+   "ratio": 1.573,
+   "auc": 0.8006,
+   "z3_within": 0.005,
+   "z3_between": 0.0715
+  }
+ },
+ "regions": {
+  "jaw": {
+   "euclid": {
+    "within": {
+     "n": 454,
+     "mean": 0.08197,
+     "median": 0.08016,
+     "p90": 0.12112,
+     "std": 0.03003
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.11001,
+     "median": 0.10285,
+     "p90": 0.16745,
+     "std": 0.04416
+    },
+    "ratio": 1.342,
+    "auc": 0.6919
+   },
+   "normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.04151,
+     "median": 0.03828,
+     "p90": 0.06978,
+     "std": 0.02043
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.06526,
+     "median": 0.05691,
+     "p90": 0.11984,
+     "std": 0.03723
+    },
+    "ratio": 1.572,
+    "auc": 0.6943
+   },
+   "weighted_normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.04123,
+     "median": 0.03802,
+     "p90": 0.06936,
+     "std": 0.02036
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.06496,
+     "median": 0.05666,
+     "p90": 0.11947,
+     "std": 0.03713
+    },
+    "ratio": 1.576,
+    "auc": 0.6948
+   }
+  },
+  "brows": {
+   "euclid": {
+    "within": {
+     "n": 454,
+     "mean": 0.03912,
+     "median": 0.03562,
+     "p90": 0.05958,
+     "std": 0.01523
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.08413,
+     "median": 0.07593,
+     "p90": 0.144,
+     "std": 0.04044
+    },
+    "ratio": 2.151,
+    "auc": 0.8485
+   },
+   "normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.0177,
+     "median": 0.01583,
+     "p90": 0.03119,
+     "std": 0.00998
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.02478,
+     "median": 0.02367,
+     "p90": 0.03957,
+     "std": 0.01095
+    },
+    "ratio": 1.4,
+    "auc": 0.6961
+   },
+   "weighted_normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.01707,
+     "median": 0.01568,
+     "p90": 0.02901,
+     "std": 0.00958
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.02441,
+     "median": 0.02292,
+     "p90": 0.03987,
+     "std": 0.01119
+    },
+    "ratio": 1.43,
+    "auc": 0.701
+   }
+  },
+  "nose": {
+   "euclid": {
+    "within": {
+     "n": 454,
+     "mean": 0.05121,
+     "median": 0.04847,
+     "p90": 0.08451,
+     "std": 0.02548
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.06034,
+     "median": 0.05741,
+     "p90": 0.09287,
+     "std": 0.02443
+    },
+    "ratio": 1.178,
+    "auc": 0.6178
+   },
+   "normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.02614,
+     "median": 0.02187,
+     "p90": 0.04524,
+     "std": 0.01912
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.03553,
+     "median": 0.03162,
+     "p90": 0.06145,
+     "std": 0.01933
+    },
+    "ratio": 1.359,
+    "auc": 0.6748
+   },
+   "weighted_normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.02421,
+     "median": 0.02062,
+     "p90": 0.0414,
+     "std": 0.01764
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.03338,
+     "median": 0.02993,
+     "p90": 0.0568,
+     "std": 0.01771
+    },
+    "ratio": 1.379,
+    "auc": 0.6889
+   }
+  },
+  "eyes": {
+   "euclid": {
+    "within": {
+     "n": 454,
+     "mean": 0.01947,
+     "median": 0.01818,
+     "p90": 0.02998,
+     "std": 0.0098
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.0223,
+     "median": 0.02137,
+     "p90": 0.03316,
+     "std": 0.00913
+    },
+    "ratio": 1.146,
+    "auc": 0.608
+   },
+   "normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.01157,
+     "median": 0.01122,
+     "p90": 0.01967,
+     "std": 0.00622
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.01255,
+     "median": 0.01182,
+     "p90": 0.01967,
+     "std": 0.00574
+    },
+    "ratio": 1.084,
+    "auc": 0.5518
+   },
+   "weighted_normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.01099,
+     "median": 0.01085,
+     "p90": 0.01835,
+     "std": 0.00577
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.01201,
+     "median": 0.01143,
+     "p90": 0.0186,
+     "std": 0.00532
+    },
+    "ratio": 1.093,
+    "auc": 0.5552
+   }
+  },
+  "mouth": {
+   "euclid": {
+    "within": {
+     "n": 454,
+     "mean": 0.0624,
+     "median": 0.05426,
+     "p90": 0.11689,
+     "std": 0.03188
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.08023,
+     "median": 0.07313,
+     "p90": 0.13026,
+     "std": 0.03619
+    },
+    "ratio": 1.286,
+    "auc": 0.6746
+   },
+   "normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.02785,
+     "median": 0.02347,
+     "p90": 0.05167,
+     "std": 0.0157
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.03643,
+     "median": 0.03243,
+     "p90": 0.06409,
+     "std": 0.01897
+    },
+    "ratio": 1.308,
+    "auc": 0.6509
+   },
+   "weighted_normal": {
+    "within": {
+     "n": 454,
+     "mean": 0.02566,
+     "median": 0.02153,
+     "p90": 0.04604,
+     "std": 0.01418
+    },
+    "between": {
+     "n": 4635,
+     "mean": 0.03396,
+     "median": 0.03042,
+     "p90": 0.05738,
+     "std": 0.01708
+    },
+    "ratio": 1.323,
+    "auc": 0.6638
+   }
+  }
+ },
+ "bootstrap": {
+  "normal": {
+   "mean": 0.0252,
+   "lo": -0.0074,
+   "hi": 0.0549,
+   "p_positive": 0.955,
+   "rounds": 200
+  },
+  "weighted_normal": {
+   "mean": 0.0479,
+   "lo": 0.0114,
+   "hi": 0.0779,
+   "p_positive": 1.0,
+   "rounds": 200
+  }
+ },
+ "frontal": {
+  "n": 1,
+  "euclid": 0.00908,
+  "weighted_normal": 0.0037,
+  "delta_pct": -59.3
+ },
+ "saturation": {
+  "above_vmax_pct": 0.0,
+  "mean_z": 1.098,
+  "p95_z": 2.353,
+  "pair": [
+   177,
+   102
+  ]
+ },
+ "lopo": {
+  "rows": [
+   {
+    "person": "person_01",
+    "sigma_pairs": 387,
+    "n_within": 66,
+    "n_between": 1335,
+    "auc_euclid": 0.8445,
+    "within_euclid": 0.05015,
+    "auc_normal": 0.888,
+    "within_normal": 0.01944,
+    "auc_weighted_euclid": 0.8409,
+    "within_weighted_euclid": 0.04592,
+    "auc_weighted_normal": 0.9007,
+    "within_weighted_normal": 0.01716
+   },
+   {
+    "person": "person_02",
+    "sigma_pairs": 375,
+    "n_within": 78,
+    "n_between": 1335,
+    "auc_euclid": 0.7831,
+    "within_euclid": 0.0466,
+    "auc_normal": 0.6937,
+    "within_normal": 0.02432,
+    "auc_weighted_euclid": 0.837,
+    "within_weighted_euclid": 0.0391,
+    "auc_weighted_normal": 0.747,
+    "within_weighted_normal": 0.02064
+   },
+   {
+    "person": "person_03",
+    "sigma_pairs": 398,
+    "n_within": 55,
+    "n_between": 1335,
+    "auc_euclid": 0.8227,
+    "within_euclid": 0.0511,
+    "auc_normal": 0.8358,
+    "within_normal": 0.02339,
+    "auc_weighted_euclid": 0.8323,
+    "within_weighted_euclid": 0.04496,
+    "auc_weighted_normal": 0.8454,
+    "within_weighted_normal": 0.02012
+   },
+   {
+    "person": "person_04",
+    "sigma_pairs": 375,
+    "n_within": 78,
+    "n_between": 1335,
+    "auc_euclid": 0.6505,
+    "within_euclid": 0.06503,
+    "auc_normal": 0.7808,
+    "within_normal": 0.02204,
+    "auc_weighted_euclid": 0.6571,
+    "within_weighted_euclid": 0.05853,
+    "auc_weighted_normal": 0.7771,
+    "within_weighted_normal": 0.01994
+   },
+   {
+    "person": "person_05",
+    "sigma_pairs": 398,
+    "n_within": 55,
+    "n_between": 1335,
+    "auc_euclid": 0.8526,
+    "within_euclid": 0.04187,
+    "auc_normal": 0.6846,
+    "within_normal": 0.02336,
+    "auc_weighted_euclid": 0.9057,
+    "within_weighted_euclid": 0.03589,
+    "auc_weighted_normal": 0.7363,
+    "within_weighted_normal": 0.01959
+   },
+   {
+    "person": "person_06",
+    "sigma_pairs": 387,
+    "n_within": 67,
+    "n_between": 1260,
+    "auc_euclid": 0.7152,
+    "within_euclid": 0.05361,
+    "auc_normal": 0.7429,
+    "within_normal": 0.02273,
+    "auc_weighted_euclid": 0.7317,
+    "within_weighted_euclid": 0.0484,
+    "auc_weighted_normal": 0.7353,
+    "within_weighted_normal": 0.02103
+   },
+   {
+    "person": "person_07",
+    "sigma_pairs": 398,
+    "n_within": 55,
+    "n_between": 1335,
+    "auc_euclid": 0.7353,
+    "within_euclid": 0.05255,
+    "auc_normal": 0.7787,
+    "within_normal": 0.02169,
+    "auc_weighted_euclid": 0.7502,
+    "within_weighted_euclid": 0.04769,
+    "auc_weighted_normal": 0.7702,
+    "within_weighted_normal": 0.01977
+   }
+  ],
+  "normal": {
+   "mean_delta_auc": 0.0001,
+   "min_delta_auc": -0.168,
+   "wins": 5,
+   "n": 7
+  },
+  "weighted_euclid": {
+   "mean_delta_auc": 0.0216,
+   "min_delta_auc": -0.0036,
+   "wins": 6,
+   "n": 7
+  },
+  "weighted_normal": {
+   "mean_delta_auc": 0.0154,
+   "min_delta_auc": -0.1163,
+   "wins": 5,
+   "n": 7
+  }
+ },
+ "lotro": {
+  "rows": [
+   {
+    "family": "frontal_light",
+    "sigma_pairs": 449,
+    "n_within": 7,
+    "n_between": 293,
+    "within_euclid": 0.03136,
+    "auc_euclid": 0.7845,
+    "within_normal": 0.01194,
+    "auc_normal": 0.8757,
+    "within_weighted_euclid": 0.02923,
+    "auc_weighted_euclid": 0.7903,
+    "within_weighted_normal": 0.01095,
+    "auc_weighted_normal": 0.881,
+    "within_delta_pct": -8.3,
+    "within_metric_delta_pct": -61.9,
+    "auc_delta": 0.0965,
+    "auc_normal_delta": 0.0912
+   },
+   {
+    "family": "light_mid",
+    "sigma_pairs": 439,
+    "n_within": 15,
+    "n_between": 175,
+    "within_euclid": 0.04057,
+    "auc_euclid": 0.837,
+    "within_normal": 0.01791,
+    "auc_normal": 0.8316,
+    "within_weighted_euclid": 0.03685,
+    "auc_weighted_euclid": 0.8377,
+    "within_weighted_normal": 0.01637,
+    "auc_weighted_normal": 0.8335,
+    "within_delta_pct": -8.6,
+    "within_metric_delta_pct": -55.9,
+    "auc_delta": -0.0035,
+    "auc_normal_delta": -0.0054
+   },
+   {
+    "family": "mid_deep",
+    "sigma_pairs": 438,
+    "n_within": 14,
+    "n_between": 154,
+    "within_euclid": 0.04547,
+    "auc_euclid": 0.7514,
+    "within_normal": 0.02105,
+    "auc_normal": 0.7922,
+    "within_weighted_euclid": 0.04151,
+    "auc_weighted_euclid": 0.7611,
+    "within_weighted_normal": 0.01865,
+    "auc_weighted_normal": 0.8038,
+    "within_delta_pct": -11.4,
+    "within_metric_delta_pct": -53.7,
+    "auc_delta": 0.0524,
+    "auc_normal_delta": 0.0408
+   },
+   {
+    "family": "deep_profile",
+    "sigma_pairs": 420,
+    "n_within": 45,
+    "n_between": 525,
+    "within_euclid": 0.05006,
+    "auc_euclid": 0.7969,
+    "within_normal": 0.02212,
+    "auc_normal": 0.8303,
+    "within_weighted_euclid": 0.04431,
+    "auc_weighted_euclid": 0.8098,
+    "within_weighted_normal": 0.01941,
+    "auc_weighted_normal": 0.8355,
+    "within_delta_pct": -12.3,
+    "within_metric_delta_pct": -55.8,
+    "auc_delta": 0.0386,
+    "auc_normal_delta": 0.0334
+   }
+  ],
+  "wins": 3,
+  "n": 4,
+  "mean_auc_delta": 0.046
+ },
+ "stability": {
+  "vertices": 35709,
+  "sigma_min": 0.012676,
+  "sigma_p05": 0.012677,
+  "sigma_median": 0.024589,
+  "sigma_p95": 0.039997,
+  "sigma_max": 0.039998,
+  "weight_min": 25.0012,
+  "weight_max": 78.8862,
+  "clip": [
+   0.012676,
+   0.039998
+  ],
+  "clip_normal": [
+   0.012914,
+   0.047833
+  ],
+  "at_lower_pct": 5.0,
+  "at_upper_pct": 5.0,
+  "regions": {
+   "jaw": {
+    "vertices": 17,
+    "sigma_mean": 0.039029,
+    "sigma_min": 0.034562,
+    "sigma_max": 0.039998,
+    "weight_mean": 25.6798,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 70.6
+   },
+   "brows": {
+    "vertices": 10,
+    "sigma_mean": 0.019599,
+    "sigma_min": 0.017172,
+    "sigma_max": 0.021462,
+    "weight_mean": 51.2036,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 0.0
+   },
+   "nose": {
+    "vertices": 9,
+    "sigma_mean": 0.024353,
+    "sigma_min": 0.015619,
+    "sigma_max": 0.032357,
+    "weight_mean": 42.5978,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 0.0
+   },
+   "eyes": {
+    "vertices": 12,
+    "sigma_mean": 0.013063,
+    "sigma_min": 0.012676,
+    "sigma_max": 0.015977,
+    "weight_mean": 76.9017,
+    "at_lower_pct": 75.0,
+    "at_upper_pct": 0.0
+   },
+   "mouth": {
+    "vertices": 20,
+    "sigma_mean": 0.033464,
+    "sigma_min": 0.02935,
+    "sigma_max": 0.03686,
+    "weight_mean": 30.0516,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 0.0
+   }
+  },
+  "family": {
+   "families": {
+    "light_mid": 14,
+    "mid_deep": 15,
+    "deep_profile": 33,
+    "same_depth": 89
+   },
+   "weight_ratio_vs_global": {
+    "light_mid": 1.569,
+    "mid_deep": 1.528,
+    "deep_profile": 1.12,
+    "same_depth": 1.014
+   },
+   "spread_mean": 0.216,
+   "spread_p95": 0.355,
+   "unstable_pct": 0.0,
+   "source_pct": {
+    "light_mid": 44.4,
+    "mid_deep": 50.0,
+    "deep_profile": 1.2,
+    "same_depth": 4.4
+   }
+  }
+ },
+ "checks": {
+  "within_weighting_delta_pct": -13.4,
+  "within_cross_delta_pct": -13.4,
+  "within_cross_metric_delta_pct": -56.9,
+  "ratio_base": 1.338,
+  "ratio_candidate": 1.573,
+  "auc_base": 0.7527,
+  "auc_candidate": 0.8006,
+  "auc_normal": 0.7779,
+  "auc_delta": 0.0479,
+  "auc_ci_positive": true,
+  "lopo_wins": 5,
+  "lopo_n": 7,
+  "lotro_wins": 3,
+  "lotro_n": 4,
+  "frontal_n": 1,
+  "frontal_delta_pct": -59.3,
+  "frontal_enough_n": false,
+  "saturated_pct": 0.0,
+  "invalid_leak": 0,
+  "gates": {
+   "cross_bin_10pct": true,
+   "auc_not_worse": true,
+   "auc_ci_positive": true,
+   "lopo_all": false,
+   "lotro_majority": true,
+   "no_frontal_degradation": false,
+   "not_saturated": true,
+   "invalid_excluded": true
+  }
+ },
+ "verdict": {
+  "code": 3,
+  "title": "weighting улучшает числа, но normal нестабилен по людям — только отчёты",
+  "gates_passed": 6,
+  "gates_total": 8
+ },
+ "weights": "reports/calibration/weights.json",
+ "figures": [
+  {
+   "file": "reports/calibration/v3-modes.png",
+   "caption": "Четыре режима на одной паре: euclid · normal · weighted euclid · weighted normal",
+   "pair": [
+    177,
+    102
+   ],
+   "person": "person_04",
+   "bins": [
+    "frontal",
+    "right_profile"
+   ]
+  },
+  {
+   "file": "reports/calibration/v3-weights.png",
+   "caption": "sigma euclid и sigma normal после clip (p05…p95)"
+  },
+  {
+   "file": "reports/calibration/v3-lopo.png",
+   "caption": "LOPO по людям"
+  },
+  {
+   "file": "reports/calibration/v3-lotro.png",
+   "caption": "LOTRO по семействам переходов"
+  },
+  {
+   "file": "reports/calibration/v3-regions.png",
+   "caption": "Изменение within по зонам лица"
+  }
+ ],
+ "json": "reports/calibration-v3.json",
+ "md": "reports/calibration-v3.md",
+ "parity": {
+  "helper": "server.heat.compute_heat_values",
+  "paths": [
+   "server/app.py:segment_heat",
+   "server/rendering.py:segment_values",
+   "GET /api/photos/{id}/heat"
+  ],
+  "tolerance": 1e-06,
+  "cases": 24,
+  "max_abs_diff": 0.0,
+  "max_color_diff": 0.0,
+  "http": {
+   "heat_status": 200,
+   "heat_count": 35709,
+   "heat_vmax": 4.0,
+   "heat_count_ok": true,
+   "preview_status": 200,
+   "preview_png": true,
+   "runtime_block": {
+    "metric": "euclid",
+    "weighting": "none",
+    "calibration_profile": "reports/calibration/weights.json"
+   }
+  },
+  "config": {
+   "base": {
+    "status": 200,
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06
+   },
+   "switched": {
+    "status": 200,
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0
+   },
+   "restored": {
+    "status": 200,
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06
+   },
+   "ok": true
+  },
+  "passed": true,
+  "per_case": [
+   {
+    "person": "person_01",
+    "frame_a": 204,
+    "frame_b": 209,
+    "frame_ref": 204,
+    "mode": "euclid",
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 204,
+    "frame_b": 209,
+    "frame_ref": 204,
+    "mode": "normal",
+    "metric": "normal",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 204,
+    "frame_b": 209,
+    "frame_ref": 204,
+    "mode": "weighted_euclid",
+    "metric": "euclid",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 204,
+    "frame_b": 209,
+    "frame_ref": 204,
+    "mode": "weighted_normal",
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 213,
+    "frame_b": 218,
+    "frame_ref": 209,
+    "mode": "euclid",
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 213,
+    "frame_b": 218,
+    "frame_ref": 209,
+    "mode": "normal",
+    "metric": "normal",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 213,
+    "frame_b": 218,
+    "frame_ref": 209,
+    "mode": "weighted_euclid",
+    "metric": "euclid",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 213,
+    "frame_b": 218,
+    "frame_ref": 209,
+    "mode": "weighted_normal",
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 222,
+    "frame_b": 227,
+    "frame_ref": 218,
+    "mode": "euclid",
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 222,
+    "frame_b": 227,
+    "frame_ref": 218,
+    "mode": "normal",
+    "metric": "normal",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 222,
+    "frame_b": 227,
+    "frame_ref": 218,
+    "mode": "weighted_euclid",
+    "metric": "euclid",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_01",
+    "frame_a": 222,
+    "frame_b": 227,
+    "frame_ref": 218,
+    "mode": "weighted_normal",
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 113,
+    "frame_b": 120,
+    "frame_ref": 113,
+    "mode": "euclid",
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 113,
+    "frame_b": 120,
+    "frame_ref": 113,
+    "mode": "normal",
+    "metric": "normal",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 113,
+    "frame_b": 120,
+    "frame_ref": 113,
+    "mode": "weighted_euclid",
+    "metric": "euclid",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 113,
+    "frame_b": 120,
+    "frame_ref": 113,
+    "mode": "weighted_normal",
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 126,
+    "frame_b": 133,
+    "frame_ref": 120,
+    "mode": "euclid",
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 126,
+    "frame_b": 133,
+    "frame_ref": 120,
+    "mode": "normal",
+    "metric": "normal",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 126,
+    "frame_b": 133,
+    "frame_ref": 120,
+    "mode": "weighted_euclid",
+    "metric": "euclid",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 126,
+    "frame_b": 133,
+    "frame_ref": 120,
+    "mode": "weighted_normal",
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 140,
+    "frame_b": 147,
+    "frame_ref": 133,
+    "mode": "euclid",
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 140,
+    "frame_b": 147,
+    "frame_ref": 133,
+    "mode": "normal",
+    "metric": "normal",
+    "weighting": "none",
+    "vmax": 0.06,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 140,
+    "frame_b": 147,
+    "frame_ref": 133,
+    "mode": "weighted_euclid",
+    "metric": "euclid",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   },
+   {
+    "person": "person_02",
+    "frame_a": 140,
+    "frame_b": 147,
+    "frame_ref": 133,
+    "mode": "weighted_normal",
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "count": 35709,
+    "preview_export": 0.0,
+    "preview_browser": 0.0,
+    "colorized": 0.0
+   }
+  ]
+ },
+ "chain": {
+  "person": "person_01",
+  "frames": [
+   204,
+   209,
+   213,
+   218,
+   222,
+   227,
+   231,
+   236,
+   240,
+   245
+  ],
+  "bins": [
+   "left_profile",
+   "left_profile",
+   "left_profile",
+   "left_profile",
+   "left_profile",
+   "left_profile",
+   "left_profile",
+   "left_mid",
+   "left_mid",
+   "left_light"
+  ],
+  "segments": 9,
+  "tolerance": 1e-06,
+  "modes": {
+   "euclid": {
+    "metric": "euclid",
+    "weighting": "none",
+    "vmax": 0.06,
+    "join_heat": 0.0,
+    "join_color": 0.0,
+    "join_alpha_flip": 0,
+    "join_vertex": 0.0,
+    "segment_independent": 0.0,
+    "segment_change_min": 0.00491903,
+    "segment_change_max": 0.04416776,
+    "flat_segments": 0
+   },
+   "normal": {
+    "metric": "normal",
+    "weighting": "none",
+    "vmax": 0.06,
+    "join_heat": 0.0,
+    "join_color": 0.0,
+    "join_alpha_flip": 0,
+    "join_vertex": 0.0,
+    "segment_independent": 0.0,
+    "segment_change_min": 0.00366634,
+    "segment_change_max": 0.01681757,
+    "flat_segments": 0
+   },
+   "weighted_euclid": {
+    "metric": "euclid",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "join_heat": 0.0,
+    "join_color": 0.0,
+    "join_alpha_flip": 0,
+    "join_vertex": 0.0,
+    "segment_independent": 0.0,
+    "segment_change_min": 0.22136863,
+    "segment_change_max": 1.81167316,
+    "flat_segments": 0
+   },
+   "weighted_normal": {
+    "metric": "normal",
+    "weighting": "calibrated",
+    "vmax": 4.0,
+    "join_heat": 0.0,
+    "join_color": 0.0,
+    "join_alpha_flip": 0,
+    "join_vertex": 0.0,
+    "segment_independent": 0.0,
+    "segment_change_min": 0.14378652,
+    "segment_change_max": 0.63696104,
+    "flat_segments": 0
+   }
+  },
+  "join_jump": 0.0,
+  "heat_join": 0.0,
+  "color_join": 0.0,
+  "segment_independent": true,
+  "passed": true,
+  "png": "reports/calibration/v3-chain.png"
+ }
+}

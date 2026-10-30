@@ -1,0 +1,281 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frontal metric separability audit</title><style>
+body{font:15px/1.5 system-ui,sans-serif;margin:24px auto;padding:0 18px;max-width:1600px;color:#17212b;background:#f8fafb}
+h1,h2{color:#123c51}table{border-collapse:collapse;background:white;width:100%;font-size:13px}
+td,th{padding:9px;border:1px solid #ccd8df;text-align:left;vertical-align:top}th{background:#dceaf0}
+.scroll{overflow-x:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eaf0f4;padding:14px}
+.notice{border-left:4px solid #bc6428;padding:12px;background:#fff4e6}li{margin:7px 0}
+</style><h1>Frontal Geometry: Worst-Pair Separability</h1>
+<p class="notice">Research only. Group labels come from folders. This analysis does not identify people,
+validate identities, or establish anatomical ground truth. Production metric_bands.json is unchanged.</p>
+<p>AUC is a rank comparison, not an identity probability. 0.5 means no rank separation; values below 0.5
+mean the direction learned in early months reversed. Every displayed AUC uses training-only directions.
+One observation is a date median. Confidence intervals resample calendar months, not dependent image pairs.</p>
+<h2>Training-Only Shortlist</h2><p>Ranked by the minimum training AUC across all, neutral and strict cohorts,
+then deduplicated at |Spearman rho| &gt;= 0.95 using training data. Cross-framework ratios are excluded.
+The shortlist is exploratory, not approved for deployment.</p><p>Frozen training list below includes failures: nothing is silently removed after looking at later months. Follow-up flags are heuristic diagnostics, not independent confirmation or deployment approval.</p><div class='scroll'><table><thead><tr><th>Metric</th><th>Framework</th><th>Train robustness score</th><th>Later-month worst AUC</th><th>95% month bootstrap</th><th>Neutral worst AUC</th><th>Strict worst AUC</th><th>Pose-adjusted later AUC</th><th>Diagnostic Status</th><th>Definition</th></tr></thead><tbody><tr><td>probe_eye_open_r</td><td>mediapipe</td><td>0.761</td><td>0.761</td><td>0.634 - 0.817</td><td>0.821</td><td>0.725</td><td>0.781</td><td>frontal follow-up only</td><td></td></tr><tr><td>eye_aperture_left_over_eye_width_mp</td><td>mediapipe</td><td>0.742</td><td>0.726</td><td>0.610 - 0.783</td><td>0.794</td><td>0.694</td><td>0.729</td><td>frontal follow-up only</td><td></td></tr><tr><td>orbit_fissure_over_cheek_span_134</td><td>3ddfa</td><td>0.740</td><td>0.779</td><td>0.632 - 0.868</td><td>0.771</td><td>0.787</td><td>0.764</td><td>frontal follow-up only</td><td>средняя площадь глазной щели (корень из неё) к ширине скул: «размер глаз относительно ширины лица»</td></tr><tr><td>bilateral_brow_glabella_relief_134</td><td>3ddfa</td><td>0.738</td><td>0.677</td><td>0.504 - 0.775</td><td>0.625</td><td>0.730</td><td>0.687</td><td>test: worst AUC below 0.7; neutral: worst AUC below 0.65; later-month bootstrap lower bound below 0.55 or unavailable</td><td>0.5 * (brow_medial_to_glabella_relief_l_134 + brow_medial_to_glabella_relief_r_134)</td></tr><tr><td>ipd_over_face_w</td><td>mediapipe</td><td>0.726</td><td>0.457</td><td>0.239 - 0.643</td><td>0.528</td><td>0.629</td><td>0.462</td><td>test: worst AUC below 0.7; neutral: worst AUC below 0.65; strict: worst AUC below 0.65; pose_adjusted_test: worst AUC below 0.65; later-month bootstrap lower bound below 0.55 or unavailable</td><td></td></tr><tr><td>brow_ridge_depth_l_134</td><td>3ddfa</td><td>0.723</td><td>0.769</td><td>0.641 - 0.874</td><td>0.645</td><td>0.774</td><td>0.831</td><td>neutral: worst AUC below 0.65</td><td>насколько левая дуга брови (оба ряда точек) выступает вперёд из базы «глабелла + обе скулы», на ширину лица</td></tr><tr><td>nasal_dorsal_index</td><td>mediapipe</td><td>0.722</td><td>0.758</td><td>0.624 - 0.813</td><td>0.829</td><td>0.734</td><td>0.776</td><td>frontal follow-up only</td><td>ширина крыльев носа к высоте средней трети лица</td></tr><tr><td>nasal_bridge_convergence_angle</td><td>mediapipe</td><td>0.719</td><td>0.765</td><td>0.620 - 0.822</td><td>0.798</td><td>0.752</td><td>0.774</td><td>frontal follow-up only</td><td>угол схождения спинки носа: кончик — переносица — крыло (градусы)</td></tr><tr><td>fissure_height_l_134</td><td>3ddfa</td><td>0.688</td><td>0.654</td><td>0.526 - 0.742</td><td>0.748</td><td>0.606</td><td>0.676</td><td>test: worst AUC below 0.7; strict: worst AUC below 0.65; later-month bootstrap lower bound below 0.55 or unavailable</td><td></td></tr><tr><td>glabella_flatness_index_134</td><td>3ddfa</td><td>0.673</td><td>0.702</td><td>0.540 - 0.761</td><td>0.641</td><td>0.672</td><td>0.697</td><td>neutral: worst AUC below 0.65; later-month bootstrap lower bound below 0.55 or unavailable</td><td></td></tr></tbody></table></div><h2>Frontal Follow-Up Candidates</h2><div class='scroll'><table><thead><tr><th>Metric</th><th>Framework</th><th>Train robustness score</th><th>Later-month worst AUC</th><th>95% month bootstrap</th><th>Neutral worst AUC</th><th>Strict worst AUC</th><th>Pose-adjusted later AUC</th><th>Diagnostic Status</th><th>Definition</th></tr></thead><tbody><tr><td>probe_eye_open_r</td><td>mediapipe</td><td>0.761</td><td>0.761</td><td>0.634 - 0.817</td><td>0.821</td><td>0.725</td><td>0.781</td><td>frontal follow-up only</td><td></td></tr><tr><td>eye_aperture_left_over_eye_width_mp</td><td>mediapipe</td><td>0.742</td><td>0.726</td><td>0.610 - 0.783</td><td>0.794</td><td>0.694</td><td>0.729</td><td>frontal follow-up only</td><td></td></tr><tr><td>orbit_fissure_over_cheek_span_134</td><td>3ddfa</td><td>0.740</td><td>0.779</td><td>0.632 - 0.868</td><td>0.771</td><td>0.787</td><td>0.764</td><td>frontal follow-up only</td><td>средняя площадь глазной щели (корень из неё) к ширине скул: «размер глаз относительно ширины лица»</td></tr><tr><td>nasal_dorsal_index</td><td>mediapipe</td><td>0.722</td><td>0.758</td><td>0.624 - 0.813</td><td>0.829</td><td>0.734</td><td>0.776</td><td>frontal follow-up only</td><td>ширина крыльев носа к высоте средней трети лица</td></tr><tr><td>nasal_bridge_convergence_angle</td><td>mediapipe</td><td>0.719</td><td>0.765</td><td>0.620 - 0.822</td><td>0.798</td><td>0.752</td><td>0.774</td><td>frontal follow-up only</td><td>угол схождения спинки носа: кончик — переносица — крыло (градусы)</td></tr></tbody></table></div><p>All-frame date medians [10th - 90th percentile], in each definition's native units. The ranges still overlap; these are not reliable single-image identity markers.</p><div class='scroll'><table><tr><th>Metric</th><th>put</th><th>udmurt</th><th>vas</th><th>Risks</th></tr><tr><td>probe_eye_open_r</td><td>0.376 [0.324 - 0.411]</td><td>0.295 [0.257 - 0.321]</td><td>0.332 [0.284 - 0.372]</td><td>expression-sensitive: calm, unblinking frontal frames only</td></tr><tr><td>eye_aperture_left_over_eye_width_mp</td><td>0.361 [0.319 - 0.399]</td><td>0.292 [0.270 - 0.323]</td><td>0.323 [0.273 - 0.368]</td><td>expression-sensitive: calm, unblinking frontal frames only</td></tr><tr><td>orbit_fissure_over_cheek_span_134</td><td>0.133 [0.124 - 0.142]</td><td>0.113 [0.107 - 0.123]</td><td>0.121 [0.111 - 0.131]</td><td>3DMM-inferred geometry, not an anatomical ground-truth measurement</td></tr><tr><td>nasal_dorsal_index</td><td>0.656 [0.614 - 0.702]</td><td>0.738 [0.693 - 0.759]</td><td>0.686 [0.656 - 0.736]</td><td>uses inferred MediaPipe depth; not a purely visible 2D measurement</td></tr><tr><td>nasal_bridge_convergence_angle</td><td>47.438 [45.027 - 50.255]</td><td>52.773 [50.612 - 54.637]</td><td>49.492 [47.022 - 53.859]</td><td>uses inferred MediaPipe depth; not a purely visible 2D measurement</td></tr></table></div><h2>Current 30 Metrics</h2><p>trusted=true in the input means prior pose stability, not separation of all three groups.</p><div class='scroll'><table><thead><tr><th>Metric</th><th>Framework</th><th>Train robustness score</th><th>Later-month worst AUC</th><th>95% month bootstrap</th><th>Neutral worst AUC</th><th>Strict worst AUC</th><th>Pose-adjusted later AUC</th><th>Diagnostic Status</th><th>Definition</th></tr></thead><tbody><tr><td>wet_dry_border_length_ratio_134</td><td>3ddfa</td><td>0.556</td><td>0.863</td><td>0.753 - 0.906</td><td>0.744</td><td>0.797</td><td>0.860</td><td>not selected</td><td>длина двух слизистых границ рта к длине двух кожных: «складчатость» каймы против растянутости кожи над/под губами</td></tr><tr><td>nose_ridge_to_mouth_width_3d</td><td>3ddfa</td><td>0.556</td><td>0.794</td><td>0.655 - 0.840</td><td>0.709</td><td>0.702</td><td>0.815</td><td>not selected</td><td>длина спинки носа (насион → кончик) к ширине рта</td></tr><tr><td>cross_sclera_show_mean_x134mp</td><td>cross</td><td>0.693</td><td>0.790</td><td>0.639 - 0.839</td><td>0.786</td><td>0.749</td><td>0.799</td><td>not selected</td><td>сколько вертикального просвета (белка) остаётся в глазной щели после радужки: разница видимой высоты щели (MediaPipe, по своему IPD) и вертикального диаметра радужки, на высоту смоделированной щели (134, по своему IPD). Отрицательное = радужка больше щели, белок не виден — ровно заявленная разница put против vas/udmurt</td></tr><tr><td>cross_sclera_band_lower_r_x134mp</td><td>cross</td><td>0.731</td><td>0.787</td><td>0.657 - 0.837</td><td>0.786</td><td>0.763</td><td>0.797</td><td>not selected</td><td>нижняя белковая полоса правого глаза: зазор от нижнего края радужки до нижнего века (MediaPipe, в долях MP-IPD) на высоту моделируемой щели (134, в долях 3DDFA-IPD)</td></tr><tr><td>orbit_fissure_over_cheek_span_134</td><td>3ddfa</td><td>0.740</td><td>0.779</td><td>0.632 - 0.868</td><td>0.771</td><td>0.787</td><td>0.764</td><td>frontal follow-up only</td><td>средняя площадь глазной щели (корень из неё) к ширине скул: «размер глаз относительно ширины лица»</td></tr><tr><td>naso_orbital_expansion_3d</td><td>3ddfa</td><td>0.615</td><td>0.777</td><td>0.639 - 0.856</td><td>0.797</td><td>0.696</td><td>0.806</td><td>not selected</td><td>«пролёт» средней зоны (глаза + нос) к ширине рта</td></tr><tr><td>brow_ridge_depth_l_134</td><td>3ddfa</td><td>0.723</td><td>0.769</td><td>0.641 - 0.874</td><td>0.645</td><td>0.774</td><td>0.831</td><td>neutral: worst AUC below 0.65</td><td>насколько левая дуга брови (оба ряда точек) выступает вперёд из базы «глабелла + обе скулы», на ширину лица</td></tr><tr><td>nasal_bridge_convergence_angle</td><td>mediapipe</td><td>0.719</td><td>0.765</td><td>0.620 - 0.822</td><td>0.798</td><td>0.752</td><td>0.774</td><td>frontal follow-up only</td><td>угол схождения спинки носа: кончик — переносица — крыло (градусы)</td></tr><tr><td>eye_aperture_right_over_eye_width_mp</td><td>mediapipe</td><td>0.731</td><td>0.761</td><td>0.641 - 0.819</td><td>0.810</td><td>0.729</td><td>0.797</td><td>not selected</td><td>раскрытие правого глаза: средняя высота щели к её ширине (определение про мимику)</td></tr><tr><td>nasal_dorsal_index</td><td>mediapipe</td><td>0.722</td><td>0.758</td><td>0.624 - 0.813</td><td>0.829</td><td>0.734</td><td>0.776</td><td>frontal follow-up only</td><td>ширина крыльев носа к высоте средней трети лица</td></tr><tr><td>palpebral_area_index</td><td>mediapipe</td><td>0.652</td><td>0.757</td><td>0.590 - 0.804</td><td>0.811</td><td>0.756</td><td>0.754</td><td>not selected</td><td>площадь обеих глазных щелей к площади лица ×1000 (зависит от раскрытия глаз)</td></tr><tr><td>probe_eye_open_l</td><td>mediapipe</td><td>0.713</td><td>0.746</td><td>0.616 - 0.804</td><td>0.758</td><td>0.682</td><td>0.731</td><td>not selected</td><td>высота левой глазной щели к её ширине (раскрытие глаза)</td></tr><tr><td>brow_medial_to_glabella_relief_l_134</td><td>3ddfa</td><td>0.696</td><td>0.695</td><td>0.531 - 0.807</td><td>0.628</td><td>0.699</td><td>0.725</td><td>not selected</td><td>разница глубин головы левой брови и глабеллы: «нависает» ли бровь над переносицей или лежит с ней в одной плоскости</td></tr><tr><td>mandibular_body_to_ramus_ratio</td><td>mediapipe</td><td>0.657</td><td>0.695</td><td>0.511 - 0.837</td><td>0.796</td><td>0.657</td><td>0.660</td><td>not selected</td><td>средняя по двум сторонам «ветвь челюсти → подбородок» к «скула → ветвь»</td></tr><tr><td>lip_profile_convexity_134</td><td>3ddfa</td><td>0.333</td><td>0.680</td><td>0.510 - 0.860</td><td>0.536</td><td>0.685</td><td>0.653</td><td>not selected</td><td>насколько центр губ уходит вперёд относительно хорды «центр бровей → подбородок» на уровне губ (отрицательное = выступает), на ширину лица</td></tr><tr><td>mouth_width_to_lower_face_ratio</td><td>mediapipe</td><td>0.548</td><td>0.655</td><td>0.489 - 0.820</td><td>0.654</td><td>0.741</td><td>0.665</td><td>not selected</td><td>ширина рта к высоте нижней трети лица (определение про выражение)</td></tr><tr><td>inner_canthal_over_ipd_mp</td><td>mediapipe</td><td>0.482</td><td>0.630</td><td>0.415 - 0.743</td><td>0.798</td><td>0.601</td><td>0.591</td><td>not selected</td><td>расстояние между внутренними уголками глаз к зрачковому расстоянию</td></tr><tr><td>lateral_canthus_relief_r_134</td><td>3ddfa</td><td>0.509</td><td>0.628</td><td>0.440 - 0.795</td><td>0.567</td><td>0.538</td><td>0.707</td><td>not selected</td><td>глубина наружного уголка правого глаза относительно средних глубин всех точек его века, на ширину лица</td></tr><tr><td>midface_profile_convexity_3ddfa</td><td>3ddfa</td><td>0.625</td><td>0.625</td><td>0.414 - 0.782</td><td>0.598</td><td>0.704</td><td>0.620</td><td>not selected</td><td>отклонение кончика носа по глубине от хорды «центр бровей → подбородок», на ширину лица: профильная кривизна средней зоны</td></tr><tr><td>lower_lip_to_chin_over_lower_third_mp</td><td>mediapipe</td><td>0.652</td><td>0.600</td><td>0.368 - 0.787</td><td>0.774</td><td>0.620</td><td>0.524</td><td>not selected</td><td>расстояние «нижняя губа → подбородок» к высоте нижней трети лица</td></tr><tr><td>lip_thick_over_mouth_w</td><td>mediapipe</td><td>0.518</td><td>0.516</td><td>0.322 - 0.707</td><td>0.658</td><td>0.515</td><td>0.489</td><td>not selected</td><td>полная толщина губ (верх + низ) к ширине рта</td></tr><tr><td>lid_margin_depth_spread_r_134</td><td>3ddfa</td><td>0.518</td><td>0.506</td><td>0.291 - 0.686</td><td>0.470</td><td>0.436</td><td>0.526</td><td>not selected</td><td>разброс глубин по всем точкам края правой глазной щели: насколько «объёмная» у глаза чаша (на зрачковое расстояние)</td></tr><tr><td>chin_lip_protrusion_ratio_134</td><td>3ddfa</td><td>0.464</td><td>0.464</td><td>0.259 - 0.642</td><td>0.574</td><td>0.513</td><td>0.496</td><td>not selected</td><td>выступание красной каймы губ из базы «глабелла + скулы» к тому же выступанию подбородка (погониона): «губы против подбородка» в профиле</td></tr><tr><td>palpebral_to_bigonial_ratio</td><td>mediapipe</td><td>0.519</td><td>0.404</td><td>0.226 - 0.590</td><td>0.345</td><td>0.573</td><td>0.491</td><td>not selected</td><td>разведение внешних уголков глаз к ширине углов нижней челюсти</td></tr><tr><td>lip_vermilion_thickness_lower_134</td><td>3ddfa</td><td>0.385</td><td>0.370</td><td>0.179 - 0.567</td><td>0.306</td><td>0.464</td><td>0.372</td><td>not selected</td><td>то же для нижней губы: толщина слизистой от её границы до кожной</td></tr><tr><td>mouth_aspect_ratio_3d</td><td>3ddfa</td><td>0.467</td><td>0.357</td><td>0.162 - 0.556</td><td>0.302</td><td>0.478</td><td>0.347</td><td>not selected</td><td>высота рта к его ширине по 3D-сетке (определение про выражение)</td></tr><tr><td>probe_lower_w_over_face_w</td><td>mediapipe</td><td>0.489</td><td>0.328</td><td>0.145 - 0.558</td><td>0.245</td><td>0.485</td><td>0.318</td><td>not selected</td><td>ширина нижней челюсти (58 ↔ 288) к ширине лица по скулам</td></tr><tr><td>lip_border_undulation_134</td><td>3ddfa</td><td>0.467</td><td>0.303</td><td>0.127 - 0.491</td><td>0.346</td><td>0.445</td><td>0.345</td><td>not selected</td><td>средний прогиб кожных границ губ от их хорд («луковичный» изгиб верхней и изгиб нижней) к ширине рта</td></tr><tr><td>lip_vermilion_thickness_upper_134</td><td>3ddfa</td><td>0.601</td><td>0.253</td><td>0.100 - 0.438</td><td>0.406</td><td>0.531</td><td>0.243</td><td>not selected</td><td>вертикальная толщина верхней красной каймы (медиана расстояний кожной границы до слизистой) к ширине рта</td></tr><tr><td>mentolabial_relief_3d_134</td><td>3ddfa</td><td>0.559</td><td>0.238</td><td>0.079 - 0.400</td><td>0.422</td><td>0.490</td><td>0.275</td><td>not selected</td><td>глубина губоподбородочной борозды в профиле: разница глубин погониона и борозды на расстояние между ними</td></tr></tbody></table></div><h2>Input Bands Audit</h2><p>30/30 rows reproduce with the previous cache; 2/30 reproduce to four-decimal rounding with freshly extracted geometry. 20/30 stored closest-pair gaps are smaller than one noise band. Small numerical differences are not by themselves formula bugs.</p><p>Unit clarification: ratios are dimensionless, angles are degrees, and lengths in the normalized model are RMS-106 coordinates. The band calculator uses scaled MAD (1.4826 times raw median absolute deviation), not raw MAD.</p><div class='scroll'><table><tr><th>Metric</th><th>Prior pose stability</th><th>Closest stored pair</th><th>Stored gap / MAD</th><th>Stored band</th><th>Fresh band</th><th>Max reference shift / stored band</th></tr><tr><td>lid_margin_depth_spread_r_134</td><td>True</td><td>udmurt~vas</td><td>0.067</td><td>0.0015</td><td>0.001516</td><td>0.082</td></tr><tr><td>lateral_canthus_relief_r_134</td><td>True</td><td>udmurt~vas</td><td>0.111</td><td>0.0036</td><td>0.0036337</td><td>0.039</td></tr><tr><td>lip_thick_over_mouth_w</td><td>False</td><td>udmurt~vas</td><td>0.125</td><td>0.0544</td><td>0.0542041</td><td>0.001</td></tr><tr><td>lip_profile_convexity_134</td><td>True</td><td>udmurt~vas</td><td>0.225</td><td>0.0147</td><td>0.0145393</td><td>0.035</td></tr><tr><td>brow_medial_to_glabella_relief_l_134</td><td>False</td><td>udmurt~vas</td><td>0.225</td><td>0.004</td><td>0.0040013</td><td>0.015</td></tr><tr><td>lip_vermilion_thickness_lower_134</td><td>True</td><td>udmurt~vas</td><td>0.328</td><td>0.0064</td><td>0.0062546</td><td>0.008</td></tr><tr><td>lip_border_undulation_134</td><td>False</td><td>udmurt~vas</td><td>0.360</td><td>0.0075</td><td>0.0074318</td><td>0.005</td></tr><tr><td>chin_lip_protrusion_ratio_134</td><td>True</td><td>udmurt~vas</td><td>0.456</td><td>0.0305</td><td>0.0307819</td><td>0.011</td></tr><tr><td>brow_ridge_depth_l_134</td><td>True</td><td>udmurt~vas</td><td>0.456</td><td>0.0068</td><td>0.0066941</td><td>0.018</td></tr><tr><td>midface_profile_convexity_3ddfa</td><td>True</td><td>udmurt~vas</td><td>0.458</td><td>0.0072</td><td>0.0069756</td><td>0.054</td></tr><tr><td>mentolabial_relief_3d_134</td><td>False</td><td>udmurt~vas</td><td>0.484</td><td>0.0419</td><td>0.042526</td><td>0.000</td></tr><tr><td>palpebral_to_bigonial_ratio</td><td>False</td><td>udmurt~vas</td><td>0.532</td><td>0.022</td><td>0.022007</td><td>0.001</td></tr><tr><td>wet_dry_border_length_ratio_134</td><td>True</td><td>udmurt~vas</td><td>0.567</td><td>0.006</td><td>0.0058662</td><td>0.008</td></tr><tr><td>lip_vermilion_thickness_upper_134</td><td>False</td><td>udmurt~vas</td><td>0.579</td><td>0.0076</td><td>0.0074411</td><td>0.006</td></tr><tr><td>mouth_width_to_lower_face_ratio</td><td>False</td><td>udmurt~vas</td><td>0.786</td><td>0.0471</td><td>0.0469814</td><td>0.024</td></tr><tr><td>mandibular_body_to_ramus_ratio</td><td>False</td><td>udmurt~vas</td><td>0.802</td><td>0.0278</td><td>0.0281345</td><td>0.001</td></tr><tr><td>mouth_aspect_ratio_3d</td><td>True</td><td>udmurt~vas</td><td>0.819</td><td>0.0238</td><td>0.0238188</td><td>0.043</td></tr><tr><td>lower_lip_to_chin_over_lower_third_mp</td><td>False</td><td>udmurt~vas</td><td>0.837</td><td>0.0312</td><td>0.0312699</td><td>0.001</td></tr><tr><td>naso_orbital_expansion_3d</td><td>False</td><td>udmurt~vas</td><td>0.872</td><td>0.032</td><td>0.0307458</td><td>0.016</td></tr><tr><td>nose_ridge_to_mouth_width_3d</td><td>False</td><td>udmurt~vas</td><td>0.995</td><td>0.0216</td><td>0.0216546</td><td>0.002</td></tr><tr><td>probe_eye_open_l</td><td>False</td><td>udmurt~vas</td><td>1.009</td><td>0.0337</td><td>0.033658</td><td>0.002</td></tr><tr><td>probe_lower_w_over_face_w</td><td>False</td><td>udmurt~vas</td><td>1.056</td><td>0.0142</td><td>0.0138779</td><td>0.004</td></tr><tr><td>nasal_dorsal_index</td><td>False</td><td>put~vas</td><td>1.101</td><td>0.0288</td><td>0.0288142</td><td>0.002</td></tr><tr><td>palpebral_area_index</td><td>False</td><td>udmurt~vas</td><td>1.121</td><td>2.0537</td><td>2.0388302</td><td>0.000</td></tr><tr><td>inner_canthal_over_ipd_mp</td><td>False</td><td>udmurt~vas</td><td>1.133</td><td>0.0173</td><td>0.017293</td><td>0.003</td></tr><tr><td>cross_sclera_show_mean_x134mp</td><td>False</td><td>udmurt~vas</td><td>1.175</td><td>0.1063</td><td>0.1059847</td><td>0.001</td></tr><tr><td>cross_sclera_band_lower_r_x134mp</td><td>False</td><td>udmurt~vas</td><td>1.191</td><td>0.066</td><td>0.0660733</td><td>0.006</td></tr><tr><td>eye_aperture_right_over_eye_width_mp</td><td>False</td><td>put~vas</td><td>1.232</td><td>0.0314</td><td>0.0313342</td><td>0.001</td></tr><tr><td>nasal_bridge_convergence_angle</td><td>False</td><td>put~vas</td><td>1.291</td><td>1.858</td><td>1.8528312</td><td>0.001</td></tr><tr><td>orbit_fissure_over_cheek_span_134</td><td>False</td><td>udmurt~vas</td><td>1.368</td><td>0.0068</td><td>0.0070902</td><td>0.028</td></tr></table></div><h2>Extraction Reproducibility</h2><p>The previous cache did not bind source hashes; the cause of old/fresh differences cannot be established from filenames. Current source hashes and nine repeated fresh checks are saved in analysis.json.</p><pre>{
+  &quot;put&quot;: {
+    &quot;lmk&quot;: {
+      &quot;compared&quot;: 150,
+      &quot;changed&quot;: 22,
+      &quot;max_abs_error&quot;: 0.0088027,
+      &quot;units&quot;: &quot;RMS-106&quot;
+    },
+    &quot;mp&quot;: {
+      &quot;compared&quot;: 150,
+      &quot;changed&quot;: 10,
+      &quot;max_abs_error&quot;: 0.8661194,
+      &quot;units&quot;: &quot;pixels&quot;
+    }
+  },
+  &quot;udmurt&quot;: {
+    &quot;lmk&quot;: {
+      &quot;compared&quot;: 31,
+      &quot;changed&quot;: 3,
+      &quot;max_abs_error&quot;: 0.0046934,
+      &quot;units&quot;: &quot;RMS-106&quot;
+    },
+    &quot;mp&quot;: {
+      &quot;compared&quot;: 31,
+      &quot;changed&quot;: 3,
+      &quot;max_abs_error&quot;: 0.9945517,
+      &quot;units&quot;: &quot;pixels&quot;
+    }
+  },
+  &quot;vas&quot;: {
+    &quot;lmk&quot;: {
+      &quot;compared&quot;: 76,
+      &quot;changed&quot;: 12,
+      &quot;max_abs_error&quot;: 0.0074513,
+      &quot;units&quot;: &quot;RMS-106&quot;
+    },
+    &quot;mp&quot;: {
+      &quot;compared&quot;: 76,
+      &quot;changed&quot;: 1,
+      &quot;max_abs_error&quot;: 0.4165201,
+      &quot;units&quot;: &quot;pixels&quot;
+    }
+  }
+}</pre><h2>Pair Weighting</h2><p>Old all-pairs pooling weights groups quadratically. This audit uses date medians and equal-weight pair summaries instead.</p><pre>{
+  &quot;put&quot;: 11175,
+  &quot;udmurt&quot;: 465,
+  &quot;vas&quot;: 2850
+}</pre><h2>Coverage and Chronological Blocks</h2><pre>{
+  &quot;put&quot;: {
+    &quot;angle_rows&quot;: 402,
+    &quot;frontal_photos&quot;: 150,
+    &quot;strict_photos&quot;: 78,
+    &quot;neutral_photos&quot;: 133,
+    &quot;strict_neutral_photos&quot;: 67,
+    &quot;unknown_expression_photos&quot;: 0,
+    &quot;frontal_pitch_median&quot;: 15.665,
+    &quot;frontal_roll_over_10&quot;: 5,
+    &quot;frontal_pitch_over_20&quot;: 23,
+    &quot;csv_sha256&quot;: &quot;a37b1cd1f62a3c65159f20c41112910a483f55dfbbc659c42cb6ed0aef3a1be1&quot;,
+    &quot;dates&quot;: 142,
+    &quot;months&quot;: 85,
+    &quot;date_range&quot;: [
+      &quot;1999-09-01&quot;,
+      &quot;2018-07-16&quot;
+    ],
+    &quot;train_photos&quot;: 87,
+    &quot;test_photos&quot;: 63,
+    &quot;train_months&quot;: [
+      &quot;1999-09&quot;,
+      &quot;1999-10&quot;,
+      &quot;1999-11&quot;,
+      &quot;2000-03&quot;,
+      &quot;2000-04&quot;,
+      &quot;2000-05&quot;,
+      &quot;2000-06&quot;,
+      &quot;2000-07&quot;,
+      &quot;2000-09&quot;,
+      &quot;2001-02&quot;,
+      &quot;2001-03&quot;,
+      &quot;2001-04&quot;,
+      &quot;2001-07&quot;,
+      &quot;2001-09&quot;,
+      &quot;2002-04&quot;,
+      &quot;2002-07&quot;,
+      &quot;2002-09&quot;,
+      &quot;2002-11&quot;,
+      &quot;2003-01&quot;,
+      &quot;2003-02&quot;,
+      &quot;2003-05&quot;,
+      &quot;2003-06&quot;,
+      &quot;2003-07&quot;,
+      &quot;2003-10&quot;,
+      &quot;2003-12&quot;,
+      &quot;2004-01&quot;,
+      &quot;2004-02&quot;,
+      &quot;2004-03&quot;,
+      &quot;2004-04&quot;,
+      &quot;2004-05&quot;,
+      &quot;2004-06&quot;,
+      &quot;2004-08&quot;,
+      &quot;2004-09&quot;,
+      &quot;2004-12&quot;,
+      &quot;2005-02&quot;,
+      &quot;2005-05&quot;,
+      &quot;2005-06&quot;,
+      &quot;2005-07&quot;,
+      &quot;2005-08&quot;,
+      &quot;2005-09&quot;,
+      &quot;2005-10&quot;,
+      &quot;2005-12&quot;,
+      &quot;2006-01&quot;,
+      &quot;2006-02&quot;,
+      &quot;2006-03&quot;,
+      &quot;2006-04&quot;,
+      &quot;2006-05&quot;,
+      &quot;2006-06&quot;,
+      &quot;2006-07&quot;,
+      &quot;2006-08&quot;,
+      &quot;2006-09&quot;
+    ],
+    &quot;test_months&quot;: [
+      &quot;2006-10&quot;,
+      &quot;2006-11&quot;,
+      &quot;2006-12&quot;,
+      &quot;2007-01&quot;,
+      &quot;2007-03&quot;,
+      &quot;2007-04&quot;,
+      &quot;2007-05&quot;,
+      &quot;2007-06&quot;,
+      &quot;2007-07&quot;,
+      &quot;2007-08&quot;,
+      &quot;2007-09&quot;,
+      &quot;2007-11&quot;,
+      &quot;2007-12&quot;,
+      &quot;2008-01&quot;,
+      &quot;2008-02&quot;,
+      &quot;2008-03&quot;,
+      &quot;2008-04&quot;,
+      &quot;2008-05&quot;,
+      &quot;2008-06&quot;,
+      &quot;2008-07&quot;,
+      &quot;2008-08&quot;,
+      &quot;2008-09&quot;,
+      &quot;2008-10&quot;,
+      &quot;2008-11&quot;,
+      &quot;2008-12&quot;,
+      &quot;2009-01&quot;,
+      &quot;2012-05&quot;,
+      &quot;2012-07&quot;,
+      &quot;2013-02&quot;,
+      &quot;2013-03&quot;,
+      &quot;2015-08&quot;,
+      &quot;2015-11&quot;,
+      &quot;2018-06&quot;,
+      &quot;2018-07&quot;
+    ]
+  },
+  &quot;udmurt&quot;: {
+    &quot;angle_rows&quot;: 135,
+    &quot;frontal_photos&quot;: 31,
+    &quot;strict_photos&quot;: 14,
+    &quot;neutral_photos&quot;: 13,
+    &quot;strict_neutral_photos&quot;: 5,
+    &quot;unknown_expression_photos&quot;: 0,
+    &quot;frontal_pitch_median&quot;: 11.12,
+    &quot;frontal_roll_over_10&quot;: 2,
+    &quot;frontal_pitch_over_20&quot;: 4,
+    &quot;csv_sha256&quot;: &quot;da7963760877e0a6b769da600ddac8fc0ffdc4b7eb59f622d3c5872083e3d4b9&quot;,
+    &quot;dates&quot;: 29,
+    &quot;months&quot;: 28,
+    &quot;date_range&quot;: [
+      &quot;2010-09-20&quot;,
+      &quot;2020-01-07&quot;
+    ],
+    &quot;train_photos&quot;: 17,
+    &quot;test_photos&quot;: 14,
+    &quot;train_months&quot;: [
+      &quot;2010-09&quot;,
+      &quot;2011-02&quot;,
+      &quot;2011-04&quot;,
+      &quot;2011-08&quot;,
+      &quot;2011-09&quot;,
+      &quot;2012-03&quot;,
+      &quot;2014-01&quot;,
+      &quot;2015-02&quot;,
+      &quot;2015-05&quot;,
+      &quot;2015-09&quot;,
+      &quot;2015-10&quot;,
+      &quot;2015-12&quot;,
+      &quot;2016-05&quot;,
+      &quot;2016-10&quot;,
+      &quot;2017-02&quot;,
+      &quot;2017-07&quot;
+    ],
+    &quot;test_months&quot;: [
+      &quot;2017-08&quot;,
+      &quot;2017-11&quot;,
+      &quot;2018-05&quot;,
+      &quot;2018-07&quot;,
+      &quot;2019-01&quot;,
+      &quot;2019-03&quot;,
+      &quot;2019-06&quot;,
+      &quot;2019-07&quot;,
+      &quot;2019-08&quot;,
+      &quot;2019-10&quot;,
+      &quot;2019-11&quot;,
+      &quot;2020-01&quot;
+    ]
+  },
+  &quot;vas&quot;: {
+    &quot;angle_rows&quot;: 238,
+    &quot;frontal_photos&quot;: 76,
+    &quot;strict_photos&quot;: 36,
+    &quot;neutral_photos&quot;: 58,
+    &quot;strict_neutral_photos&quot;: 29,
+    &quot;unknown_expression_photos&quot;: 0,
+    &quot;frontal_pitch_median&quot;: 13.19,
+    &quot;frontal_roll_over_10&quot;: 5,
+    &quot;frontal_pitch_over_20&quot;: 9,
+    &quot;csv_sha256&quot;: &quot;d9402a5bacfda11482645ec84ace77d76cccd8cde2f37735fe8778ee87fc23b2&quot;,
+    &quot;dates&quot;: 68,
+    &quot;months&quot;: 32,
+    &quot;date_range&quot;: [
+      &quot;2023-01-18&quot;,
+      &quot;2026-05-13&quot;
+    ],
+    &quot;train_photos&quot;: 37,
+    &quot;test_photos&quot;: 39,
+    &quot;train_months&quot;: [
+      &quot;2023-01&quot;,
+      &quot;2023-02&quot;,
+      &quot;2023-03&quot;,
+      &quot;2023-04&quot;,
+      &quot;2023-05&quot;,
+      &quot;2023-06&quot;,
+      &quot;2023-09&quot;,
+      &quot;2023-10&quot;,
+      &quot;2023-12&quot;,
+      &quot;2024-01&quot;,
+      &quot;2024-02&quot;,
+      &quot;2024-03&quot;,
+      &quot;2024-04&quot;,
+      &quot;2024-05&quot;,
+      &quot;2024-06&quot;,
+      &quot;2024-08&quot;,
+      &quot;2024-10&quot;,
+      &quot;2024-11&quot;,
+      &quot;2024-12&quot;
+    ],
+    &quot;test_months&quot;: [
+      &quot;2025-01&quot;,
+      &quot;2025-02&quot;,
+      &quot;2025-03&quot;,
+      &quot;2025-04&quot;,
+      &quot;2025-05&quot;,
+      &quot;2025-06&quot;,
+      &quot;2025-07&quot;,
+      &quot;2025-09&quot;,
+      &quot;2025-11&quot;,
+      &quot;2025-12&quot;,
+      &quot;2026-02&quot;,
+      &quot;2026-03&quot;,
+      &quot;2026-05&quot;
+    ]
+  }
+}</pre><h2>Limitations</h2><ul><li>Only three supplied groups. Labels are metadata; no identity or ethnicity is inferred or verified.</li><li>Capture-date distributions differ, with incomplete temporal overlap. Age, camera, lighting and source processing remain confounded with group effects.</li><li>3DDFA depth is inferred from a single image. Stable reconstruction is not proof of anatomical measurement accuracy.</li><li>The source CSV&#x27;s pitch convention is model-based. Strict filtering is a sensitivity test, not ground-truth pose annotation.</li><li>Neutral and strict-neutral samples in udmurt are small. Missing expression scores are unknown, never neutral.</li><li>Date/month blocks approximate sessions; true session IDs and an independent new acquisition are unavailable.</li><li>Dates come from filename prefixes supplied with the dataset, not independently verified capture timestamps.</li><li>The same dataset was used in earlier metric searches. Temporal evaluation is internal, not an untouched external test.</li><li>259 definitions were explored. Bootstrap intervals are unadjusted descriptive intervals, not familywise significance claims.</li><li>Pose adjustment is diagnostic: shared linear slopes fitted within groups using early months only; no guarantee of transfer.</li><li>Bilateral means are six simple research candidates, not new approved production definitions.</li><li>Frontal follow-up flags are post-selection heuristic diagnostics. They are not an independent test or universal quality thresholds.</li><li>The old cache has no original photo hashes. Current hashes and sampled fresh checks improve traceability, not full historical provenance.</li><li>Balanced MADs describe date medians, not single-photo production thresholds. Do not copy them into metric_bands.json.</li><li>AUC describes rank separation on these groups, not an identity probability or a same/different-person verdict.</li></ul></html>

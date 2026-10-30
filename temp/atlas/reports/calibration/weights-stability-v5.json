@@ -1,0 +1,175 @@
+{
+ "iteration": 5,
+ "step": 6,
+ "generated_at": "2026-10-21T10:21:08",
+ "runtime_sec": 138.8,
+ "gap": 30,
+ "seed": 42,
+ "n_splits": 5,
+ "people": [
+  "person_01",
+  "person_02",
+  "person_03",
+  "person_04",
+  "person_05",
+  "person_06",
+  "person_07",
+  "person_10",
+  "person_11",
+  "person_9"
+ ],
+ "method": "веса 1/clip(sigma) на двух независимых половинах людей; медиана |Δw| относительно; ΔAUC на отложенной половине",
+ "runs": [
+  {
+   "split": 0,
+   "seed": 42,
+   "half_A": [
+    "person_03",
+    "person_04",
+    "person_06",
+    "person_10",
+    "person_11"
+   ],
+   "half_B": [
+    "person_01",
+    "person_02",
+    "person_05",
+    "person_07",
+    "person_9"
+   ],
+   "median_abs_dw_rel": 0.3471,
+   "at_bounds_pct_A": 10.0,
+   "at_bounds_pct_B": 10.0,
+   "at_bounds_pct_max": 10.0,
+   "delta_auc_B_on_A_profile": 0.0135,
+   "delta_auc_A_on_B_profile": 0.0108,
+   "auc_base_B": 0.8105,
+   "auc_cand_B": 0.824,
+   "auc_base_A": 0.6468,
+   "auc_cand_A": 0.6576
+  },
+  {
+   "split": 1,
+   "seed": 42,
+   "half_A": [
+    "person_02",
+    "person_03",
+    "person_04",
+    "person_05",
+    "person_06"
+   ],
+   "half_B": [
+    "person_01",
+    "person_07",
+    "person_10",
+    "person_11",
+    "person_9"
+   ],
+   "median_abs_dw_rel": 0.4038,
+   "at_bounds_pct_A": 10.0,
+   "at_bounds_pct_B": 10.0,
+   "at_bounds_pct_max": 10.0,
+   "delta_auc_B_on_A_profile": 0.0057,
+   "delta_auc_A_on_B_profile": 0.0167,
+   "auc_base_B": 0.629,
+   "auc_cand_B": 0.6347,
+   "auc_base_A": 0.7881,
+   "auc_cand_A": 0.8048
+  },
+  {
+   "split": 2,
+   "seed": 42,
+   "half_A": [
+    "person_01",
+    "person_03",
+    "person_05",
+    "person_06",
+    "person_10"
+   ],
+   "half_B": [
+    "person_02",
+    "person_04",
+    "person_07",
+    "person_11",
+    "person_9"
+   ],
+   "median_abs_dw_rel": 0.2558,
+   "at_bounds_pct_A": 10.0,
+   "at_bounds_pct_B": 10.0,
+   "at_bounds_pct_max": 10.0,
+   "delta_auc_B_on_A_profile": 0.018,
+   "delta_auc_A_on_B_profile": 0.0035,
+   "auc_base_B": 0.6527,
+   "auc_cand_B": 0.6707,
+   "auc_base_A": 0.7567,
+   "auc_cand_A": 0.7602
+  },
+  {
+   "split": 3,
+   "seed": 42,
+   "half_A": [
+    "person_01",
+    "person_03",
+    "person_04",
+    "person_10",
+    "person_11"
+   ],
+   "half_B": [
+    "person_02",
+    "person_05",
+    "person_06",
+    "person_07",
+    "person_9"
+   ],
+   "median_abs_dw_rel": 0.3793,
+   "at_bounds_pct_A": 10.0,
+   "at_bounds_pct_B": 10.0,
+   "at_bounds_pct_max": 10.0,
+   "delta_auc_B_on_A_profile": 0.0129,
+   "delta_auc_A_on_B_profile": 0.0037,
+   "auc_base_B": 0.7954,
+   "auc_cand_B": 0.8083,
+   "auc_base_A": 0.6569,
+   "auc_cand_A": 0.6606
+  },
+  {
+   "split": 4,
+   "seed": 42,
+   "half_A": [
+    "person_01",
+    "person_04",
+    "person_07",
+    "person_10",
+    "person_9"
+   ],
+   "half_B": [
+    "person_02",
+    "person_03",
+    "person_05",
+    "person_06",
+    "person_11"
+   ],
+   "median_abs_dw_rel": 0.0924,
+   "at_bounds_pct_A": 10.0,
+   "at_bounds_pct_B": 10.0,
+   "at_bounds_pct_max": 10.0,
+   "delta_auc_B_on_A_profile": 0.0254,
+   "delta_auc_A_on_B_profile": 0.0101,
+   "auc_base_B": 0.7804,
+   "auc_cand_B": 0.8058,
+   "auc_base_A": 0.6639,
+   "auc_cand_A": 0.674
+  }
+ ],
+ "gates": {
+  "median_abs_dw_le_10pct": false,
+  "at_bounds_le_1pct": false,
+  "delta_auc_positive_5_of_5": true,
+  "median_of_medians": 0.3471,
+  "max_at_bounds_pct": 10.0,
+  "splits_with_both_delta_auc_positive": "5/5",
+  "weights_v4_connect_allowed": false
+ },
+ "decision": "weights-v4.json остаётся неподключённым",
+ "figure": "reports/figures/v5-weights-stability.png"
+}

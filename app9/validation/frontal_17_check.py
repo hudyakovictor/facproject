@@ -27,25 +27,47 @@ IDENTITIES = ("put", "vas", "udmurt")
 CSVS = {n: ROOT / f"{n}_angles.csv" for n in IDENTITIES}
 
 
-def frontal_files(ident: str) -> list[Path]:
+def pose_files(ident: str, bins: tuple[str, ...], yaw_min: float = 0.0,
+               yaw_max: float = 15.0) -> list[Path]:
+    """Кадры по *_angles.csv: status==ok, бин входит в `bins`, |yaw| в [yaw_min, yaw_max].
+
+    Один фильтр на все выборки по ракурсу: раньше он был переписан в каждой проверке
+    по-своему, и правка порога разъезжалась по скриптам.
+    """
     keep: list[Path] = []
     with CSVS[ident].open(newline="", encoding="utf-8") as fh:
         for rec in csv.DictReader(fh):
             name = (rec.get("filename") or "").strip()
             if not name or (rec.get("status") or "").strip() != "ok":
                 continue
-            if (rec.get("pose_bin") or "").strip() != "frontal":
+            if (rec.get("pose_bin") or "").strip() not in bins:
                 continue
             try:
                 yaw = float(rec.get("yaw_deg"))
             except (TypeError, ValueError):
                 continue
-            if abs(yaw) > 15:
+            if not yaw_min <= abs(yaw) <= yaw_max:
                 continue
             path = DATA / ident / name
             if path.is_file():
                 keep.append(path)
     return keep
+
+
+def frontal_files(ident: str) -> list[Path]:
+    return pose_files(ident, ("frontal",), 0.0, 15.0)
+
+
+# Подфронтальный ракурс: голова повёрнута на 10–25°, лицо ещё целиком видно.
+# Бины left_light/right_light; нижняя граница 10° стоит не для «другого диапазона»,
+# а чтобы выборки не пересекались по фото: фронтальные кадры с |yaw| до 15 лежат в
+# бине frontal, сюда попадают только лёгкие повороты.
+SUBFRONTAL_BINS = ("left_light", "right_light")
+SUBFRONTAL_YAW = (10.0, 25.0)
+
+
+def subfrontal_files(ident: str) -> list[Path]:
+    return pose_files(ident, SUBFRONTAL_BINS, *SUBFRONTAL_YAW)
 
 
 def load_cache() -> dict[str, list[float]]:

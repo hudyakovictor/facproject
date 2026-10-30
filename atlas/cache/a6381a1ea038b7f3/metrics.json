@@ -1,0 +1,100 @@
+{
+  "ada_cos_to_centroid": {
+    "key": "1ccb16bc6889e58d",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_norm_quality": {
+    "key": "e125d0ed469c9def",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_pair_cos": {
+    "key": "46b6486de4232611",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_eye_area": {
+    "key": "43b4942b4dc02e2d",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_jaw_ratio": {
+    "key": "cfe1a7dd973afd2f",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_nose_projection": {
+    "key": "81070b0afe24017c",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_canthal_tilt": {
+    "key": "c76dd95fe1d2214c",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_width_ratio": {
+    "key": "a5b231998607e9e9",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_height_ratio": {
+    "key": "d75b0c9042facdf1",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mp_mouth_ratio": {
+    "key": "4a65926218e8772f",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mesh_eye_area": {
+    "key": "dad0c62f5e047dcd",
+    "result": {
+      "value": 0.040891374708537216,
+      "reason": null
+    }
+  },
+  "mesh_jaw_ratio": {
+    "key": "5abf78691979373f",
+    "result": {
+      "value": 0.7757741808891296,
+      "reason": null
+    }
+  },
+  "mesh_nose_projection": {
+    "key": "9279cf4001274a55",
+    "result": {
+      "value": 0.3326517343521118,
+      "reason": null
+    }
+  },
+  "mesh_height_example": {
+    "key": "1ce5acc77bf2aedb",
+    "result": {
+      "value": 2.3716893196105957,
+      "reason": null
+    }
+  }
+}

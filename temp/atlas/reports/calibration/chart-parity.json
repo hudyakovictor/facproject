@@ -1,0 +1,276 @@
+{
+ "endpoint": "/api/chart/series",
+ "parity": {
+  "person_04": {
+   "euclid": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "euclid",
+     "metric": "euclid",
+     "weighting": "none",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   },
+   "normal": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "normal",
+     "metric": "normal",
+     "weighting": "none",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   },
+   "weighted_euclid": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "weighted_euclid",
+     "metric": "euclid",
+     "weighting": "calibrated",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   },
+   "weighted_normal": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "weighted_normal",
+     "metric": "normal",
+     "weighting": "calibrated",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   }
+  },
+  "person_02": {
+   "euclid": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "euclid",
+     "metric": "euclid",
+     "weighting": "none",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   },
+   "normal": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "normal",
+     "metric": "normal",
+     "weighting": "none",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   },
+   "weighted_euclid": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "weighted_euclid",
+     "metric": "euclid",
+     "weighting": "calibrated",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   },
+   "weighted_normal": {
+    "steps": 29,
+    "harness_steps": 29,
+    "missing_pairs": 0,
+    "mismatched_fields": 0,
+    "max_abs_delta": 0.0,
+    "display_ok": true,
+    "mode": {
+     "name": "weighted_normal",
+     "metric": "normal",
+     "weighting": "calibrated",
+     "temporal_filter": "none",
+     "filter_window": 3
+    },
+    "pass": true
+   }
+  }
+ },
+ "chain": {
+  "euclid": {
+   "mode": "euclid",
+   "frames": 10,
+   "steps": 9,
+   "segments": [
+    [
+     0,
+     6
+    ],
+    [
+     5,
+     10
+    ]
+   ],
+   "mismatched_fields": 0,
+   "join_max_abs_delta": 0.0,
+   "median_keeps_raw": true,
+   "median_changes_display": true,
+   "pass": true
+  },
+  "normal": {
+   "mode": "normal",
+   "frames": 10,
+   "steps": 9,
+   "segments": [
+    [
+     0,
+     6
+    ],
+    [
+     5,
+     10
+    ]
+   ],
+   "mismatched_fields": 0,
+   "join_max_abs_delta": 0.0,
+   "median_keeps_raw": true,
+   "median_changes_display": true,
+   "pass": true
+  },
+  "weighted_euclid": {
+   "mode": "weighted_euclid",
+   "frames": 10,
+   "steps": 9,
+   "segments": [
+    [
+     0,
+     6
+    ],
+    [
+     5,
+     10
+    ]
+   ],
+   "mismatched_fields": 0,
+   "join_max_abs_delta": 0.0,
+   "median_keeps_raw": true,
+   "median_changes_display": true,
+   "pass": true
+  },
+  "weighted_normal": {
+   "mode": "weighted_normal",
+   "frames": 10,
+   "steps": 9,
+   "segments": [
+    [
+     0,
+     6
+    ],
+    [
+     5,
+     10
+    ]
+   ],
+   "mismatched_fields": 0,
+   "join_max_abs_delta": 0.0,
+   "median_keeps_raw": true,
+   "median_changes_display": true,
+   "pass": true
+  }
+ },
+ "heat": {
+  "euclid": {
+   "mode": "euclid",
+   "pair": [
+    "frame_000085.jpg",
+    "frame_000091.jpg"
+   ],
+   "heat_aggregate": 0.0054613243884271395,
+   "chart_value_raw": 0.0054613243884271395,
+   "helper_value_raw": 0.0054613243884271395,
+   "max_abs_delta": 0.0,
+   "pass": true
+  },
+  "weighted_normal": {
+   "mode": "weighted_normal",
+   "pair": [
+    "frame_000085.jpg",
+    "frame_000091.jpg"
+   ],
+   "heat_aggregate": 0.00279918543428595,
+   "chart_value_raw": 0.00279918543428595,
+   "helper_value_raw": 0.00279918543428595,
+   "max_abs_delta": 0.0,
+   "pass": true
+  }
+ },
+ "config": {
+  "base_mode": {
+   "name": "euclid",
+   "metric": "euclid",
+   "weighting": "none",
+   "temporal_filter": "none",
+   "filter_window": 3
+  },
+  "median_mode": {
+   "name": "euclid",
+   "metric": "euclid",
+   "weighting": "none",
+   "temporal_filter": "median",
+   "filter_window": 3
+  },
+  "weighted_mode": {
+   "name": "weighted_normal",
+   "metric": "normal",
+   "weighting": "calibrated",
+   "temporal_filter": "none",
+   "filter_window": 3
+  },
+  "signature_changes": true,
+  "raw_kept": true,
+  "display_changed": true,
+  "metric_changed": true,
+  "restored": true,
+  "pass": true
+ },
+ "pass": true,
+ "all_pass": true
+}

@@ -6,9 +6,11 @@ import TimelineUploader from './components/TimelineUploader';
 import FaceSpacePlot from './components/FaceSpacePlot';
 import TemporalDriftPanel from './components/TemporalDriftPanel';
 import SimilarityMatrixPanel from './components/SimilarityMatrixPanel';
+import FormMetricsPanel from './components/FormMetricsPanel';
 import TimelineQualityPanel from './components/TimelineQualityPanel';
 import { catmullRomWeights } from './utils/timeline';
 import { SATURATION_RMS, VERTEX_THRESHOLD_RMS } from './constants/normalization';
+import { IDENTITY_COLORS } from './constants/identities';
 
 export default function App() {
   const [photoA, setPhotoA] = useState(null);
@@ -635,6 +637,11 @@ export default function App() {
           <IdentityProbabilityPanel slots={[{ tag: 'Фото A', data: identityA }, { tag: 'Фото B', data: identityB }]} loading={identityLoading} />
         )}
 
+        {/* ── 30 МЕТРИК ФОРМЫ ПО ДВУМ ФОТО: три цвета ячеек, 9 устойчивых жирнее ── */}
+        {(photoA || photoB) && (
+          <FormMetricsPanel key={`${photoA?.name}:${photoA?.size}|${photoB?.name}:${photoB?.size}`} photoA={photoA} photoB={photoB} />
+        )}
+
         <label style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignItems: 'center', fontSize: '12px', color: '#8b949e' }}>
           <span>Smooth deformation</span>
           <select value={deformationMode} onChange={(event) => setDeformationMode(event.target.value)} style={{ background: '#161b22', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: '6px', padding: '6px', fontSize: '11px' }}>
@@ -849,7 +856,7 @@ function getMorphabilityColor(v) {
 }
 
 // Вероятности сходства с эталонами личностей (put / vas / udmurt) для загруженного фото.
-const IDENTITY_COLORS = { put: '#1f6feb', vas: '#ab7df8', udmurt: '#f0883e' };
+// Цвета эталонов — в constants/identities.js, их же использует таблица метрик формы.
 
 function IdentityProbabilityPanel({ slots, loading }) {
   return (

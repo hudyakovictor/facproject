@@ -1,0 +1,710 @@
+{
+ "iteration": 5,
+ "generated_at": "2026-10-21T10:06:24",
+ "seed": 42,
+ "rounds": 2000,
+ "comparison": {
+  "candidate": "euclid + calibrated",
+  "baseline": "euclid + none"
+ },
+ "defaults": {
+  "heatmap": {
+   "metric": "euclid",
+   "weighting": "none",
+   "calibration_profile": "reports/calibration/weights.json"
+  },
+  "chart": {
+   "metric": "euclid",
+   "weighting": "none",
+   "temporal_filter": "none",
+   "filter_window": "3",
+   "calibration_profile": "reports/calibration/weights.json"
+  },
+  "unchanged": true
+ },
+ "verdict": {
+  "enabled": false,
+  "slug": "do_not_enable",
+  "title": "НЕ включать euclid + calibrated",
+  "reason": "не выполнены условия 3 (LOTRO mid_deep), 4 (round-trip не измеряется), 5 (веса нестабильны)"
+ },
+ "decision_table": [
+  {
+   "n": 1,
+   "condition": "Нижняя граница CI ΔAUC > 0 на 10 людях",
+   "source": "шаг 1",
+   "value": "CI [0.0084, 0.0206], ΔAUC 0.0145",
+   "state": "pass"
+  },
+  {
+   "n": 2,
+   "condition": "LOPO: минимум ΔAUC не хуже −0.02",
+   "source": "шаг 2",
+   "value": "min Δ -0.0036 (7), -0.0095 (10); побед 6/7, 7/10",
+   "state": "pass"
+  },
+  {
+   "n": 3,
+   "condition": "LOTRO: 4 из 4, mid_deep не хуже −0.005",
+   "source": "шаг 1",
+   "value": "CI-положительных семейств 0/4; mid_deep ΔAUC -0.014 (порог −0.005)",
+   "state": "fail"
+  },
+  {
+   "n": 4,
+   "condition": "Серия frontal → profile → frontal возвращается в допуск 10%",
+   "source": "шаг 4",
+   "value": "не измеряется: в корпусе нет ни одной серии «туда и обратно»",
+   "state": "unmeasured"
+  },
+  {
+   "n": 5,
+   "condition": "Гейт весов пройден",
+   "source": "шаг 6",
+   "value": "медиана |Δw| 34.7% (порог 10%), на границах clip 10.0% (порог 1%), ΔAUC>0 5/5",
+   "state": "fail"
+  },
+  {
+   "n": 6,
+   "condition": "Паритет API и harness = 0, config_switch проходит",
+   "source": "chart_parity.py",
+   "value": "all_pass True; raw_kept True, display_changed True, metric_changed True, restored True",
+   "state": "pass"
+  }
+ ],
+ "step1_bootstrap": {
+  "all_10": {
+   "measurable": true,
+   "n_within": 564,
+   "n_between": 7808,
+   "auc_euclid_none": 0.7289,
+   "auc_euclid_calibrated": 0.7434,
+   "delta_auc": 0.0145,
+   "bootstrap": {
+    "measurable": true,
+    "n_people": 10,
+    "people": [
+     "person_01",
+     "person_02",
+     "person_03",
+     "person_04",
+     "person_05",
+     "person_06",
+     "person_07",
+     "person_10",
+     "person_11",
+     "person_9"
+    ],
+    "rounds_requested": 2000,
+    "rounds_used": 2000,
+    "seed": 42,
+    "delta_auc_mean": 0.0144,
+    "ci95_delta_auc": [
+     0.0084,
+     0.0206
+    ],
+    "p_positive": 1.0
+   },
+   "gate_ci_lo_positive": true
+  },
+  "labeled_7": {
+   "measurable": true,
+   "n_within": 454,
+   "n_between": 4635,
+   "auc_euclid_none": 0.7527,
+   "auc_euclid_calibrated": 0.7731,
+   "delta_auc": 0.0204,
+   "bootstrap": {
+    "measurable": true,
+    "n_people": 7,
+    "people": [
+     "person_01",
+     "person_02",
+     "person_03",
+     "person_04",
+     "person_05",
+     "person_06",
+     "person_07"
+    ],
+    "rounds_requested": 2000,
+    "rounds_used": 2000,
+    "seed": 42,
+    "delta_auc_mean": 0.0203,
+    "ci95_delta_auc": [
+     0.0125,
+     0.0285
+    ],
+    "p_positive": 1.0
+   },
+   "gate_ci_lo_positive": true
+  },
+  "lotro_families": {
+   "frontal_light": {
+    "family": "frontal_light",
+    "n_within": 17,
+    "n_between": 651,
+    "n_people": 5,
+    "sigma_pairs": 545,
+    "family_only": {
+     "measurable": true,
+     "n_within": 17,
+     "n_between": 144,
+     "auc_euclid_none": 0.645,
+     "auc_euclid_calibrated": 0.6875,
+     "delta_auc": 0.0425
+    },
+    "measurable": true,
+    "auc_euclid_none": 0.6029,
+    "auc_euclid_calibrated": 0.6344,
+    "delta_auc": 0.0315,
+    "bootstrap": {
+     "measurable": true,
+     "n_people": 5,
+     "people": [
+      "person_01",
+      "person_04",
+      "person_06",
+      "person_10",
+      "person_11"
+     ],
+     "rounds_requested": 2000,
+     "rounds_used": 1628,
+     "seed": 42,
+     "delta_auc_mean": 0.0408,
+     "ci95_delta_auc": [
+      -0.0342,
+      0.1329
+     ],
+     "p_positive": 0.8575
+    },
+    "delta_auc_lo": -0.0342,
+    "gate_ci_lo_positive": false,
+    "gate_point_not_below_-0.005": true
+   },
+   "light_mid": {
+    "family": "light_mid",
+    "n_within": 22,
+    "n_between": 345,
+    "n_people": 9,
+    "sigma_pairs": 542,
+    "family_only": {
+     "measurable": true,
+     "n_within": 22,
+     "n_between": 279,
+     "auc_euclid_none": 0.6958,
+     "auc_euclid_calibrated": 0.7152,
+     "delta_auc": 0.0194
+    },
+    "measurable": true,
+    "auc_euclid_none": 0.7155,
+    "auc_euclid_calibrated": 0.7327,
+    "delta_auc": 0.0171,
+    "bootstrap": {
+     "measurable": true,
+     "n_people": 9,
+     "people": [
+      "person_01",
+      "person_02",
+      "person_03",
+      "person_04",
+      "person_05",
+      "person_06",
+      "person_07",
+      "person_10",
+      "person_11"
+     ],
+     "rounds_requested": 2000,
+     "rounds_used": 1898,
+     "seed": 42,
+     "delta_auc_mean": 0.0199,
+     "ci95_delta_auc": [
+      -0.0186,
+      0.0597
+     ],
+     "p_positive": 0.8788
+    },
+    "delta_auc_lo": -0.0186,
+    "gate_ci_lo_positive": false,
+    "gate_point_not_below_-0.005": true
+   },
+   "mid_deep": {
+    "family": "mid_deep",
+    "n_within": 17,
+    "n_between": 273,
+    "n_people": 9,
+    "sigma_pairs": 547,
+    "family_only": {
+     "measurable": true,
+     "n_within": 17,
+     "n_between": 226,
+     "auc_euclid_none": 0.7223,
+     "auc_euclid_calibrated": 0.7124,
+     "delta_auc": -0.0099
+    },
+    "measurable": true,
+    "auc_euclid_none": 0.7427,
+    "auc_euclid_calibrated": 0.7287,
+    "delta_auc": -0.014,
+    "bootstrap": {
+     "measurable": true,
+     "n_people": 9,
+     "people": [
+      "person_01",
+      "person_02",
+      "person_03",
+      "person_04",
+      "person_05",
+      "person_06",
+      "person_07",
+      "person_10",
+      "person_11"
+     ],
+     "rounds_requested": 2000,
+     "rounds_used": 1694,
+     "seed": 42,
+     "delta_auc_mean": -0.0089,
+     "ci95_delta_auc": [
+      -0.0439,
+      0.0191
+     ],
+     "p_positive": 0.2704
+    },
+    "delta_auc_lo": -0.0439,
+    "gate_ci_lo_positive": false,
+    "gate_point_not_below_-0.005": false
+   },
+   "deep_profile": {
+    "family": "deep_profile",
+    "n_within": 48,
+    "n_between": 739,
+    "n_people": 9,
+    "sigma_pairs": 527,
+    "family_only": {
+     "measurable": true,
+     "n_within": 48,
+     "n_between": 653,
+     "auc_euclid_none": 0.7878,
+     "auc_euclid_calibrated": 0.7976,
+     "delta_auc": 0.0098
+    },
+    "measurable": true,
+    "auc_euclid_none": 0.8019,
+    "auc_euclid_calibrated": 0.8094,
+    "delta_auc": 0.0075,
+    "bootstrap": {
+     "measurable": true,
+     "n_people": 9,
+     "people": [
+      "person_01",
+      "person_02",
+      "person_03",
+      "person_04",
+      "person_05",
+      "person_06",
+      "person_07",
+      "person_10",
+      "person_11"
+     ],
+     "rounds_requested": 2000,
+     "rounds_used": 2000,
+     "seed": 42,
+     "delta_auc_mean": 0.0094,
+     "ci95_delta_auc": [
+      -0.0206,
+      0.0437
+     ],
+     "p_positive": 0.721
+    },
+    "delta_auc_lo": -0.0206,
+    "gate_ci_lo_positive": false,
+    "gate_point_not_below_-0.005": true
+   }
+  },
+  "gates": {
+   "ci_lo_positive_on_10": true,
+   "lotro_families_ci_positive": "0/4",
+   "lotro_families_point_positive": "3/4",
+   "mid_deep_point_delta_not_below_-0.005": false,
+   "mid_deep_ci_lo_above_-0.005": false,
+   "rounds_at_least_2000": true
+  },
+  "crosscheck": {
+   "fast_auc": [
+    0.7289,
+    0.7434
+   ],
+   "sklearn_auc": [
+    0.7289,
+    0.7434
+   ],
+   "max_abs_diff": 0.0
+  }
+ },
+ "step2_lopo": {
+  "comparison": {
+   "weighted_euclid": {
+    "wins_7": 6,
+    "wins_10": 7,
+    "min_delta_7": -0.0036,
+    "min_delta_10": -0.0095,
+    "mean_delta_7": 0.0216,
+    "mean_delta_10": 0.014
+   },
+   "weighted_normal": {
+    "wins_7": 5,
+    "wins_10": 5,
+    "min_delta_7": -0.1163,
+    "min_delta_10": -0.0989
+   }
+  },
+  "gates": {
+   "weighted_euclid_wins_at_least_5_of_7": true,
+   "weighted_euclid_min_delta_not_worse_than_-0.02": true
+  },
+  "interpretation": "На 7 размеченных weighted_euclid заметно стабильнее, чем на 10 (мин ΔAUC -0.0036 против -0.0095): просадка на 10 людях объясняется шумом предсказанных поз wild-людей. Шаг 3 (разметка person_9/10/11) релевантен."
+ },
+ "step3_pose_labels": {
+  "n_frames": 56,
+  "n_valid": 48,
+  "n_invalid": 8,
+  "threshold": {
+   "label_mismatch_deg": 90.0,
+   "yaw_limit_deg": 95.0,
+   "source": "calibration_v3.LABEL_MISMATCH / YAW_LIMIT (текущий конфиг харнесса)"
+  },
+  "discrepancy_valid": {
+   "median": 1.6,
+   "mean": 6.7,
+   "p90": 14.3,
+   "max": 66.1
+  },
+  "invalid_reasons": [
+   "label_mismatch: |35 - -89| = 124 > 90",
+   "non_face: съёмка со спины, лица нет",
+   "non_face: субъект отвернут, фронтальной составляющей лица нет",
+   "non_face: бронзовая статуя, не живое лицо",
+   "non_face: в кадре только другие люди, субъекта нет",
+   "non_face: обложка книги с миниатюрным фото",
+   "label_mismatch: |-55 - 79| = 134 > 90",
+   "non_face: кинопостер, на постере другие актёры"
+  ]
+ },
+ "step4_roundtrip": {
+  "measured": false,
+  "reason": "фронт→профиль→фронт в корпусе отсутствует: все видеосерии монотонные развёртки; снять новые кадры нельзя"
+ },
+ "step5_frontal_gate": {
+  "gap30": {
+   "gap": 30,
+   "n_pairs": 22,
+   "n_people_with_pairs": 10,
+   "frontal_frames_per_person": {
+    "person_01": 5,
+    "person_02": 2,
+    "person_03": 2,
+    "person_04": 3,
+    "person_05": 3,
+    "person_06": 2,
+    "person_07": 3,
+    "person_9": 3,
+    "person_10": 6,
+    "person_11": 3
+   },
+   "measurable": true,
+   "euclid_within_mean": 0.07391,
+   "weighted_euclid_within_mean": 0.06455,
+   "delta_pct": -12.7,
+   "verdict": "calibrated снижает within-разброс на фронтальных парах"
+  },
+  "gap10": {
+   "gap": 10,
+   "n_pairs": 34,
+   "n_people_with_pairs": 10,
+   "frontal_frames_per_person": {
+    "person_01": 5,
+    "person_02": 2,
+    "person_03": 2,
+    "person_04": 3,
+    "person_05": 3,
+    "person_06": 2,
+    "person_07": 3,
+    "person_9": 3,
+    "person_10": 6,
+    "person_11": 3
+   },
+   "measurable": true,
+   "euclid_within_mean": 0.05176,
+   "weighted_euclid_within_mean": 0.04523,
+   "delta_pct": -12.6,
+   "verdict": "calibrated снижает within-разброс на фронтальных парах"
+  },
+  "gate": {
+   "frontal_gate_measurable_at_gap30": true,
+   "pairs_at_gap30": 22,
+   "people_at_gap30": 10
+  }
+ },
+ "step6_weights": {
+  "gates": {
+   "median_abs_dw_le_10pct": false,
+   "at_bounds_le_1pct": false,
+   "delta_auc_positive_5_of_5": true,
+   "median_of_medians": 0.3471,
+   "max_at_bounds_pct": 10.0,
+   "splits_with_both_delta_auc_positive": "5/5",
+   "weights_v4_connect_allowed": false
+  },
+  "runs": [
+   {
+    "split": 0,
+    "seed": 42,
+    "half_A": [
+     "person_03",
+     "person_04",
+     "person_06",
+     "person_10",
+     "person_11"
+    ],
+    "half_B": [
+     "person_01",
+     "person_02",
+     "person_05",
+     "person_07",
+     "person_9"
+    ],
+    "median_abs_dw_rel": 0.3471,
+    "at_bounds_pct_A": 10.0,
+    "at_bounds_pct_B": 10.0,
+    "at_bounds_pct_max": 10.0,
+    "delta_auc_B_on_A_profile": 0.0135,
+    "delta_auc_A_on_B_profile": 0.0108,
+    "auc_base_B": 0.8105,
+    "auc_cand_B": 0.824,
+    "auc_base_A": 0.6468,
+    "auc_cand_A": 0.6576
+   },
+   {
+    "split": 1,
+    "seed": 42,
+    "half_A": [
+     "person_02",
+     "person_03",
+     "person_04",
+     "person_05",
+     "person_06"
+    ],
+    "half_B": [
+     "person_01",
+     "person_07",
+     "person_10",
+     "person_11",
+     "person_9"
+    ],
+    "median_abs_dw_rel": 0.4038,
+    "at_bounds_pct_A": 10.0,
+    "at_bounds_pct_B": 10.0,
+    "at_bounds_pct_max": 10.0,
+    "delta_auc_B_on_A_profile": 0.0057,
+    "delta_auc_A_on_B_profile": 0.0167,
+    "auc_base_B": 0.629,
+    "auc_cand_B": 0.6347,
+    "auc_base_A": 0.7881,
+    "auc_cand_A": 0.8048
+   },
+   {
+    "split": 2,
+    "seed": 42,
+    "half_A": [
+     "person_01",
+     "person_03",
+     "person_05",
+     "person_06",
+     "person_10"
+    ],
+    "half_B": [
+     "person_02",
+     "person_04",
+     "person_07",
+     "person_11",
+     "person_9"
+    ],
+    "median_abs_dw_rel": 0.2558,
+    "at_bounds_pct_A": 10.0,
+    "at_bounds_pct_B": 10.0,
+    "at_bounds_pct_max": 10.0,
+    "delta_auc_B_on_A_profile": 0.018,
+    "delta_auc_A_on_B_profile": 0.0035,
+    "auc_base_B": 0.6527,
+    "auc_cand_B": 0.6707,
+    "auc_base_A": 0.7567,
+    "auc_cand_A": 0.7602
+   },
+   {
+    "split": 3,
+    "seed": 42,
+    "half_A": [
+     "person_01",
+     "person_03",
+     "person_04",
+     "person_10",
+     "person_11"
+    ],
+    "half_B": [
+     "person_02",
+     "person_05",
+     "person_06",
+     "person_07",
+     "person_9"
+    ],
+    "median_abs_dw_rel": 0.3793,
+    "at_bounds_pct_A": 10.0,
+    "at_bounds_pct_B": 10.0,
+    "at_bounds_pct_max": 10.0,
+    "delta_auc_B_on_A_profile": 0.0129,
+    "delta_auc_A_on_B_profile": 0.0037,
+    "auc_base_B": 0.7954,
+    "auc_cand_B": 0.8083,
+    "auc_base_A": 0.6569,
+    "auc_cand_A": 0.6606
+   },
+   {
+    "split": 4,
+    "seed": 42,
+    "half_A": [
+     "person_01",
+     "person_04",
+     "person_07",
+     "person_10",
+     "person_9"
+    ],
+    "half_B": [
+     "person_02",
+     "person_03",
+     "person_05",
+     "person_06",
+     "person_11"
+    ],
+    "median_abs_dw_rel": 0.0924,
+    "at_bounds_pct_A": 10.0,
+    "at_bounds_pct_B": 10.0,
+    "at_bounds_pct_max": 10.0,
+    "delta_auc_B_on_A_profile": 0.0254,
+    "delta_auc_A_on_B_profile": 0.0101,
+    "auc_base_B": 0.7804,
+    "auc_cand_B": 0.8058,
+    "auc_base_A": 0.6639,
+    "auc_cand_A": 0.674
+   }
+  ]
+ },
+ "closing_checks": {
+  "tests": {
+   "result": "64 passed, 2 failed",
+   "green": false,
+   "failures": [
+    {
+     "test": "test_metric_registry_pose_values",
+     "assert": "23 == 3",
+     "cause": "registry.catalog() отдаёт 23 метрики 3ddfa_v3: metrics/tddfa_v3/archive_top20.py регистрирует 20 archive_* сверх трёх сетевых. Не зависит от корпуса и от итерации 5."
+    },
+    {
+     "test": "test_projection_seed_and_real_alpha",
+     "assert": "silhouette is None",
+     "cause": "в рабочем data/library.json 294 не-демо фото в 11 группах, silhouette считается при >1 группе. Тест рассчитан на чисто демо-библиотеку. Не зависит от гейтов калибровки."
+    }
+   ]
+  },
+  "chart_parity": {
+   "max_abs_delta": 0,
+   "all_pass": true
+  },
+  "config_switch": {
+   "raw_kept": true,
+   "display_changed": true,
+   "metric_changed": true,
+   "restored": true
+  },
+  "cache_key": {
+   "fields": [
+    "metric",
+    "weighting",
+    "temporal_filter",
+    "filter_window",
+    "profile_path",
+    "profile_mtime_ns"
+   ],
+   "source": "server/app.py chart_config_signature() → lru chart_payload",
+   "pass": true
+  },
+  "timeline_testid": {
+   "chart_track": 1,
+   "metric_track_not_chart": 0,
+   "pass": true
+  },
+  "screenshot": "reports/figures/v5-timeline-ui.png"
+ },
+ "not_verified": [
+  {
+   "item": "Серия frontal → profile → frontal (шаг 4)",
+   "reason": "в корпусе нет маршрута туда-обратно; значение не возвращается — не измерено, а не «плохо»"
+  },
+  {
+   "item": "Тесты проекта полностью зелёные (§4.1)",
+   "reason": "2 падения предсуществующие: реестр метрик (23 против 3) и живая библиотека фото (silhouette). К итерации 5 не относятся"
+  }
+ ],
+ "files": [
+  {
+   "file": "scripts/v5_corpus.py",
+   "role": "общая инфраструктура шагов 1,2,5,6: корпус, пары, bootstrap"
+  },
+  {
+   "file": "scripts/bootstrap_auc.py",
+   "role": "шаг 1: bootstrap CI ΔAUC + LOTRO-семейства"
+  },
+  {
+   "file": "scripts/lopo_v5.py",
+   "role": "шаг 2: LOPO на 7 размеченных и 10 людях"
+  },
+  {
+   "file": "scripts/pose_labels_v5.py",
+   "role": "шаг 3: ручные yaw-метки person_9/10/11, invalid_pose"
+  },
+  {
+   "file": "scripts/frontal_gate_v5.py",
+   "role": "шаг 5: фронтальный гейт при зазоре 30 и 10"
+  },
+  {
+   "file": "scripts/weights_stability_v5.py",
+   "role": "шаг 6: устойчивость весов на половинах людей"
+  },
+  {
+   "file": "scripts/v5_bootstrap_figure.py",
+   "role": "рисунок v5-bootstrap-auc.png"
+  },
+  {
+   "file": "scripts/v5_report.py",
+   "role": "этот отчёт"
+  },
+  {
+   "file": "scripts/chart_parity.py",
+   "role": "§4.2–4.3: паритет API==harness, config_switch"
+  },
+  {
+   "file": "web/v5-timeline-check.mjs",
+   "role": "§4.5–4.6: проверка data-testid и скриншот"
+  },
+  {
+   "file": "server/app.py",
+   "role": "§4.4: chart_config_signature в ключе кэша; §6: GET /api/chart/series.csv"
+  },
+  {
+   "file": "web/src/components/Timeline.tsx",
+   "role": "§6: ссылка «График CSV» на /api/chart/series.csv (те же rows)"
+  },
+  {
+   "file": "configs/runtime.yaml",
+   "role": "дефолты heatmap и chart не менялись"
+  }
+ ]
+}

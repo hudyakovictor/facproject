@@ -1,0 +1,2669 @@
+{
+  "schema_version": "morphing-metric-bands-v3",
+  "identities": [
+    "put",
+    "vas",
+    "udmurt"
+  ],
+  "units": "в единицах самой метрики: отношения — доли RMS-106, углы — градусы",
+  "meaning": {
+    "band": "mad_pooled — разброс метрики внутри ОДНОЙ личности (отклонения от медианы своего лица, pooled по трём личностям)",
+    "ref": "median — типичное значение метрики у этой личности по спокойным (без мимики) кадрам; mad — его разброс; basis=all, если спокойных кадров меньше 5. Три медианы — три точки отсчёта, между которыми ячейка делится цветом: ровно посередине между двумя лицами даёт 50/50",
+    "min_gap": "расстояние между самыми близкими медианами личностей в полосах: меньше 1 — метрика этих людей почти не различает (таких 20 из 30), и её доля в общем цвете почти случайна",
+    "k_same": "80-й перцентиль |A−B| по всем парам кадров одного лица, в полосах: ниже — вердикт same («снимки говорят одно»)",
+    "k_differ": "97.5-й перцентиль того же распределения: выше — differ («расходится»); между ними — border",
+    "signal_cross": "доля пар РАЗНЫХ личностей с вердиктом differ у данной метрики — насколько вообще ценен её «расходится»"
+  },
+  "population": "3 личности; фронт: put 150 / vas 76 / udmurt 31; подфронт (|yaw| 10–25°): put 100 / vas 45 / udmurt 32; кадры выборок не пересекаются",
+  "caveats": [
+    "полоса шире чистого шума пересъёмки: в ней сидят освещение, годы, причёски и микроповороты внутри бина — граница консервативна (меньше ложных «разные»)",
+    "три человека: переносить полосу на другие лица можно только как порядок величины",
+    "для |yaw| > 25° калибровки нет — прод берёт max_band и помечает строку extrapolated",
+    "по одной метрике решение не принимают: differ у разных лиц срабатывает 4–28% метрик, смотрят набор; у 9 устойчивых signal_cross в 2–3 раза выше, поэтому они и обведены белой рамкой",
+    "цвета ячейки — это доля близости к двум ближайшим эталонам, а не вероятность личности: вне трёх лиц ячейка всё равно поделится по ближайшей паре",
+    "средний цвет по всем 30 метрикам размыт: у 20 из 30 медианы личностей разнесены меньше чем на полосу, поэтому тренд читают по 9 устойчивым, а не по 30"
+  ],
+  "generated_by": "app9/validation/calibrate_metric_bands.py",
+  "metrics": {
+    "midface_profile_convexity_3ddfa": {
+      "framework": "3ddfa",
+      "group": "ldm_hypotheses",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "отклонение кончика носа по глубине от хорды «центр бровей → подбородок», на ширину лица: профильная кривизна средней зоны",
+      "frontal": {
+        "mad_pooled": 0.0072,
+        "mad_by_identity": {
+          "put": 0.0072,
+          "vas": 0.0077,
+          "udmurt": 0.006
+        },
+        "ref": {
+          "put": {
+            "median": -0.2443,
+            "mad": 0.0072,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.2241,
+            "mad": 0.0079,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.2274,
+            "mad": 0.0072,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8036,
+        "k_differ": 3.2439,
+        "signal_cross": 0.2763,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.4583,
+        "pairs": {
+          "put~vas": 2.8056,
+          "put~udmurt": 2.3472,
+          "udmurt~vas": 0.4583
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0082,
+        "mad_by_identity": {
+          "put": 0.0082,
+          "vas": 0.0092,
+          "udmurt": 0.0052
+        },
+        "ref": {
+          "put": {
+            "median": -0.2457,
+            "mad": 0.0083,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.228,
+            "mad": 0.0072,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.2307,
+            "mad": 0.0025,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.6838,
+        "k_differ": 3.0242,
+        "signal_cross": 0.1968,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.3293,
+        "pairs": {
+          "put~vas": 2.1585,
+          "put~udmurt": 1.8293,
+          "udmurt~vas": 0.3293
+        }
+      },
+      "max_band": 0.0082
+    },
+    "lip_profile_convexity_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "насколько центр губ уходит вперёд относительно хорды «центр бровей → подбородок» на уровне губ (отрицательное = выступает), на ширину лица",
+      "frontal": {
+        "mad_pooled": 0.0147,
+        "mad_by_identity": {
+          "put": 0.0155,
+          "vas": 0.0152,
+          "udmurt": 0.0089
+        },
+        "ref": {
+          "put": {
+            "median": -0.1281,
+            "mad": 0.0131,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0869,
+            "mad": 0.0113,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0836,
+            "mad": 0.0111,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.948,
+        "k_differ": 3.6726,
+        "signal_cross": 0.2105,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.2245,
+        "pairs": {
+          "put~vas": 2.8027,
+          "put~udmurt": 3.0272,
+          "udmurt~vas": 0.2245
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.013,
+        "mad_by_identity": {
+          "put": 0.0131,
+          "vas": 0.0137,
+          "udmurt": 0.0106
+        },
+        "ref": {
+          "put": {
+            "median": -0.1277,
+            "mad": 0.0129,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0886,
+            "mad": 0.0137,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0933,
+            "mad": 0.0132,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.8804,
+        "k_differ": 3.684,
+        "signal_cross": 0.252,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.3615,
+        "pairs": {
+          "put~vas": 3.0077,
+          "put~udmurt": 2.6462,
+          "udmurt~vas": 0.3615
+        }
+      },
+      "max_band": 0.0147
+    },
+    "brow_ridge_depth_l_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_brows",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "насколько левая дуга брови (оба ряда точек) выступает вперёд из базы «глабелла + обе скулы», на ширину лица",
+      "frontal": {
+        "mad_pooled": 0.0068,
+        "mad_by_identity": {
+          "put": 0.0067,
+          "vas": 0.007,
+          "udmurt": 0.0061
+        },
+        "ref": {
+          "put": {
+            "median": -0.0979,
+            "mad": 0.0069,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0811,
+            "mad": 0.0054,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0842,
+            "mad": 0.0069,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8771,
+        "k_differ": 3.2145,
+        "signal_cross": 0.2521,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.4559,
+        "pairs": {
+          "put~vas": 2.4706,
+          "put~udmurt": 2.0147,
+          "udmurt~vas": 0.4559
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0075,
+        "mad_by_identity": {
+          "put": 0.0088,
+          "vas": 0.0066,
+          "udmurt": 0.007
+        },
+        "ref": {
+          "put": {
+            "median": -0.1065,
+            "mad": 0.0087,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0857,
+            "mad": 0.0064,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0951,
+            "mad": 0.0069,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 2.087,
+        "k_differ": 3.7084,
+        "signal_cross": 0.1387,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 1.2533,
+        "pairs": {
+          "put~vas": 2.7733,
+          "put~udmurt": 1.52,
+          "udmurt~vas": 1.2533
+        }
+      },
+      "max_band": 0.0075
+    },
+    "chin_lip_protrusion_ratio_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "выступание красной каймы губ из базы «глабелла + скулы» к тому же выступанию подбородка (погониона): «губы против подбородка» в профиле",
+      "frontal": {
+        "mad_pooled": 0.0305,
+        "mad_by_identity": {
+          "put": 0.0295,
+          "vas": 0.0347,
+          "udmurt": 0.0255
+        },
+        "ref": {
+          "put": {
+            "median": 0.6937,
+            "mad": 0.0257,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.6169,
+            "mad": 0.031,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.6308,
+            "mad": 0.0298,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8791,
+        "k_differ": 3.3383,
+        "signal_cross": 0.1933,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.4557,
+        "pairs": {
+          "put~vas": 2.518,
+          "put~udmurt": 2.0623,
+          "udmurt~vas": 0.4557
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0215,
+        "mad_by_identity": {
+          "put": 0.0201,
+          "vas": 0.0202,
+          "udmurt": 0.0325
+        },
+        "ref": {
+          "put": {
+            "median": 0.6991,
+            "mad": 0.0192,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.6343,
+            "mad": 0.0231,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.6542,
+            "mad": 0.0229,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 2.1088,
+        "k_differ": 3.7497,
+        "signal_cross": 0.2631,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.9256,
+        "pairs": {
+          "put~vas": 3.014,
+          "put~udmurt": 2.0884,
+          "udmurt~vas": 0.9256
+        }
+      },
+      "max_band": 0.0305
+    },
+    "lip_vermilion_thickness_lower_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "то же для нижней губы: толщина слизистой от её границы до кожной",
+      "frontal": {
+        "mad_pooled": 0.0064,
+        "mad_by_identity": {
+          "put": 0.0078,
+          "vas": 0.0049,
+          "udmurt": 0.0035
+        },
+        "ref": {
+          "put": {
+            "median": 0.1037,
+            "mad": 0.0084,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.0911,
+            "mad": 0.005,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.089,
+            "mad": 0.0038,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8886,
+        "k_differ": 3.4621,
+        "signal_cross": 0.1416,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.3281,
+        "pairs": {
+          "put~vas": 1.9688,
+          "put~udmurt": 2.2969,
+          "udmurt~vas": 0.3281
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0062,
+        "mad_by_identity": {
+          "put": 0.0076,
+          "vas": 0.0054,
+          "udmurt": 0.0034
+        },
+        "ref": {
+          "put": {
+            "median": 0.1078,
+            "mad": 0.0077,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.0923,
+            "mad": 0.0037,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.094,
+            "mad": 0.0054,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 2.0479,
+        "k_differ": 3.7161,
+        "signal_cross": 0.1654,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.2742,
+        "pairs": {
+          "put~vas": 2.5,
+          "put~udmurt": 2.2258,
+          "udmurt~vas": 0.2742
+        }
+      },
+      "max_band": 0.0064
+    },
+    "wet_dry_border_length_ratio_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "длина двух слизистых границ рта к длине двух кожных: «складчатость» каймы против растянутости кожи над/под губами",
+      "frontal": {
+        "mad_pooled": 0.006,
+        "mad_by_identity": {
+          "put": 0.0066,
+          "vas": 0.0052,
+          "udmurt": 0.0051
+        },
+        "ref": {
+          "put": {
+            "median": 0.8229,
+            "mad": 0.0064,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.8348,
+            "mad": 0.0049,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.8382,
+            "mad": 0.0037,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9052,
+        "k_differ": 3.4563,
+        "signal_cross": 0.1426,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.5667,
+        "pairs": {
+          "put~vas": 1.9833,
+          "put~udmurt": 2.55,
+          "udmurt~vas": 0.5667
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0056,
+        "mad_by_identity": {
+          "put": 0.0068,
+          "vas": 0.0047,
+          "udmurt": 0.0035
+        },
+        "ref": {
+          "put": {
+            "median": 0.8241,
+            "mad": 0.0063,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.8364,
+            "mad": 0.0047,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.8379,
+            "mad": 0.003,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 2.1463,
+        "k_differ": 3.971,
+        "signal_cross": 0.1455,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.2679,
+        "pairs": {
+          "put~vas": 2.1964,
+          "put~udmurt": 2.4643,
+          "udmurt~vas": 0.2679
+        }
+      },
+      "max_band": 0.006
+    },
+    "mouth_aspect_ratio_3d": {
+      "framework": "3ddfa",
+      "group": "ldm_top3d",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "высота рта к его ширине по 3D-сетке (определение про выражение)",
+      "frontal": {
+        "mad_pooled": 0.0238,
+        "mad_by_identity": {
+          "put": 0.0243,
+          "vas": 0.0221,
+          "udmurt": 0.0306
+        },
+        "ref": {
+          "put": {
+            "median": 0.2819,
+            "mad": 0.0232,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.2341,
+            "mad": 0.0207,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2146,
+            "mad": 0.0259,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.7576,
+        "k_differ": 3.072,
+        "signal_cross": 0.1771,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.8193,
+        "pairs": {
+          "put~vas": 2.0084,
+          "put~udmurt": 2.8277,
+          "udmurt~vas": 0.8193
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0217,
+        "mad_by_identity": {
+          "put": 0.0233,
+          "vas": 0.0212,
+          "udmurt": 0.0176
+        },
+        "ref": {
+          "put": {
+            "median": 0.2818,
+            "mad": 0.0244,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.2367,
+            "mad": 0.0153,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2336,
+            "mad": 0.0199,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.8728,
+        "k_differ": 3.2286,
+        "signal_cross": 0.1852,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.1429,
+        "pairs": {
+          "put~vas": 2.0783,
+          "put~udmurt": 2.2212,
+          "udmurt~vas": 0.1429
+        }
+      },
+      "max_band": 0.0238
+    },
+    "mentolabial_relief_3d_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "глубина губоподбородочной борозды в профиле: разница глубин погониона и борозды на расстояние между ними",
+      "frontal": {
+        "mad_pooled": 0.0419,
+        "mad_by_identity": {
+          "put": 0.0525,
+          "vas": 0.0386,
+          "udmurt": 0.0339
+        },
+        "ref": {
+          "put": {
+            "median": 0.2418,
+            "mad": 0.049,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.3426,
+            "mad": 0.0345,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.3629,
+            "mad": 0.0197,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 2.1195,
+        "k_differ": 3.7205,
+        "signal_cross": 0.1428,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.4845,
+        "pairs": {
+          "put~vas": 2.4057,
+          "put~udmurt": 2.8902,
+          "udmurt~vas": 0.4845
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.041,
+        "mad_by_identity": {
+          "put": 0.031,
+          "vas": 0.0451,
+          "udmurt": 0.0478
+        },
+        "ref": {
+          "put": {
+            "median": 0.2393,
+            "mad": 0.0298,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.3456,
+            "mad": 0.0418,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.3254,
+            "mad": 0.0522,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.7334,
+        "k_differ": 3.0796,
+        "signal_cross": 0.2522,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.4927,
+        "pairs": {
+          "put~vas": 2.5927,
+          "put~udmurt": 2.1,
+          "udmurt~vas": 0.4927
+        }
+      },
+      "max_band": 0.0419
+    },
+    "lip_vermilion_thickness_upper_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "вертикальная толщина верхней красной каймы (медиана расстояний кожной границы до слизистой) к ширине рта",
+      "frontal": {
+        "mad_pooled": 0.0076,
+        "mad_by_identity": {
+          "put": 0.0085,
+          "vas": 0.0058,
+          "udmurt": 0.0056
+        },
+        "ref": {
+          "put": {
+            "median": 0.1411,
+            "mad": 0.0088,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.125,
+            "mad": 0.0056,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.1206,
+            "mad": 0.0091,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9505,
+        "k_differ": 3.4718,
+        "signal_cross": 0.1401,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.5789,
+        "pairs": {
+          "put~vas": 2.1184,
+          "put~udmurt": 2.6974,
+          "udmurt~vas": 0.5789
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0069,
+        "mad_by_identity": {
+          "put": 0.009,
+          "vas": 0.0059,
+          "udmurt": 0.0046
+        },
+        "ref": {
+          "put": {
+            "median": 0.1369,
+            "mad": 0.0088,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.1228,
+            "mad": 0.0059,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.122,
+            "mad": 0.0041,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 2.0414,
+        "k_differ": 3.6674,
+        "signal_cross": 0.1376,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.1159,
+        "pairs": {
+          "put~vas": 2.0435,
+          "put~udmurt": 2.1594,
+          "udmurt~vas": 0.1159
+        }
+      },
+      "max_band": 0.0076
+    },
+    "lateral_canthus_relief_r_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_eyes",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "глубина наружного уголка правого глаза относительно средних глубин всех точек его века, на ширину лица",
+      "frontal": {
+        "mad_pooled": 0.0036,
+        "mad_by_identity": {
+          "put": 0.0038,
+          "vas": 0.0029,
+          "udmurt": 0.0039
+        },
+        "ref": {
+          "put": {
+            "median": -0.0464,
+            "mad": 0.0035,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0381,
+            "mad": 0.0027,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0385,
+            "mad": 0.0033,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8282,
+        "k_differ": 3.2359,
+        "signal_cross": 0.1468,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.1111,
+        "pairs": {
+          "put~vas": 2.3056,
+          "put~udmurt": 2.1944,
+          "udmurt~vas": 0.1111
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0038,
+        "mad_by_identity": {
+          "put": 0.0042,
+          "vas": 0.003,
+          "udmurt": 0.0033
+        },
+        "ref": {
+          "put": {
+            "median": -0.0487,
+            "mad": 0.0036,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0409,
+            "mad": 0.0023,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0431,
+            "mad": 0.0028,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.7313,
+        "k_differ": 3.0653,
+        "signal_cross": 0.1327,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.5789,
+        "pairs": {
+          "put~vas": 2.0526,
+          "put~udmurt": 1.4737,
+          "udmurt~vas": 0.5789
+        }
+      },
+      "max_band": 0.0038
+    },
+    "lid_margin_depth_spread_r_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_eyes",
+      "kind": "ratio",
+      "trusted": true,
+      "description": "разброс глубин по всем точкам края правой глазной щели: насколько «объёмная» у глаза чаша (на зрачковое расстояние)",
+      "frontal": {
+        "mad_pooled": 0.0015,
+        "mad_by_identity": {
+          "put": 0.0019,
+          "vas": 0.0012,
+          "udmurt": 0.0009
+        },
+        "ref": {
+          "put": {
+            "median": 0.0363,
+            "mad": 0.0017,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.0333,
+            "mad": 0.0011,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.0334,
+            "mad": 0.0012,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9794,
+        "k_differ": 3.4521,
+        "signal_cross": 0.1215,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.0667,
+        "pairs": {
+          "put~vas": 2.0,
+          "put~udmurt": 1.9333,
+          "udmurt~vas": 0.0667
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0015,
+        "mad_by_identity": {
+          "put": 0.0017,
+          "vas": 0.0012,
+          "udmurt": 0.0013
+        },
+        "ref": {
+          "put": {
+            "median": 0.0366,
+            "mad": 0.0017,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.0334,
+            "mad": 0.0012,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.0341,
+            "mad": 0.0011,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.9144,
+        "k_differ": 3.613,
+        "signal_cross": 0.0964,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.4667,
+        "pairs": {
+          "put~vas": 2.1333,
+          "put~udmurt": 1.6667,
+          "udmurt~vas": 0.4667
+        }
+      },
+      "max_band": 0.0015
+    },
+    "orbit_fissure_over_cheek_span_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_eyes",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "средняя площадь глазной щели (корень из неё) к ширине скул: «размер глаз относительно ширины лица»",
+      "frontal": {
+        "mad_pooled": 0.0068,
+        "mad_by_identity": {
+          "put": 0.0073,
+          "vas": 0.0066,
+          "udmurt": 0.006
+        },
+        "ref": {
+          "put": {
+            "median": 0.1331,
+            "mad": 0.0067,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.1212,
+            "mad": 0.007,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.1119,
+            "mad": 0.0056,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 2.0837,
+        "k_differ": 3.7593,
+        "signal_cross": 0.1162,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.3676,
+        "pairs": {
+          "put~vas": 1.75,
+          "put~udmurt": 3.1176,
+          "udmurt~vas": 1.3676
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0086,
+        "mad_by_identity": {
+          "put": 0.0081,
+          "vas": 0.0083,
+          "udmurt": 0.0095
+        },
+        "ref": {
+          "put": {
+            "median": 0.132,
+            "mad": 0.0078,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.121,
+            "mad": 0.0075,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.1208,
+            "mad": 0.0066,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.591,
+        "k_differ": 2.6837,
+        "signal_cross": 0.1793,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.0233,
+        "pairs": {
+          "put~vas": 1.2791,
+          "put~udmurt": 1.3023,
+          "udmurt~vas": 0.0233
+        }
+      },
+      "max_band": 0.0086
+    },
+    "brow_medial_to_glabella_relief_l_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_brows",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "разница глубин головы левой брови и глабеллы: «нависает» ли бровь над переносицей или лежит с ней в одной плоскости",
+      "frontal": {
+        "mad_pooled": 0.004,
+        "mad_by_identity": {
+          "put": 0.0049,
+          "vas": 0.0035,
+          "udmurt": 0.0033
+        },
+        "ref": {
+          "put": {
+            "median": -0.0199,
+            "mad": 0.0049,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0128,
+            "mad": 0.0025,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0137,
+            "mad": 0.0028,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 2.1147,
+        "k_differ": 3.8215,
+        "signal_cross": 0.0839,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.225,
+        "pairs": {
+          "put~vas": 1.775,
+          "put~udmurt": 1.55,
+          "udmurt~vas": 0.225
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0061,
+        "mad_by_identity": {
+          "put": 0.0068,
+          "vas": 0.0046,
+          "udmurt": 0.0047
+        },
+        "ref": {
+          "put": {
+            "median": -0.0243,
+            "mad": 0.0068,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.0143,
+            "mad": 0.0055,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.0174,
+            "mad": 0.0048,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.8775,
+        "k_differ": 3.2828,
+        "signal_cross": 0.0503,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.5082,
+        "pairs": {
+          "put~vas": 1.6393,
+          "put~udmurt": 1.1311,
+          "udmurt~vas": 0.5082
+        }
+      },
+      "max_band": 0.0061
+    },
+    "nose_ridge_to_mouth_width_3d": {
+      "framework": "3ddfa",
+      "group": "ldm_top3d",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "длина спинки носа (насион → кончик) к ширине рта",
+      "frontal": {
+        "mad_pooled": 0.0216,
+        "mad_by_identity": {
+          "put": 0.0207,
+          "vas": 0.0233,
+          "udmurt": 0.0217
+        },
+        "ref": {
+          "put": {
+            "median": 0.7931,
+            "mad": 0.019,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.7638,
+            "mad": 0.0221,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.7423,
+            "mad": 0.0228,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9552,
+        "k_differ": 3.4998,
+        "signal_cross": 0.0969,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.9954,
+        "pairs": {
+          "put~vas": 1.3565,
+          "put~udmurt": 2.3519,
+          "udmurt~vas": 0.9954
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0283,
+        "mad_by_identity": {
+          "put": 0.0272,
+          "vas": 0.0278,
+          "udmurt": 0.0343
+        },
+        "ref": {
+          "put": {
+            "median": 0.7943,
+            "mad": 0.0261,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.7664,
+            "mad": 0.0298,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.7739,
+            "mad": 0.0248,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.7885,
+        "k_differ": 3.1344,
+        "signal_cross": 0.0752,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.265,
+        "pairs": {
+          "put~vas": 0.9859,
+          "put~udmurt": 0.7208,
+          "udmurt~vas": 0.265
+        }
+      },
+      "max_band": 0.0283
+    },
+    "lip_border_undulation_134": {
+      "framework": "3ddfa",
+      "group": "ldm134_lips",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "средний прогиб кожных границ губ от их хорд («луковичный» изгиб верхней и изгиб нижней) к ширине рта",
+      "frontal": {
+        "mad_pooled": 0.0075,
+        "mad_by_identity": {
+          "put": 0.008,
+          "vas": 0.0067,
+          "udmurt": 0.0052
+        },
+        "ref": {
+          "put": {
+            "median": 0.2299,
+            "mad": 0.0087,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.2186,
+            "mad": 0.0061,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2159,
+            "mad": 0.009,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.7722,
+        "k_differ": 3.0863,
+        "signal_cross": 0.1115,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.36,
+        "pairs": {
+          "put~vas": 1.5067,
+          "put~udmurt": 1.8667,
+          "udmurt~vas": 0.36
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0069,
+        "mad_by_identity": {
+          "put": 0.0086,
+          "vas": 0.0046,
+          "udmurt": 0.0048
+        },
+        "ref": {
+          "put": {
+            "median": 0.2321,
+            "mad": 0.0077,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.2198,
+            "mad": 0.0046,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2197,
+            "mad": 0.0048,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.98,
+        "k_differ": 3.4689,
+        "signal_cross": 0.095,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.0145,
+        "pairs": {
+          "put~vas": 1.7826,
+          "put~udmurt": 1.7971,
+          "udmurt~vas": 0.0145
+        }
+      },
+      "max_band": 0.0075
+    },
+    "naso_orbital_expansion_3d": {
+      "framework": "3ddfa",
+      "group": "ldm_top3d",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "«пролёт» средней зоны (глаза + нос) к ширине рта",
+      "frontal": {
+        "mad_pooled": 0.032,
+        "mad_by_identity": {
+          "put": 0.0322,
+          "vas": 0.0353,
+          "udmurt": 0.0256
+        },
+        "ref": {
+          "put": {
+            "median": 1.0228,
+            "mad": 0.0282,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.98,
+            "mad": 0.0343,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.9521,
+            "mad": 0.0229,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8728,
+        "k_differ": 3.2316,
+        "signal_cross": 0.0924,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.8719,
+        "pairs": {
+          "put~vas": 1.3375,
+          "put~udmurt": 2.2094,
+          "udmurt~vas": 0.8719
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0353,
+        "mad_by_identity": {
+          "put": 0.0352,
+          "vas": 0.0368,
+          "udmurt": 0.0331
+        },
+        "ref": {
+          "put": {
+            "median": 1.0398,
+            "mad": 0.0365,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.9956,
+            "mad": 0.0344,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.9984,
+            "mad": 0.0293,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.9103,
+        "k_differ": 3.4071,
+        "signal_cross": 0.0694,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.0793,
+        "pairs": {
+          "put~vas": 1.2521,
+          "put~udmurt": 1.1728,
+          "udmurt~vas": 0.0793
+        }
+      },
+      "max_band": 0.0353
+    },
+    "palpebral_to_bigonial_ratio": {
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "разведение внешних уголков глаз к ширине углов нижней челюсти",
+      "frontal": {
+        "mad_pooled": 0.022,
+        "mad_by_identity": {
+          "put": 0.0253,
+          "vas": 0.017,
+          "udmurt": 0.0262
+        },
+        "ref": {
+          "put": {
+            "median": 0.7531,
+            "mad": 0.0251,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.7086,
+            "mad": 0.0164,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.6969,
+            "mad": 0.0138,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9667,
+        "k_differ": 3.5373,
+        "signal_cross": 0.1101,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.5318,
+        "pairs": {
+          "put~vas": 2.0227,
+          "put~udmurt": 2.5545,
+          "udmurt~vas": 0.5318
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0275,
+        "mad_by_identity": {
+          "put": 0.0286,
+          "vas": 0.0248,
+          "udmurt": 0.0334
+        },
+        "ref": {
+          "put": {
+            "median": 0.7653,
+            "mad": 0.0299,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.7177,
+            "mad": 0.0234,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.7312,
+            "mad": 0.0341,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.9297,
+        "k_differ": 3.5259,
+        "signal_cross": 0.0733,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.4909,
+        "pairs": {
+          "put~vas": 1.7309,
+          "put~udmurt": 1.24,
+          "udmurt~vas": 0.4909
+        }
+      },
+      "max_band": 0.0275
+    },
+    "mouth_width_to_lower_face_ratio": {
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "ширина рта к высоте нижней трети лица (определение про выражение)",
+      "frontal": {
+        "mad_pooled": 0.0471,
+        "mad_by_identity": {
+          "put": 0.0407,
+          "vas": 0.0558,
+          "udmurt": 0.0318
+        },
+        "ref": {
+          "put": {
+            "median": 0.7493,
+            "mad": 0.0367,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.8092,
+            "mad": 0.048,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.8462,
+            "mad": 0.0357,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.817,
+        "k_differ": 3.2531,
+        "signal_cross": 0.1002,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.7856,
+        "pairs": {
+          "put~vas": 1.2718,
+          "put~udmurt": 2.0573,
+          "udmurt~vas": 0.7856
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0482,
+        "mad_by_identity": {
+          "put": 0.0496,
+          "vas": 0.0439,
+          "udmurt": 0.0365
+        },
+        "ref": {
+          "put": {
+            "median": 0.7515,
+            "mad": 0.0519,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.8135,
+            "mad": 0.0454,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.8365,
+            "mad": 0.022,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.8797,
+        "k_differ": 3.2907,
+        "signal_cross": 0.0764,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.4772,
+        "pairs": {
+          "put~vas": 1.2863,
+          "put~udmurt": 1.7635,
+          "udmurt~vas": 0.4772
+        }
+      },
+      "max_band": 0.0482
+    },
+    "eye_aperture_right_over_eye_width_mp": {
+      "framework": "mediapipe",
+      "group": "mp_hypotheses",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "раскрытие правого глаза: средняя высота щели к её ширине (определение про мимику)",
+      "frontal": {
+        "mad_pooled": 0.0314,
+        "mad_by_identity": {
+          "put": 0.0306,
+          "vas": 0.0343,
+          "udmurt": 0.0294
+        },
+        "ref": {
+          "put": {
+            "median": 0.3719,
+            "mad": 0.0262,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.3332,
+            "mad": 0.0344,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2761,
+            "mad": 0.0204,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8938,
+        "k_differ": 3.4583,
+        "signal_cross": 0.1105,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.2325,
+        "pairs": {
+          "put~vas": 1.2325,
+          "put~udmurt": 3.051,
+          "udmurt~vas": 1.8185
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0359,
+        "mad_by_identity": {
+          "put": 0.0355,
+          "vas": 0.0424,
+          "udmurt": 0.0344
+        },
+        "ref": {
+          "put": {
+            "median": 0.3529,
+            "mad": 0.0318,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.3166,
+            "mad": 0.0389,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.3256,
+            "mad": 0.0257,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.8786,
+        "k_differ": 3.2592,
+        "signal_cross": 0.0865,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.2507,
+        "pairs": {
+          "put~vas": 1.0111,
+          "put~udmurt": 0.7604,
+          "udmurt~vas": 0.2507
+        }
+      },
+      "max_band": 0.0359
+    },
+    "palpebral_area_index": {
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "площадь обеих глазных щелей к площади лица ×1000 (зависит от раскрытия глаз)",
+      "frontal": {
+        "mad_pooled": 2.0537,
+        "mad_by_identity": {
+          "put": 2.2576,
+          "vas": 2.1753,
+          "udmurt": 1.4709
+        },
+        "ref": {
+          "put": {
+            "median": 16.7742,
+            "mad": 2.0973,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 13.7788,
+            "mad": 1.9829,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 11.4761,
+            "mad": 0.5806,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9028,
+        "k_differ": 3.3175,
+        "signal_cross": 0.099,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.1212,
+        "pairs": {
+          "put~vas": 1.4585,
+          "put~udmurt": 2.5798,
+          "udmurt~vas": 1.1212
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 2.3943,
+        "mad_by_identity": {
+          "put": 2.4301,
+          "vas": 1.9305,
+          "udmurt": 2.7134
+        },
+        "ref": {
+          "put": {
+            "median": 17.3762,
+            "mad": 2.3474,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 13.844,
+            "mad": 1.6666,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 15.2413,
+            "mad": 1.5723,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.8148,
+        "k_differ": 3.0858,
+        "signal_cross": 0.0915,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.5836,
+        "pairs": {
+          "put~vas": 1.4753,
+          "put~udmurt": 0.8917,
+          "udmurt~vas": 0.5836
+        }
+      },
+      "max_band": 2.3943
+    },
+    "nasal_bridge_convergence_angle": {
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "kind": "angle",
+      "trusted": false,
+      "description": "угол схождения спинки носа: кончик — переносица — крыло (градусы)",
+      "frontal": {
+        "mad_pooled": 1.858,
+        "mad_by_identity": {
+          "put": 1.9609,
+          "vas": 1.8009,
+          "udmurt": 1.4589
+        },
+        "ref": {
+          "put": {
+            "median": 47.2787,
+            "mad": 1.6978,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 49.678,
+            "mad": 1.7684,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 52.7724,
+            "mad": 0.9746,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 2.1579,
+        "k_differ": 3.8694,
+        "signal_cross": 0.1068,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.2913,
+        "pairs": {
+          "put~vas": 1.2913,
+          "put~udmurt": 2.9568,
+          "udmurt~vas": 1.6654
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 2.5033,
+        "mad_by_identity": {
+          "put": 2.276,
+          "vas": 3.3302,
+          "udmurt": 2.6499
+        },
+        "ref": {
+          "put": {
+            "median": 48.1542,
+            "mad": 2.2664,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 51.584,
+            "mad": 3.2225,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 51.0726,
+            "mad": 2.322,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.859,
+        "k_differ": 3.227,
+        "signal_cross": 0.0871,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.2043,
+        "pairs": {
+          "put~vas": 1.3701,
+          "put~udmurt": 1.1658,
+          "udmurt~vas": 0.2043
+        }
+      },
+      "max_band": 2.5033
+    },
+    "lower_lip_to_chin_over_lower_third_mp": {
+      "framework": "mediapipe",
+      "group": "mp_hypotheses",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "расстояние «нижняя губа → подбородок» к высоте нижней трети лица",
+      "frontal": {
+        "mad_pooled": 0.0312,
+        "mad_by_identity": {
+          "put": 0.0378,
+          "vas": 0.0293,
+          "udmurt": 0.0266
+        },
+        "ref": {
+          "put": {
+            "median": 0.433,
+            "mad": 0.0331,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.4832,
+            "mad": 0.0248,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.5093,
+            "mad": 0.019,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9966,
+        "k_differ": 3.45,
+        "signal_cross": 0.1053,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.8365,
+        "pairs": {
+          "put~vas": 1.609,
+          "put~udmurt": 2.4455,
+          "udmurt~vas": 0.8365
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0299,
+        "mad_by_identity": {
+          "put": 0.0357,
+          "vas": 0.0279,
+          "udmurt": 0.0196
+        },
+        "ref": {
+          "put": {
+            "median": 0.4294,
+            "mad": 0.0361,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.4758,
+            "mad": 0.0253,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.4802,
+            "mad": 0.0199,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 2.1102,
+        "k_differ": 3.7577,
+        "signal_cross": 0.0732,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.1472,
+        "pairs": {
+          "put~vas": 1.5518,
+          "put~udmurt": 1.699,
+          "udmurt~vas": 0.1472
+        }
+      },
+      "max_band": 0.0312
+    },
+    "nasal_dorsal_index": {
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "ширина крыльев носа к высоте средней трети лица",
+      "frontal": {
+        "mad_pooled": 0.0288,
+        "mad_by_identity": {
+          "put": 0.0295,
+          "vas": 0.0229,
+          "udmurt": 0.0347
+        },
+        "ref": {
+          "put": {
+            "median": 0.6549,
+            "mad": 0.0273,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.6866,
+            "mad": 0.0207,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.7521,
+            "mad": 0.0206,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 2.0809,
+        "k_differ": 3.6942,
+        "signal_cross": 0.0983,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.1007,
+        "pairs": {
+          "put~vas": 1.1007,
+          "put~udmurt": 3.375,
+          "udmurt~vas": 2.2743
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0394,
+        "mad_by_identity": {
+          "put": 0.0358,
+          "vas": 0.0426,
+          "udmurt": 0.0344
+        },
+        "ref": {
+          "put": {
+            "median": 0.6621,
+            "mad": 0.0341,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.7213,
+            "mad": 0.0518,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.7041,
+            "mad": 0.0419,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.8637,
+        "k_differ": 3.3525,
+        "signal_cross": 0.0548,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.4365,
+        "pairs": {
+          "put~vas": 1.5025,
+          "put~udmurt": 1.066,
+          "udmurt~vas": 0.4365
+        }
+      },
+      "max_band": 0.0394
+    },
+    "mandibular_body_to_ramus_ratio": {
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "средняя по двум сторонам «ветвь челюсти → подбородок» к «скула → ветвь»",
+      "frontal": {
+        "mad_pooled": 0.0278,
+        "mad_by_identity": {
+          "put": 0.0301,
+          "vas": 0.0191,
+          "udmurt": 0.0274
+        },
+        "ref": {
+          "put": {
+            "median": 1.1235,
+            "mad": 0.0277,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 1.1668,
+            "mad": 0.0178,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 1.1891,
+            "mad": 0.0232,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8542,
+        "k_differ": 3.2768,
+        "signal_cross": 0.0961,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.8022,
+        "pairs": {
+          "put~vas": 1.5576,
+          "put~udmurt": 2.3597,
+          "udmurt~vas": 0.8022
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0311,
+        "mad_by_identity": {
+          "put": 0.028,
+          "vas": 0.0377,
+          "udmurt": 0.0334
+        },
+        "ref": {
+          "put": {
+            "median": 1.1637,
+            "mad": 0.0276,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 1.1929,
+            "mad": 0.0377,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 1.191,
+            "mad": 0.0373,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.7818,
+        "k_differ": 3.8461,
+        "signal_cross": 0.0368,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.0611,
+        "pairs": {
+          "put~vas": 0.9389,
+          "put~udmurt": 0.8778,
+          "udmurt~vas": 0.0611
+        }
+      },
+      "max_band": 0.0311
+    },
+    "lip_thick_over_mouth_w": {
+      "framework": "mediapipe",
+      "group": "mp_top30",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "полная толщина губ (верх + низ) к ширине рта",
+      "frontal": {
+        "mad_pooled": 0.0544,
+        "mad_by_identity": {
+          "put": 0.0597,
+          "vas": 0.0488,
+          "udmurt": 0.0308
+        },
+        "ref": {
+          "put": {
+            "median": 0.3136,
+            "mad": 0.061,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.2355,
+            "mad": 0.0472,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2287,
+            "mad": 0.0446,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 2.0919,
+        "k_differ": 3.4705,
+        "signal_cross": 0.1028,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 0.125,
+        "pairs": {
+          "put~vas": 1.4357,
+          "put~udmurt": 1.5607,
+          "udmurt~vas": 0.125
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0495,
+        "mad_by_identity": {
+          "put": 0.0508,
+          "vas": 0.058,
+          "udmurt": 0.0309
+        },
+        "ref": {
+          "put": {
+            "median": 0.3126,
+            "mad": 0.0527,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.2293,
+            "mad": 0.0508,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2375,
+            "mad": 0.0273,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.9781,
+        "k_differ": 3.6415,
+        "signal_cross": 0.0802,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.1657,
+        "pairs": {
+          "put~vas": 1.6828,
+          "put~udmurt": 1.5172,
+          "udmurt~vas": 0.1657
+        }
+      },
+      "max_band": 0.0544
+    },
+    "probe_eye_open_l": {
+      "framework": "mediapipe",
+      "group": "mp_probe",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "высота левой глазной щели к её ширине (раскрытие глаза)",
+      "frontal": {
+        "mad_pooled": 0.0337,
+        "mad_by_identity": {
+          "put": 0.0336,
+          "vas": 0.037,
+          "udmurt": 0.0214
+        },
+        "ref": {
+          "put": {
+            "median": 0.3682,
+            "mad": 0.0303,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.3254,
+            "mad": 0.0287,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.2914,
+            "mad": 0.0203,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.878,
+        "k_differ": 3.3653,
+        "signal_cross": 0.0891,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.0089,
+        "pairs": {
+          "put~vas": 1.27,
+          "put~udmurt": 2.2789,
+          "udmurt~vas": 1.0089
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0491,
+        "mad_by_identity": {
+          "put": 0.0446,
+          "vas": 0.0499,
+          "udmurt": 0.0581
+        },
+        "ref": {
+          "put": {
+            "median": 0.3717,
+            "mad": 0.0411,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.3332,
+            "mad": 0.0498,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.3352,
+            "mad": 0.0388,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.727,
+        "k_differ": 3.0985,
+        "signal_cross": 0.0672,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.0407,
+        "pairs": {
+          "put~vas": 0.7841,
+          "put~udmurt": 0.7434,
+          "udmurt~vas": 0.0407
+        }
+      },
+      "max_band": 0.0491
+    },
+    "inner_canthal_over_ipd_mp": {
+      "framework": "mediapipe",
+      "group": "mp_hypotheses",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "расстояние между внутренними уголками глаз к зрачковому расстоянию",
+      "frontal": {
+        "mad_pooled": 0.0173,
+        "mad_by_identity": {
+          "put": 0.0166,
+          "vas": 0.0173,
+          "udmurt": 0.0222
+        },
+        "ref": {
+          "put": {
+            "median": 0.502,
+            "mad": 0.0149,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.5234,
+            "mad": 0.0163,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.543,
+            "mad": 0.0108,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.7539,
+        "k_differ": 2.9654,
+        "signal_cross": 0.0818,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.1329,
+        "pairs": {
+          "put~vas": 1.237,
+          "put~udmurt": 2.3699,
+          "udmurt~vas": 1.1329
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0267,
+        "mad_by_identity": {
+          "put": 0.0255,
+          "vas": 0.0278,
+          "udmurt": 0.0305
+        },
+        "ref": {
+          "put": {
+            "median": 0.5191,
+            "mad": 0.0245,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.5362,
+            "mad": 0.0288,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.5287,
+            "mad": 0.0203,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.755,
+        "k_differ": 3.5488,
+        "signal_cross": 0.046,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.2809,
+        "pairs": {
+          "put~vas": 0.6404,
+          "put~udmurt": 0.3596,
+          "udmurt~vas": 0.2809
+        }
+      },
+      "max_band": 0.0267
+    },
+    "probe_lower_w_over_face_w": {
+      "framework": "mediapipe",
+      "group": "mp_probe",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "ширина нижней челюсти (58 ↔ 288) к ширине лица по скулам",
+      "frontal": {
+        "mad_pooled": 0.0142,
+        "mad_by_identity": {
+          "put": 0.0152,
+          "vas": 0.0102,
+          "udmurt": 0.0205
+        },
+        "ref": {
+          "put": {
+            "median": 0.881,
+            "mad": 0.0151,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.897,
+            "mad": 0.0092,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.912,
+            "mad": 0.0139,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.887,
+        "k_differ": 3.2923,
+        "signal_cross": 0.0713,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.0563,
+        "pairs": {
+          "put~vas": 1.1268,
+          "put~udmurt": 2.1831,
+          "udmurt~vas": 1.0563
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0132,
+        "mad_by_identity": {
+          "put": 0.0133,
+          "vas": 0.0121,
+          "udmurt": 0.0129
+        },
+        "ref": {
+          "put": {
+            "median": 0.8851,
+            "mad": 0.0136,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": 0.9036,
+            "mad": 0.0123,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": 0.9008,
+            "mad": 0.0167,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 2.0839,
+        "k_differ": 3.9518,
+        "signal_cross": 0.0376,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.2121,
+        "pairs": {
+          "put~vas": 1.4015,
+          "put~udmurt": 1.1894,
+          "udmurt~vas": 0.2121
+        }
+      },
+      "max_band": 0.0142
+    },
+    "cross_sclera_show_mean_x134mp": {
+      "framework": "cross",
+      "group": "cross_iris_fissure",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "сколько вертикального просвета (белка) остаётся в глазной щели после радужки: разница видимой высоты щели (MediaPipe, по своему IPD) и вертикального диаметра радужки, на высоту смоделированной щели (134, по своему IPD). Отрицательное = радужка больше щели, белок не виден — ровно заявленная разница put против vas/udmurt",
+      "frontal": {
+        "mad_pooled": 0.1063,
+        "mad_by_identity": {
+          "put": 0.1025,
+          "vas": 0.1242,
+          "udmurt": 0.0704
+        },
+        "ref": {
+          "put": {
+            "median": -0.1818,
+            "mad": 0.0906,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.3395,
+            "mad": 0.1128,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.4644,
+            "mad": 0.1101,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.8113,
+        "k_differ": 3.365,
+        "signal_cross": 0.1097,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.175,
+        "pairs": {
+          "put~vas": 1.4835,
+          "put~udmurt": 2.6585,
+          "udmurt~vas": 1.175
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.1251,
+        "mad_by_identity": {
+          "put": 0.112,
+          "vas": 0.134,
+          "udmurt": 0.1374
+        },
+        "ref": {
+          "put": {
+            "median": -0.198,
+            "mad": 0.1063,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.3715,
+            "mad": 0.1186,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.3391,
+            "mad": 0.0821,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.9268,
+        "k_differ": 3.8645,
+        "signal_cross": 0.0943,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.259,
+        "pairs": {
+          "put~vas": 1.3869,
+          "put~udmurt": 1.1279,
+          "udmurt~vas": 0.259
+        }
+      },
+      "max_band": 0.1251
+    },
+    "cross_sclera_band_lower_r_x134mp": {
+      "framework": "cross",
+      "group": "cross_iris_fissure",
+      "kind": "ratio",
+      "trusted": false,
+      "description": "нижняя белковая полоса правого глаза: зазор от нижнего края радужки до нижнего века (MediaPipe, в долях MP-IPD) на высоту моделируемой щели (134, в долях 3DDFA-IPD)",
+      "frontal": {
+        "mad_pooled": 0.066,
+        "mad_by_identity": {
+          "put": 0.0632,
+          "vas": 0.0713,
+          "udmurt": 0.0599
+        },
+        "ref": {
+          "put": {
+            "median": -0.0234,
+            "mad": 0.0562,
+            "n": 133,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.125,
+            "mad": 0.0727,
+            "n": 58,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.2036,
+            "mad": 0.0415,
+            "n": 13,
+            "basis": "neutral"
+          }
+        },
+        "n": 257,
+        "k_same": 1.9263,
+        "k_differ": 3.7684,
+        "signal_cross": 0.0818,
+        "n_same_pairs": 14490,
+        "n_cross_pairs": 18406,
+        "min_gap": 1.1909,
+        "pairs": {
+          "put~vas": 1.5394,
+          "put~udmurt": 2.7303,
+          "udmurt~vas": 1.1909
+        }
+      },
+      "subfrontal": {
+        "mad_pooled": 0.0777,
+        "mad_by_identity": {
+          "put": 0.08,
+          "vas": 0.0721,
+          "udmurt": 0.0798
+        },
+        "ref": {
+          "put": {
+            "median": -0.0251,
+            "mad": 0.0737,
+            "n": 92,
+            "basis": "neutral"
+          },
+          "vas": {
+            "median": -0.1311,
+            "mad": 0.0716,
+            "n": 35,
+            "basis": "neutral"
+          },
+          "udmurt": {
+            "median": -0.1234,
+            "mad": 0.0621,
+            "n": 20,
+            "basis": "neutral"
+          }
+        },
+        "n": 177,
+        "k_same": 1.9154,
+        "k_differ": 3.7751,
+        "signal_cross": 0.1112,
+        "n_same_pairs": 6436,
+        "n_cross_pairs": 9140,
+        "min_gap": 0.0991,
+        "pairs": {
+          "put~vas": 1.3642,
+          "put~udmurt": 1.2651,
+          "udmurt~vas": 0.0991
+        }
+      },
+      "max_band": 0.0777
+    }
+  }
+}

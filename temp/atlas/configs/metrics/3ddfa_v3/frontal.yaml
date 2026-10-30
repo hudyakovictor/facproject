@@ -1,0 +1,348 @@
+version: 2
+model: 3ddfa_v3
+pose: frontal
+profile_defaults:
+  normalize: iod
+  zscore: robust_mad
+metrics:
+- id: mesh_eye_area
+  enabled: true
+  title: Площадь глаз / IOD²
+  unit: IOD²
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: mesh_jaw_ratio
+  enabled: true
+  title: Нижняя челюсть / контур
+  unit: ratio
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: mesh_nose_projection
+  enabled: true
+  title: Проекция носа / IOD
+  unit: IOD
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_nose_side_L_tetra_volume_mean
+  enabled: true
+  title: 'Боковая часть носа L: Средний абсолютный объём тетраэдров / диаметр³'
+  unit: ratio
+  archive_rank: 1
+  cv_auc_mean: 0.9451
+  cv_auc_split_sd: 0.0202
+  archive_visibility:
+    group3_fully_visible: 7
+    group4_fully_visible: 7
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v5_tetra_lower_face
+  enabled: true
+  title: 'Рот–основание носа–подбородок: ориентированный объём / D³'
+  unit: ratio
+  archive_rank: 2
+  cv_auc_mean: 0.9448
+  cv_auc_split_sd: 0.0156
+  archive_visibility:
+    group3_fully_visible: 1
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_triangle_compactness_midface_L
+  enabled: true
+  title: Глаз–нос–рот L — компактность
+  unit: ratio
+  archive_rank: 3
+  cv_auc_mean: 0.9438
+  cv_auc_split_sd: 0.0162
+  archive_visibility:
+    group3_fully_visible: 2
+    group4_fully_visible: 1
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_chin_jaw_ratio
+  enabled: true
+  title: Подбородок / средняя челюсть
+  unit: ratio
+  archive_rank: 4
+  cv_auc_mean: 0.9388
+  cv_auc_split_sd: 0.0156
+  archive_visibility:
+    group3_fully_visible: 0
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_prop_outer_eye_mouth_R
+  enabled: true
+  title: Наружный уголок–рот R / высота
+  unit: ratio
+  archive_rank: 5
+  cv_auc_mean: 0.9349
+  cv_auc_split_sd: 0.0194
+  archive_visibility:
+    group3_fully_visible: 2
+    group4_fully_visible: 2
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_prop_outer_eye_mouth_L
+  enabled: true
+  title: Наружный уголок–рот L / высота
+  unit: ratio
+  archive_rank: 6
+  cv_auc_mean: 0.9331
+  cv_auc_split_sd: 0.0306
+  archive_visibility:
+    group3_fully_visible: 1
+    group4_fully_visible: 1
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v5_tetra_cheek_R
+  enabled: true
+  title: 'Глаз–нос–рот–контур R: ориентированный объём / D³'
+  unit: ratio
+  archive_rank: 7
+  cv_auc_mean: 0.9281
+  cv_auc_split_sd: 0.0244
+  archive_visibility:
+    group3_fully_visible: 1
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_central_midface_distance_gini
+  enabled: true
+  title: 'Центральная средняя зона: Неравномерность межточечных расстояний'
+  unit: ratio
+  archive_rank: 8
+  cv_auc_mean: 0.9273
+  cv_auc_split_sd: 0.0144
+  archive_visibility:
+    group3_fully_visible: 9
+    group4_fully_visible: 12
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_lower_face_tetra_volume_mean
+  enabled: true
+  title: 'Нижняя зона лица: Средний абсолютный объём тетраэдров / диаметр³'
+  unit: ratio
+  archive_rank: 9
+  cv_auc_mean: 0.9269
+  cv_auc_split_sd: 0.0227
+  archive_visibility:
+    group3_fully_visible: 0
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_lower_face_triangle_quality_median
+  enabled: true
+  title: 'Нижняя зона лица: Медианная форма треугольников'
+  unit: ratio
+  archive_rank: 10
+  cv_auc_mean: 0.9248
+  cv_auc_split_sd: 0.0219
+  archive_visibility:
+    group3_fully_visible: 0
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_lower_face_distance_gini
+  enabled: true
+  title: 'Нижняя зона лица: Неравномерность межточечных расстояний'
+  unit: ratio
+  archive_rank: 11
+  cv_auc_mean: 0.9245
+  cv_auc_split_sd: 0.0172
+  archive_visibility:
+    group3_fully_visible: 0
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_nose_full_tetra_volume_mean
+  enabled: true
+  title: 'Нос целиком: Средний абсолютный объём тетраэдров / диаметр³'
+  unit: ratio
+  archive_rank: 12
+  cv_auc_mean: 0.9197
+  cv_auc_split_sd: 0.0234
+  archive_visibility:
+    group3_fully_visible: 0
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v5_quad_eyes_mouth_inner
+  enabled: true
+  title: 'Внутренние уголки глаз–рот: произведение расстояний'
+  unit: ratio
+  archive_rank: 13
+  cv_auc_mean: 0.9131
+  cv_auc_split_sd: 0.018
+  archive_visibility:
+    group3_fully_visible: 9
+    group4_fully_visible: 11
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v5_quad_mouth_jaw
+  enabled: true
+  title: 'Рот–нижний контур: произведение расстояний'
+  unit: ratio
+  archive_rank: 14
+  cv_auc_mean: 0.9048
+  cv_auc_split_sd: 0.0152
+  archive_visibility:
+    group3_fully_visible: 0
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v4_nose_pca_flat
+  enabled: true
+  title: Нос — Отношение главных размеров
+  unit: ratio
+  archive_rank: 15
+  cv_auc_mean: 0.9035
+  cv_auc_split_sd: 0.0161
+  archive_visibility:
+    group3_fully_visible: 0
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_mouth_width
+  enabled: true
+  title: Ширина рта / D
+  unit: ratio
+  archive_rank: 16
+  cv_auc_mean: 0.9005
+  cv_auc_split_sd: 0.0302
+  archive_visibility:
+    group3_fully_visible: 1
+    group4_fully_visible: 0
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v5_quad_nose_wings_base
+  enabled: true
+  title: 'Крылья–основание носа: произведение расстояний'
+  unit: ratio
+  archive_rank: 17
+  cv_auc_mean: 0.9002
+  cv_auc_split_sd: 0.0107
+  archive_visibility:
+    group3_fully_visible: 7
+    group4_fully_visible: 1
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_nasal_ridge_distance_gini
+  enabled: true
+  title: 'Носовой профиль: Неравномерность межточечных расстояний'
+  unit: ratio
+  archive_rank: 18
+  cv_auc_mean: 0.8993
+  cv_auc_split_sd: 0.0276
+  archive_visibility:
+    group3_fully_visible: 19
+    group4_fully_visible: 19
+    n_per_group: 19
+  quality_note: В исходном архиве видимость опор ≥15/19 в обеих группах; это не внешняя
+    валидация.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_v7_nose_base_triangle_quality_median
+  enabled: true
+  title: 'Основание носа: Медианная форма треугольников'
+  unit: ratio
+  archive_rank: 19
+  cv_auc_mean: 0.8983
+  cv_auc_split_sd: 0.0195
+  archive_visibility:
+    group3_fully_visible: 7
+    group4_fully_visible: 1
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0
+- id: archive_nose_width_length
+  enabled: true
+  title: Ширина носа / длина
+  unit: ratio
+  archive_rank: 20
+  cv_auc_mean: 0.8979
+  cv_auc_split_sd: 0.022
+  archive_visibility:
+    group3_fully_visible: 7
+    group4_fully_visible: 1
+    n_per_group: 19
+  quality_note: Исследовательская оценка; видимость опор проверялась только на кадрах
+    исходного архива.
+  thresholds:
+    warn: 2.0
+    alert: 3.0

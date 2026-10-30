@@ -1,0 +1,89 @@
+{
+ "person": "person_01",
+ "frames": [
+  204,
+  209,
+  213,
+  218,
+  222,
+  227,
+  231,
+  236,
+  240,
+  245
+ ],
+ "bins": [
+  "left_profile",
+  "left_profile",
+  "left_profile",
+  "left_profile",
+  "left_profile",
+  "left_profile",
+  "left_profile",
+  "left_mid",
+  "left_mid",
+  "left_light"
+ ],
+ "segments": 9,
+ "tolerance": 1e-06,
+ "modes": {
+  "euclid": {
+   "metric": "euclid",
+   "weighting": "none",
+   "vmax": 0.06,
+   "join_heat": 0.0,
+   "join_color": 0.0,
+   "join_alpha_flip": 0,
+   "join_vertex": 0.0,
+   "segment_independent": 0.0,
+   "segment_change_min": 0.00491903,
+   "segment_change_max": 0.04416776,
+   "flat_segments": 0
+  },
+  "normal": {
+   "metric": "normal",
+   "weighting": "none",
+   "vmax": 0.06,
+   "join_heat": 0.0,
+   "join_color": 0.0,
+   "join_alpha_flip": 0,
+   "join_vertex": 0.0,
+   "segment_independent": 0.0,
+   "segment_change_min": 0.00366634,
+   "segment_change_max": 0.01681757,
+   "flat_segments": 0
+  },
+  "weighted_euclid": {
+   "metric": "euclid",
+   "weighting": "calibrated",
+   "vmax": 4.0,
+   "join_heat": 0.0,
+   "join_color": 0.0,
+   "join_alpha_flip": 0,
+   "join_vertex": 0.0,
+   "segment_independent": 0.0,
+   "segment_change_min": 0.22136863,
+   "segment_change_max": 1.81167316,
+   "flat_segments": 0
+  },
+  "weighted_normal": {
+   "metric": "normal",
+   "weighting": "calibrated",
+   "vmax": 4.0,
+   "join_heat": 0.0,
+   "join_color": 0.0,
+   "join_alpha_flip": 0,
+   "join_vertex": 0.0,
+   "segment_independent": 0.0,
+   "segment_change_min": 0.14378652,
+   "segment_change_max": 0.63696104,
+   "flat_segments": 0
+  }
+ },
+ "join_jump": 0.0,
+ "heat_join": 0.0,
+ "color_join": 0.0,
+ "segment_independent": true,
+ "passed": true,
+ "png": "reports/calibration/v3-chain.png"
+}

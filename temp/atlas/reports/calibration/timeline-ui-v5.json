@@ -1,0 +1,12 @@
+{
+ "group": "person_04",
+ "errors": [],
+ "checks": {
+  "chart_track_count": 1,
+  "metric_track_not_chart_count": 0,
+  "metric_track_total": 1,
+  "chart_track_pass": true,
+  "no_extra_metric_tracks_pass": true
+ },
+ "pass": true
+}

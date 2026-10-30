@@ -1,0 +1,19 @@
+{
+ "person": "person_01",
+ "reference_frame": 204,
+ "target_frame": 336,
+ "bins": [
+  "left_profile",
+  "right_profile"
+ ],
+ "size": 512,
+ "endpoint": "GET /api/photos/{id}/preview",
+ "normalizeScale": true,
+ "files": [
+  "reports/calibration/v3-preview-euclid.png",
+  "reports/calibration/v3-preview-normal.png",
+  "reports/calibration/v3-preview-weighted_euclid.png",
+  "reports/calibration/v3-preview-weighted_normal.png",
+  "reports/calibration/v3-preview-modes.png"
+ ]
+}

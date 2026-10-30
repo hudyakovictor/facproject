@@ -1,0 +1,11 @@
+# Калибровка на одном человеке
+units: "rms106"  # normalize_ldm106
+norm:
+  method: rms106
+  landmarks: ldm106
+pose:
+  bins: ["frontal", "left_light", "left_profile", "right_light", "right_profile"]  # по classify_pose
+  warn_spread_deg: 10.0
+mesh:
+  use: vertices_identity_only  # форма без мимики
+  aligned: true  # align_identity_mesh

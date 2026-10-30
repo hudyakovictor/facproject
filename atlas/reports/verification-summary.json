@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-19",
+  "production_port": 5173,
+  "mode": "one FastAPI process; static React + API",
+  "backend": {
+    "passed": 37,
+    "failed": 0,
+    "report": "pytest.log"
+  },
+  "production_ui": {
+    "passed": 21,
+    "failed": 0,
+    "browser_errors": 0,
+    "report": "production-acceptance.json"
+  },
+  "development_ui": {
+    "passed": 15,
+    "failed": 0,
+    "report": "browser-acceptance.json",
+    "note": "Includes 90-track virtualization; requires Vite"
+  },
+  "jobs": {
+    "passed": 15,
+    "failed": 0,
+    "report": "jobs-acceptance.json",
+    "scope": [
+      "PCA/t-SNE/UMAP 3D on 10 already processed reconstructions",
+      "three H264 MP4 metric variants decoded",
+      "cancel & temporary video cleanup",
+      "demo/user files unchanged"
+    ]
+  },
+  "installed_model": "3DDFA-V3 MobileNet CPU, official weights SHA-256 verified",
+  "not_installed": [
+    "AdaFace",
+    "MediaPipe",
+    "FAN"
+  ],
+  "limitations": [
+    "native-photo mesh texture uses WebGL; no-WebGL CPU PNG render is geometry/heat/landmarks only",
+    "sample has only one local group; three cohorts need explicit user labels",
+    "FAN and AdaFace inference not installed",
+    "no Google Drive importer",
+    "strict frontal filter rejects all five local sample frames",
+    "do not infer identity or silicone mask presence from these metrics"
+  ],
+  "eyes": {
+    "model": "MediaPipe Face Landmarker 0.10.35 CPU",
+    "landmarks": 478,
+    "iris_landmarks": 10,
+    "local_photos_analysed": 5,
+    "strict_frontal_passed": 0,
+    "note": "All five local photos were outside yaw/pitch ±8°; measurements are not a mask/identity detector. Google Drive groups/angle sheet not found."
+  },
+  "workspace_migration": "version 3; preserves photos/preferences, separates scene and metric timeline; default switches from demo/all-groups to user group if synthetic demo photos are present",
+  "frontend": {
+    "build": "success",
+    "modules": 2306,
+    "notes": "single bundle exceeds Vite 500kB advisory"
+  },
+  "layout": {
+    "workspace_version": 3,
+    "group": "Моя группа",
+    "photos_visible": 5,
+    "nodes": [
+      "scene+texture+heat+morph+thumbnails",
+      "separate metrics timeline",
+      "eye quality/measures",
+      "alpha ID cluster",
+      "photo library",
+      "3DDFA processor"
+    ]
+  },
+  "ocular": {
+    "engine": "MediaPipe Face Landmarker CPU, 478 face landmarks incl 10 iris points",
+    "metric_count": 20,
+    "sample_rows": 5,
+    "strict_frontal_selected": 0,
+    "sample_report": "ocular-local-sample.md",
+    "interpretation": "descriptive projection morphometry only; not mask/identity/authenticity classification"
+  },
+  "drive": {
+    "search": "no visible folder named groups and no Google Sheets angle table in connected Drive search",
+    "imported": false
+  }
+}

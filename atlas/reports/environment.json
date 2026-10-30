@@ -1,0 +1,27 @@
+{
+  "python": "3.13.16",
+  "cpu_count": 2,
+  "memory_limit": null,
+  "network": {
+    "pip": {
+      "status": 200,
+      "url": "https://pypi.org/simple/fastapi/"
+    },
+    "npm": {
+      "status": 200,
+      "url": "https://registry.npmjs.org/react"
+    },
+    "huggingface": {
+      "status": 200,
+      "url": "https://huggingface.co/api/datasets/Zidu-Wang/3DDFA-V3/tree/main/assets"
+    },
+    "drive": {
+      "status": 200,
+      "url": "https://accounts.google.com/v3/signin/identifier?continue=https://drive.google.com/&emr=1&followup=https://drive.google.com/&osid=1&passive=1209600&service=wise&flowName=WebLiteSignIn&flowEntry=ServiceLogin&dsh=S1898525072:1792420252627707"
+    },
+    "pytorch_cpu": {
+      "status": 200,
+      "url": "https://download.pytorch.org/whl/cpu/torch/"
+    }
+  }
+}

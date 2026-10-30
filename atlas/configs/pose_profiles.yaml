@@ -1,0 +1,59 @@
+version: 1
+convention: 'Сторона — направление носа на изображении. Положительный yaw: вправо.
+  При пересечении диапазонов приоритет задаёт порядок профилей.'
+profiles:
+- id: frontal
+  title: Фронтальный
+  yaw:
+  - -15
+  - 15
+  pitch:
+  - -35
+  - 35
+  roll:
+  - -30
+  - 30
+- id: three_quarter_left
+  title: Полупрофиль влево
+  yaw:
+  - -60
+  - -15
+  pitch:
+  - -35
+  - 35
+  roll:
+  - -30
+  - 30
+- id: three_quarter_right
+  title: Полупрофиль вправо
+  yaw:
+  - 15
+  - 60
+  pitch:
+  - -35
+  - 35
+  roll:
+  - -30
+  - 30
+- id: profile_left
+  title: Профиль влево
+  yaw:
+  - -95
+  - -60
+  pitch:
+  - -35
+  - 35
+  roll:
+  - -30
+  - 30
+- id: profile_right
+  title: Профиль вправо
+  yaw:
+  - 60
+  - 95
+  pitch:
+  - -35
+  - 35
+  roll:
+  - -30
+  - 30

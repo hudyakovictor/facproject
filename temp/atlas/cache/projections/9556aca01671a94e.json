@@ -1,0 +1,70 @@
+{
+  "points": [
+    {
+      "id": "1b41c38e417ace9d",
+      "group": "Моя группа",
+      "coords": [
+        -3.2058162689208984,
+        1.950834302988369e-07,
+        0.0
+      ],
+      "norm": 6.993671417236328,
+      "cluster": 0
+    },
+    {
+      "id": "77584badcaee4867",
+      "group": "Моя группа",
+      "coords": [
+        3.2058162689208984,
+        1.9508341608798219e-07,
+        0.0
+      ],
+      "norm": 5.336634635925293,
+      "cluster": 1
+    }
+  ],
+  "matrix": [
+    [
+      0.0,
+      6.411630153656006
+    ],
+    [
+      6.411630153656006,
+      0.0
+    ]
+  ],
+  "groups": [
+    "Моя группа"
+  ],
+  "centroid_distances": [
+    [
+      0.0
+    ]
+  ],
+  "dispersion": {
+    "Моя группа": 10.27725601196289
+  },
+  "silhouette": null,
+  "explained_variance": 1.0,
+  "method": "pca",
+  "requested_method": "pca",
+  "note": null,
+  "seed": 42,
+  "params": {
+    "method": "pca",
+    "dimensions": 3,
+    "distance": "euclidean",
+    "n_neighbors": 15,
+    "min_dist": 0.1,
+    "perplexity": 15,
+    "seed": 42,
+    "clusters": 3,
+    "photo_ids": [
+      "1b41c38e417ace9d",
+      "77584badcaee4867"
+    ]
+  },
+  "cache_key": "9556aca01671a94e",
+  "cache_hit": false,
+  "note_embedding": "α_id — параметры 3DMM, не AdaFace и не достоверность личности."
+}

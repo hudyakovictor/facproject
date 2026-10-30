@@ -1,0 +1,722 @@
+{
+ "dataset": {
+  "people": [
+   "person_01",
+   "person_02",
+   "person_03",
+   "person_04",
+   "person_05",
+   "person_06",
+   "person_07",
+   "person_10",
+   "person_11",
+   "person_9"
+  ],
+  "frames": 266,
+  "valid": 264,
+  "per_person": {
+   "person_01": {
+    "frames": 30,
+    "valid": 30,
+    "frontal": 11,
+    "label_source": "manual+yaw"
+   },
+   "person_02": {
+    "frames": 30,
+    "valid": 30,
+    "frontal": 4,
+    "label_source": "manual+yaw"
+   },
+   "person_03": {
+    "frames": 30,
+    "valid": 30,
+    "frontal": 4,
+    "label_source": "manual+yaw"
+   },
+   "person_04": {
+    "frames": 30,
+    "valid": 30,
+    "frontal": 7,
+    "label_source": "manual+yaw"
+   },
+   "person_05": {
+    "frames": 30,
+    "valid": 30,
+    "frontal": 6,
+    "label_source": "manual+yaw"
+   },
+   "person_06": {
+    "frames": 30,
+    "valid": 28,
+    "frontal": 4,
+    "label_source": "manual+yaw"
+   },
+   "person_07": {
+    "frames": 30,
+    "valid": 30,
+    "frontal": 5,
+    "label_source": "manual+yaw"
+   },
+   "person_10": {
+    "frames": 18,
+    "valid": 18,
+    "frontal": 8,
+    "label_source": "predicted"
+   },
+   "person_11": {
+    "frames": 18,
+    "valid": 18,
+    "frontal": 6,
+    "label_source": "predicted"
+   },
+   "person_9": {
+    "frames": 20,
+    "valid": 20,
+    "frontal": 7,
+    "label_source": "predicted"
+   }
+  },
+  "gap": 30,
+  "space": "center + IOD (eye-contour means ldm68 36:42/42:48)",
+  "skipped": 4
+ },
+ "sigma_pairs": 563,
+ "counts": {
+  "within": 564,
+  "between": 7808
+ },
+ "modes": {
+  "euclid": {
+   "within": {
+    "n": 564,
+    "mean": 0.05874,
+    "median": 0.05456,
+    "p90": 0.09593,
+    "std": 0.02437
+   },
+   "within_same": {
+    "n": 24,
+    "mean": 0.06304,
+    "median": 0.06191,
+    "p90": 0.10402,
+    "std": 0.03231
+   },
+   "within_cross": {
+    "n": 540,
+    "mean": 0.05854,
+    "median": 0.05449,
+    "p90": 0.08999,
+    "std": 0.02393
+   },
+   "between": {
+    "n": 7808,
+    "mean": 0.07834,
+    "median": 0.07375,
+    "p90": 0.11518,
+    "std": 0.0282
+   },
+   "ratio": 1.334,
+   "auc": 0.7289,
+   "z3_within": 0.0904,
+   "z3_between": 0.2216
+  },
+  "normal": {
+   "within": {
+    "n": 564,
+    "mean": 0.02602,
+    "median": 0.0228,
+    "p90": 0.04088,
+    "std": 0.01239
+   },
+   "within_same": {
+    "n": 24,
+    "mean": 0.02945,
+    "median": 0.02942,
+    "p90": 0.04778,
+    "std": 0.01581
+   },
+   "within_cross": {
+    "n": 540,
+    "mean": 0.02587,
+    "median": 0.02264,
+    "p90": 0.04076,
+    "std": 0.0122
+   },
+   "between": {
+    "n": 7808,
+    "mean": 0.03862,
+    "median": 0.03564,
+    "p90": 0.06106,
+    "std": 0.01676
+   },
+   "ratio": 1.484,
+   "auc": 0.7505,
+   "z3_within": 0.0093,
+   "z3_between": 0.0332
+  },
+  "weighted_euclid": {
+   "within": {
+    "n": 564,
+    "mean": 0.04907,
+    "median": 0.04695,
+    "p90": 0.07438,
+    "std": 0.01863
+   },
+   "within_same": {
+    "n": 24,
+    "mean": 0.04994,
+    "median": 0.05285,
+    "p90": 0.07811,
+    "std": 0.0248
+   },
+   "within_cross": {
+    "n": 540,
+    "mean": 0.04903,
+    "median": 0.04651,
+    "p90": 0.0724,
+    "std": 0.0183
+   },
+   "between": {
+    "n": 7808,
+    "mean": 0.06559,
+    "median": 0.06366,
+    "p90": 0.09244,
+    "std": 0.02087
+   },
+   "ratio": 1.337,
+   "auc": 0.7429,
+   "z3_within": 0.0904,
+   "z3_between": 0.2216
+  },
+  "weighted_normal": {
+   "within": {
+    "n": 564,
+    "mean": 0.02206,
+    "median": 0.01994,
+    "p90": 0.03448,
+    "std": 0.00963
+   },
+   "within_same": {
+    "n": 24,
+    "mean": 0.02459,
+    "median": 0.02452,
+    "p90": 0.03962,
+    "std": 0.01273
+   },
+   "within_cross": {
+    "n": 540,
+    "mean": 0.02195,
+    "median": 0.01989,
+    "p90": 0.03418,
+    "std": 0.00945
+   },
+   "between": {
+    "n": 7808,
+    "mean": 0.03236,
+    "median": 0.03093,
+    "p90": 0.04827,
+    "std": 0.01247
+   },
+   "ratio": 1.466,
+   "auc": 0.765,
+   "z3_within": 0.0093,
+   "z3_between": 0.0332
+  }
+ },
+ "lopo": {
+  "rows": [
+   {
+    "person": "person_01",
+    "sigma_pairs": 497,
+    "n_within": 66,
+    "n_between": 1755,
+    "auc_euclid": 0.8718,
+    "within_euclid": 0.05015,
+    "auc_normal": 0.9113,
+    "within_normal": 0.01944,
+    "auc_weighted_euclid": 0.8699,
+    "within_weighted_euclid": 0.04462,
+    "auc_weighted_normal": 0.9167,
+    "within_weighted_normal": 0.01726
+   },
+   {
+    "person": "person_02",
+    "sigma_pairs": 485,
+    "n_within": 78,
+    "n_between": 1755,
+    "auc_euclid": 0.8209,
+    "within_euclid": 0.0466,
+    "auc_normal": 0.7357,
+    "within_normal": 0.02432,
+    "auc_weighted_euclid": 0.8719,
+    "within_weighted_euclid": 0.03688,
+    "auc_weighted_normal": 0.7971,
+    "within_weighted_normal": 0.01932
+   },
+   {
+    "person": "person_03",
+    "sigma_pairs": 508,
+    "n_within": 55,
+    "n_between": 1755,
+    "auc_euclid": 0.8552,
+    "within_euclid": 0.0511,
+    "auc_normal": 0.8635,
+    "within_normal": 0.02339,
+    "auc_weighted_euclid": 0.8621,
+    "within_weighted_euclid": 0.04222,
+    "auc_weighted_normal": 0.8617,
+    "within_weighted_normal": 0.0196
+   },
+   {
+    "person": "person_04",
+    "sigma_pairs": 485,
+    "n_within": 78,
+    "n_between": 1755,
+    "auc_euclid": 0.6533,
+    "within_euclid": 0.06503,
+    "auc_normal": 0.7929,
+    "within_normal": 0.02204,
+    "auc_weighted_euclid": 0.6585,
+    "within_weighted_euclid": 0.05538,
+    "auc_weighted_normal": 0.7854,
+    "within_weighted_normal": 0.01988
+   },
+   {
+    "person": "person_05",
+    "sigma_pairs": 508,
+    "n_within": 55,
+    "n_between": 1755,
+    "auc_euclid": 0.861,
+    "within_euclid": 0.04187,
+    "auc_normal": 0.7093,
+    "within_normal": 0.02336,
+    "auc_weighted_euclid": 0.9074,
+    "within_weighted_euclid": 0.03414,
+    "auc_weighted_normal": 0.7621,
+    "within_weighted_normal": 0.01892
+   },
+   {
+    "person": "person_06",
+    "sigma_pairs": 497,
+    "n_within": 67,
+    "n_between": 1652,
+    "auc_euclid": 0.756,
+    "within_euclid": 0.05361,
+    "auc_normal": 0.7729,
+    "within_normal": 0.02273,
+    "auc_weighted_euclid": 0.7568,
+    "within_weighted_euclid": 0.04739,
+    "auc_weighted_normal": 0.7527,
+    "within_weighted_normal": 0.02101
+   },
+   {
+    "person": "person_07",
+    "sigma_pairs": 508,
+    "n_within": 55,
+    "n_between": 1755,
+    "auc_euclid": 0.7781,
+    "within_euclid": 0.05255,
+    "auc_normal": 0.8176,
+    "within_normal": 0.02169,
+    "auc_weighted_euclid": 0.7686,
+    "within_weighted_euclid": 0.04715,
+    "auc_weighted_normal": 0.7986,
+    "within_weighted_normal": 0.01992
+   },
+   {
+    "person": "person_10",
+    "sigma_pairs": 527,
+    "n_within": 36,
+    "n_between": 1107,
+    "auc_euclid": 0.5399,
+    "within_euclid": 0.08331,
+    "auc_normal": 0.5122,
+    "within_normal": 0.04211,
+    "auc_weighted_euclid": 0.5384,
+    "within_weighted_euclid": 0.06807,
+    "auc_weighted_normal": 0.501,
+    "within_weighted_normal": 0.03566
+   },
+   {
+    "person": "person_11",
+    "sigma_pairs": 527,
+    "n_within": 36,
+    "n_between": 1107,
+    "auc_euclid": 0.4961,
+    "within_euclid": 0.09259,
+    "auc_normal": 0.6014,
+    "within_normal": 0.03862,
+    "auc_weighted_euclid": 0.5192,
+    "within_weighted_euclid": 0.07354,
+    "auc_weighted_normal": 0.6169,
+    "within_weighted_normal": 0.03206
+   },
+   {
+    "person": "person_9",
+    "sigma_pairs": 525,
+    "n_within": 38,
+    "n_between": 1220,
+    "auc_euclid": 0.5542,
+    "within_euclid": 0.08376,
+    "auc_normal": 0.5194,
+    "within_normal": 0.04168,
+    "auc_weighted_euclid": 0.5738,
+    "within_weighted_euclid": 0.06717,
+    "auc_weighted_normal": 0.5339,
+    "within_weighted_normal": 0.0344
+   }
+  ],
+  "normal": {
+   "mean_delta_auc": 0.005,
+   "min_delta_auc": -0.1517,
+   "wins": 6,
+   "n": 10
+  },
+  "weighted_euclid": {
+   "mean_delta_auc": 0.014,
+   "min_delta_auc": -0.0095,
+   "wins": 7,
+   "n": 10
+  },
+  "weighted_normal": {
+   "mean_delta_auc": 0.014,
+   "min_delta_auc": -0.0989,
+   "wins": 5,
+   "n": 10
+  }
+ },
+ "lotro": {
+  "rows": [
+   {
+    "family": "frontal_light",
+    "sigma_pairs": 545,
+    "n_within": 26,
+    "n_between": 651,
+    "within_euclid": 0.06792,
+    "auc_euclid": 0.5457,
+    "within_normal": 0.02638,
+    "auc_normal": 0.6655,
+    "within_weighted_euclid": 0.05349,
+    "auc_weighted_euclid": 0.5905,
+    "within_weighted_normal": 0.02222,
+    "auc_weighted_normal": 0.6746,
+    "within_delta_pct": -15.8,
+    "within_metric_delta_pct": -61.2,
+    "auc_delta": 0.1289,
+    "auc_normal_delta": 0.1198
+   },
+   {
+    "family": "light_mid",
+    "sigma_pairs": 542,
+    "n_within": 25,
+    "n_between": 345,
+    "within_euclid": 0.05856,
+    "auc_euclid": 0.6992,
+    "within_normal": 0.02497,
+    "auc_normal": 0.7292,
+    "within_weighted_euclid": 0.04866,
+    "auc_weighted_euclid": 0.7186,
+    "within_weighted_normal": 0.02185,
+    "auc_weighted_normal": 0.7339,
+    "within_delta_pct": -12.5,
+    "within_metric_delta_pct": -57.4,
+    "auc_delta": 0.0347,
+    "auc_normal_delta": 0.03
+   },
+   {
+    "family": "mid_deep",
+    "sigma_pairs": 547,
+    "n_within": 18,
+    "n_between": 273,
+    "within_euclid": 0.05397,
+    "auc_euclid": 0.7454,
+    "within_normal": 0.02528,
+    "auc_normal": 0.7593,
+    "within_weighted_euclid": 0.04716,
+    "auc_weighted_euclid": 0.7279,
+    "within_weighted_normal": 0.02244,
+    "auc_weighted_normal": 0.7584,
+    "within_delta_pct": -11.2,
+    "within_metric_delta_pct": -53.2,
+    "auc_delta": 0.013,
+    "auc_normal_delta": 0.0139
+   },
+   {
+    "family": "deep_profile",
+    "sigma_pairs": 527,
+    "n_within": 48,
+    "n_between": 739,
+    "within_euclid": 0.05102,
+    "auc_euclid": 0.8019,
+    "within_normal": 0.0228,
+    "auc_normal": 0.817,
+    "within_weighted_euclid": 0.04302,
+    "auc_weighted_euclid": 0.8094,
+    "within_weighted_normal": 0.01966,
+    "auc_weighted_normal": 0.8165,
+    "within_delta_pct": -13.8,
+    "within_metric_delta_pct": -55.3,
+    "auc_delta": 0.0146,
+    "auc_normal_delta": 0.0151
+   }
+  ],
+  "wins": 4,
+  "n": 4,
+  "mean_auc_delta": 0.0478
+ },
+ "frontal": {
+  "labeled": {
+   "n": 1,
+   "euclid": 0.00908,
+   "weighted_normal": 0.00348
+  },
+  "predicted": {
+   "n": 13,
+   "euclid": 0.06653,
+   "weighted_normal": 0.02906
+  },
+  "labeled_people": 1,
+  "predicted_people": 3
+ },
+ "frontal_gap10": {
+  "labeled": {
+   "people": {
+    "person_01": {
+     "frames": 11,
+     "pairs_gap10": 36
+    },
+    "person_02": {
+     "frames": 4,
+     "pairs_gap10": 3
+    },
+    "person_03": {
+     "frames": 4,
+     "pairs_gap10": 1
+    },
+    "person_04": {
+     "frames": 7,
+     "pairs_gap10": 15
+    },
+    "person_05": {
+     "frames": 6,
+     "pairs_gap10": 3
+    },
+    "person_06": {
+     "frames": 4,
+     "pairs_gap10": 3
+    },
+    "person_07": {
+     "frames": 5,
+     "pairs_gap10": 1
+    }
+   },
+   "people_with_3_frames": 7,
+   "pairs_gap10": 62
+  },
+  "predicted": {
+   "people": {
+    "person_9": {
+     "frames": 7,
+     "pairs_gap10": 21
+    },
+    "person_10": {
+     "frames": 8,
+     "pairs_gap10": 28
+    },
+    "person_11": {
+     "frames": 6,
+     "pairs_gap10": 15
+    }
+   },
+   "people_with_3_frames": 3,
+   "pairs_gap10": 64
+  }
+ },
+ "frontal_gap10_eval": {
+  "labeled": {
+   "n": 13,
+   "people": 6,
+   "euclid": 0.01099,
+   "normal": 0.00531,
+   "weighted_euclid": 0.00916,
+   "weighted_normal": 0.00455,
+   "delta_pct": -58.6
+  },
+  "predicted": {
+   "n": 13,
+   "people": 3,
+   "euclid": 0.06653,
+   "normal": 0.03469,
+   "weighted_euclid": 0.05378,
+   "weighted_normal": 0.02906,
+   "delta_pct": -56.3
+  }
+ },
+ "weights": {
+  "old_profile": "reports/calibration/weights.json",
+  "new_profile": "reports/calibration/weights-v4.json",
+  "weights": 35709,
+  "relative_change": {
+   "median": 0.2704,
+   "p90": 0.4707,
+   "max": 0.5877,
+   "share_gt_10pct": 0.8356,
+   "share_gt_25pct": 0.541
+  },
+  "correlation": 0.9344,
+  "clip": {
+   "old": [
+    0.01267649307847023,
+    0.03999807313084602
+   ],
+   "new": [
+    0.01396465376019478,
+    0.0613573893904686
+   ]
+  },
+  "clip_normal": {
+   "old": [
+    0.012914345972239972,
+    0.04783259257674216
+   ],
+   "new": [
+    0.014462274499237537,
+    0.06402149945497512
+   ]
+  },
+  "at_bounds": {
+   "old_lower": 5.0,
+   "old_upper": 5.0,
+   "new_lower": 5.0,
+   "new_upper": 5.0,
+   "old_lower_normal": 5.0,
+   "new_lower_normal": 5.0
+  },
+  "sigma_median": {
+   "old": 0.024589,
+   "new": 0.034349
+  },
+  "sigma_normal_median": {
+   "old": 0.023865,
+   "new": 0.033672
+  },
+  "old_clip": [
+   0.01267649307847023,
+   0.03999807313084602
+  ],
+  "new_clip": [
+   0.01396465376019478,
+   0.0613573893904686
+  ],
+  "source": {
+   "people": [
+    "person_01",
+    "person_02",
+    "person_03",
+    "person_04",
+    "person_05",
+    "person_06",
+    "person_07",
+    "person_10",
+    "person_11",
+    "person_9"
+   ],
+   "frames": 266,
+   "valid": 264,
+   "pairs": 563,
+   "gap": 30,
+   "label_sources": {
+    "person_01": "manual+yaw",
+    "person_02": "manual+yaw",
+    "person_03": "manual+yaw",
+    "person_04": "manual+yaw",
+    "person_05": "manual+yaw",
+    "person_06": "manual+yaw",
+    "person_07": "manual+yaw",
+    "person_10": "predicted",
+    "person_11": "predicted",
+    "person_9": "predicted"
+   }
+  }
+ },
+ "stability": {
+  "vertices": 35709,
+  "sigma_min": 0.013965,
+  "sigma_p05": 0.013965,
+  "sigma_median": 0.034349,
+  "sigma_p95": 0.061357,
+  "sigma_max": 0.061357,
+  "weight_min": 16.298,
+  "weight_max": 71.6094,
+  "clip": [
+   0.013965,
+   0.061357
+  ],
+  "clip_normal": [
+   0.014462,
+   0.064021
+  ],
+  "at_lower_pct": 5.0,
+  "at_upper_pct": 5.0,
+  "regions": {
+   "jaw": {
+    "vertices": 17,
+    "sigma_mean": 0.056672,
+    "sigma_min": 0.046776,
+    "sigma_max": 0.061357,
+    "weight_mean": 17.8002,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 29.4
+   },
+   "brows": {
+    "vertices": 10,
+    "sigma_mean": 0.027195,
+    "sigma_min": 0.02371,
+    "sigma_max": 0.03204,
+    "weight_mean": 37.0193,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 0.0
+   },
+   "nose": {
+    "vertices": 9,
+    "sigma_mean": 0.030924,
+    "sigma_min": 0.016891,
+    "sigma_max": 0.03865,
+    "weight_mean": 34.0308,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 0.0
+   },
+   "eyes": {
+    "vertices": 12,
+    "sigma_mean": 0.014447,
+    "sigma_min": 0.013965,
+    "sigma_max": 0.018131,
+    "weight_mean": 69.619,
+    "at_lower_pct": 83.3,
+    "at_upper_pct": 0.0
+   },
+   "mouth": {
+    "vertices": 20,
+    "sigma_mean": 0.055724,
+    "sigma_min": 0.045271,
+    "sigma_max": 0.061357,
+    "weight_mean": 18.1631,
+    "at_lower_pct": 0.0,
+    "at_upper_pct": 20.0
+   }
+  }
+ },
+ "files": [
+  {
+   "file": "reports/figures/v4-lopo.png",
+   "caption": "LOPO на 10 людях: 4 режима"
+  }
+ ],
+ "conclusion": [
+  "Расширенный корпус: 10 человек, 264 валидных кадров; within 564, between 7808.",
+  "Baseline euclid AUC 0.7289, weighted normal AUC 0.765 (Δ +0.0361).",
+  "LOPO weighted normal: 5/10 побед, минимум -0.0989.",
+  "LOTRO: 4/4 семейств.",
+  "Веса: медиана изменения 27.0%, p90 47.1%, корреляция 0.9344."
+ ]
+}

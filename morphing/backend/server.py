@@ -35,6 +35,7 @@ from morphing.backend.aligner import (
     pose_alignment_report,
 )
 from morphing.backend import identity as identity_module
+from morphing.backend import form_metrics as form_metrics_module
 from morphing.backend.pose_noise_model import pair_noise_reference
 from morphing.backend.deformation import tps_deformed_target
 from morphing.backend.extrapolation import MAX_EXTRAPOLATION_HORIZON_YEARS, extrapolate_shape
@@ -736,6 +737,36 @@ async def identify_probability(photo: UploadFile = File(...)) -> dict[str, Any]:
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ошибка identify-probability: {exc}") from exc
+
+
+@app.post("/api/form-metrics")
+async def form_metrics(
+    photo_a: UploadFile = File(...),
+    photo_b: UploadFile = File(...),
+) -> dict[str, Any]:
+    """Все 30 утверждённых метрик формы на двух фото + «на кого из трёх лиц» по каждой.
+
+    Цвет ячейки — это доля близости к двум ближайшим эталонам личностей (`ref` в
+    `metric_bands.json`: медианы спокойных кадров put/vas/udmurt). Ровно посередине
+    между двумя лицами ячейка делится 50/50, у самой медианы — один цвет. Оттенок
+    «не похоже ни на кого» (`stray`) — дальше откалиброванной гулянки одного лица.
+    Вердикт пары (`same`/`border`/`differ`) остаётся текстом: он про согласие двух
+    снимков, а не про личность. Девять метрик, устойчивых к подфронтальному повороту,
+    помечены `trusted` — интерфейс обводит их белой рамкой. MediaPipe считается в
+    отдельном процессе (он не живёт с torch в одном интерпретаторе), поэтому без него
+    14 метрик уходят null с причиной.
+    """
+    try:
+        raw_a, raw_b = await photo_a.read(), await photo_b.read()
+        return form_metrics_module.pair_report(raw_a, raw_b)
+    except form_metrics_module.BandsMissing as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ошибка form-metrics: {exc}") from exc
 
 
 STATIC_DIR = Path(__file__).resolve().parents[1] / "frontend" / "dist"

@@ -1,0 +1,60 @@
+{
+  "photos": [
+    {
+      "id": "da79e2576c4c1d0b",
+      "hash": "4c14d1f41ec467fe9b9bf5257a62c31a5ee25aa664eacdf626682caef8f93f70",
+      "name": "1999_09_01.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/da79e2576c4c1d0b.jpg",
+      "date": "1999-09-01",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "32285f0819757173",
+      "hash": "521fffcb024c01b510f48b57c8a307da2884852000c5263613690e9eddded62f",
+      "name": "2020_03_08.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/32285f0819757173.jpg",
+      "date": "2020-03-08",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "4d928d46a95bf71a",
+      "hash": "ab9ffdbd593f99ebdb04317d5521e6c9e5868ffb4b0aa67c20b148c85dcb9dc6",
+      "name": "2020_10_22.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/4d928d46a95bf71a.jpg",
+      "date": "2020-10-22",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "59b83c5ce2d63861",
+      "hash": "7ce4bf2549f3c4b823b3f07cc1397193138f5e1b9ae5cff5d72ee65632f69e06",
+      "name": "2021_12_27.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/59b83c5ce2d63861.jpg",
+      "date": "2021-12-27",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    },
+    {
+      "id": "56e4b2b8802cc211",
+      "hash": "f5e66e0166a81846cf9d0e48cfc98b9160100c8c69cd19aa2fe0451871698e65",
+      "name": "2024_03_02.jpg",
+      "group": "Моя группа",
+      "path": "data/groups/Моя группа/56e4b2b8802cc211.jpg",
+      "date": "2024-03-02",
+      "precropped": false,
+      "demo": false,
+      "angle_override": null
+    }
+  ],
+  "demo": false
+}

@@ -1,0 +1,192 @@
+{
+  "model": "3ddfa-v3-mbnet-e153858-pos-yunet-v3-exif",
+  "seed": 42,
+  "config_version": "60d3d52225eca87f",
+  "params": {
+    "photo_ids": [
+      "b36fe1392c3e2778",
+      "8bd0727b5e8bf64b"
+    ],
+    "reference_id": "91e0981d1aae2e87",
+    "seconds": 0.5,
+    "fps": 8,
+    "resolution": 256,
+    "easing": "smooth",
+    "heatmap": true,
+    "metric": "normal",
+    "palette": "custom",
+    "low": "#1554aa",
+    "mid": "#66ddbb",
+    "high": "#ed4466",
+    "midPosition": 0.42,
+    "vmin": 0.0003,
+    "vmax": 0.022,
+    "gamma": 1.3,
+    "inverse": true,
+    "opacity": 0.8,
+    "outsideOpacity": 0.15,
+    "onlyAbove": true,
+    "smoothing": 2,
+    "yaw": 35,
+    "texture": false
+  },
+  "source_photos": [
+    {
+      "id": "b36fe1392c3e2778",
+      "hash": "de52e53347de73888c267570b834a773e2595b38862bd9c5127a4f8c60145a4f",
+      "date": "2019-01-12",
+      "group": "Демо _ один синтетический портрет",
+      "feature_metadata": {
+        "model": "3ddfa-v3-mbnet-e153858-pos-yunet-v3-exif",
+        "weights_sha256": "435f33e6fc93f3c0857538ffc5024d29bd6d09f98391d9be55f2d32b23cc2604",
+        "seed": 42,
+        "angles": {
+          "yaw": 1.0368903875350952,
+          "pitch": 2.9635233879089355,
+          "roll": 0.1464773565530777
+        },
+        "alignment": {
+          "mode": "yunet_pos5",
+          "confidence": 0.9425261616706848,
+          "detected_faces": 1,
+          "bbox": [
+            267.841796875,
+            217.7350311279297,
+            392.1798400878906,
+            571.6707763671875
+          ],
+          "crop": [
+            51,
+            70,
+            0.3517604873092273
+          ]
+        },
+        "seconds": 0.167,
+        "sharpness": 307.63727820685807,
+        "units": "fixed_template_IOD",
+        "runtime": {
+          "version": 1,
+          "seed": 42,
+          "workers": 1,
+          "torch_threads": 2,
+          "batch_size": 1,
+          "backbone": "mbnetv3",
+          "max_upload_mb": 100
+        },
+        "warning": "Реконструкция — оценка модели, не физическое измерение и не доказательство изменения личности.",
+        "file_hash": "de52e53347de73888c267570b834a773e2595b38862bd9c5127a4f8c60145a4f",
+        "feature_key": "4685aa97e23af4e6",
+        "config": {
+          "backbone": "mbnetv3",
+          "precropped": false
+        }
+      }
+    },
+    {
+      "id": "8bd0727b5e8bf64b",
+      "hash": "4ac7d485cf968dc232c58e967c88b2aaaca3b26f6eeb992e76de82562ea05aae",
+      "date": "2019-04-12",
+      "group": "Демо _ один синтетический портрет",
+      "feature_metadata": {
+        "model": "3ddfa-v3-mbnet-e153858-pos-yunet-v3-exif",
+        "weights_sha256": "435f33e6fc93f3c0857538ffc5024d29bd6d09f98391d9be55f2d32b23cc2604",
+        "seed": 42,
+        "angles": {
+          "yaw": 0.9866361618041992,
+          "pitch": 2.843453884124756,
+          "roll": -2.1068241596221924
+        },
+        "alignment": {
+          "mode": "yunet_pos5",
+          "confidence": 0.9394499063491821,
+          "detected_faces": 1,
+          "bbox": [
+            273.7851867675781,
+            217.08090209960938,
+            391.834716796875,
+            571.2678833007812
+          ],
+          "crop": [
+            50,
+            67,
+            0.3479596175322641
+          ]
+        },
+        "seconds": 0.099,
+        "sharpness": 278.19996144152316,
+        "units": "fixed_template_IOD",
+        "runtime": {
+          "version": 1,
+          "seed": 42,
+          "workers": 1,
+          "torch_threads": 2,
+          "batch_size": 1,
+          "backbone": "mbnetv3",
+          "max_upload_mb": 100
+        },
+        "warning": "Реконструкция — оценка модели, не физическое измерение и не доказательство изменения личности.",
+        "file_hash": "4ac7d485cf968dc232c58e967c88b2aaaca3b26f6eeb992e76de82562ea05aae",
+        "feature_key": "f1568dde86341262",
+        "config": {
+          "backbone": "mbnetv3",
+          "precropped": false
+        }
+      }
+    }
+  ],
+  "reference_photo": {
+    "id": "91e0981d1aae2e87",
+    "hash": "cd5798d6eac7242e225106269b3508da84015799c605eca06bbbc26c863c2f36",
+    "feature_metadata": {
+      "model": "3ddfa-v3-mbnet-e153858-pos-yunet-v3-exif",
+      "weights_sha256": "435f33e6fc93f3c0857538ffc5024d29bd6d09f98391d9be55f2d32b23cc2604",
+      "seed": 42,
+      "angles": {
+        "yaw": 1.024440050125122,
+        "pitch": 3.045309543609619,
+        "roll": -1.1043051481246948
+      },
+      "alignment": {
+        "mode": "yunet_pos5",
+        "confidence": 0.9423091411590576,
+        "detected_faces": 1,
+        "bbox": [
+          274.3788757324219,
+          218.56997680664062,
+          387.4591064453125,
+          569.0322875976562
+        ],
+        "crop": [
+          51,
+          68,
+          0.3498888212699414
+        ]
+      },
+      "seconds": 0.116,
+      "sharpness": 334.2886124084743,
+      "units": "fixed_template_IOD",
+      "runtime": {
+        "version": 1,
+        "seed": 42,
+        "workers": 1,
+        "torch_threads": 2,
+        "batch_size": 1,
+        "backbone": "mbnetv3",
+        "max_upload_mb": 100
+      },
+      "warning": "Реконструкция — оценка модели, не физическое измерение и не доказательство изменения личности.",
+      "file_hash": "cd5798d6eac7242e225106269b3508da84015799c605eca06bbbc26c863c2f36",
+      "feature_key": "6d0f0547e9fe64ad",
+      "config": {
+        "backbone": "mbnetv3",
+        "precropped": false
+      }
+    }
+  },
+  "frames": 5,
+  "duration_seconds": 0.625,
+  "camera": "fixed orthographic",
+  "geometry": "linear interpolation of 3DMM identity/expression and PCA albedo; smooth easing if selected",
+  "units": "template IOD",
+  "note": "Reconstruction and synthetic interpolation, not medical or biometric conclusions."
+}

@@ -1,0 +1,123 @@
+{
+  "verdict": "не пройден",
+  "verdict_reason": "control_1_discrimination: {'n': 233, 'accuracy': 0.8927, 'threshold': 0.95, 'passed': False}",
+  "verdict_passed": false,
+  "people": 7,
+  "test_photos": 233,
+  "skipped_rows": 1,
+  "pose_bin_coverage": {
+    "left_profile": 20,
+    "left_deep": 25,
+    "left_mid": 27,
+    "left_light": 28,
+    "frontal": 28,
+    "right_light": 28,
+    "right_mid": 27,
+    "right_deep": 26,
+    "right_profile": 24
+  },
+  "group_verdicts": {
+    "light": {
+      "n_photos": 84,
+      "median_M1": 0.01017,
+      "p95_M1": 0.027341,
+      "frac_M3_gt0": 1.0,
+      "thresholds": {
+        "median_m1": 0.03,
+        "p95_m1": 0.06,
+        "frac_m3_gt0": 0.8
+      },
+      "gates": {
+        "median_m1": true,
+        "p95_m1": true,
+        "frac_m3_gt0": true
+      },
+      "passed": true
+    },
+    "mid": {
+      "n_photos": 105,
+      "median_M1": 0.0103,
+      "p95_M1": 0.031414,
+      "frac_M3_gt0": 1.0,
+      "thresholds": {
+        "median_m1": 0.05,
+        "p95_m1": 0.09,
+        "frac_m3_gt0": 0.75
+      },
+      "gates": {
+        "median_m1": true,
+        "p95_m1": true,
+        "frac_m3_gt0": true
+      },
+      "passed": true
+    },
+    "profile": {
+      "n_photos": 44,
+      "status": "report_only"
+    }
+  },
+  "controls_summary": {
+    "control_1_discrimination": false,
+    "control_2_negative": true,
+    "control_3_null": true,
+    "control_4_determinism": "n/a"
+  },
+  "extra": {
+    "pitch_bins": {
+      "<5": 0.011201,
+      "5-15": 0.010515,
+      ">15": 0.129406
+    },
+    "m3_yaw_correlation": 0.8409406904543798,
+    "symmetry": {
+      "light": {
+        "left_median": 0.009017,
+        "right_median": 0.010967,
+        "left_n": 28,
+        "right_n": 28
+      },
+      "mid": {
+        "left_median": 0.012668,
+        "right_median": 0.011362,
+        "left_n": 27,
+        "right_n": 27
+      },
+      "deep": {
+        "left_median": 0.008591,
+        "right_median": 0.009132,
+        "left_n": 25,
+        "right_n": 26
+      },
+      "profile": {
+        "left_median": 0.021609,
+        "right_median": 0.015551,
+        "left_n": 20,
+        "right_n": 24
+      }
+    }
+  },
+  "pitch_bins_detail": {
+    "0-5": {
+      "n": 174,
+      "median_M1": 0.011201,
+      "reliable": true
+    },
+    "5-10": {
+      "n": 50,
+      "median_M1": 0.010451,
+      "reliable": true
+    },
+    "10-15": {
+      "n": 6,
+      "median_M1": 0.010604,
+      "reliable": true
+    },
+    ">15": {
+      "n": 3,
+      "median_M1": 0.129406,
+      "reliable": false
+    }
+  },
+  "note_pitch_gt15": "n=3, NOT a reliable signal — needs dedicated data collection",
+  "control_1_diagnosis": "Control 1 fails (89.3%) because person_06/07 are geometric near-duplicates. Raw (unaligned) discrimination is 76% — alignment IMPROVES by 13 p.p. Without the pair: 97.6%. This is a corpus limitation, not an alignment defect."
+}

@@ -1,0 +1,100 @@
+{
+  "ada_cos_to_centroid": {
+    "key": "9fa8835d96247396",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_norm_quality": {
+    "key": "1b6ce807f30b390d",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_pair_cos": {
+    "key": "8a8445cbf8f39e21",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_eye_area": {
+    "key": "4d1e3ca26faf00d4",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_jaw_ratio": {
+    "key": "50a49467ab4ff700",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_nose_projection": {
+    "key": "ea3f854315ca7ffe",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_canthal_tilt": {
+    "key": "81075828cc248db9",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_width_ratio": {
+    "key": "1158027b68ba185e",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_height_ratio": {
+    "key": "52fce003e1789451",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mp_mouth_ratio": {
+    "key": "28beaf4d652d9c42",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mesh_eye_area": {
+    "key": "64e370cf1ddb43e6",
+    "result": {
+      "value": 0.0355795994452696,
+      "reason": null
+    }
+  },
+  "mesh_jaw_ratio": {
+    "key": "ccf32dcc78b03e0d",
+    "result": {
+      "value": 0.7624357342720032,
+      "reason": null
+    }
+  },
+  "mesh_nose_projection": {
+    "key": "dc06b87e9d2ad756",
+    "result": {
+      "value": 0.3599126636981964,
+      "reason": null
+    }
+  },
+  "mesh_height_example": {
+    "key": "bd52121d861e1763",
+    "result": {
+      "value": 2.486391305923462,
+      "reason": null
+    }
+  }
+}

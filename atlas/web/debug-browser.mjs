@@ -1,0 +1,4 @@
+import {chromium} from '@playwright/test';
+const browser=await chromium.launch({headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
+try{const page=await browser.newPage({viewport:{width:1600,height:1040}});const errs=[];page.on('pageerror',e=>errs.push(e.stack));page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')errs.push(m.text())});page.on('response',r=>{if(r.status()>399)errs.push('HTTP '+r.status()+' '+r.url())});
+await page.goto('http://127.0.0.1:5173',{waitUntil:'domcontentloaded'});await page.waitForTimeout(8000);console.log('ERRORS',errs);console.log('BODY',(await page.locator('body').innerText()).slice(0,5000));await page.screenshot({path:'../reports/debug-ui.png',fullPage:true});}finally{await browser.close()}

@@ -1,0 +1,2460 @@
+{
+  "dataset": {
+    "frames": 210,
+    "people": 7,
+    "gap": 30,
+    "valid": {
+      "ldm68": 208,
+      "ldm106": 208,
+      "ldm134": 208
+    },
+    "missing": {},
+    "invalid": [
+      {
+        "person": "person_06",
+        "frame": 164,
+        "bin": "right_profile",
+        "reason": "|yaw|=-102.5>95; label yaw=67.1 vs -102.5"
+      },
+      {
+        "person": "person_06",
+        "frame": 170,
+        "bin": "right_profile",
+        "reason": "label yaw=71.2 vs -32.6"
+      }
+    ],
+    "invalid_count": 2
+  },
+  "counts": {
+    "within": 454,
+    "between": 4635
+  },
+  "sigma": {
+    "ldm68": {
+      "pairs": 453,
+      "clip": [
+        0.009028,
+        0.044065
+      ],
+      "clip_normal": [
+        0.006942,
+        0.032018
+      ]
+    },
+    "ldm106": {
+      "pairs": 453,
+      "clip": [
+        0.009873,
+        0.04448
+      ],
+      "clip_normal": [
+        0.005395,
+        0.034191
+      ]
+    },
+    "ldm134": {
+      "pairs": 453,
+      "clip": [
+        0.010158,
+        0.035842
+      ],
+      "clip_normal": [
+        0.004851,
+        0.031611
+      ]
+    }
+  },
+  "sets": {
+    "ldm68": {
+      "euclid": {
+        "within": {
+          "n": 454,
+          "mean": 0.05481,
+          "median": 0.051,
+          "p90": 0.08663,
+          "std": 0.01967
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.01997,
+          "median": 0.02388,
+          "p90": 0.02764,
+          "std": 0.00781
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.0552,
+          "median": 0.05114,
+          "p90": 0.0868,
+          "std": 0.01942
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.07539,
+          "median": 0.07378,
+          "p90": 0.106,
+          "std": 0.02366
+        },
+        "ratio": 1.376,
+        "auc": 0.7649
+      },
+      "normal": {
+        "within": {
+          "n": 454,
+          "mean": 0.02667,
+          "median": 0.02556,
+          "p90": 0.03819,
+          "std": 0.01003
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.00998,
+          "median": 0.01109,
+          "p90": 0.01317,
+          "std": 0.00309
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.02686,
+          "median": 0.02565,
+          "p90": 0.03821,
+          "std": 0.00993
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.03759,
+          "median": 0.03569,
+          "p90": 0.05602,
+          "std": 0.01367
+        },
+        "ratio": 1.409,
+        "auc": 0.7483
+      },
+      "weighted_euclid": {
+        "within": {
+          "n": 454,
+          "mean": 0.04348,
+          "median": 0.04061,
+          "p90": 0.06735,
+          "std": 0.01549
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.01557,
+          "median": 0.01888,
+          "p90": 0.02143,
+          "std": 0.0061
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.04379,
+          "median": 0.04064,
+          "p90": 0.06745,
+          "std": 0.01528
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.06065,
+          "median": 0.06054,
+          "p90": 0.08511,
+          "std": 0.01816
+        },
+        "ratio": 1.395,
+        "auc": 0.7745
+      },
+      "weighted_normal": {
+        "within": {
+          "n": 454,
+          "mean": 0.0213,
+          "median": 0.0209,
+          "p90": 0.02942,
+          "std": 0.00807
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.00779,
+          "median": 0.00882,
+          "p90": 0.01,
+          "std": 0.00228
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.02145,
+          "median": 0.02096,
+          "p90": 0.02953,
+          "std": 0.00799
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.02937,
+          "median": 0.02875,
+          "p90": 0.04158,
+          "std": 0.00923
+        },
+        "ratio": 1.379,
+        "auc": 0.7671
+      },
+      "delta_weighted_euclid": {
+        "mean": 0.0091,
+        "lo": 0.0015,
+        "hi": 0.0175,
+        "p_positive": 0.99,
+        "rounds": 200
+      },
+      "delta_weighted_normal": {
+        "mean": 0.0188,
+        "lo": 0.0053,
+        "hi": 0.0332,
+        "p_positive": 1.0,
+        "rounds": 200
+      }
+    },
+    "ldm106": {
+      "euclid": {
+        "within": {
+          "n": 454,
+          "mean": 0.05374,
+          "median": 0.05165,
+          "p90": 0.08149,
+          "std": 0.01862
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.0188,
+          "median": 0.02314,
+          "p90": 0.02518,
+          "std": 0.00695
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.05413,
+          "median": 0.05177,
+          "p90": 0.08161,
+          "std": 0.01834
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.07571,
+          "median": 0.07487,
+          "p90": 0.10577,
+          "std": 0.02363
+        },
+        "ratio": 1.409,
+        "auc": 0.7766
+      },
+      "normal": {
+        "within": {
+          "n": 454,
+          "mean": 0.02641,
+          "median": 0.02582,
+          "p90": 0.03798,
+          "std": 0.00962
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.00981,
+          "median": 0.00999,
+          "p90": 0.0137,
+          "std": 0.00347
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.02659,
+          "median": 0.02599,
+          "p90": 0.03814,
+          "std": 0.00951
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.04003,
+          "median": 0.03804,
+          "p90": 0.06062,
+          "std": 0.01526
+        },
+        "ratio": 1.516,
+        "auc": 0.7773
+      },
+      "weighted_euclid": {
+        "within": {
+          "n": 454,
+          "mean": 0.04198,
+          "median": 0.03945,
+          "p90": 0.06285,
+          "std": 0.01467
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.01458,
+          "median": 0.01832,
+          "p90": 0.01946,
+          "std": 0.00547
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.04229,
+          "median": 0.03993,
+          "p90": 0.06314,
+          "std": 0.01445
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.06043,
+          "median": 0.06094,
+          "p90": 0.08454,
+          "std": 0.0183
+        },
+        "ratio": 1.44,
+        "auc": 0.7888
+      },
+      "weighted_normal": {
+        "within": {
+          "n": 454,
+          "mean": 0.01925,
+          "median": 0.01895,
+          "p90": 0.02625,
+          "std": 0.00692
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.0069,
+          "median": 0.00725,
+          "p90": 0.00949,
+          "std": 0.00233
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.01939,
+          "median": 0.01907,
+          "p90": 0.0263,
+          "std": 0.00682
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.02894,
+          "median": 0.02896,
+          "p90": 0.04079,
+          "std": 0.00932
+        },
+        "ratio": 1.503,
+        "auc": 0.8035
+      },
+      "delta_weighted_euclid": {
+        "mean": 0.0117,
+        "lo": 0.0024,
+        "hi": 0.0226,
+        "p_positive": 1.0,
+        "rounds": 200
+      },
+      "delta_weighted_normal": {
+        "mean": 0.0266,
+        "lo": 0.0114,
+        "hi": 0.0437,
+        "p_positive": 1.0,
+        "rounds": 200
+      }
+    },
+    "ldm134": {
+      "euclid": {
+        "within": {
+          "n": 454,
+          "mean": 0.04416,
+          "median": 0.03941,
+          "p90": 0.07338,
+          "std": 0.018
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.01698,
+          "median": 0.01687,
+          "p90": 0.02653,
+          "std": 0.00839
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.04446,
+          "median": 0.03951,
+          "p90": 0.07403,
+          "std": 0.01784
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.06171,
+          "median": 0.05889,
+          "p90": 0.08932,
+          "std": 0.02075
+        },
+        "ratio": 1.397,
+        "auc": 0.7604
+      },
+      "normal": {
+        "within": {
+          "n": 454,
+          "mean": 0.02071,
+          "median": 0.01812,
+          "p90": 0.03633,
+          "std": 0.00989
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.00889,
+          "median": 0.00888,
+          "p90": 0.01387,
+          "std": 0.00437
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.02085,
+          "median": 0.01821,
+          "p90": 0.0365,
+          "std": 0.00985
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.02908,
+          "median": 0.02699,
+          "p90": 0.04439,
+          "std": 0.01103
+        },
+        "ratio": 1.404,
+        "auc": 0.7416
+      },
+      "weighted_euclid": {
+        "within": {
+          "n": 454,
+          "mean": 0.03533,
+          "median": 0.03185,
+          "p90": 0.05596,
+          "std": 0.01337
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.01261,
+          "median": 0.0137,
+          "p90": 0.01893,
+          "std": 0.00586
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.03558,
+          "median": 0.03192,
+          "p90": 0.05603,
+          "std": 0.01321
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.05077,
+          "median": 0.05065,
+          "p90": 0.07125,
+          "std": 0.01582
+        },
+        "ratio": 1.437,
+        "auc": 0.7817
+      },
+      "weighted_normal": {
+        "within": {
+          "n": 454,
+          "mean": 0.0161,
+          "median": 0.01512,
+          "p90": 0.02469,
+          "std": 0.00675
+        },
+        "within_same": {
+          "n": 5,
+          "mean": 0.0064,
+          "median": 0.0068,
+          "p90": 0.00947,
+          "std": 0.00277
+        },
+        "within_cross": {
+          "n": 449,
+          "mean": 0.01621,
+          "median": 0.01518,
+          "p90": 0.02472,
+          "std": 0.0067
+        },
+        "between": {
+          "n": 4635,
+          "mean": 0.02308,
+          "median": 0.02231,
+          "p90": 0.03318,
+          "std": 0.00736
+        },
+        "ratio": 1.434,
+        "auc": 0.7754
+      },
+      "delta_weighted_euclid": {
+        "mean": 0.0208,
+        "lo": 0.0099,
+        "hi": 0.0311,
+        "p_positive": 1.0,
+        "rounds": 200
+      },
+      "delta_weighted_normal": {
+        "mean": 0.0339,
+        "lo": 0.0218,
+        "hi": 0.0486,
+        "p_positive": 1.0,
+        "rounds": 200
+      }
+    }
+  },
+  "points": {
+    "ldm68": {
+      "points": 68,
+      "sigma_pairs": 453,
+      "clip": [
+        0.009028,
+        0.044065
+      ],
+      "clip_normal": [
+        0.006942,
+        0.032018
+      ],
+      "top": [
+        {
+          "point": 0,
+          "zone": "profile_contour",
+          "mean": 0.09734,
+          "p90": 0.14377,
+          "max": 0.23313,
+          "outlier_share": 0.2115,
+          "mean_normal": 0.05352
+        },
+        {
+          "point": 16,
+          "zone": "profile_contour",
+          "mean": 0.09278,
+          "p90": 0.14831,
+          "max": 0.23386,
+          "outlier_share": 0.1718,
+          "mean_normal": 0.04004
+        },
+        {
+          "point": 1,
+          "zone": "profile_contour",
+          "mean": 0.09276,
+          "p90": 0.1367,
+          "max": 0.20267,
+          "outlier_share": 0.2753,
+          "mean_normal": 0.04478
+        },
+        {
+          "point": 2,
+          "zone": "profile_contour",
+          "mean": 0.09218,
+          "p90": 0.13503,
+          "max": 0.20129,
+          "outlier_share": 0.2974,
+          "mean_normal": 0.04047
+        },
+        {
+          "point": 3,
+          "zone": "profile_contour",
+          "mean": 0.09097,
+          "p90": 0.13933,
+          "max": 0.21091,
+          "outlier_share": 0.2401,
+          "mean_normal": 0.03921
+        },
+        {
+          "point": 4,
+          "zone": "jaw",
+          "mean": 0.08693,
+          "p90": 0.1424,
+          "max": 0.24401,
+          "outlier_share": 0.163,
+          "mean_normal": 0.04464
+        },
+        {
+          "point": 15,
+          "zone": "profile_contour",
+          "mean": 0.08461,
+          "p90": 0.13528,
+          "max": 0.21851,
+          "outlier_share": 0.1123,
+          "mean_normal": 0.0289
+        },
+        {
+          "point": 14,
+          "zone": "profile_contour",
+          "mean": 0.08298,
+          "p90": 0.13009,
+          "max": 0.21684,
+          "outlier_share": 0.1079,
+          "mean_normal": 0.03281
+        },
+        {
+          "point": 8,
+          "zone": "jaw",
+          "mean": 0.08227,
+          "p90": 0.15606,
+          "max": 0.23586,
+          "outlier_share": 0.1432,
+          "mean_normal": 0.04915
+        },
+        {
+          "point": 13,
+          "zone": "profile_contour",
+          "mean": 0.08,
+          "p90": 0.13298,
+          "max": 0.22096,
+          "outlier_share": 0.141,
+          "mean_normal": 0.03895
+        },
+        {
+          "point": 5,
+          "zone": "jaw",
+          "mean": 0.07685,
+          "p90": 0.12803,
+          "max": 0.24139,
+          "outlier_share": 0.1454,
+          "mean_normal": 0.04372
+        },
+        {
+          "point": 7,
+          "zone": "jaw",
+          "mean": 0.07648,
+          "p90": 0.14588,
+          "max": 0.21361,
+          "outlier_share": 0.1454,
+          "mean_normal": 0.04129
+        },
+        {
+          "point": 12,
+          "zone": "jaw",
+          "mean": 0.0758,
+          "p90": 0.13559,
+          "max": 0.21684,
+          "outlier_share": 0.1278,
+          "mean_normal": 0.04614
+        },
+        {
+          "point": 9,
+          "zone": "jaw",
+          "mean": 0.07514,
+          "p90": 0.14215,
+          "max": 0.20349,
+          "outlier_share": 0.1366,
+          "mean_normal": 0.04504
+        },
+        {
+          "point": 56,
+          "zone": "mouth",
+          "mean": 0.07075,
+          "p90": 0.1333,
+          "max": 0.21352,
+          "outlier_share": 0.1256,
+          "mean_normal": 0.03101
+        }
+      ],
+      "zones": {
+        "brows": {
+          "n_points": 10,
+          "mean": 0.03912,
+          "p90": 0.06467,
+          "outlier_share": 0.1683,
+          "top20_share": 0.0
+        },
+        "eyes": {
+          "n_points": 12,
+          "mean": 0.01947,
+          "p90": 0.03511,
+          "outlier_share": 0.1272,
+          "top20_share": 0.0
+        },
+        "nose": {
+          "n_points": 9,
+          "mean": 0.05121,
+          "p90": 0.08703,
+          "outlier_share": 0.1728,
+          "top20_share": 0.0
+        },
+        "mouth": {
+          "n_points": 20,
+          "mean": 0.0624,
+          "p90": 0.11617,
+          "outlier_share": 0.1346,
+          "top20_share": 0.25
+        },
+        "jaw": {
+          "n_points": 9,
+          "mean": 0.07554,
+          "p90": 0.13421,
+          "outlier_share": 0.1471,
+          "top20_share": 0.35
+        },
+        "profile_contour": {
+          "n_points": 8,
+          "mean": 0.0892,
+          "p90": 0.13769,
+          "outlier_share": 0.1947,
+          "top20_share": 0.4
+        }
+      },
+      "families": {
+        "all": {
+          "pairs": 454,
+          "mean": 0.05481,
+          "p90": 0.1088,
+          "mean_normal": 0.02667
+        },
+        "frontal_light": {
+          "pairs": 7,
+          "mean": 0.03068,
+          "p90": 0.06501,
+          "mean_normal": 0.01364
+        },
+        "light_mid": {
+          "pairs": 15,
+          "mean": 0.04133,
+          "p90": 0.07083,
+          "mean_normal": 0.01903
+        },
+        "mid_deep": {
+          "pairs": 14,
+          "mean": 0.04969,
+          "p90": 0.08117,
+          "mean_normal": 0.02434
+        },
+        "deep_profile": {
+          "pairs": 45,
+          "mean": 0.05733,
+          "p90": 0.10643,
+          "mean_normal": 0.02737
+        }
+      },
+      "mean_overall": 0.05481,
+      "mean_normal_overall": 0.02667,
+      "all_points": [
+        {
+          "point": 0,
+          "mean": 0.09734
+        },
+        {
+          "point": 1,
+          "mean": 0.09276
+        },
+        {
+          "point": 2,
+          "mean": 0.09218
+        },
+        {
+          "point": 3,
+          "mean": 0.09097
+        },
+        {
+          "point": 4,
+          "mean": 0.08693
+        },
+        {
+          "point": 5,
+          "mean": 0.07685
+        },
+        {
+          "point": 6,
+          "mean": 0.07067
+        },
+        {
+          "point": 7,
+          "mean": 0.07648
+        },
+        {
+          "point": 8,
+          "mean": 0.08227
+        },
+        {
+          "point": 9,
+          "mean": 0.07514
+        },
+        {
+          "point": 10,
+          "mean": 0.06811
+        },
+        {
+          "point": 11,
+          "mean": 0.06762
+        },
+        {
+          "point": 12,
+          "mean": 0.0758
+        },
+        {
+          "point": 13,
+          "mean": 0.08
+        },
+        {
+          "point": 14,
+          "mean": 0.08298
+        },
+        {
+          "point": 15,
+          "mean": 0.08461
+        },
+        {
+          "point": 16,
+          "mean": 0.09278
+        },
+        {
+          "point": 17,
+          "mean": 0.03467
+        },
+        {
+          "point": 18,
+          "mean": 0.03778
+        },
+        {
+          "point": 19,
+          "mean": 0.03909
+        },
+        {
+          "point": 20,
+          "mean": 0.04183
+        },
+        {
+          "point": 21,
+          "mean": 0.03931
+        },
+        {
+          "point": 22,
+          "mean": 0.03754
+        },
+        {
+          "point": 23,
+          "mean": 0.03629
+        },
+        {
+          "point": 24,
+          "mean": 0.03903
+        },
+        {
+          "point": 25,
+          "mean": 0.04315
+        },
+        {
+          "point": 26,
+          "mean": 0.04249
+        },
+        {
+          "point": 27,
+          "mean": 0.03182
+        },
+        {
+          "point": 28,
+          "mean": 0.04698
+        },
+        {
+          "point": 29,
+          "mean": 0.0567
+        },
+        {
+          "point": 30,
+          "mean": 0.06672
+        },
+        {
+          "point": 31,
+          "mean": 0.04943
+        },
+        {
+          "point": 32,
+          "mean": 0.05306
+        },
+        {
+          "point": 33,
+          "mean": 0.05404
+        },
+        {
+          "point": 34,
+          "mean": 0.05208
+        },
+        {
+          "point": 35,
+          "mean": 0.05009
+        },
+        {
+          "point": 36,
+          "mean": 0.01897
+        },
+        {
+          "point": 37,
+          "mean": 0.022
+        },
+        {
+          "point": 38,
+          "mean": 0.02484
+        },
+        {
+          "point": 39,
+          "mean": 0.018
+        },
+        {
+          "point": 40,
+          "mean": 0.01358
+        },
+        {
+          "point": 41,
+          "mean": 0.01563
+        },
+        {
+          "point": 42,
+          "mean": 0.01819
+        },
+        {
+          "point": 43,
+          "mean": 0.02158
+        },
+        {
+          "point": 44,
+          "mean": 0.02019
+        },
+        {
+          "point": 45,
+          "mean": 0.0245
+        },
+        {
+          "point": 46,
+          "mean": 0.02112
+        },
+        {
+          "point": 47,
+          "mean": 0.01503
+        },
+        {
+          "point": 48,
+          "mean": 0.06579
+        },
+        {
+          "point": 49,
+          "mean": 0.05728
+        },
+        {
+          "point": 50,
+          "mean": 0.0534
+        },
+        {
+          "point": 51,
+          "mean": 0.05162
+        },
+        {
+          "point": 52,
+          "mean": 0.05279
+        },
+        {
+          "point": 53,
+          "mean": 0.05834
+        },
+        {
+          "point": 54,
+          "mean": 0.07056
+        },
+        {
+          "point": 55,
+          "mean": 0.07059
+        },
+        {
+          "point": 56,
+          "mean": 0.07075
+        },
+        {
+          "point": 57,
+          "mean": 0.06899
+        },
+        {
+          "point": 58,
+          "mean": 0.06741
+        },
+        {
+          "point": 59,
+          "mean": 0.06534
+        },
+        {
+          "point": 60,
+          "mean": 0.06454
+        },
+        {
+          "point": 61,
+          "mean": 0.05277
+        },
+        {
+          "point": 62,
+          "mean": 0.0521
+        },
+        {
+          "point": 63,
+          "mean": 0.05689
+        },
+        {
+          "point": 64,
+          "mean": 0.07004
+        },
+        {
+          "point": 65,
+          "mean": 0.06916
+        },
+        {
+          "point": 66,
+          "mean": 0.06536
+        },
+        {
+          "point": 67,
+          "mean": 0.06429
+        }
+      ]
+    },
+    "ldm106": {
+      "points": 106,
+      "sigma_pairs": 453,
+      "clip": [
+        0.009873,
+        0.04448
+      ],
+      "clip_normal": [
+        0.005395,
+        0.034191
+      ],
+      "top": [
+        {
+          "point": 1,
+          "zone": "profile_contour",
+          "mean": 0.0941,
+          "p90": 0.13924,
+          "max": 0.21909,
+          "outlier_share": 0.2203,
+          "mean_normal": 0.05277
+        },
+        {
+          "point": 0,
+          "zone": "profile_contour",
+          "mean": 0.09362,
+          "p90": 0.13967,
+          "max": 0.22651,
+          "outlier_share": 0.1916,
+          "mean_normal": 0.05296
+        },
+        {
+          "point": 2,
+          "zone": "profile_contour",
+          "mean": 0.09296,
+          "p90": 0.13725,
+          "max": 0.20559,
+          "outlier_share": 0.2599,
+          "mean_normal": 0.04213
+        },
+        {
+          "point": 4,
+          "zone": "profile_contour",
+          "mean": 0.09269,
+          "p90": 0.1339,
+          "max": 0.20067,
+          "outlier_share": 0.3062,
+          "mean_normal": 0.04239
+        },
+        {
+          "point": 3,
+          "zone": "profile_contour",
+          "mean": 0.09266,
+          "p90": 0.13419,
+          "max": 0.19931,
+          "outlier_share": 0.2952,
+          "mean_normal": 0.04678
+        },
+        {
+          "point": 5,
+          "zone": "profile_contour",
+          "mean": 0.09176,
+          "p90": 0.13621,
+          "max": 0.19801,
+          "outlier_share": 0.2863,
+          "mean_normal": 0.04122
+        },
+        {
+          "point": 6,
+          "zone": "profile_contour",
+          "mean": 0.09116,
+          "p90": 0.13801,
+          "max": 0.2073,
+          "outlier_share": 0.2467,
+          "mean_normal": 0.03907
+        },
+        {
+          "point": 7,
+          "zone": "profile_contour",
+          "mean": 0.0898,
+          "p90": 0.14202,
+          "max": 0.2277,
+          "outlier_share": 0.2004,
+          "mean_normal": 0.04049
+        },
+        {
+          "point": 32,
+          "zone": "profile_contour",
+          "mean": 0.08924,
+          "p90": 0.14376,
+          "max": 0.22365,
+          "outlier_share": 0.13,
+          "mean_normal": 0.04213
+        },
+        {
+          "point": 8,
+          "zone": "profile_contour",
+          "mean": 0.08808,
+          "p90": 0.14338,
+          "max": 0.24234,
+          "outlier_share": 0.1696,
+          "mean_normal": 0.04398
+        },
+        {
+          "point": 31,
+          "zone": "profile_contour",
+          "mean": 0.08789,
+          "p90": 0.14124,
+          "max": 0.22411,
+          "outlier_share": 0.1278,
+          "mean_normal": 0.04065
+        },
+        {
+          "point": 30,
+          "zone": "profile_contour",
+          "mean": 0.08354,
+          "p90": 0.13224,
+          "max": 0.21514,
+          "outlier_share": 0.0991,
+          "mean_normal": 0.02874
+        },
+        {
+          "point": 28,
+          "zone": "profile_contour",
+          "mean": 0.08344,
+          "p90": 0.13123,
+          "max": 0.21729,
+          "outlier_share": 0.1079,
+          "mean_normal": 0.03425
+        },
+        {
+          "point": 9,
+          "zone": "jaw",
+          "mean": 0.08297,
+          "p90": 0.1367,
+          "max": 0.24542,
+          "outlier_share": 0.141,
+          "mean_normal": 0.04561
+        },
+        {
+          "point": 16,
+          "zone": "jaw",
+          "mean": 0.08227,
+          "p90": 0.15606,
+          "max": 0.23586,
+          "outlier_share": 0.141,
+          "mean_normal": 0.04915
+        }
+      ],
+      "zones": {
+        "brows": {
+          "n_points": 18,
+          "mean": 0.03748,
+          "p90": 0.06222,
+          "outlier_share": 0.1685,
+          "top20_share": 0.0
+        },
+        "eyes": {
+          "n_points": 20,
+          "mean": 0.01929,
+          "p90": 0.03505,
+          "outlier_share": 0.1016,
+          "top20_share": 0.0
+        },
+        "nose": {
+          "n_points": 15,
+          "mean": 0.04602,
+          "p90": 0.07819,
+          "outlier_share": 0.1881,
+          "top20_share": 0.0
+        },
+        "mouth": {
+          "n_points": 20,
+          "mean": 0.0624,
+          "p90": 0.11617,
+          "outlier_share": 0.1346,
+          "top20_share": 0.0
+        },
+        "jaw": {
+          "n_points": 15,
+          "mean": 0.07519,
+          "p90": 0.13513,
+          "outlier_share": 0.1413,
+          "top20_share": 0.2
+        },
+        "profile_contour": {
+          "n_points": 18,
+          "mean": 0.08718,
+          "p90": 0.13622,
+          "outlier_share": 0.1826,
+          "top20_share": 0.8
+        }
+      },
+      "families": {
+        "all": {
+          "pairs": 454,
+          "mean": 0.05374,
+          "p90": 0.10902,
+          "mean_normal": 0.02641
+        },
+        "frontal_light": {
+          "pairs": 7,
+          "mean": 0.03125,
+          "p90": 0.07715,
+          "mean_normal": 0.0133
+        },
+        "light_mid": {
+          "pairs": 15,
+          "mean": 0.04104,
+          "p90": 0.07256,
+          "mean_normal": 0.01891
+        },
+        "mid_deep": {
+          "pairs": 14,
+          "mean": 0.04888,
+          "p90": 0.08355,
+          "mean_normal": 0.02425
+        },
+        "deep_profile": {
+          "pairs": 45,
+          "mean": 0.05491,
+          "p90": 0.10542,
+          "mean_normal": 0.02698
+        }
+      },
+      "mean_overall": 0.05374,
+      "mean_normal_overall": 0.02641,
+      "all_points": [
+        {
+          "point": 0,
+          "mean": 0.09362
+        },
+        {
+          "point": 1,
+          "mean": 0.0941
+        },
+        {
+          "point": 2,
+          "mean": 0.09296
+        },
+        {
+          "point": 3,
+          "mean": 0.09266
+        },
+        {
+          "point": 4,
+          "mean": 0.09269
+        },
+        {
+          "point": 5,
+          "mean": 0.09176
+        },
+        {
+          "point": 6,
+          "mean": 0.09116
+        },
+        {
+          "point": 7,
+          "mean": 0.0898
+        },
+        {
+          "point": 8,
+          "mean": 0.08808
+        },
+        {
+          "point": 9,
+          "mean": 0.08297
+        },
+        {
+          "point": 10,
+          "mean": 0.07911
+        },
+        {
+          "point": 11,
+          "mean": 0.07341
+        },
+        {
+          "point": 12,
+          "mean": 0.071
+        },
+        {
+          "point": 13,
+          "mean": 0.07297
+        },
+        {
+          "point": 14,
+          "mean": 0.07921
+        },
+        {
+          "point": 15,
+          "mean": 0.08155
+        },
+        {
+          "point": 16,
+          "mean": 0.08227
+        },
+        {
+          "point": 17,
+          "mean": 0.08052
+        },
+        {
+          "point": 18,
+          "mean": 0.07793
+        },
+        {
+          "point": 19,
+          "mean": 0.07077
+        },
+        {
+          "point": 20,
+          "mean": 0.06754
+        },
+        {
+          "point": 21,
+          "mean": 0.06644
+        },
+        {
+          "point": 22,
+          "mean": 0.06896
+        },
+        {
+          "point": 23,
+          "mean": 0.07323
+        },
+        {
+          "point": 24,
+          "mean": 0.07678
+        },
+        {
+          "point": 25,
+          "mean": 0.07841
+        },
+        {
+          "point": 26,
+          "mean": 0.08041
+        },
+        {
+          "point": 27,
+          "mean": 0.08139
+        },
+        {
+          "point": 28,
+          "mean": 0.08344
+        },
+        {
+          "point": 29,
+          "mean": 0.08131
+        },
+        {
+          "point": 30,
+          "mean": 0.08354
+        },
+        {
+          "point": 31,
+          "mean": 0.08789
+        },
+        {
+          "point": 32,
+          "mean": 0.08924
+        },
+        {
+          "point": 33,
+          "mean": 0.03467
+        },
+        {
+          "point": 34,
+          "mean": 0.03778
+        },
+        {
+          "point": 35,
+          "mean": 0.03909
+        },
+        {
+          "point": 36,
+          "mean": 0.04183
+        },
+        {
+          "point": 37,
+          "mean": 0.03931
+        },
+        {
+          "point": 38,
+          "mean": 0.03652
+        },
+        {
+          "point": 39,
+          "mean": 0.03578
+        },
+        {
+          "point": 40,
+          "mean": 0.03512
+        },
+        {
+          "point": 41,
+          "mean": 0.03516
+        },
+        {
+          "point": 42,
+          "mean": 0.03754
+        },
+        {
+          "point": 43,
+          "mean": 0.03629
+        },
+        {
+          "point": 44,
+          "mean": 0.03903
+        },
+        {
+          "point": 45,
+          "mean": 0.04315
+        },
+        {
+          "point": 46,
+          "mean": 0.04249
+        },
+        {
+          "point": 47,
+          "mean": 0.03655
+        },
+        {
+          "point": 48,
+          "mean": 0.03624
+        },
+        {
+          "point": 49,
+          "mean": 0.0332
+        },
+        {
+          "point": 50,
+          "mean": 0.03494
+        },
+        {
+          "point": 51,
+          "mean": 0.03182
+        },
+        {
+          "point": 52,
+          "mean": 0.04331
+        },
+        {
+          "point": 53,
+          "mean": 0.05413
+        },
+        {
+          "point": 54,
+          "mean": 0.06242
+        },
+        {
+          "point": 55,
+          "mean": 0.02856
+        },
+        {
+          "point": 56,
+          "mean": 0.04517
+        },
+        {
+          "point": 57,
+          "mean": 0.04292
+        },
+        {
+          "point": 58,
+          "mean": 0.05028
+        },
+        {
+          "point": 59,
+          "mean": 0.05603
+        },
+        {
+          "point": 60,
+          "mean": 0.05404
+        },
+        {
+          "point": 61,
+          "mean": 0.05508
+        },
+        {
+          "point": 62,
+          "mean": 0.05035
+        },
+        {
+          "point": 63,
+          "mean": 0.04201
+        },
+        {
+          "point": 64,
+          "mean": 0.04523
+        },
+        {
+          "point": 65,
+          "mean": 0.029
+        },
+        {
+          "point": 66,
+          "mean": 0.01897
+        },
+        {
+          "point": 67,
+          "mean": 0.02078
+        },
+        {
+          "point": 68,
+          "mean": 0.02711
+        },
+        {
+          "point": 69,
+          "mean": 0.02115
+        },
+        {
+          "point": 70,
+          "mean": 0.0224
+        },
+        {
+          "point": 71,
+          "mean": 0.01727
+        },
+        {
+          "point": 72,
+          "mean": 0.01657
+        },
+        {
+          "point": 73,
+          "mean": 0.0178
+        },
+        {
+          "point": 74,
+          "mean": 0.01617
+        },
+        {
+          "point": 75,
+          "mean": 0.02339
+        },
+        {
+          "point": 76,
+          "mean": 0.01653
+        },
+        {
+          "point": 77,
+          "mean": 0.02362
+        },
+        {
+          "point": 78,
+          "mean": 0.01912
+        },
+        {
+          "point": 79,
+          "mean": 0.0245
+        },
+        {
+          "point": 80,
+          "mean": 0.02353
+        },
+        {
+          "point": 81,
+          "mean": 0.02018
+        },
+        {
+          "point": 82,
+          "mean": 0.01888
+        },
+        {
+          "point": 83,
+          "mean": 0.01182
+        },
+        {
+          "point": 84,
+          "mean": 0.06579
+        },
+        {
+          "point": 85,
+          "mean": 0.05728
+        },
+        {
+          "point": 86,
+          "mean": 0.0534
+        },
+        {
+          "point": 87,
+          "mean": 0.05162
+        },
+        {
+          "point": 88,
+          "mean": 0.05279
+        },
+        {
+          "point": 89,
+          "mean": 0.05834
+        },
+        {
+          "point": 90,
+          "mean": 0.07056
+        },
+        {
+          "point": 91,
+          "mean": 0.07059
+        },
+        {
+          "point": 92,
+          "mean": 0.07075
+        },
+        {
+          "point": 93,
+          "mean": 0.06899
+        },
+        {
+          "point": 94,
+          "mean": 0.06741
+        },
+        {
+          "point": 95,
+          "mean": 0.06534
+        },
+        {
+          "point": 96,
+          "mean": 0.06454
+        },
+        {
+          "point": 97,
+          "mean": 0.05277
+        },
+        {
+          "point": 98,
+          "mean": 0.0521
+        },
+        {
+          "point": 99,
+          "mean": 0.05689
+        },
+        {
+          "point": 100,
+          "mean": 0.07004
+        },
+        {
+          "point": 101,
+          "mean": 0.06916
+        },
+        {
+          "point": 102,
+          "mean": 0.06536
+        },
+        {
+          "point": 103,
+          "mean": 0.06429
+        },
+        {
+          "point": 104,
+          "mean": 0.01406
+        },
+        {
+          "point": 105,
+          "mean": 0.01201
+        }
+      ]
+    },
+    "ldm134": {
+      "points": 134,
+      "sigma_pairs": 453,
+      "clip": [
+        0.010158,
+        0.035842
+      ],
+      "clip_normal": [
+        0.004851,
+        0.031611
+      ],
+      "top": [
+        {
+          "point": 132,
+          "zone": "mouth",
+          "mean": 0.07147,
+          "p90": 0.11907,
+          "max": 0.19944,
+          "outlier_share": 0.1652,
+          "mean_normal": 0.01974
+        },
+        {
+          "point": 133,
+          "zone": "mouth",
+          "mean": 0.07144,
+          "p90": 0.11871,
+          "max": 0.18862,
+          "outlier_share": 0.1652,
+          "mean_normal": 0.01993
+        },
+        {
+          "point": 129,
+          "zone": "mouth",
+          "mean": 0.07115,
+          "p90": 0.13219,
+          "max": 0.21212,
+          "outlier_share": 0.1322,
+          "mean_normal": 0.02448
+        },
+        {
+          "point": 128,
+          "zone": "mouth",
+          "mean": 0.07075,
+          "p90": 0.1333,
+          "max": 0.21352,
+          "outlier_share": 0.1278,
+          "mean_normal": 0.03101
+        },
+        {
+          "point": 130,
+          "zone": "mouth",
+          "mean": 0.07059,
+          "p90": 0.12283,
+          "max": 0.20908,
+          "outlier_share": 0.1366,
+          "mean_normal": 0.0158
+        },
+        {
+          "point": 86,
+          "zone": "mouth",
+          "mean": 0.07056,
+          "p90": 0.119,
+          "max": 0.18012,
+          "outlier_share": 0.163,
+          "mean_normal": 0.02689
+        },
+        {
+          "point": 118,
+          "zone": "mouth",
+          "mean": 0.0702,
+          "p90": 0.11671,
+          "max": 0.18973,
+          "outlier_share": 0.1608,
+          "mean_normal": 0.02157
+        },
+        {
+          "point": 103,
+          "zone": "mouth",
+          "mean": 0.07004,
+          "p90": 0.11762,
+          "max": 0.18671,
+          "outlier_share": 0.1608,
+          "mean_normal": 0.02491
+        },
+        {
+          "point": 131,
+          "zone": "mouth",
+          "mean": 0.06988,
+          "p90": 0.11915,
+          "max": 0.20549,
+          "outlier_share": 0.1564,
+          "mean_normal": 0.01719
+        },
+        {
+          "point": 117,
+          "zone": "mouth",
+          "mean": 0.06978,
+          "p90": 0.11745,
+          "max": 0.19999,
+          "outlier_share": 0.152,
+          "mean_normal": 0.02133
+        },
+        {
+          "point": 127,
+          "zone": "mouth",
+          "mean": 0.06959,
+          "p90": 0.13284,
+          "max": 0.21348,
+          "outlier_share": 0.1256,
+          "mean_normal": 0.03508
+        },
+        {
+          "point": 113,
+          "zone": "mouth",
+          "mean": 0.06947,
+          "p90": 0.12613,
+          "max": 0.21648,
+          "outlier_share": 0.1366,
+          "mean_normal": 0.0299
+        },
+        {
+          "point": 116,
+          "zone": "mouth",
+          "mean": 0.06919,
+          "p90": 0.11675,
+          "max": 0.20566,
+          "outlier_share": 0.1586,
+          "mean_normal": 0.02329
+        },
+        {
+          "point": 114,
+          "zone": "mouth",
+          "mean": 0.06903,
+          "p90": 0.12177,
+          "max": 0.21048,
+          "outlier_share": 0.1564,
+          "mean_normal": 0.02634
+        },
+        {
+          "point": 126,
+          "zone": "mouth",
+          "mean": 0.06899,
+          "p90": 0.13312,
+          "max": 0.21327,
+          "outlier_share": 0.1256,
+          "mean_normal": 0.03514
+        }
+      ],
+      "zones": {
+        "brows": {
+          "n_points": 26,
+          "mean": 0.03648,
+          "p90": 0.06048,
+          "outlier_share": 0.1755,
+          "top20_share": 0.0
+        },
+        "eyes": {
+          "n_points": 44,
+          "mean": 0.02119,
+          "p90": 0.03805,
+          "outlier_share": 0.1228,
+          "top20_share": 0.0
+        },
+        "mouth": {
+          "n_points": 64,
+          "mean": 0.06307,
+          "p90": 0.1145,
+          "outlier_share": 0.1387,
+          "top20_share": 1.0
+        }
+      },
+      "families": {
+        "all": {
+          "pairs": 454,
+          "mean": 0.04416,
+          "p90": 0.08836,
+          "mean_normal": 0.02071
+        },
+        "frontal_light": {
+          "pairs": 7,
+          "mean": 0.02545,
+          "p90": 0.04834,
+          "mean_normal": 0.01226
+        },
+        "light_mid": {
+          "pairs": 15,
+          "mean": 0.03306,
+          "p90": 0.05895,
+          "mean_normal": 0.0154
+        },
+        "mid_deep": {
+          "pairs": 14,
+          "mean": 0.04083,
+          "p90": 0.07204,
+          "mean_normal": 0.0193
+        },
+        "deep_profile": {
+          "pairs": 45,
+          "mean": 0.04879,
+          "p90": 0.09442,
+          "mean_normal": 0.02285
+        }
+      },
+      "mean_overall": 0.04416,
+      "mean_normal_overall": 0.02071,
+      "all_points": [
+        {
+          "point": 0,
+          "mean": 0.01804
+        },
+        {
+          "point": 1,
+          "mean": 0.01802
+        },
+        {
+          "point": 2,
+          "mean": 0.01784
+        },
+        {
+          "point": 3,
+          "mean": 0.0175
+        },
+        {
+          "point": 4,
+          "mean": 0.01701
+        },
+        {
+          "point": 5,
+          "mean": 0.01554
+        },
+        {
+          "point": 6,
+          "mean": 0.01605
+        },
+        {
+          "point": 7,
+          "mean": 0.01662
+        },
+        {
+          "point": 8,
+          "mean": 0.01777
+        },
+        {
+          "point": 9,
+          "mean": 0.0208
+        },
+        {
+          "point": 10,
+          "mean": 0.02243
+        },
+        {
+          "point": 11,
+          "mean": 0.02309
+        },
+        {
+          "point": 12,
+          "mean": 0.01756
+        },
+        {
+          "point": 13,
+          "mean": 0.02014
+        },
+        {
+          "point": 14,
+          "mean": 0.022
+        },
+        {
+          "point": 15,
+          "mean": 0.02504
+        },
+        {
+          "point": 16,
+          "mean": 0.02718
+        },
+        {
+          "point": 17,
+          "mean": 0.02911
+        },
+        {
+          "point": 18,
+          "mean": 0.02897
+        },
+        {
+          "point": 19,
+          "mean": 0.02592
+        },
+        {
+          "point": 20,
+          "mean": 0.02025
+        },
+        {
+          "point": 21,
+          "mean": 0.02025
+        },
+        {
+          "point": 22,
+          "mean": 0.02573
+        },
+        {
+          "point": 23,
+          "mean": 0.02431
+        },
+        {
+          "point": 24,
+          "mean": 0.02353
+        },
+        {
+          "point": 25,
+          "mean": 0.02249
+        },
+        {
+          "point": 26,
+          "mean": 0.01994
+        },
+        {
+          "point": 27,
+          "mean": 0.02018
+        },
+        {
+          "point": 28,
+          "mean": 0.01936
+        },
+        {
+          "point": 29,
+          "mean": 0.01907
+        },
+        {
+          "point": 30,
+          "mean": 0.01907
+        },
+        {
+          "point": 31,
+          "mean": 0.0183
+        },
+        {
+          "point": 32,
+          "mean": 0.02171
+        },
+        {
+          "point": 33,
+          "mean": 0.02428
+        },
+        {
+          "point": 34,
+          "mean": 0.01941
+        },
+        {
+          "point": 35,
+          "mean": 0.01871
+        },
+        {
+          "point": 36,
+          "mean": 0.02019
+        },
+        {
+          "point": 37,
+          "mean": 0.02177
+        },
+        {
+          "point": 38,
+          "mean": 0.02414
+        },
+        {
+          "point": 39,
+          "mean": 0.02594
+        },
+        {
+          "point": 40,
+          "mean": 0.02698
+        },
+        {
+          "point": 41,
+          "mean": 0.02302
+        },
+        {
+          "point": 42,
+          "mean": 0.01901
+        },
+        {
+          "point": 43,
+          "mean": 0.01789
+        },
+        {
+          "point": 44,
+          "mean": 0.03415
+        },
+        {
+          "point": 45,
+          "mean": 0.0339
+        },
+        {
+          "point": 46,
+          "mean": 0.03751
+        },
+        {
+          "point": 47,
+          "mean": 0.03883
+        },
+        {
+          "point": 48,
+          "mean": 0.04013
+        },
+        {
+          "point": 49,
+          "mean": 0.04014
+        },
+        {
+          "point": 50,
+          "mean": 0.03857
+        },
+        {
+          "point": 51,
+          "mean": 0.03153
+        },
+        {
+          "point": 52,
+          "mean": 0.0358
+        },
+        {
+          "point": 53,
+          "mean": 0.03356
+        },
+        {
+          "point": 54,
+          "mean": 0.03499
+        },
+        {
+          "point": 55,
+          "mean": 0.03459
+        },
+        {
+          "point": 56,
+          "mean": 0.0334
+        },
+        {
+          "point": 57,
+          "mean": 0.04211
+        },
+        {
+          "point": 58,
+          "mean": 0.04134
+        },
+        {
+          "point": 59,
+          "mean": 0.04318
+        },
+        {
+          "point": 60,
+          "mean": 0.04094
+        },
+        {
+          "point": 61,
+          "mean": 0.03754
+        },
+        {
+          "point": 62,
+          "mean": 0.03483
+        },
+        {
+          "point": 63,
+          "mean": 0.03754
+        },
+        {
+          "point": 64,
+          "mean": 0.03545
+        },
+        {
+          "point": 65,
+          "mean": 0.03556
+        },
+        {
+          "point": 66,
+          "mean": 0.0345
+        },
+        {
+          "point": 67,
+          "mean": 0.03352
+        },
+        {
+          "point": 68,
+          "mean": 0.03226
+        },
+        {
+          "point": 69,
+          "mean": 0.03266
+        },
+        {
+          "point": 70,
+          "mean": 0.06579
+        },
+        {
+          "point": 71,
+          "mean": 0.06452
+        },
+        {
+          "point": 72,
+          "mean": 0.06258
+        },
+        {
+          "point": 73,
+          "mean": 0.05868
+        },
+        {
+          "point": 74,
+          "mean": 0.05728
+        },
+        {
+          "point": 75,
+          "mean": 0.05612
+        },
+        {
+          "point": 76,
+          "mean": 0.05438
+        },
+        {
+          "point": 77,
+          "mean": 0.0534
+        },
+        {
+          "point": 78,
+          "mean": 0.05162
+        },
+        {
+          "point": 79,
+          "mean": 0.05279
+        },
+        {
+          "point": 80,
+          "mean": 0.05419
+        },
+        {
+          "point": 81,
+          "mean": 0.05587
+        },
+        {
+          "point": 82,
+          "mean": 0.05834
+        },
+        {
+          "point": 83,
+          "mean": 0.06097
+        },
+        {
+          "point": 84,
+          "mean": 0.06557
+        },
+        {
+          "point": 85,
+          "mean": 0.06811
+        },
+        {
+          "point": 86,
+          "mean": 0.07056
+        },
+        {
+          "point": 87,
+          "mean": 0.06454
+        },
+        {
+          "point": 88,
+          "mean": 0.0636
+        },
+        {
+          "point": 89,
+          "mean": 0.05979
+        },
+        {
+          "point": 90,
+          "mean": 0.05676
+        },
+        {
+          "point": 91,
+          "mean": 0.05515
+        },
+        {
+          "point": 92,
+          "mean": 0.05397
+        },
+        {
+          "point": 93,
+          "mean": 0.05258
+        },
+        {
+          "point": 94,
+          "mean": 0.05178
+        },
+        {
+          "point": 95,
+          "mean": 0.05201
+        },
+        {
+          "point": 96,
+          "mean": 0.05386
+        },
+        {
+          "point": 97,
+          "mean": 0.05673
+        },
+        {
+          "point": 98,
+          "mean": 0.05896
+        },
+        {
+          "point": 99,
+          "mean": 0.06058
+        },
+        {
+          "point": 100,
+          "mean": 0.06206
+        },
+        {
+          "point": 101,
+          "mean": 0.06501
+        },
+        {
+          "point": 102,
+          "mean": 0.06785
+        },
+        {
+          "point": 103,
+          "mean": 0.07004
+        },
+        {
+          "point": 104,
+          "mean": 0.0652
+        },
+        {
+          "point": 105,
+          "mean": 0.06355
+        },
+        {
+          "point": 106,
+          "mean": 0.06251
+        },
+        {
+          "point": 107,
+          "mean": 0.06239
+        },
+        {
+          "point": 108,
+          "mean": 0.06356
+        },
+        {
+          "point": 109,
+          "mean": 0.0644
+        },
+        {
+          "point": 110,
+          "mean": 0.06445
+        },
+        {
+          "point": 111,
+          "mean": 0.06536
+        },
+        {
+          "point": 112,
+          "mean": 0.06797
+        },
+        {
+          "point": 113,
+          "mean": 0.06947
+        },
+        {
+          "point": 114,
+          "mean": 0.06903
+        },
+        {
+          "point": 115,
+          "mean": 0.0687
+        },
+        {
+          "point": 116,
+          "mean": 0.06919
+        },
+        {
+          "point": 117,
+          "mean": 0.06978
+        },
+        {
+          "point": 118,
+          "mean": 0.0702
+        },
+        {
+          "point": 119,
+          "mean": 0.06592
+        },
+        {
+          "point": 120,
+          "mean": 0.0644
+        },
+        {
+          "point": 121,
+          "mean": 0.0637
+        },
+        {
+          "point": 122,
+          "mean": 0.06534
+        },
+        {
+          "point": 123,
+          "mean": 0.06616
+        },
+        {
+          "point": 124,
+          "mean": 0.06741
+        },
+        {
+          "point": 125,
+          "mean": 0.06808
+        },
+        {
+          "point": 126,
+          "mean": 0.06899
+        },
+        {
+          "point": 127,
+          "mean": 0.06959
+        },
+        {
+          "point": 128,
+          "mean": 0.07075
+        },
+        {
+          "point": 129,
+          "mean": 0.07115
+        },
+        {
+          "point": 130,
+          "mean": 0.07059
+        },
+        {
+          "point": 131,
+          "mean": 0.06988
+        },
+        {
+          "point": 132,
+          "mean": 0.07147
+        },
+        {
+          "point": 133,
+          "mean": 0.07144
+        }
+      ]
+    }
+  },
+  "comparability": {
+    "overlaps": {
+      "ldm68/ldm106": {
+        "shared": 35,
+        "share_of_a": 0.515,
+        "share_of_b": 0.33
+      },
+      "ldm68/ldm134": {
+        "shared": 18,
+        "share_of_a": 0.265,
+        "share_of_b": 0.134
+      },
+      "ldm106/ldm134": {
+        "shared": 18,
+        "share_of_a": 0.17,
+        "share_of_b": 0.134
+      }
+    },
+    "nearest": {
+      "ldm68/ldm106": {
+        "median": 0.0,
+        "p90": 0.0726,
+        "max": 0.095
+      },
+      "ldm68/ldm134": {
+        "median": 0.0251,
+        "p90": 1.1603,
+        "max": 1.3184
+      },
+      "ldm106/ldm134": {
+        "median": 0.0578,
+        "p90": 1.1799,
+        "max": 1.355
+      }
+    },
+    "shared_rank": {
+      "shared": 35,
+      "spearman": 1.0
+    }
+  },
+  "files": [
+    {
+      "file": "reports/figures/ldm-points.png",
+      "caption": "Рейтинг шумных landmark-точек по наборам (цвет — зона)"
+    },
+    {
+      "file": "reports/figures/ldm-table.png",
+      "caption": "Сводная таблица набор × метрика"
+    }
+  ],
+  "conclusion": [
+    "Лучшее разделение within/between по euclid: ldm106 (AUC 0.7766).",
+    "Взвешивание по landmark-точкам даёт максимальный прирост AUC(euclid) на ldm134 (ΔAUC +0.0208, CI от +0.0099).",
+    "Для normal-компоненты лучший прирост — ldm134 (ΔAUC +0.0339, CI от +0.0218); у ldm68 он +0.0188.",
+    "Профильный контур шумит заметно сильнее внутренних зон: ldm68 ×2.07, ldm106 ×2.11. Для контроля шума в профиле контурные точки стоит держать отдельно от внутренних.",
+    "В ldm134 нет контурных точек профиля (только глаза, брови, рот, нос) — набор не показывает шум контура по построению.",
+    "Рекомендация: для диагностики качества кадра и контроля шума использовать ldm68 — он совпадает с heat space (центр и IOD по его же глазам), покрывает все зоны и даёт ближайший к карте набор точек.",
+    "ldm106 и ldm134 пользователю не выводить: другой набор вершин, сопоставление с ldm68 только по ближайшим точкам, а ldm134 вообще не содержит контура челюсти."
+  ]
+}

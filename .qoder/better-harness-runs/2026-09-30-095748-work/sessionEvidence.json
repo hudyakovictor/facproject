@@ -1,0 +1,204 @@
+{
+  "status": "available",
+  "data": {
+    "schemaVersion": 3,
+    "kind": "session-core-facts",
+    "scope": {
+      "platform": "qoder",
+      "workspace": "work",
+      "until": "2026-09-30T00:00:00.000Z",
+      "selection": "all-eligible",
+      "eligibleSessions": 2,
+      "selectedSessions": 2,
+      "sampled": false
+    },
+    "candidateSelection": {
+      "strategy": "agent-work-loop-portfolio-v1",
+      "availableClasses": {
+        "boundary-change": 1,
+        "operation-control": 1,
+        "change-gap": 2
+      },
+      "emittedClasses": {
+        "boundary-change": 1,
+        "operation-control": 1,
+        "change-gap": 2
+      }
+    },
+    "requestRootSelection": {
+      "strategy": "recent-context-first-prompt-v1",
+      "distinctRoots": 1,
+      "emittedRoots": 1
+    },
+    "admission": {
+      "taskEpisodes": 10,
+      "candidateEpisodes": 2,
+      "distinctRequests": 2,
+      "emittedCandidates": 2,
+      "distinctRequestRoots": 1,
+      "emittedRequestRoots": 1
+    },
+    "populationCoverage": {
+      "withChanges": 2,
+      "withChecks": 0,
+      "withReviewedRelevantCheck": 0,
+      "withResultSignal": 0,
+      "withAssistantHandoff": 0,
+      "withStructuredCompletion": 0,
+      "withUserCorrection": 0,
+      "withExecutionFriction": 0,
+      "withFrictionConsequence": 0
+    },
+    "observationCoverage": {
+      "withChanges": 2,
+      "withChecks": 0,
+      "withReviewedRelevantCheck": 0,
+      "withResultSignal": 0,
+      "withAssistantHandoff": 0,
+      "withStructuredCompletion": 0,
+      "withUserCorrection": 0,
+      "withExecutionFriction": 0,
+      "withFrictionConsequence": 0
+    },
+    "admissionSupport": {
+      "semanticGuardrails": [
+        "occurrences-not-distinct-episodes",
+        "coverage-not-suggestion",
+        "omitted-details-not-signal-evidence",
+        "project-capability-inventory-unobserved"
+      ],
+      "sharedFrictionConsequences": []
+    },
+    "candidates": [
+      {
+        "ref": "E1",
+        "contextGroup": "G1",
+        "request": {
+          "summary": "https://github.com/hudyakovictor/facproject/pull/23 добавь и проверь работу",
+          "key": "req:0c8670b7fa8f",
+          "occurrences": 1,
+          "intermediate": "залей проект обратно на github и напиши список вопросов",
+          "followUp": "Проверил репозиторий. Вот полная картина по трём файлам-компонентам : *** ## Диагностика: что реально сломано Репо подтверждает всё что описал коллега. Компонен…",
+          "observedTurns": 7,
+          "omittedTurns": 4
+        },
+        "changes": {
+          "edits": 1,
+          "files": 1
+        },
+        "evidenceClasses": [
+          "boundary-change",
+          "change-gap"
+        ],
+        "acceptanceSignals": [
+          "project-change"
+        ],
+        "acceptanceEvidenceCeiling": "lead",
+        "frictionConsequenceSignals": [],
+        "activity": {
+          "toolCalls": 32,
+          "classifiedReads": 4
+        },
+        "workTrace": {
+          "steps": [
+            "execute",
+            "inspect",
+            "execute",
+            "inspect",
+            "execute",
+            "change"
+          ],
+          "gapAfter": 3,
+          "omittedSteps": 2
+        },
+        "checks": [],
+        "closure": "changed-without-check"
+      },
+      {
+        "ref": "E2",
+        "contextGroup": "G1",
+        "request": {
+          "summary": "Прочитал все 4 файла полностью. Вот исчерпывающий аудит. *** ## 10 анализов: полный аудит morphing-проекта ### Анализ 1 — Props contract разрыв (Controls.jsx) **Критический.** `App.jsx` вызывает `Controls` с пропсами `onDownloadWebm` и `web…",
+          "key": "req:8103d345fd76",
+          "occurrences": 1,
+          "observedTurns": 1,
+          "omittedTurns": 0
+        },
+        "changes": {
+          "edits": 1,
+          "files": 1
+        },
+        "evidenceClasses": [
+          "operation-control",
+          "change-gap"
+        ],
+        "acceptanceSignals": [
+          "project-change"
+        ],
+        "acceptanceEvidenceCeiling": "lead",
+        "frictionConsequenceSignals": [],
+        "activity": {
+          "toolCalls": 9,
+          "classifiedReads": 1
+        },
+        "workTrace": {
+          "steps": [
+            "execute",
+            "inspect",
+            "execute",
+            "change"
+          ]
+        },
+        "checks": [],
+        "closure": "changed-without-check",
+        "mechanisms": [
+          "skill:security-scan"
+        ]
+      }
+    ],
+    "requestRoots": [
+      {
+        "ref": "R1",
+        "contextGroup": "G1",
+        "request": {
+          "summary": "https://github.com/hudyakovictor/facproject/pull/23 добавь и проверь работу",
+          "occurrences": 1
+        },
+        "candidateRef": "E1"
+      }
+    ],
+    "omitted": {
+      "noRequest": 8,
+      "selfAnalysis": 0,
+      "lowSignal": 0,
+      "duplicateRequests": 0,
+      "candidateBudget": 0,
+      "requestRootBudget": 0,
+      "checkBudget": 0,
+      "activeSessions": 0,
+      "homeSessionOnly": 0,
+      "benchmarkGenerated": 0
+    },
+    "warningCodes": [
+      "missing-optional-root",
+      "disabled-source-root"
+    ],
+    "excludes": [
+      "assistantText",
+      "rawPrompts",
+      "commands",
+      "toolOutput",
+      "paths",
+      "rawIds",
+      "secrets"
+    ],
+    "diagnosticFlags": [
+      "no-reviewed-relevant-check-evidence",
+      "no-result-evidence"
+    ],
+    "cost": {
+      "serializedBytes": 4007,
+      "estimatedTokens": 1164
+    }
+  }
+}

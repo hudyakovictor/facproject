@@ -1,0 +1,26 @@
+{
+  "face_model.npy": {
+    "path": ".cache/models/3ddfa_v3/face_model.npy",
+    "bytes": 103918535,
+    "sha256": "f07ada9b4748ecdfeae3fa67aae88bb4b824ea7adc26853778c55d8dc0efa832",
+    "url": "https://huggingface.co/datasets/Zidu-Wang/3DDFA-V3/resolve/ffedf42ca91a072beaaf3bc858fcd752ab3b1502/assets/face_model.npy"
+  },
+  "net_recon_mbnet.pth": {
+    "path": ".cache/models/3ddfa_v3/net_recon_mbnet.pth",
+    "bytes": 13091101,
+    "sha256": "435f33e6fc93f3c0857538ffc5024d29bd6d09f98391d9be55f2d32b23cc2604",
+    "url": "https://huggingface.co/datasets/Zidu-Wang/3DDFA-V3/resolve/ffedf42ca91a072beaaf3bc858fcd752ab3b1502/assets/net_recon_mbnet.pth"
+  },
+  "similarity_Lm3D_all.mat": {
+    "path": ".cache/models/3ddfa_v3/similarity_Lm3D_all.mat",
+    "bytes": 994,
+    "sha256": "53b83ce6e35c50ddc3e97603650cef4970320c157e75c241c844f29c1dcba65a",
+    "url": "https://huggingface.co/datasets/Zidu-Wang/3DDFA-V3/resolve/ffedf42ca91a072beaaf3bc858fcd752ab3b1502/assets/similarity_Lm3D_all.mat"
+  },
+  "yunet": {
+    "path": ".cache/models/3ddfa_v3/face_detection_yunet_2023mar.onnx",
+    "bytes": 232589,
+    "sha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
+    "url": "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+  }
+}

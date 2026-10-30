@@ -1,0 +1,61 @@
+{
+ "iteration": 5,
+ "step": 5,
+ "generated_at": "2026-10-21T10:17:41",
+ "runtime_sec": 0.4,
+ "requirement": {
+  "min_pairs": 20,
+  "min_people": 6,
+  "gap": 30
+ },
+ "pose_source_wild": "manual+yaw (шаг 3); invalid_pose кадры исключены",
+ "gate_gap30": {
+  "gap": 30,
+  "n_pairs": 22,
+  "n_people_with_pairs": 10,
+  "frontal_frames_per_person": {
+   "person_01": 5,
+   "person_02": 2,
+   "person_03": 2,
+   "person_04": 3,
+   "person_05": 3,
+   "person_06": 2,
+   "person_07": 3,
+   "person_9": 3,
+   "person_10": 6,
+   "person_11": 3
+  },
+  "measurable": true,
+  "euclid_within_mean": 0.07391,
+  "weighted_euclid_within_mean": 0.06455,
+  "delta_pct": -12.7,
+  "verdict": "calibrated снижает within-разброс на фронтальных парах"
+ },
+ "gate_gap10": {
+  "gap": 10,
+  "n_pairs": 34,
+  "n_people_with_pairs": 10,
+  "frontal_frames_per_person": {
+   "person_01": 5,
+   "person_02": 2,
+   "person_03": 2,
+   "person_04": 3,
+   "person_05": 3,
+   "person_06": 2,
+   "person_07": 3,
+   "person_9": 3,
+   "person_10": 6,
+   "person_11": 3
+  },
+  "measurable": true,
+  "euclid_within_mean": 0.05176,
+  "weighted_euclid_within_mean": 0.04523,
+  "delta_pct": -12.6,
+  "verdict": "calibrated снижает within-разброс на фронтальных парах"
+ },
+ "gate": {
+  "frontal_gate_measurable_at_gap30": true,
+  "pairs_at_gap30": 22,
+  "people_at_gap30": 10
+ }
+}

@@ -54,21 +54,16 @@ def main() -> int:
         out_path = Path(out_path).resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    from app.pipeline.hduv_texture import generate_hduv_from_reconstruction
-    from app.pipeline.reconstruction import ReconstructionAdapter
+    from uv_module.reconstruction_adapter import reconstruct_for_uv
     from uv_module.hd_uv_generator import HDUVConfig, HDUVTextureGenerator
 
-    recon = ReconstructionAdapter(device="cpu")
-    result = recon.reconstruct(image_path)
+    image_bgr, result, _ = reconstruct_for_uv(image_path, _REPO_ROOT / ".runtime/uv_quality/reconstruction_cache")
+    result["projection_space"] = "original"
 
     generator = HDUVTextureGenerator(
         HDUVConfig(uv_size=args.uv_size, super_sample=args.super_sample)
     )
-    uv_tex, _mask, _conf, _aux = generate_hduv_from_reconstruction(
-        image_bgr,
-        result,
-        generator=generator,
-    )
+    _, uv_tex, _mask, _conf, _aux = generator.generate(image_bgr, result)
 
     cv2.imwrite(str(out_path), uv_tex)
 

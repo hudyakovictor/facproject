@@ -1,0 +1,63 @@
+{
+  "points": [
+    {
+      "id": "f4f67a93a9cfd2e8",
+      "group": "Моя группа",
+      "coords": [
+        -1.8416335582733154,
+        -1.9508487980601785e-07
+      ],
+      "norm": 6.992203712463379,
+      "cluster": 0
+    },
+    {
+      "id": "512f708f93dce1b0",
+      "group": "Моя группа",
+      "coords": [
+        1.8416337966918945,
+        -1.9508485138430842e-07
+      ],
+      "norm": 5.963501930236816,
+      "cluster": 1
+    }
+  ],
+  "matrix": [
+    [
+      0.0,
+      0.1499900072813034
+    ],
+    [
+      0.1499900072813034,
+      0.0
+    ]
+  ],
+  "groups": [
+    "Моя группа"
+  ],
+  "centroid_distances": [
+    [
+      0.0
+    ]
+  ],
+  "dispersion": {
+    "Моя группа": 3.3916149139404297
+  },
+  "silhouette": null,
+  "explained_variance": 1.0,
+  "method": "pca",
+  "requested_method": "umap",
+  "note": "Для UMAP нужно не менее 6 фото. Показан PCA.",
+  "seed": 42,
+  "params": {
+    "photo_ids": [
+      "f4f67a93a9cfd2e8",
+      "512f708f93dce1b0"
+    ],
+    "method": "umap",
+    "dimensions": 2,
+    "seed": 42
+  },
+  "cache_key": "c36ee6f31916684c",
+  "cache_hit": false,
+  "note_embedding": "α_id — параметры 3DMM, не AdaFace и не достоверность личности."
+}

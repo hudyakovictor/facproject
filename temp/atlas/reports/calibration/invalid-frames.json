@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "frames": [
+    {
+      "person": "person_06",
+      "frame": 164,
+      "bin": "right_profile",
+      "yaw": -102.5,
+      "reason": "|yaw|=-102.5>95; label=right_profile yaw=67.1 vs -102.5"
+    },
+    {
+      "person": "person_06",
+      "frame": 170,
+      "bin": "right_profile",
+      "yaw": -32.6,
+      "reason": "label=right_profile yaw=71.2 vs -32.6"
+    }
+  ]
+}

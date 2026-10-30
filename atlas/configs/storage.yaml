@@ -1,0 +1,4 @@
+version: 1
+adapter: local
+root: data/groups
+date_regex: '(?P<year>\d{4})[_-](?P<month>\d{2})[_-](?P<day>\d{2})(?:[_-].*)?'

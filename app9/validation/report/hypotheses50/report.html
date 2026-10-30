@@ -1,0 +1,4810 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fifty New Frontal Geometry Hypotheses</title><style>
+body{font:15px/1.5 system-ui,sans-serif;color:#17212b;background:#f8fafb;margin:24px auto;padding:0 18px;max-width:1650px}
+table{border-collapse:collapse;background:white;font-size:12px}td,th{border:1px solid #cbd8df;padding:8px;text-align:left;vertical-align:top}
+th{background:#dcebf1}.scroll{overflow:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eaf0f4;padding:12px}
+details{margin:8px 0}summary{cursor:pointer}.notice{padding:14px;border-left:4px solid #b85e28;background:#fff4e8}li{margin:6px 0}
+</style><h1>Fifty New Frontal Geometry Hypotheses</h1><p class="notice">Priority 90-98 is a subjective score assigned
+before this batch, not a 90-98% success probability, identification accuracy or empirically verified quality.
+Dataset labels come from folders; no identity or sensitive trait is inferred. Production definitions and bands are unchanged.</p>
+<p>Every formula and its prior score remain in the frozen catalogue, including failures and duplicates.
+Candidate rankings and AUC directions use early months only. Later months are reused internal validation, not an untouched external acquisition.
+One observation is a date median; uncertainty resamples whole calendar months. All fifty claims are tested.</p><h2>Summary and Benchmark</h2><pre>{
+  &quot;counts&quot;: {
+    &quot;not_supported&quot;: 40,
+    &quot;promising_unconfirmed_increment&quot;: 4,
+    &quot;robust_without_claimed_increment&quot;: 6
+  },
+  &quot;benchmark&quot;: {
+    &quot;name&quot;: &quot;probe_eye_open_r&quot;,
+    &quot;selection&quot;: &quot;max minimum early all/neutral/strict worst-pair AUC over all previous259&quot;,
+    &quot;training_score&quot;: 0.7613636,
+    &quot;test&quot;: {
+      &quot;ref&quot;: {
+        &quot;put&quot;: {
+          &quot;n_dates&quot;: 60,
+          &quot;n_months&quot;: 34,
+          &quot;median&quot;: 0.3736141,
+          &quot;mad&quot;: 0.0290854,
+          &quot;p10_p90&quot;: [
+            0.3391392,
+            0.4063517
+          ]
+        },
+        &quot;udmurt&quot;: {
+          &quot;n_dates&quot;: 13,
+          &quot;n_months&quot;: 12,
+          &quot;median&quot;: 0.2908056,
+          &quot;mad&quot;: 0.0226164,
+          &quot;p10_p90&quot;: [
+            0.2361537,
+            0.3242447
+          ]
+        },
+        &quot;vas&quot;: {
+          &quot;n_dates&quot;: 31,
+          &quot;n_months&quot;: 13,
+          &quot;median&quot;: 0.3453645,
+          &quot;mad&quot;: 0.0397093,
+          &quot;p10_p90&quot;: [
+            0.2768529,
+            0.3836606
+          ]
+        }
+      },
+      &quot;balanced_mad&quot;: 0.0304704,
+      &quot;pairs&quot;: {
+        &quot;put~udmurt&quot;: {
+          &quot;auc&quot;: 0.9448718,
+          &quot;gap_over_pair_mad&quot;: 3.2033092
+        },
+        &quot;put~vas&quot;: {
+          &quot;auc&quot;: 0.7607527,
+          &quot;gap_over_pair_mad&quot;: 0.8212722
+        },
+        &quot;udmurt~vas&quot;: {
+          &quot;auc&quot;: 0.8014888,
+          &quot;gap_over_pair_mad&quot;: 1.7507674
+        }
+      },
+      &quot;worst_auc&quot;: 0.7607527,
+      &quot;mean_auc&quot;: 0.8357044,
+      &quot;min_gap_over_pair_mad&quot;: 0.8212722
+    }
+  },
+  &quot;catalogue_sha256&quot;: &quot;4072359bc7a8d48c9a337a59bcb749f669a839e425782f248df9e6eb008f60ae&quot;
+}</pre><p>Association p-values use permutations of later-month group labels, preserving group month counts.
+Bonferroni50 is the primary association correction; maxT is also saved for the joint global null.
+Neither test proves incremental improvement, anatomical truth or transfer to other people.
+The paired-bootstrap difference intervals address improvement against the fixed benchmark.
+Nominal simultaneous percentile intervals are approximate, especially with few month blocks.</p><h2>All 50 Results</h2><div class='scroll'><table><thead><tr><th>ID</th><th>Hypothesis</th><th>Priority /100</th><th>Early robustness</th><th>Later worst AUC</th><th>Delta to benchmark</th><th>Delta 95% CI</th><th>Delta nominal family CI</th><th>Neutral AUC</th><th>Strict AUC</th><th>Association p Bonf50</th><th>Nearest existing (rho)</th><th>Outcome</th></tr></thead><tbody><tr><td>H23</td><td>Root binocular aperture area over nasal width</td><td>98</td><td>0.785</td><td>0.831</td><td>0.070</td><td>-0.011 to 0.131</td><td>-0.061 to 0.189</td><td>0.783</td><td>0.787</td><td>0.00250</td><td>orbit_fissure_over_cheek_span_134 (0.884)</td><td>promising_unconfirmed_increment</td></tr><tr><td>H46</td><td>Dual-model ocular/nasal area consensus</td><td>98</td><td>0.776</td><td>0.779</td><td>0.018</td><td>-0.059 to 0.073</td><td>-0.117 to 0.129</td><td>0.816</td><td>0.728</td><td>0.00250</td><td>orbit_fissure_over_cheek_span_134 (0.968)</td><td>robust_without_claimed_increment</td></tr><tr><td>H25</td><td>Harmonic binocular opening over IPD-normalized alae</td><td>98</td><td>0.765</td><td>0.809</td><td>0.048</td><td>-0.031 to 0.124</td><td>-0.105 to 0.190</td><td>0.772</td><td>0.770</td><td>0.00250</td><td>probe_eye_open_r (0.883)</td><td>promising_unconfirmed_increment</td></tr><tr><td>H26</td><td>Opening over root-alar triangular area</td><td>96</td><td>0.741</td><td>0.816</td><td>0.056</td><td>-0.032 to 0.121</td><td>-0.090 to 0.185</td><td>0.759</td><td>0.782</td><td>0.00250</td><td>probe_eye_open_l (0.886)</td><td>promising_unconfirmed_increment</td></tr><tr><td>H21</td><td>Visible eye-opening/nasal-aspect contrast</td><td>98</td><td>0.739</td><td>0.786</td><td>0.025</td><td>-0.040 to 0.093</td><td>-0.098 to 0.155</td><td>0.805</td><td>0.744</td><td>0.00250</td><td>probe_eye_open_r (0.908)</td><td>promising_unconfirmed_increment</td></tr><tr><td>H47</td><td>Dual-model medial/lateral aperture concentration</td><td>94</td><td>0.679</td><td>0.628</td><td>-0.132</td><td>-0.235 to 0.014</td><td>-0.306 to 0.137</td><td>0.695</td><td>0.638</td><td>0.01750</td><td>brow_length_over_chord_l_134 (-0.770)</td><td>not_supported</td></tr><tr><td>H45</td><td>Dual-model ocular/nasal height consensus</td><td>98</td><td>0.659</td><td>0.755</td><td>-0.006</td><td>-0.071 to 0.071</td><td>-0.129 to 0.147</td><td>0.819</td><td>0.664</td><td>0.00250</td><td>orbit_fissure_over_cheek_span_134 (0.932)</td><td>robust_without_claimed_increment</td></tr><tr><td>H33</td><td>Visible double-row eyebrow taper</td><td>94</td><td>0.653</td><td>0.738</td><td>-0.022</td><td>-0.173 to 0.102</td><td>-0.267 to 0.209</td><td>0.683</td><td>0.720</td><td>0.00250</td><td>facial_thirds_balance_cv_mp (0.807)</td><td>robust_without_claimed_increment</td></tr><tr><td>H37</td><td>Malar direction with sidewall-waist context</td><td>92</td><td>0.653</td><td>0.767</td><td>0.006</td><td>-0.177 to 0.151</td><td>-0.330 to 0.273</td><td>0.715</td><td>0.807</td><td>0.00250</td><td>brow_ridge_depth_l_134 (-0.799)</td><td>robust_without_claimed_increment</td></tr><tr><td>H03</td><td>Upper versus lower lid shape variance</td><td>94</td><td>0.640</td><td>0.658</td><td>-0.103</td><td>-0.289 to 0.006</td><td>-0.446 to 0.092</td><td>0.712</td><td>0.665</td><td>0.04500</td><td>nose_tip_protrusion_mp_over_cheek_width (0.741)</td><td>not_supported</td></tr><tr><td>H49</td><td>Binocular-consistency moderated dual-model contrast</td><td>96</td><td>0.638</td><td>0.734</td><td>-0.027</td><td>-0.114 to 0.065</td><td>-0.187 to 0.132</td><td>0.788</td><td>0.625</td><td>0.00250</td><td>orbit_fissure_over_cheek_span_134 (0.916)</td><td>not_supported</td></tr><tr><td>H38</td><td>Brow ridge relief over conservative eye aperture</td><td>97</td><td>0.636</td><td>0.689</td><td>-0.072</td><td>-0.195 to 0.071</td><td>-0.298 to 0.194</td><td>0.665</td><td>0.737</td><td>0.00250</td><td>lid_bow_upper_r_134 (0.859)</td><td>not_supported</td></tr><tr><td>H11</td><td>Modelled medial/lateral opening concentration</td><td>95</td><td>0.630</td><td>0.628</td><td>-0.132</td><td>-0.310 to -0.024</td><td>-0.464 to 0.098</td><td>0.719</td><td>0.663</td><td>0.01750</td><td>brow_length_over_chord_l_134 (-0.859)</td><td>not_supported</td></tr><tr><td>H24</td><td>Visible ocular/nasal-loop area ratio</td><td>97</td><td>0.627</td><td>0.733</td><td>-0.027</td><td>-0.128 to 0.045</td><td>-0.229 to 0.136</td><td>0.807</td><td>0.756</td><td>0.00250</td><td>palpebral_aspect_ratio (0.925)</td><td>robust_without_claimed_increment</td></tr><tr><td>H17</td><td>Internal root-tip-base rotation</td><td>96</td><td>0.623</td><td>0.496</td><td>-0.264</td><td>-0.457 to -0.051</td><td>-0.609 to 0.056</td><td>0.591</td><td>0.663</td><td>1.00000</td><td>nose_upperlip_chin_angle_3ddfa (0.798)</td><td>not_supported</td></tr><tr><td>H22</td><td>Conservative opening/cantho-alar contrast</td><td>97</td><td>0.622</td><td>0.753</td><td>-0.008</td><td>-0.109 to 0.095</td><td>-0.206 to 0.170</td><td>0.689</td><td>0.725</td><td>0.00250</td><td>probe_eye_open_r (0.791)</td><td>robust_without_claimed_increment</td></tr><tr><td>H20</td><td>Malar vertical placement within the midface</td><td>95</td><td>0.593</td><td>0.445</td><td>-0.316</td><td>-0.414 to -0.126</td><td>-0.477 to 0.014</td><td>0.573</td><td>0.485</td><td>1.00000</td><td>fissure_height_l_134 (0.727)</td><td>not_supported</td></tr><tr><td>H18</td><td>Basal nose-arc wrap</td><td>96</td><td>0.578</td><td>0.377</td><td>-0.384</td><td>-0.531 to -0.132</td><td>-0.618 to 0.043</td><td>0.437</td><td>0.625</td><td>1.00000</td><td>alar_width_over_ridge_length_3ddfa (-0.841)</td><td>not_supported</td></tr><tr><td>H07</td><td>Upper/lower lid profile concordance</td><td>92</td><td>0.555</td><td>0.627</td><td>-0.134</td><td>-0.218 to -0.026</td><td>-0.346 to 0.066</td><td>0.682</td><td>0.579</td><td>0.00250</td><td>cross_sclera_band_upper_mean_x134mp (0.752)</td><td>not_supported</td></tr><tr><td>H08</td><td>Medial/lateral curvature-energy balance</td><td>92</td><td>0.555</td><td>0.560</td><td>-0.201</td><td>-0.314 to -0.021</td><td>-0.397 to 0.117</td><td>0.590</td><td>0.614</td><td>1.00000</td><td>fissure_axis_incline_l_134_deg (-0.421)</td><td>not_supported</td></tr><tr><td>H48</td><td>Relative ocular/nasal inter-model disagreement</td><td>90</td><td>0.549</td><td>0.362</td><td>-0.398</td><td>-0.594 to -0.121</td><td>-0.701 to 0.047</td><td>0.511</td><td>0.510</td><td>1.00000</td><td>cupid_bow_drop_134 (-0.585)</td><td>not_supported</td></tr><tr><td>H36</td><td>Malar placement over conservative modelled aperture</td><td>96</td><td>0.549</td><td>0.655</td><td>-0.105</td><td>-0.204 to 0.015</td><td>-0.273 to 0.091</td><td>0.642</td><td>0.506</td><td>0.97495</td><td>lid_bow_upper_r_134 (-0.881)</td><td>not_supported</td></tr><tr><td>H14</td><td>Double-row brow thickness taper</td><td>95</td><td>0.541</td><td>0.506</td><td>-0.255</td><td>-0.458 to -0.088</td><td>-0.598 to 0.033</td><td>0.580</td><td>0.576</td><td>1.00000</td><td>fissure_width_r_134 (0.783)</td><td>not_supported</td></tr><tr><td>H34</td><td>Brow taper over nasal-sidewall waist</td><td>94</td><td>0.533</td><td>0.514</td><td>-0.247</td><td>-0.454 to -0.103</td><td>-0.592 to 0.011</td><td>0.571</td><td>0.564</td><td>1.00000</td><td>fissure_width_l_134 (0.755)</td><td>not_supported</td></tr><tr><td>H06</td><td>Upper/lower lid mass-centre phase offset</td><td>93</td><td>0.529</td><td>0.609</td><td>-0.152</td><td>-0.258 to -0.036</td><td>-0.369 to 0.062</td><td>0.578</td><td>0.576</td><td>0.00750</td><td>cross_sclera_band_upper_mean_x134mp (-0.724)</td><td>not_supported</td></tr><tr><td>H19</td><td>Malar protrusion-vector direction</td><td>93</td><td>0.528</td><td>0.660</td><td>-0.100</td><td>-0.302 to 0.045</td><td>-0.467 to 0.145</td><td>0.612</td><td>0.664</td><td>0.04750</td><td>brow_ridge_depth_l_134 (-0.651)</td><td>not_supported</td></tr><tr><td>H27</td><td>Aperture skew and nasal-midline bend interaction</td><td>90</td><td>0.518</td><td>0.493</td><td>-0.268</td><td>-0.409 to -0.073</td><td>-0.516 to 0.059</td><td>0.505</td><td>0.478</td><td>1.00000</td><td>probe_eye_open_l (0.448)</td><td>not_supported</td></tr><tr><td>H01</td><td>Horizontal skewness of visible aperture mass</td><td>95</td><td>0.516</td><td>0.491</td><td>-0.270</td><td>-0.409 to -0.076</td><td>-0.522 to 0.053</td><td>0.505</td><td>0.478</td><td>1.00000</td><td>probe_eye_open_l (0.448)</td><td>not_supported</td></tr><tr><td>H12</td><td>Intrinsic lid-loop warping</td><td>96</td><td>0.508</td><td>0.588</td><td>-0.173</td><td>-0.323 to -0.054</td><td>-0.411 to 0.037</td><td>0.538</td><td>0.505</td><td>1.00000</td><td>lid_bow_lower_l_134 (0.841)</td><td>not_supported</td></tr><tr><td>H10</td><td>Binocular aperture-mass phase asymmetry</td><td>90</td><td>0.505</td><td>0.474</td><td>-0.287</td><td>-0.433 to -0.130</td><td>-0.533 to -0.024</td><td>0.527</td><td>0.484</td><td>1.00000</td><td>cross_iris_over_intercanthal_x134mp (-0.670)</td><td>not_supported</td></tr><tr><td>H31</td><td>Visible brow-canopy clearance gradient</td><td>95</td><td>0.503</td><td>0.595</td><td>-0.166</td><td>-0.334 to -0.051</td><td>-0.447 to 0.040</td><td>0.554</td><td>0.650</td><td>1.00000</td><td>nose_tip_protrusion_mp_over_cheek_width (0.731)</td><td>not_supported</td></tr><tr><td>H39</td><td>Malar placement over nasal aspect</td><td>95</td><td>0.489</td><td>0.714</td><td>-0.047</td><td>-0.153 to 0.041</td><td>-0.240 to 0.122</td><td>0.704</td><td>0.570</td><td>0.00250</td><td>nose_base_width_3d (-0.964)</td><td>not_supported</td></tr><tr><td>H09</td><td>Binocular normalized profile discrepancy</td><td>91</td><td>0.482</td><td>0.497</td><td>-0.263</td><td>-0.429 to -0.111</td><td>-0.549 to -0.003</td><td>0.526</td><td>0.481</td><td>1.00000</td><td>cross_iris_over_intercanthal_x134mp (-0.643)</td><td>not_supported</td></tr><tr><td>H29</td><td>Nasal/ocular covariance-anisotropy balance</td><td>94</td><td>0.446</td><td>0.597</td><td>-0.163</td><td>-0.235 to -0.031</td><td>-0.288 to 0.084</td><td>0.649</td><td>0.584</td><td>0.29999</td><td>eye_aperture_right_over_eye_width_mp (0.856)</td><td>not_supported</td></tr><tr><td>H16</td><td>Nasal sidewall waist</td><td>97</td><td>0.420</td><td>0.467</td><td>-0.294</td><td>-0.452 to -0.076</td><td>-0.561 to 0.089</td><td>0.484</td><td>0.490</td><td>1.00000</td><td>fissure_width_r_134 (0.839)</td><td>not_supported</td></tr><tr><td>H44</td><td>Affine binocular cantho-nasal cross-area ratio</td><td>93</td><td>0.415</td><td>0.506</td><td>-0.255</td><td>-0.411 to -0.109</td><td>-0.520 to 0.014</td><td>0.479</td><td>0.527</td><td>1.00000</td><td>probe_brow_thk_r (-0.741)</td><td>not_supported</td></tr><tr><td>H43</td><td>Affine inner-canthal root-tip-base cross-area ratio</td><td>94</td><td>0.407</td><td>0.472</td><td>-0.289</td><td>-0.505 to -0.157</td><td>-0.645 to -0.045</td><td>0.446</td><td>0.448</td><td>1.00000</td><td>probe_brow_thk_r (-0.688)</td><td>not_supported</td></tr><tr><td>H15</td><td>Brow-to-upper-lid clearance gradient</td><td>95</td><td>0.402</td><td>0.347</td><td>-0.413</td><td>-0.559 to -0.218</td><td>-0.663 to -0.106</td><td>0.490</td><td>0.387</td><td>1.00000</td><td>brow_length_over_chord_l_134 (-0.815)</td><td>not_supported</td></tr><tr><td>H35</td><td>Brow-clearance gradient over basal nose wrap</td><td>94</td><td>0.384</td><td>0.350</td><td>-0.411</td><td>-0.558 to -0.218</td><td>-0.663 to -0.104</td><td>0.490</td><td>0.380</td><td>1.00000</td><td>brow_length_over_chord_l_134 (-0.814)</td><td>not_supported</td></tr><tr><td>H50</td><td>Visible flat-top opening over modelled nasal waist</td><td>92</td><td>0.370</td><td>0.509</td><td>-0.252</td><td>-0.397 to -0.072</td><td>-0.512 to 0.048</td><td>0.422</td><td>0.538</td><td>1.00000</td><td>fissure_width_r_134 (-0.543)</td><td>not_supported</td></tr><tr><td>H40</td><td>Full visible brow-clearance/nasal-height proportion</td><td>96</td><td>0.363</td><td>0.624</td><td>-0.136</td><td>-0.334 to -0.026</td><td>-0.448 to 0.088</td><td>0.373</td><td>0.539</td><td>0.93245</td><td>brow_eye_gap_over_eye_width_mp (0.922)</td><td>not_supported</td></tr><tr><td>H13</td><td>Lateral versus medial canthal wedge difference</td><td>94</td><td>0.350</td><td>0.418</td><td>-0.343</td><td>-0.533 to -0.191</td><td>-0.649 to -0.065</td><td>0.281</td><td>0.506</td><td>1.00000</td><td>cupid_bow_drop_134 (-0.807)</td><td>not_supported</td></tr><tr><td>H32</td><td>Visible brow-canopy relative curvature</td><td>94</td><td>0.348</td><td>0.444</td><td>-0.317</td><td>-0.532 to -0.074</td><td>-0.671 to 0.060</td><td>0.289</td><td>0.599</td><td>1.00000</td><td>brow_eye_gap_over_eye_width_mp (-0.755)</td><td>not_supported</td></tr><tr><td>H30</td><td>Aperture shape spread with nasal-width context</td><td>92</td><td>0.200</td><td>0.658</td><td>-0.103</td><td>-0.281 to 0.023</td><td>-0.398 to 0.129</td><td>0.359</td><td>0.741</td><td>0.00250</td><td>nose_base_width_over_ipd_mp (0.913)</td><td>not_supported</td></tr><tr><td>H42</td><td>Affine inner-canthal tip/root area ratio</td><td>95</td><td>0.200</td><td>0.427</td><td>-0.334</td><td>-0.526 to -0.111</td><td>-0.637 to 0.014</td><td>0.201</td><td>0.406</td><td>1.00000</td><td>nose_length_over_midface_height_mp (-0.947)</td><td>not_supported</td></tr><tr><td>H02</td><td>Kurtosis of visible aperture mass</td><td>93</td><td>0.163</td><td>0.438</td><td>-0.322</td><td>-0.511 to -0.185</td><td>-0.622 to -0.072</td><td>0.181</td><td>0.501</td><td>1.00000</td><td>probe_nose_tip_to_base_over_len (-0.591)</td><td>not_supported</td></tr><tr><td>H05</td><td>Within-frame superellipse profile exponent</td><td>94</td><td>0.119</td><td>0.449</td><td>-0.311</td><td>-0.446 to -0.141</td><td>-0.533 to -0.022</td><td>0.281</td><td>0.579</td><td>1.00000</td><td>lower_to_upper_third_ratio_mp (-0.694)</td><td>not_supported</td></tr><tr><td>H04</td><td>Relative interquartile aperture spread</td><td>95</td><td>0.111</td><td>0.437</td><td>-0.324</td><td>-0.477 to -0.174</td><td>-0.585 to -0.064</td><td>0.209</td><td>0.508</td><td>1.00000</td><td>probe_nose_tip_to_base_over_len (-0.623)</td><td>not_supported</td></tr><tr><td>H28</td><td>Aperture exponent versus nasal projective spacing</td><td>91</td><td>0.111</td><td>0.523</td><td>-0.238</td><td>-0.426 to -0.094</td><td>-0.546 to 0.016</td><td>0.249</td><td>0.457</td><td>1.00000</td><td>probe_nose_tip_to_base_over_len (-0.783)</td><td>not_supported</td></tr><tr><td>H41</td><td>Affine canthal tip/base area ratio</td><td>96</td><td>0.074</td><td>0.462</td><td>-0.299</td><td>-0.502 to -0.121</td><td>-0.623 to 0.003</td><td>0.138</td><td>0.492</td><td>1.00000</td><td>probe_nose_tip_to_base_over_len (-0.961)</td><td>not_supported</td></tr></tbody></table></div><h2>Frozen Claims and Diagnostics</h2><details id='H23'><summary>H23: Root binocular aperture area over nasal width</summary><pre>{
+  &quot;formula&quot;: &quot;sqrt(mp_eye_area_sum) / mp_n_width&quot;,
+  &quot;rationale&quot;: &quot;Combines both eyes with the nasal width that already carried complementary information; all lengths share a pixel frame.&quot;,
+  &quot;risk&quot;: &quot;Area remains expression-sensitive.&quot;,
+  &quot;empirical_robustness_index&quot;: 78.3475783,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;promising_unconfirmed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9602564,
+      &quot;gap_over_pair_mad&quot;: 2.7700586
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8311828,
+      &quot;gap_over_pair_mad&quot;: 1.3066056
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8362283,
+      &quot;gap_over_pair_mad&quot;: 1.2957973
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9620536,
+      &quot;gap_over_pair_mad&quot;: 2.5513245
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8584656,
+      &quot;gap_over_pair_mad&quot;: 1.9405523
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7777778,
+      &quot;gap_over_pair_mad&quot;: 1.0715587
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0006169,
+    &quot;pitch_deg&quot;: -0.0015039,
+    &quot;roll_deg&quot;: -0.0005741
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.6029412,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3440646,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.5497219,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.323821,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0852941,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.6029412,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5852941,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4544808,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.5820294,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0580844,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H46'><summary>H46: Dual-model ocular/nasal area consensus</summary><pre>{
+  &quot;formula&quot;: &quot;sqrt(mp_eye_nose_area * d_eye_nose_area)&quot;,
+  &quot;rationale&quot;: &quot;A shared-source area contrast in each model may preserve signal while reducing one-model noise.&quot;,
+  &quot;risk&quot;: &quot;Corresponding landmark areas are proxies, not identical physical surfaces.&quot;,
+  &quot;empirical_robustness_index&quot;: 72.84689,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;robust_without_claimed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9512821,
+      &quot;gap_over_pair_mad&quot;: 2.991141
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7790323,
+      &quot;gap_over_pair_mad&quot;: 1.0987054
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7990074,
+      &quot;gap_over_pair_mad&quot;: 1.1566038
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9553571,
+      &quot;gap_over_pair_mad&quot;: 2.1515822
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8148148,
+      &quot;gap_over_pair_mad&quot;: 1.2436899
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7731481,
+      &quot;gap_over_pair_mad&quot;: 0.8555724
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0013905,
+    &quot;pitch_deg&quot;: 0.0021609,
+    &quot;roll_deg&quot;: 1.14e-05
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5217727,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3759754,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.5217727,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4468062,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.2147059,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0441176,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2261735,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.2854433,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0614035,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H25'><summary>H25: Harmonic binocular opening over IPD-normalized alae</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_harm / mp_n_width&quot;,
+  &quot;rationale&quot;: &quot;A harmonic bilateral estimate suppresses one excessively open or noisy eye while retaining nasal contrast.&quot;,
+  &quot;risk&quot;: &quot;A genuinely closed eye can dominate the estimate.&quot;,
+  &quot;empirical_robustness_index&quot;: 77.0334928,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;promising_unconfirmed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9538462,
+      &quot;gap_over_pair_mad&quot;: 3.7021761
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8086022,
+      &quot;gap_over_pair_mad&quot;: 1.5434805
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8362283,
+      &quot;gap_over_pair_mad&quot;: 1.6624232
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9508929,
+      &quot;gap_over_pair_mad&quot;: 3.0494538
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8604497,
+      &quot;gap_over_pair_mad&quot;: 1.6212514
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7777778,
+      &quot;gap_over_pair_mad&quot;: 1.1606656
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0001403,
+    &quot;pitch_deg&quot;: -0.002665,
+    &quot;roll_deg&quot;: 0.0002137
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3456754,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.5155255,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3199465,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0882353,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.5029412,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.7,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4201043,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.5566619,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0384068,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H26'><summary>H26: Opening over root-alar triangular area</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_mean / mp_n_triangle_area&quot;,
+  &quot;rationale&quot;: &quot;A central triangular reference avoids unstable face-outline normalization and introduces nasal height as well as width.&quot;,
+  &quot;risk&quot;: &quot;A projected triangle is not a 3D anatomical area.&quot;,
+  &quot;empirical_robustness_index&quot;: 75.9259259,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;promising_unconfirmed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9679487,
+      &quot;gap_over_pair_mad&quot;: 3.4294707
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8172043,
+      &quot;gap_over_pair_mad&quot;: 1.4952726
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8163772,
+      &quot;gap_over_pair_mad&quot;: 1.4285722
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9709821,
+      &quot;gap_over_pair_mad&quot;: 2.6489286
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8670635,
+      &quot;gap_over_pair_mad&quot;: 1.7000497
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7777778,
+      &quot;gap_over_pair_mad&quot;: 1.1090976
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0003028,
+    &quot;pitch_deg&quot;: -0.0033895,
+    &quot;roll_deg&quot;: 0.0022914
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.6294118,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3120885,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.4354437,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3805683,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1323529,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.4588235,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.6294118,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1730678,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.3105737,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0756283,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H21'><summary>H21: Visible eye-opening/nasal-aspect contrast</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_mean / mp_n_aspect&quot;,
+  &quot;rationale&quot;: &quot;Opening and nasal aspect showed complementary group trends; a shared-source contrast can reinforce them.&quot;,
+  &quot;risk&quot;: &quot;Both cues can change with pitch and expression.&quot;,
+  &quot;empirical_robustness_index&quot;: 74.4019139,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;promising_unconfirmed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9423077,
+      &quot;gap_over_pair_mad&quot;: 3.8253168
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7860215,
+      &quot;gap_over_pair_mad&quot;: 1.4368448
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8411911,
+      &quot;gap_over_pair_mad&quot;: 1.7238508
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9375,
+      &quot;gap_over_pair_mad&quot;: 2.9226998
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8320106,
+      &quot;gap_over_pair_mad&quot;: 1.7511194
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7962963,
+      &quot;gap_over_pair_mad&quot;: 1.315792
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0004427,
+    &quot;pitch_deg&quot;: -0.0017131,
+    &quot;roll_deg&quot;: -0.0001647
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5205882,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3443258,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.5072322,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2603259,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2735294,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.4970588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5205882,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3513514,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.4623044,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0844002,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H47'><summary>H47: Dual-model medial/lateral aperture concentration</summary><pre>{
+  &quot;formula&quot;: &quot;sqrt(mp_e_concentration * d_e_concentration)&quot;,
+  &quot;rationale&quot;: &quot;Checks whether independently estimated full-profile shape can support a more stable concentration descriptor.&quot;,
+  &quot;risk&quot;: &quot;Landmark sampling and expression differ across models.&quot;,
+  &quot;empirical_robustness_index&quot;: 59.6774194,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8423077,
+      &quot;gap_over_pair_mad&quot;: 1.3487467
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6284946,
+      &quot;gap_over_pair_mad&quot;: 0.6104985
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7766749,
+      &quot;gap_over_pair_mad&quot;: 0.8038081
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8883929,
+      &quot;gap_over_pair_mad&quot;: 2.8725922
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6415344,
+      &quot;gap_over_pair_mad&quot;: 0.6384411
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8703704,
+      &quot;gap_over_pair_mad&quot;: 1.7012469
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0011816,
+    &quot;pitch_deg&quot;: -0.0026527,
+    &quot;roll_deg&quot;: -0.0020967
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5464675,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1841839,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.168925,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4451301,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4147059,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.3264706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0058824,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.5464675,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.5457563,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1607397,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H45'><summary>H45: Dual-model ocular/nasal height consensus</summary><pre>{
+  &quot;formula&quot;: &quot;sqrt(mp_eye_nose_height * d_eye_nose_height)&quot;,
+  &quot;rationale&quot;: &quot;Combines complementary visible and identity-mesh estimates, each normalized within its own coordinate frame.&quot;,
+  &quot;risk&quot;: &quot;Systematic inter-model calibration bias remains.&quot;,
+  &quot;empirical_robustness_index&quot;: 66.3875598,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;robust_without_claimed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9358974,
+      &quot;gap_over_pair_mad&quot;: 3.8037903
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7548387,
+      &quot;gap_over_pair_mad&quot;: 1.053214
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8287841,
+      &quot;gap_over_pair_mad&quot;: 1.8703477
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9196429,
+      &quot;gap_over_pair_mad&quot;: 2.8856692
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.797619,
+      &quot;gap_over_pair_mad&quot;: 1.1412983
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7824074,
+      &quot;gap_over_pair_mad&quot;: 1.5122895
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0014561,
+    &quot;pitch_deg&quot;: -7.97e-05,
+    &quot;roll_deg&quot;: -0.0008173
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.6764706,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3948477,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.5584506,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2996593,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0205882,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.6764706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1294118,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3240872,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.4397819,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0908013,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H33'><summary>H33: Visible double-row eyebrow taper</summary><pre>{
+  &quot;formula&quot;: &quot;mp_b_taper&quot;,
+  &quot;rationale&quot;: &quot;Uses verified upper/lower arcs instead of the older erroneous same-arc thickness sample.&quot;,
+  &quot;risk&quot;: &quot;It measures a visible brow envelope, not bone.&quot;,
+  &quot;empirical_robustness_index&quot;: 68.2692308,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;robust_without_claimed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7384615,
+      &quot;gap_over_pair_mad&quot;: 1.0183964
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7430108,
+      &quot;gap_over_pair_mad&quot;: 0.7829521
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.9081886,
+      &quot;gap_over_pair_mad&quot;: 1.964139
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6696429,
+      &quot;gap_over_pair_mad&quot;: 0.3705051
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7328042,
+      &quot;gap_over_pair_mad&quot;: 0.8341019
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8657407,
+      &quot;gap_over_pair_mad&quot;: 1.5156067
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0008502,
+    &quot;pitch_deg&quot;: -0.0020565,
+    &quot;roll_deg&quot;: -1.37e-05
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.455192,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1269142,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.2735604,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1026436,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.05,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.2558824,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0852941,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.455192,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.4046942,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2086297,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H37'><summary>H37: Malar direction with sidewall-waist context</summary><pre>{
+  &quot;formula&quot;: &quot;d_malar_angle * d_n_waist&quot;,
+  &quot;rationale&quot;: &quot;Introduces a nasal shape context for a cheek-vector direction instead of another raw depth measure.&quot;,
+  &quot;risk&quot;: &quot;A model-specific angular composite.&quot;,
+  &quot;empirical_robustness_index&quot;: 71.5099715,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;robust_without_claimed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8333333,
+      &quot;gap_over_pair_mad&quot;: 1.5751356
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.9419355,
+      &quot;gap_over_pair_mad&quot;: 2.9627294
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7667494,
+      &quot;gap_over_pair_mad&quot;: 1.0186453
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8191964,
+      &quot;gap_over_pair_mad&quot;: 2.18766
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.9437831,
+      &quot;gap_over_pair_mad&quot;: 2.8712358
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7453704,
+      &quot;gap_over_pair_mad&quot;: 0.6820938
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.012847,
+    &quot;pitch_deg&quot;: -0.0150417,
+    &quot;roll_deg&quot;: -0.0174386
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4911765,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1148115,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0306375,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1000969,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1794118,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.4911765,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0029412,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2323376,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.3684211,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.3027501,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H03'><summary>H03: Upper versus lower lid shape variance</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_upper_lower_var&quot;,
+  &quot;rationale&quot;: &quot;Separates contributions of the two lid contours rather than their pooled opening.&quot;,
+  &quot;risk&quot;: &quot;Small lower-contour variance can destabilize a ratio.&quot;,
+  &quot;empirical_robustness_index&quot;: 49.6277916,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8230769,
+      &quot;gap_over_pair_mad&quot;: 1.4400074
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6913978,
+      &quot;gap_over_pair_mad&quot;: 0.8277588
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6575682,
+      &quot;gap_over_pair_mad&quot;: 0.6823395
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8504464,
+      &quot;gap_over_pair_mad&quot;: 1.255864
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6898148,
+      &quot;gap_over_pair_mad&quot;: 0.8171901
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6805556,
+      &quot;gap_over_pair_mad&quot;: 0.46598
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0296028,
+    &quot;pitch_deg&quot;: -0.1728025,
+    &quot;roll_deg&quot;: 0.1037994
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.3882353,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.179308,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1962212,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0585649,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3882353,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.0764706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2147059,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2769085,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.0424372,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2349455,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H49'><summary>H49: Binocular-consistency moderated dual-model contrast</summary><pre>{
+  &quot;formula&quot;: &quot;(mp_eye_nose_height + d_eye_nose_height) / (1 + mp_e_shape_mismatch + d_e_shape_mismatch)&quot;,
+  &quot;rationale&quot;: &quot;Downweights bilateral contour inconsistency without learning label-specific weights.&quot;,
+  &quot;risk&quot;: &quot;The quality penalty is heuristic and must be tested.&quot;,
+  &quot;empirical_robustness_index&quot;: 62.4800638,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;strict worst AUC below 0.65&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9397436,
+      &quot;gap_over_pair_mad&quot;: 3.6054867
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.733871,
+      &quot;gap_over_pair_mad&quot;: 1.1060065
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.82134,
+      &quot;gap_over_pair_mad&quot;: 2.8704087
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9330357,
+      &quot;gap_over_pair_mad&quot;: 2.7960286
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7777778,
+      &quot;gap_over_pair_mad&quot;: 1.1439902
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7824074,
+      &quot;gap_over_pair_mad&quot;: 2.0319415
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0021558,
+    &quot;pitch_deg&quot;: 0.0007053,
+    &quot;roll_deg&quot;: -0.0015193
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5270186,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4054484,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.5270186,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2771737,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2411765,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.5117647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0441176,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3499289,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.446183,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2119488,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H38'><summary>H38: Brow ridge relief over conservative eye aperture</summary><pre>{
+  &quot;formula&quot;: &quot;d_b_relief / d_e_q20&quot;,
+  &quot;rationale&quot;: &quot;The promising ridge-depth cue gains a local orbital reference rather than global face width alone.&quot;,
+  &quot;risk&quot;: &quot;Model depth and aperture fitting may share bias.&quot;,
+  &quot;empirical_robustness_index&quot;: 62.7956989,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7576923,
+      &quot;gap_over_pair_mad&quot;: 0.9787976
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6892473,
+      &quot;gap_over_pair_mad&quot;: 0.7234181
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8635236,
+      &quot;gap_over_pair_mad&quot;: 1.5778725
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7008929,
+      &quot;gap_over_pair_mad&quot;: 0.7735963
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6805556,
+      &quot;gap_over_pair_mad&quot;: 0.7642552
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8009259,
+      &quot;gap_over_pair_mad&quot;: 1.5607687
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.000264,
+    &quot;pitch_deg&quot;: -0.0011648,
+    &quot;roll_deg&quot;: -0.0029652
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5369844,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3421926,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.4747336,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0876895,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.1617647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2588235,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4528212,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.5369844,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2970602,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H11'><summary>H11: Modelled medial/lateral opening concentration</summary><pre>{
+  &quot;formula&quot;: &quot;d_e_concentration&quot;,
+  &quot;rationale&quot;: &quot;The existing 134-point metrics mostly summarize height/area; distribution along the ordered contour is additional information.&quot;,
+  &quot;risk&quot;: &quot;3DMM-inferred eyelid geometry.&quot;,
+  &quot;empirical_robustness_index&quot;: 60.8064516,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7782051,
+      &quot;gap_over_pair_mad&quot;: 1.0558134
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6284946,
+      &quot;gap_over_pair_mad&quot;: 0.5209558
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6501241,
+      &quot;gap_over_pair_mad&quot;: 0.5962211
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8571429,
+      &quot;gap_over_pair_mad&quot;: 1.9536609
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6428571,
+      &quot;gap_over_pair_mad&quot;: 0.5296888
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7638889,
+      &quot;gap_over_pair_mad&quot;: 1.1408606
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0012953,
+    &quot;pitch_deg&quot;: -0.0043034,
+    &quot;roll_deg&quot;: -0.0016374
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5706496,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.128612,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1112199,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4022703,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.5205882,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.1117647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1088235,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.5246562,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.5706496,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.3162636,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H24'><summary>H24: Visible ocular/nasal-loop area ratio</summary><pre>{
+  &quot;formula&quot;: &quot;mp_eye_area_sum / mp_n_loop_area&quot;,
+  &quot;rationale&quot;: &quot;Area-to-area cancellation removes isotropic image scale and couples two distinct central regions.&quot;,
+  &quot;risk&quot;: &quot;The nasal loop is a landmark contour, not segmentation.&quot;,
+  &quot;empirical_robustness_index&quot;: 73.3333333,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;robust_without_claimed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9141026,
+      &quot;gap_over_pair_mad&quot;: 1.5419238
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7333333,
+      &quot;gap_over_pair_mad&quot;: 0.668201
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.764268,
+      &quot;gap_over_pair_mad&quot;: 0.9387664
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9464286,
+      &quot;gap_over_pair_mad&quot;: 2.1923881
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7261905,
+      &quot;gap_over_pair_mad&quot;: 0.6867538
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8425926,
+      &quot;gap_over_pair_mad&quot;: 1.6440547
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0007554,
+    &quot;pitch_deg&quot;: 0.0275676,
+    &quot;roll_deg&quot;: 0.0051282
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4441176,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2677703,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.3033815,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3150923,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.4441176,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.3970588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2823529,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.4210526,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.3480322,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0438596,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H17'><summary>H17: Internal root-tip-base rotation</summary><pre>{
+  &quot;formula&quot;: &quot;d_n_tip_angle&quot;,
+  &quot;rationale&quot;: &quot;The 51-54-60 angle is independent of the mouth-based nasolabial proxy and complements nasal width.&quot;,
+  &quot;risk&quot;: &quot;Depth is inferred from a frontal image.&quot;,
+  &quot;empirical_robustness_index&quot;: 43.9205955,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7641026,
+      &quot;gap_over_pair_mad&quot;: 0.6978235
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7424731,
+      &quot;gap_over_pair_mad&quot;: 1.1048596
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4962779,
+      &quot;gap_over_pair_mad&quot;: 0.1804323
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8035714,
+      &quot;gap_over_pair_mad&quot;: 1.0132419
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7791005,
+      &quot;gap_over_pair_mad&quot;: 1.2127515
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5324074,
+      &quot;gap_over_pair_mad&quot;: 0.3058761
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0742592,
+    &quot;pitch_deg&quot;: 0.0780663,
+    &quot;roll_deg&quot;: -0.0818801
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5558824,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3158977,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.3871421,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0756522,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1058824,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.3382353,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.5558824,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3624941,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.443101,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.3940256,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H22'><summary>H22: Conservative opening/cantho-alar contrast</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_q20 * mp_inner_span / mp_n_width&quot;,
+  &quot;rationale&quot;: &quot;A lower-quantile opening with an inner-canthal nasal reference reduces dependence on extremes and face outline.&quot;,
+  &quot;risk&quot;: &quot;The two normalizers may introduce correlated noise.&quot;,
+  &quot;empirical_robustness_index&quot;: 68.9458689,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;robust_without_claimed_increment&quot;,
+    &quot;failures&quot;: [],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9230769,
+      &quot;gap_over_pair_mad&quot;: 3.3311978
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7526882,
+      &quot;gap_over_pair_mad&quot;: 1.1988961
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8312655,
+      &quot;gap_over_pair_mad&quot;: 1.8355396
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8950893,
+      &quot;gap_over_pair_mad&quot;: 2.4625866
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8154762,
+      &quot;gap_over_pair_mad&quot;: 1.6326681
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7407407,
+      &quot;gap_over_pair_mad&quot;: 1.075284
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -2.2e-05,
+    &quot;pitch_deg&quot;: -0.0016377,
+    &quot;roll_deg&quot;: 1.46e-05
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.6441441,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3016619,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.4637629,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2408441,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0441176,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.5764706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5735294,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.5035562,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.6441441,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0680417,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H20'><summary>H20: Malar vertical placement within the midface</summary><pre>{
+  &quot;formula&quot;: &quot;d_malar_y&quot;,
+  &quot;rationale&quot;: &quot;Cheek position in the eye-line-to-subnasale interval adds location rather than global width/height.&quot;,
+  &quot;risk&quot;: &quot;Age and reconstruction fitting remain confounded.&quot;,
+  &quot;empirical_robustness_index&quot;: 41.344086,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8064103,
+      &quot;gap_over_pair_mad&quot;: 1.2215534
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4446237,
+      &quot;gap_over_pair_mad&quot;: 0.2879617
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8039702,
+      &quot;gap_over_pair_mad&quot;: 1.2982461
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8816964,
+      &quot;gap_over_pair_mad&quot;: 1.5180077
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.457672,
+      &quot;gap_over_pair_mad&quot;: 0.252198
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8564815,
+      &quot;gap_over_pair_mad&quot;: 1.7939896
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0002266,
+    &quot;pitch_deg&quot;: 0.0006515,
+    &quot;roll_deg&quot;: 0.0003747
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4788694,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3455665,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.3735157,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4788694,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.25,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.4382353,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0823529,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.3314367,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.4333807,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4625415,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H18'><summary>H18: Basal nose-arc wrap</summary><pre>{
+  &quot;formula&quot;: &quot;d_n_wrap&quot;,
+  &quot;rationale&quot;: &quot;The 58-59-60-61-62 arc adds base curvature to the existing chord width.&quot;,
+  &quot;risk&quot;: &quot;Five model samples provide only a coarse arc.&quot;,
+  &quot;empirical_robustness_index&quot;: 36.2282878,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.9153846,
+      &quot;gap_over_pair_mad&quot;: 2.1125623
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.927957,
+      &quot;gap_over_pair_mad&quot;: 2.1420595
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.3771712,
+      &quot;gap_over_pair_mad&quot;: 0.4189356
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8928571,
+      &quot;gap_over_pair_mad&quot;: 1.704274
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.9358466,
+      &quot;gap_over_pair_mad&quot;: 2.7583769
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.2777778,
+      &quot;gap_over_pair_mad&quot;: 1.0680364
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0022035,
+    &quot;pitch_deg&quot;: -0.0009203,
+    &quot;roll_deg&quot;: -0.0005831
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7114746,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2891675,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.4688347,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4345512,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0117647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.3911765,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0264706,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.6133239,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.7114746,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1654813,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H07'><summary>H07: Upper/lower lid profile concordance</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_profile_corr&quot;,
+  &quot;rationale&quot;: &quot;Tests whether the two full curves carry stable coordinated shape beyond their mean separation.&quot;,
+  &quot;risk&quot;: &quot;Nearly constant contours make correlation unreliable.&quot;,
+  &quot;empirical_robustness_index&quot;: 57.8548644,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8589744,
+      &quot;gap_over_pair_mad&quot;: 1.8142162
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6268817,
+      &quot;gap_over_pair_mad&quot;: 0.584617
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.719603,
+      &quot;gap_over_pair_mad&quot;: 1.0584002
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8035714,
+      &quot;gap_over_pair_mad&quot;: 1.3965725
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6931217,
+      &quot;gap_over_pair_mad&quot;: 0.6991914
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5972222,
+      &quot;gap_over_pair_mad&quot;: 0.4158512
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.001265,
+    &quot;pitch_deg&quot;: -0.0025667,
+    &quot;roll_deg&quot;: -0.0001152
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7294118,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2631121,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.348614,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3232551,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.7294118,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.1941176,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2941176,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4532954,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.5557136,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2569938,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H08'><summary>H08: Medial/lateral curvature-energy balance</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_curvature_balance&quot;,
+  &quot;rationale&quot;: &quot;Local bending distribution differs from whole-eye tilt, mean arc length and simple bow.&quot;,
+  &quot;risk&quot;: &quot;Polynomial differentiation amplifies contour noise.&quot;,
+  &quot;empirical_robustness_index&quot;: 56.0215054,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8346154,
+      &quot;gap_over_pair_mad&quot;: 1.1877219
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5602151,
+      &quot;gap_over_pair_mad&quot;: 0.2903011
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8759305,
+      &quot;gap_over_pair_mad&quot;: 1.3024799
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8504464,
+      &quot;gap_over_pair_mad&quot;: 2.1728593
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5939153,
+      &quot;gap_over_pair_mad&quot;: 0.3636718
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.9074074,
+      &quot;gap_over_pair_mad&quot;: 2.1333838
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0231417,
+    &quot;pitch_deg&quot;: 0.0129813,
+    &quot;roll_deg&quot;: 0.0256505
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4779516,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0048215,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1340974,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2320937,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.05,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.3088235,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0470588,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.3959222,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.4779516,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0742058,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H48'><summary>H48: Relative ocular/nasal inter-model disagreement</summary><pre>{
+  &quot;formula&quot;: &quot;abs(log(mp_eye_nose_height / d_eye_nose_height))&quot;,
+  &quot;rationale&quot;: &quot;A high-priority falsification/quality hypothesis: disagreement may explain apparent group separation or missing transfer.&quot;,
+  &quot;risk&quot;: &quot;Quality/source bias, not necessarily a useful anatomical descriptor.&quot;,
+  &quot;empirical_robustness_index&quot;: 32.0099256,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7961538,
+      &quot;gap_over_pair_mad&quot;: 1.4535081
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7107527,
+      &quot;gap_over_pair_mad&quot;: 1.1215398
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.3622829,
+      &quot;gap_over_pair_mad&quot;: 0.3352121
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7366071,
+      &quot;gap_over_pair_mad&quot;: 0.7459096
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.718254,
+      &quot;gap_over_pair_mad&quot;: 1.0339123
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4444444,
+      &quot;gap_over_pair_mad&quot;: 0.0677385
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.004149,
+    &quot;pitch_deg&quot;: 0.0102581,
+    &quot;roll_deg&quot;: -0.0037844
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7117647,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0067152,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.0272418,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1470054,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0411765,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.3588235,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.7117647,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1588431,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.2491702,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1275486,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H36'><summary>H36: Malar placement over conservative modelled aperture</summary><pre>{
+  &quot;formula&quot;: &quot;d_malar_y / d_e_q20&quot;,
+  &quot;rationale&quot;: &quot;Tests eye/cheek placement jointly; mean eye size already separated these groups.&quot;,
+  &quot;risk&quot;: &quot;Age and fitted expression can affect both terms.&quot;,
+  &quot;empirical_robustness_index&quot;: 50.5582137,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.85,
+      &quot;gap_over_pair_mad&quot;: 1.7412388
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6553763,
+      &quot;gap_over_pair_mad&quot;: 0.4362765
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7915633,
+      &quot;gap_over_pair_mad&quot;: 1.3818886
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8370536,
+      &quot;gap_over_pair_mad&quot;: 1.697595
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6805556,
+      &quot;gap_over_pair_mad&quot;: 0.6040393
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7638889,
+      &quot;gap_over_pair_mad&quot;: 1.15347
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0152448,
+    &quot;pitch_deg&quot;: -0.0159,
+    &quot;roll_deg&quot;: 0.0256866
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4703651,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.3611084,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.4223615,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.150031,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2088235,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.2529412,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4411765,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.3226648,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.4703651,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3385491,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H14'><summary>H14: Double-row brow thickness taper</summary><pre>{
+  &quot;formula&quot;: &quot;d_b_taper&quot;,
+  &quot;rationale&quot;: &quot;The six verified paired distances encode a gradient; existing offsets mostly average them.&quot;,
+  &quot;risk&quot;: &quot;Modelled brow rows do not measure hair or bone thickness.&quot;,
+  &quot;empirical_robustness_index&quot;: 43.4243176,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6282051,
+      &quot;gap_over_pair_mad&quot;: 0.4526238
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6096774,
+      &quot;gap_over_pair_mad&quot;: 0.4840195
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5062035,
+      &quot;gap_over_pair_mad&quot;: 0.0585346
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6004464,
+      &quot;gap_over_pair_mad&quot;: 0.3920758
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6289683,
+      &quot;gap_over_pair_mad&quot;: 0.7242185
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5740741,
+      &quot;gap_over_pair_mad&quot;: 0.4615342
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0007598,
+    &quot;pitch_deg&quot;: -0.0015031,
+    &quot;roll_deg&quot;: 0.0038392
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7117647,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0187743,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0056268,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.594236,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1617647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.2705882,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.7117647,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0564248,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.0395922,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.6792319,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H34'><summary>H34: Brow taper over nasal-sidewall waist</summary><pre>{
+  &quot;formula&quot;: &quot;d_b_taper / d_n_waist&quot;,
+  &quot;rationale&quot;: &quot;Couples two local model-shape gradients while cancelling global mesh scale.&quot;,
+  &quot;risk&quot;: &quot;A weak taper may add no information.&quot;,
+  &quot;empirical_robustness_index&quot;: 43.6724566,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5935897,
+      &quot;gap_over_pair_mad&quot;: 0.3056018
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5801075,
+      &quot;gap_over_pair_mad&quot;: 0.4135824
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5136476,
+      &quot;gap_over_pair_mad&quot;: 0.1399577
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5580357,
+      &quot;gap_over_pair_mad&quot;: 0.2897084
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.603836,
+      &quot;gap_over_pair_mad&quot;: 0.7039259
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5787037,
+      &quot;gap_over_pair_mad&quot;: 0.4677526
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0006728,
+    &quot;pitch_deg&quot;: -0.0014889,
+    &quot;roll_deg&quot;: 0.0036372
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0163581,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0386478,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5848326,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2911765,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.2,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.7,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0490754,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.038881,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.6716453,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H06'><summary>H06: Upper/lower lid mass-centre phase offset</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_peak_offset&quot;,
+  &quot;rationale&quot;: &quot;Continuous mass centres avoid the jumping discrete apex features in older definitions.&quot;,
+  &quot;risk&quot;: &quot;Gaze and asymmetric squinting.&quot;,
+  &quot;empirical_robustness_index&quot;: 57.61563,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8012821,
+      &quot;gap_over_pair_mad&quot;: 1.2667849
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6086022,
+      &quot;gap_over_pair_mad&quot;: 0.2985066
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6923077,
+      &quot;gap_over_pair_mad&quot;: 0.7830094
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.703125,
+      &quot;gap_over_pair_mad&quot;: 0.7136591
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6746032,
+      &quot;gap_over_pair_mad&quot;: 0.585689
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4953704,
+      &quot;gap_over_pair_mad&quot;: 0.0987241
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0002827,
+    &quot;pitch_deg&quot;: 0.0009799,
+    &quot;roll_deg&quot;: 0.0004088
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7048364,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2023813,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.3103253,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2401258,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4235294,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.0235294,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.3823529,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.6448554,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.7048364,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2197724,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H19'><summary>H19: Malar protrusion-vector direction</summary><pre>{
+  &quot;formula&quot;: &quot;d_malar_angle&quot;,
+  &quot;rationale&quot;: &quot;Direction of the anterior-cheek/zygion proxy vector adds orientation instead of another depth difference.&quot;,
+  &quot;risk&quot;: &quot;Mean-BFM reference vertices are soft-tissue proxies.&quot;,
+  &quot;empirical_robustness_index&quot;: 61.2379808,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6602564,
+      &quot;gap_over_pair_mad&quot;: 1.0494589
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8424731,
+      &quot;gap_over_pair_mad&quot;: 1.9077228
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7493797,
+      &quot;gap_over_pair_mad&quot;: 0.9741269
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6629464,
+      &quot;gap_over_pair_mad&quot;: 1.1326268
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.8544974,
+      &quot;gap_over_pair_mad&quot;: 1.8770644
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7361111,
+      &quot;gap_over_pair_mad&quot;: 0.5848418
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0088059,
+    &quot;pitch_deg&quot;: -0.0164975,
+    &quot;roll_deg&quot;: -0.0374228
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4302987,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0814423,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1621554,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2562554,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1705882,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.4176471,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1735294,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1692745,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.374348,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4302987,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H27'><summary>H27: Aperture skew and nasal-midline bend interaction</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_skew * mp_n_bridge_bend&quot;,
+  &quot;rationale&quot;: &quot;Tests complementary distributional eye/nose shape instead of another rescaled mean opening.&quot;,
+  &quot;risk&quot;: &quot;Interaction can amplify noise; no success probability is implied.&quot;,
+  &quot;empirical_robustness_index&quot;: 46.6129032,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8692308,
+      &quot;gap_over_pair_mad&quot;: 1.7592075
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4930108,
+      &quot;gap_over_pair_mad&quot;: 0.029161
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8411911,
+      &quot;gap_over_pair_mad&quot;: 1.4460522
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8772321,
+      &quot;gap_over_pair_mad&quot;: 2.0500997
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4940476,
+      &quot;gap_over_pair_mad&quot;: 0.0296015
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8842593,
+      &quot;gap_over_pair_mad&quot;: 1.6698794
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.1201935,
+    &quot;pitch_deg&quot;: 0.0108912,
+    &quot;roll_deg&quot;: 0.2359881
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.347321,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.130767,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.0619823,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2942611,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0264706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.1176471,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0941176,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.347321,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.3212423,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0746799,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H01'><summary>H01: Horizontal skewness of visible aperture mass</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_skew&quot;,
+  &quot;rationale&quot;: &quot;Previous opening ratios were useful; mass skew adds the distribution of opening along the complete lid contour instead of another height ratio.&quot;,
+  &quot;risk&quot;: &quot;Blinking, gaze and contour interpolation.&quot;,
+  &quot;empirical_robustness_index&quot;: 46.6666667,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8692308,
+      &quot;gap_over_pair_mad&quot;: 1.6301089
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4908602,
+      &quot;gap_over_pair_mad&quot;: 0.0192525
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8436725,
+      &quot;gap_over_pair_mad&quot;: 1.3489159
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8772321,
+      &quot;gap_over_pair_mad&quot;: 1.9826349
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4920635,
+      &quot;gap_over_pair_mad&quot;: 0.0358158
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8888889,
+      &quot;gap_over_pair_mad&quot;: 1.6123464
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0006796,
+    &quot;pitch_deg&quot;: 5.05e-05,
+    &quot;roll_deg&quot;: 0.0013082
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.33523,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1293086,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.0640502,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3015096,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0264706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.1176471,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0941176,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.33523,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.3082029,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0727833,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H12'><summary>H12: Intrinsic lid-loop warping</summary><pre>{
+  &quot;formula&quot;: &quot;d_e_warp&quot;,
+  &quot;rationale&quot;: &quot;Best-plane residual measures nonplanarity, not plane orientation or raw depth spread; valid planar loops remain valid inputs.&quot;,
+  &quot;risk&quot;: &quot;A model surface proxy, not measured orbital anatomy.&quot;,
+  &quot;empirical_robustness_index&quot;: 50.4784689,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6858974,
+      &quot;gap_over_pair_mad&quot;: 0.8214752
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.588172,
+      &quot;gap_over_pair_mad&quot;: 0.3117769
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.630273,
+      &quot;gap_over_pair_mad&quot;: 0.6054629
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6428571,
+      &quot;gap_over_pair_mad&quot;: 0.576333
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6044974,
+      &quot;gap_over_pair_mad&quot;: 0.3927922
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5462963,
+      &quot;gap_over_pair_mad&quot;: 0.213217
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0001669,
+    &quot;pitch_deg&quot;: 4.4e-06,
+    &quot;roll_deg&quot;: -1.5e-05
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4336178,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0539285,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.0870583,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1332484,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2529412,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.0382353,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2441176,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1382172,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.1069227,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4336178,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H10'><summary>H10: Binocular aperture-mass phase asymmetry</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_centroid_asym&quot;,
+  &quot;rationale&quot;: &quot;Tests distributional asymmetry independently of different absolute eye sizes.&quot;,
+  &quot;risk&quot;: &quot;Previous simple asymmetries were weak; this is a high-priority falsification test.&quot;,
+  &quot;empirical_robustness_index&quot;: 47.3655914,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5525641,
+      &quot;gap_over_pair_mad&quot;: 0.063035
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4736559,
+      &quot;gap_over_pair_mad&quot;: 0.2080943
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5781638,
+      &quot;gap_over_pair_mad&quot;: 0.3076617
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5357143,
+      &quot;gap_over_pair_mad&quot;: 0.3258909
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5343915,
+      &quot;gap_over_pair_mad&quot;: 0.0405302
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4907407,
+      &quot;gap_over_pair_mad&quot;: 0.3374372
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0001934,
+    &quot;pitch_deg&quot;: 0.0001426,
+    &quot;roll_deg&quot;: -0.0002029
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5315315,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1099792,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.130767,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0338155,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3970588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.0,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0617647,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0229967,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.0452821,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5315315,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H31'><summary>H31: Visible brow-canopy clearance gradient</summary><pre>{
+  &quot;formula&quot;: &quot;mp_b_gap_gradient&quot;,
+  &quot;rationale&quot;: &quot;Dense matched-position clearances test information beyond the old single-point brow distances.&quot;,
+  &quot;risk&quot;: &quot;Brow grooming and expression.&quot;,
+  &quot;empirical_robustness_index&quot;: 47.4358974,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5948718,
+      &quot;gap_over_pair_mad&quot;: 0.5356702
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6010753,
+      &quot;gap_over_pair_mad&quot;: 0.6884678
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7717122,
+      &quot;gap_over_pair_mad&quot;: 1.8810659
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7098214,
+      &quot;gap_over_pair_mad&quot;: 0.6152097
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6025132,
+      &quot;gap_over_pair_mad&quot;: 0.5964892
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.9074074,
+      &quot;gap_over_pair_mad&quot;: 1.9909096
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.000134,
+    &quot;pitch_deg&quot;: -0.0153605,
+    &quot;roll_deg&quot;: 0.0015479
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.553817,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1267618,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1038408,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1056693,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2088235,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.1058824,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.553817,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.4336178,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0941204,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H39'><summary>H39: Malar placement over nasal aspect</summary><pre>{
+  &quot;formula&quot;: &quot;d_malar_y / d_n_aspect&quot;,
+  &quot;rationale&quot;: &quot;Couples cheek location with nasal geometry that showed complementary group structure.&quot;,
+  &quot;risk&quot;: &quot;Can reflect acquisition-period differences.&quot;,
+  &quot;empirical_robustness_index&quot;: 56.9776715,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;strict worst AUC below 0.65&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8923077,
+      &quot;gap_over_pair_mad&quot;: 3.3866765
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7139785,
+      &quot;gap_over_pair_mad&quot;: 0.829741
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7419355,
+      &quot;gap_over_pair_mad&quot;: 1.6489079
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8839286,
+      &quot;gap_over_pair_mad&quot;: 3.1609099
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7440476,
+      &quot;gap_over_pair_mad&quot;: 0.9580712
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6712963,
+      &quot;gap_over_pair_mad&quot;: 1.3709751
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.003556,
+    &quot;pitch_deg&quot;: 0.0002829,
+    &quot;roll_deg&quot;: -0.0003081
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5722946,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3928669,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.5722946,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4451301,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4264706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.3058824,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0647059,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1844476,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.3278805,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0256046,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H09'><summary>H09: Binocular normalized profile discrepancy</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_shape_mismatch&quot;,
+  &quot;rationale&quot;: &quot;Whole-curve asymmetry may reveal information not present in point-aperture asymmetry.&quot;,
+  &quot;risk&quot;: &quot;May primarily measure expression or image quality.&quot;,
+  &quot;empirical_robustness_index&quot;: 48.1259968,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5410256,
+      &quot;gap_over_pair_mad&quot;: 0.0298153
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4973118,
+      &quot;gap_over_pair_mad&quot;: 0.1553696
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5657568,
+      &quot;gap_over_pair_mad&quot;: 0.2008893
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5267857,
+      &quot;gap_over_pair_mad&quot;: 0.2472439
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.547619,
+      &quot;gap_over_pair_mad&quot;: 0.0193549
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4861111,
+      &quot;gap_over_pair_mad&quot;: 0.2594449
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0009707,
+    &quot;pitch_deg&quot;: 0.0004468,
+    &quot;roll_deg&quot;: -0.0009315
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5682788,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.087733,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.1256081,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0634625,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.4588235,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.0823529,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0058824,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0218113,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.0365102,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5682788,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H29'><summary>H29: Nasal/ocular covariance-anisotropy balance</summary><pre>{
+  &quot;formula&quot;: &quot;mp_n_shape_anisotropy / mp_e_shape_anisotropy&quot;,
+  &quot;rationale&quot;: &quot;Whole-contour elongation balance may be less sensitive to individual landmark errors than endpoint ratios.&quot;,
+  &quot;risk&quot;: &quot;Contour covariance is only a surface-shape proxy.&quot;,
+  &quot;empirical_robustness_index&quot;: 53.8709677,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8141026,
+      &quot;gap_over_pair_mad&quot;: 1.2971405
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5973118,
+      &quot;gap_over_pair_mad&quot;: 0.1717627
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7369727,
+      &quot;gap_over_pair_mad&quot;: 1.152217
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8705357,
+      &quot;gap_over_pair_mad&quot;: 1.7902541
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5866402,
+      &quot;gap_over_pair_mad&quot;: 0.2068054
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.8194444,
+      &quot;gap_over_pair_mad&quot;: 1.7579256
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0007705,
+    &quot;pitch_deg&quot;: 0.0127193,
+    &quot;roll_deg&quot;: 0.0043381
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.8,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1954376,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.1559517,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1879932,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.8,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.4352941,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1852941,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.5609294,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.6081081,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0376956,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H16'><summary>H16: Nasal sidewall waist</summary><pre>{
+  &quot;formula&quot;: &quot;d_n_waist&quot;,
+  &quot;rationale&quot;: &quot;The middle of three verified bilateral widths can capture taper nonlinearity beyond alar width.&quot;,
+  &quot;risk&quot;: &quot;Sidewall samples are not alar landmarks.&quot;,
+  &quot;empirical_robustness_index&quot;: 45.4094293,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8205128,
+      &quot;gap_over_pair_mad&quot;: 1.5556938
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7951613,
+      &quot;gap_over_pair_mad&quot;: 1.3381708
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4665012,
+      &quot;gap_over_pair_mad&quot;: 0.0199794
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8058036,
+      &quot;gap_over_pair_mad&quot;: 1.5615967
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7929894,
+      &quot;gap_over_pair_mad&quot;: 1.5360749
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4814815,
+      &quot;gap_over_pair_mad&quot;: 0.1019509
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0002685,
+    &quot;pitch_deg&quot;: 3.54e-05,
+    &quot;roll_deg&quot;: 0.0009098
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.5428435,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2034915,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.2128296,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5428435,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.2382353,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4911765,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1633476,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.0891418,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4279279,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H44'><summary>H44: Affine binocular cantho-nasal cross-area ratio</summary><pre>{
+  &quot;formula&quot;: &quot;mp_affine_cantho_nasal&quot;,
+  &quot;rationale&quot;: &quot;Tests a bilateral affine invariant distinct from simple eye spacing or global canthal tilt.&quot;,
+  &quot;risk&quot;: &quot;May be dominated by small asymmetries.&quot;,
+  &quot;empirical_robustness_index&quot;: 47.8632479,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5833333,
+      &quot;gap_over_pair_mad&quot;: 0.1928509
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5709677,
+      &quot;gap_over_pair_mad&quot;: 0.2332325
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5062035,
+      &quot;gap_over_pair_mad&quot;: 0.0607776
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5825893,
+      &quot;gap_over_pair_mad&quot;: 0.1229811
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5396825,
+      &quot;gap_over_pair_mad&quot;: 0.2060842
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5231481,
+      &quot;gap_over_pair_mad&quot;: 0.1201584
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.025944,
+    &quot;pitch_deg&quot;: -0.0050263,
+    &quot;roll_deg&quot;: -0.0030809
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4623044,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0756522,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.1872748,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3047964,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1117647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.2647059,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1088235,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.1235183,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.0941204,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.4623044,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H43'><summary>H43: Affine inner-canthal root-tip-base cross-area ratio</summary><pre>{
+  &quot;formula&quot;: &quot;mp_affine_root_sides&quot;,
+  &quot;rationale&quot;: &quot;Products of area ratios cancel the common affine determinant while using four distinct central points.&quot;,
+  &quot;risk&quot;: &quot;Nonplanar face projection and small triangles.&quot;,
+  &quot;empirical_robustness_index&quot;: 40.6947891,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.4794872,
+      &quot;gap_over_pair_mad&quot;: 0.0671593
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.472043,
+      &quot;gap_over_pair_mad&quot;: 0.0807816
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4888337,
+      &quot;gap_over_pair_mad&quot;: 0.0915131
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.3794643,
+      &quot;gap_over_pair_mad&quot;: 0.7565495
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4980159,
+      &quot;gap_over_pair_mad&quot;: 0.083837
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4166667,
+      &quot;gap_over_pair_mad&quot;: 0.7992514
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0018404,
+    &quot;pitch_deg&quot;: -0.0002538,
+    &quot;roll_deg&quot;: -0.0003889
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.3999526,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0078471,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.1118294,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1133531,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1235294,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.0970588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.05,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3539592,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.3999526,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3700806,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H15'><summary>H15: Brow-to-upper-lid clearance gradient</summary><pre>{
+  &quot;formula&quot;: &quot;d_b_clearance_gradient&quot;,
+  &quot;rationale&quot;: &quot;A profile gradient introduces spatial clearance, rather than another centroid distance.&quot;,
+  &quot;risk&quot;: &quot;Requires ordered, consistently matched row progress.&quot;,
+  &quot;empirical_robustness_index&quot;: 34.7394541,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6820513,
+      &quot;gap_over_pair_mad&quot;: 1.0742743
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5349462,
+      &quot;gap_over_pair_mad&quot;: 0.2731418
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.3473945,
+      &quot;gap_over_pair_mad&quot;: 0.5607386
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6450893,
+      &quot;gap_over_pair_mad&quot;: 0.8648699
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5462963,
+      &quot;gap_over_pair_mad&quot;: 0.2969304
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4166667,
+      &quot;gap_over_pair_mad&quot;: 0.4031104
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0004628,
+    &quot;pitch_deg&quot;: -8.58e-05,
+    &quot;roll_deg&quot;: -0.0011619
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.25,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1157258,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0653127,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2466342,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2470588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.25,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0529412,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2477477,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.1213845,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1365576,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H35'><summary>H35: Brow-clearance gradient over basal nose wrap</summary><pre>{
+  &quot;formula&quot;: &quot;d_b_clearance_gradient / d_n_wrap&quot;,
+  &quot;rationale&quot;: &quot;Combines spatial orbital clearance with a distinct nasal contour rather than common face width.&quot;,
+  &quot;risk&quot;: &quot;Both quantities are inferred model contours.&quot;,
+  &quot;empirical_robustness_index&quot;: 34.9875931,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6897436,
+      &quot;gap_over_pair_mad&quot;: 1.111274
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5387097,
+      &quot;gap_over_pair_mad&quot;: 0.2869557
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.3498759,
+      &quot;gap_over_pair_mad&quot;: 0.5512682
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6540179,
+      &quot;gap_over_pair_mad&quot;: 0.9002718
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5496032,
+      &quot;gap_over_pair_mad&quot;: 0.3097074
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4166667,
+      &quot;gap_over_pair_mad&quot;: 0.3924737
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0003758,
+    &quot;pitch_deg&quot;: -1.09e-05,
+    &quot;roll_deg&quot;: -0.0008553
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.2882353,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1132008,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0633972,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2450888,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1970588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.2882353,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0911765,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2558084,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.125652,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1370318,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H50'><summary>H50: Visible flat-top opening over modelled nasal waist</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_flat_top / d_n_waist&quot;,
+  &quot;rationale&quot;: &quot;Couples a new visible profile-shape cue with a new local modelled nasal taper cue.&quot;,
+  &quot;risk&quot;: &quot;A hybrid of expression-sensitive and inferred geometry.&quot;,
+  &quot;empirical_robustness_index&quot;: 42.1652422,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7102564,
+      &quot;gap_over_pair_mad&quot;: 1.1821291
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6833333,
+      &quot;gap_over_pair_mad&quot;: 1.0413432
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5086849,
+      &quot;gap_over_pair_mad&quot;: 0.2845721
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6964286,
+      &quot;gap_over_pair_mad&quot;: 1.2607699
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6488095,
+      &quot;gap_over_pair_mad&quot;: 0.859295
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4583333,
+      &quot;gap_over_pair_mad&quot;: 0.0884931
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 7.23e-05,
+    &quot;pitch_deg&quot;: -0.0006177,
+    &quot;roll_deg&quot;: -0.0006455
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.4395448,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0351651,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.088582,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2258682,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.3088235,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.2058824,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.3823529,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2641062,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.4395448,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0002371,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H40'><summary>H40: Full visible brow-clearance/nasal-height proportion</summary><pre>{
+  &quot;formula&quot;: &quot;mp_b_gap_median / mp_n_height&quot;,
+  &quot;rationale&quot;: &quot;A robust full-profile measurement and central nasal reference avoid single brow points and face outline.&quot;,
+  &quot;risk&quot;: &quot;Visible eyebrows are expression/grooming dependent.&quot;,
+  &quot;empirical_robustness_index&quot;: 37.3219373,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.624359,
+      &quot;gap_over_pair_mad&quot;: 0.85782
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7774194,
+      &quot;gap_over_pair_mad&quot;: 1.5186109
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6550868,
+      &quot;gap_over_pair_mad&quot;: 0.2459762
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8058036,
+      &quot;gap_over_pair_mad&quot;: 2.1718463
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7493386,
+      &quot;gap_over_pair_mad&quot;: 1.1251537
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.3888889,
+      &quot;gap_over_pair_mad&quot;: 0.5410793
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.000802,
+    &quot;pitch_deg&quot;: -0.0067042,
+    &quot;roll_deg&quot;: -0.0016684
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7060218,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1586509,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0316388,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.203165,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2617647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: -0.3911765,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.5205882,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: 0.7060218,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: -0.7050735,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1218587,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H13'><summary>H13: Lateral versus medial canthal wedge difference</summary><pre>{
+  &quot;formula&quot;: &quot;d_e_wedge_difference&quot;,
+  &quot;rationale&quot;: &quot;Endpoint tangent wedges are distinct from whole-fissure tilt and average bow.&quot;,
+  &quot;risk&quot;: &quot;End tangents may be sensitive to landmark spacing.&quot;,
+  &quot;empirical_robustness_index&quot;: 28.0649038,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.4179487,
+      &quot;gap_over_pair_mad&quot;: 0.395751
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4704301,
+      &quot;gap_over_pair_mad&quot;: 0.0325478
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5558313,
+      &quot;gap_over_pair_mad&quot;: 0.4704597
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.2165179,
+      &quot;gap_over_pair_mad&quot;: 0.939457
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4636243,
+      &quot;gap_over_pair_mad&quot;: 0.0884139
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.7407407,
+      &quot;gap_over_pair_mad&quot;: 0.9660376
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0888135,
+    &quot;pitch_deg&quot;: 0.3242539,
+    &quot;roll_deg&quot;: 0.0172429
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7823529,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2140704,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0113081,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2118501,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1470588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.45,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.7823529,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.4345661,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.5386439,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2885254,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H32'><summary>H32: Visible brow-canopy relative curvature</summary><pre>{
+  &quot;formula&quot;: &quot;mp_b_gap_curvature&quot;,
+  &quot;rationale&quot;: &quot;Curvature of the full clearance profile is distinct from mean height and tangent angle.&quot;,
+  &quot;risk&quot;: &quot;Sparse eyebrow landmarks and grooming.&quot;,
+  &quot;empirical_robustness_index&quot;: 28.9173789,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7487179,
+      &quot;gap_over_pair_mad&quot;: 1.5439565
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.766129,
+      &quot;gap_over_pair_mad&quot;: 1.5478713
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4441687,
+      &quot;gap_over_pair_mad&quot;: 0.4987664
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.84375,
+      &quot;gap_over_pair_mad&quot;: 2.6561377
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7493386,
+      &quot;gap_over_pair_mad&quot;: 1.4638337
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.2361111,
+      &quot;gap_over_pair_mad&quot;: 1.1306662
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.003109,
+    &quot;pitch_deg&quot;: 0.0480831,
+    &quot;roll_deg&quot;: 0.0302855
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.6161688,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.2200128,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: -0.1522295,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.3338993,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2117647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.3705882,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.2617647,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.6161688,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.6126126,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.092935,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H30'><summary>H30: Aperture shape spread with nasal-width context</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_iqr * mp_n_width&quot;,
+  &quot;rationale&quot;: &quot;Adds an independent region to a robust within-eye shape statistic.&quot;,
+  &quot;risk&quot;: &quot;Interaction may not improve the weakest pair.&quot;,
+  &quot;empirical_robustness_index&quot;: 35.8974359,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8166667,
+      &quot;gap_over_pair_mad&quot;: 1.4601012
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6763441,
+      &quot;gap_over_pair_mad&quot;: 0.8405465
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6575682,
+      &quot;gap_over_pair_mad&quot;: 0.7062505
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.7165179,
+      &quot;gap_over_pair_mad&quot;: 0.466371
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.7314815,
+      &quot;gap_over_pair_mad&quot;: 0.9651328
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4537037,
+      &quot;gap_over_pair_mad&quot;: 0.7131141
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0003207,
+    &quot;pitch_deg&quot;: 0.0031233,
+    &quot;roll_deg&quot;: 0.0004966
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7716927,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2364254,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.4263667,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0931531,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.3794118,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.6117647,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4588235,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.5343765,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.7716927,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0393551,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H42'><summary>H42: Affine inner-canthal tip/root area ratio</summary><pre>{
+  &quot;formula&quot;: &quot;mp_affine_tip_root&quot;,
+  &quot;rationale&quot;: &quot;Tests relative central nasal placement without separate horizontal/vertical scale assumptions.&quot;,
+  &quot;risk&quot;: &quot;A nearly zero root triangle can be unstable.&quot;,
+  &quot;empirical_robustness_index&quot;: 20.0854701,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6807692,
+      &quot;gap_over_pair_mad&quot;: 0.6897061
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5962366,
+      &quot;gap_over_pair_mad&quot;: 0.2907991
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.426799,
+      &quot;gap_over_pair_mad&quot;: 0.6455597
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8325893,
+      &quot;gap_over_pair_mad&quot;: 1.205271
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.582672,
+      &quot;gap_over_pair_mad&quot;: 0.238259
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.2175926,
+      &quot;gap_over_pair_mad&quot;: 1.5148679
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.44904,
+    &quot;pitch_deg&quot;: 5.2986818,
+    &quot;roll_deg&quot;: 1.2867899
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.6330014,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0508157,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0409334,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.2209271,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.2352941,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.3970588,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4558824,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.631816,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.6330014,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1192508,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H02'><summary>H02: Kurtosis of visible aperture mass</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_kurt&quot;,
+  &quot;rationale&quot;: &quot;Distinguishes broad from concentrated opening profiles with the same average aperture.&quot;,
+  &quot;risk&quot;: &quot;Higher moments amplify landmark errors.&quot;,
+  &quot;empirical_robustness_index&quot;: 18.0911681,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.4384615,
+      &quot;gap_over_pair_mad&quot;: 0.0339882
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4623656,
+      &quot;gap_over_pair_mad&quot;: 0.3525907
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4590571,
+      &quot;gap_over_pair_mad&quot;: 0.3514688
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.234375,
+      &quot;gap_over_pair_mad&quot;: 1.1667812
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5357143,
+      &quot;gap_over_pair_mad&quot;: 0.0430814
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.2037037,
+      &quot;gap_over_pair_mad&quot;: 1.2502194
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0001775,
+    &quot;pitch_deg&quot;: 0.0011694,
+    &quot;roll_deg&quot;: 0.0004469
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7596017,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0214299,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1140062,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1286555,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.3705882,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.7558824,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4264706,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.6574206,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.7596017,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0187293,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H05'><summary>H05: Within-frame superellipse profile exponent</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_shape_exponent&quot;,
+  &quot;rationale&quot;: &quot;Fits contour shape within each frame, without labels; separates profile shape from absolute opening.&quot;,
+  &quot;risk&quot;: &quot;The superellipse approximation may be poor.&quot;,
+  &quot;empirical_robustness_index&quot;: 28.0626781,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5666667,
+      &quot;gap_over_pair_mad&quot;: 0.2354212
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4494624,
+      &quot;gap_over_pair_mad&quot;: 0.1474067
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6203474,
+      &quot;gap_over_pair_mad&quot;: 0.3804921
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.390625,
+      &quot;gap_over_pair_mad&quot;: 0.8795368
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.510582,
+      &quot;gap_over_pair_mad&quot;: 0.1056136
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.375,
+      &quot;gap_over_pair_mad&quot;: 1.3543212
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0001038,
+    &quot;pitch_deg&quot;: 0.004434,
+    &quot;roll_deg&quot;: 0.0002239
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7418208,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0460922,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1369489,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0643114,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1352941,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.6352941,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.5088235,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.6394026,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.7418208,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0374585,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H04'><summary>H04: Relative interquartile aperture spread</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_iqr&quot;,
+  &quot;rationale&quot;: &quot;A robust shape-spread statistic may retain eye information while reducing sensitivity to single landmarks.&quot;,
+  &quot;risk&quot;: &quot;It may be nearly redundant with an existing opening ratio.&quot;,
+  &quot;empirical_robustness_index&quot;: 20.9401709,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.474359,
+      &quot;gap_over_pair_mad&quot;: 0.0186549
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4370968,
+      &quot;gap_over_pair_mad&quot;: 0.2587969
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.5434243,
+      &quot;gap_over_pair_mad&quot;: 0.2340405
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.2834821,
+      &quot;gap_over_pair_mad&quot;: 1.0797873
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5085979,
+      &quot;gap_over_pair_mad&quot;: 0.1559052
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.2824074,
+      &quot;gap_over_pair_mad&quot;: 1.2748138
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -0.0003377,
+    &quot;pitch_deg&quot;: 0.0025812,
+    &quot;roll_deg&quot;: 0.0008212
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0016652,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1285467,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0066064,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.6147059,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.7,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.3029412,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.5275012,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.6450925,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.1301565,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H28'><summary>H28: Aperture exponent versus nasal projective spacing</summary><pre>{
+  &quot;formula&quot;: &quot;mp_e_shape_exponent / mp_n_midline_crossratio&quot;,
+  &quot;rationale&quot;: &quot;Couples two size-independent internal shape descriptors rather than gross facial lengths.&quot;,
+  &quot;risk&quot;: &quot;Projection of non-collinear nose landmarks is approximate.&quot;,
+  &quot;empirical_robustness_index&quot;: 24.9287749,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.5230769,
+      &quot;gap_over_pair_mad&quot;: 0.2615891
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5639785,
+      &quot;gap_over_pair_mad&quot;: 0.0824034
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.6004963,
+      &quot;gap_over_pair_mad&quot;: 0.3506418
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.3147321,
+      &quot;gap_over_pair_mad&quot;: 1.1383578
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.4966931,
+      &quot;gap_over_pair_mad&quot;: 0.0326085
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.337963,
+      &quot;gap_over_pair_mad&quot;: 1.4985849
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: 0.0001505,
+    &quot;pitch_deg&quot;: 0.0060818,
+    &quot;roll_deg&quot;: 0.0004682
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7795164,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: -0.0296797,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.1577149,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.0161187,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.1764706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.6029412,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.5852941,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.6787577,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.7795164,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.0644855,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><details id='H41'><summary>H41: Affine canthal tip/base area ratio</summary><pre>{
+  &quot;formula&quot;: &quot;mp_affine_tip_base&quot;,
+  &quot;rationale&quot;: &quot;A ratio of triangle areas sharing a canthal base is invariant to an invertible 2D affine transform.&quot;,
+  &quot;risk&quot;: &quot;A real rotated 3D face is not exactly an affine image warp.&quot;,
+  &quot;empirical_robustness_index&quot;: 13.8176638,
+  &quot;diagnostics&quot;: {
+    &quot;status&quot;: &quot;not_supported&quot;,
+    &quot;failures&quot;: [
+      &quot;test worst AUC below 0.7&quot;,
+      &quot;neutral worst AUC below 0.65&quot;,
+      &quot;strict worst AUC below 0.65&quot;,
+      &quot;pose_adjusted_test worst AUC below 0.65&quot;,
+      &quot;later-month lower AUC confidence bound below 0.55 or unavailable&quot;,
+      &quot;monthly association does not pass Bonferroni50 at 0.05&quot;
+    ],
+    &quot;population_validated&quot;: false,
+    &quot;empirical_score_is_not_accuracy&quot;: true
+  },
+  &quot;later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.6538462,
+      &quot;gap_over_pair_mad&quot;: 0.6210758
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.6091398,
+      &quot;gap_over_pair_mad&quot;: 0.3890022
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.4615385,
+      &quot;gap_over_pair_mad&quot;: 0.3822263
+    }
+  },
+  &quot;neutral_later_pairs&quot;: {
+    &quot;put~udmurt&quot;: {
+      &quot;auc&quot;: 0.8638393,
+      &quot;gap_over_pair_mad&quot;: 1.94291
+    },
+    &quot;put~vas&quot;: {
+      &quot;auc&quot;: 0.5681217,
+      &quot;gap_over_pair_mad&quot;: 0.0206342
+    },
+    &quot;udmurt~vas&quot;: {
+      &quot;auc&quot;: 0.1527778,
+      &quot;gap_over_pair_mad&quot;: 2.3977489
+    }
+  },
+  &quot;pose_slopes_fitted_on_train&quot;: {
+    &quot;yaw_deg&quot;: -3.8e-06,
+    &quot;pitch_deg&quot;: 0.004715,
+    &quot;roll_deg&quot;: 0.0006778
+  },
+  &quot;within_group_expression_rho&quot;: {
+    &quot;max_abs_rho&quot;: 0.7690849,
+    &quot;details&quot;: {
+      &quot;put:jawOpen&quot;: {
+        &quot;rho&quot;: 0.0553216,
+        &quot;n&quot;: 82
+      },
+      &quot;put:smile&quot;: {
+        &quot;rho&quot;: 0.0668582,
+        &quot;n&quot;: 82
+      },
+      &quot;put:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.123279,
+        &quot;n&quot;: 82
+      },
+      &quot;udmurt:jawOpen&quot;: {
+        &quot;rho&quot;: -0.4647059,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:smile&quot;: {
+        &quot;rho&quot;: 0.5764706,
+        &quot;n&quot;: 16
+      },
+      &quot;udmurt:alpha_exp&quot;: {
+        &quot;rho&quot;: -0.4735294,
+        &quot;n&quot;: 16
+      },
+      &quot;vas:jawOpen&quot;: {
+        &quot;rho&quot;: -0.6896633,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:smile&quot;: {
+        &quot;rho&quot;: 0.7690849,
+        &quot;n&quot;: 37
+      },
+      &quot;vas:alpha_exp&quot;: {
+        &quot;rho&quot;: 0.1301565,
+        &quot;n&quot;: 37
+      }
+    }
+  }
+}</pre></details><h2>Geometry Definitions</h2><pre>{
+  &quot;MP_contour_source&quot;: &quot;installed mediapipe/python/solutions/face_mesh_connections.py&quot;,
+  &quot;MP_upper_lids&quot;: [
+    [
+      33,
+      246,
+      161,
+      160,
+      159,
+      158,
+      157,
+      173,
+      133
+    ],
+    [
+      263,
+      466,
+      388,
+      387,
+      386,
+      385,
+      384,
+      398,
+      362
+    ]
+  ],
+  &quot;MP_lower_lids&quot;: [
+    [
+      33,
+      7,
+      163,
+      144,
+      145,
+      153,
+      154,
+      155,
+      133
+    ],
+    [
+      263,
+      249,
+      390,
+      373,
+      374,
+      380,
+      381,
+      382,
+      362
+    ]
+  ],
+  &quot;MP_upper_brows&quot;: [
+    [
+      70,
+      63,
+      105,
+      66,
+      107
+    ],
+    [
+      300,
+      293,
+      334,
+      296,
+      336
+    ]
+  ],
+  &quot;MP_lower_brows&quot;: [
+    [
+      46,
+      53,
+      52,
+      65,
+      55
+    ],
+    [
+      276,
+      283,
+      282,
+      295,
+      285
+    ]
+  ],
+  &quot;MP_nasal_loop&quot;: [
+    4,
+    45,
+    220,
+    115,
+    48,
+    64,
+    98,
+    97,
+    2,
+    326,
+    327,
+    294,
+    278,
+    344,
+    440,
+    275
+  ],
+  &quot;MP_root_tip_base_alae&quot;: [
+    168,
+    1,
+    2,
+    [
+      98,
+      327
+    ]
+  ],
+  &quot;D_upper_lids&quot;: [
+    [
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21
+    ],
+    [
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43
+    ]
+  ],
+  &quot;D_lower_lids&quot;: [
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    [
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32
+    ]
+  ],
+  &quot;D_upper_brows&quot;: [
+    [
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50
+    ],
+    [
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ]
+  ],
+  &quot;D_lower_brows&quot;: [
+    [
+      51,
+      52,
+      53,
+      54,
+      55,
+      56
+    ],
+    [
+      64,
+      65,
+      66,
+      67,
+      68,
+      69
+    ]
+  ],
+  &quot;D_nose_sidewall_pairs&quot;: [
+    [
+      55,
+      65
+    ],
+    [
+      56,
+      64
+    ],
+    [
+      57,
+      63
+    ]
+  ],
+  &quot;D_internal_nose_angle&quot;: [
+    51,
+    54,
+    60
+  ],
+  &quot;D_basal_nose_arc&quot;: [
+    58,
+    59,
+    60,
+    61,
+    62
+  ],
+  &quot;normalization&quot;: &quot;Each source uses its own pupil/iris spacing; no raw MP/3D coordinate subtraction.&quot;,
+  &quot;eye_frame&quot;: &quot;lateral-to-medial chord; normal points upper-to-lower, fixing y-up/y-down and mirrored-side traps.&quot;,
+  &quot;canopy_matching&quot;: &quot;shared projected canthal abscissa, not unmatched point-by-point rows&quot;,
+  &quot;plane_validity&quot;: &quot;second singular value rejects collinearity; a valid planar loop has zero warping&quot;
+}</pre><h2>Limitations</h2><ul><li>Priority90-98 is subjective testing priority. It is not a calibrated posterior, success probability or empirical90% score.</li><li>The same three groups and later months were seen in earlier research. This is an internal exploratory batch, not an untouched prospective test.</li><li>Dates are supplied filename annotations. Calendar months only approximate independent acquisition sessions.</li><li>Group-label permutations assume exchangeability of month blocks under the null. Different periods/cameras/lighting can violate that assumption.</li><li>Association after Bonferroni50 or maxT does not establish incremental AUC improvement or anatomical causality.</li><li>Paired percentile-bootstrap difference intervals, including Bonferroni nominal simultaneous intervals, are approximate with few month blocks and a nonsmooth worst-pair statistic.</li><li>Only three groups; udmurt has13 neutral and5 strict-neutral photos. External generalization and90% empirical quality are not established.</li><li>3DMM contours and mean-selected cheek vertices are inferred surface proxies, not measured orbital/bony anatomy.</li><li>Eye opening, visible brow shape and iris placement depend on expression, gaze and grooming. Neutral flags are only blendshape thresholds.</li><li>Ratios of2D areas are affine invariant mathematically; the projection of a rotating nonplanar3D face is not generally a2D affine warp.</li><li>All50 frozen claims, failed tests and numerical/rank redundancies are retained. A new name is not evidence of new information.</li><li>The benchmark was selected using early-month robustness only, not the best old feature discovered after looking at later-month AUC.</li><li>No identities or sensitive traits are inferred. AUC is a dataset-label rank statistic, not a same/different-person verdict.</li></ul></html>

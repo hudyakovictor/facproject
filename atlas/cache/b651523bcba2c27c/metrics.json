@@ -1,0 +1,107 @@
+{
+  "ada_cos_to_centroid": {
+    "key": "12ecdab312006c31",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_norm_quality": {
+    "key": "b0c12a45aaf6b9bf",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "ada_pair_cos": {
+    "key": "e683b5d3993d1841",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_eye_area": {
+    "key": "532f947d61ce11ce",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_jaw_ratio": {
+    "key": "fd429a1a28d8077c",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "fan_nose_projection": {
+    "key": "7ea645d0719b5fd3",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_canthal_tilt": {
+    "key": "f6ff139dfb58b87f",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mp_eye_area": {
+    "key": "d6c1474c1bccfc72",
+    "result": {
+      "value": null,
+      "reason": "Модель ещё не установлена"
+    }
+  },
+  "mp_mouth_ratio": {
+    "key": "e6fbef08b070f793",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "mesh_eye_area": {
+    "key": "b92298b8f7bf5ae5",
+    "result": {
+      "value": 0.032672634265825014,
+      "reason": null
+    }
+  },
+  "mesh_jaw_ratio": {
+    "key": "527e5b27f1c4d96a",
+    "result": {
+      "value": 0.7819660305976868,
+      "reason": null
+    }
+  },
+  "mesh_nose_projection": {
+    "key": "631f5080fe4bf8e1",
+    "result": {
+      "value": 0.35369712114334106,
+      "reason": null
+    }
+  },
+  "mesh_height_example": {
+    "key": "fc9a59c4c65d5250",
+    "result": {
+      "value": 2.626302719116211,
+      "reason": null
+    }
+  },
+  "iris_width_ratio": {
+    "key": "468dc78ff769a07d",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  },
+  "iris_height_ratio": {
+    "key": "5142d6d958ae6aee",
+    "result": {
+      "value": null,
+      "reason": "Измерения ещё не рассчитаны"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "model": "3ddfa-v3-mbnet-e153858-pos-yunet-v3-exif",
+  "weights_sha256": "435f33e6fc93f3c0857538ffc5024d29bd6d09f98391d9be55f2d32b23cc2604",
+  "seed": 42,
+  "angles": {
+    "yaw": -28.608726501464844,
+    "pitch": 13.47415828704834,
+    "roll": -2.8371779918670654
+  },
+  "alignment": {
+    "mode": "yunet_pos5",
+    "confidence": 0.8730300068855286,
+    "detected_faces": 1,
+    "bbox": [
+      144.0796661376953,
+      222.45462036132812,
+      384.4700622558594,
+      560.1669921875
+    ],
+    "crop": [
+      -16,
+      44,
+      0.3201926429746688
+    ]
+  },
+  "seconds": 0.1,
+  "sharpness": 87.11770504822023,
+  "units": "fixed_template_IOD",
+  "runtime": {
+    "version": 1,
+    "seed": 42,
+    "workers": 1,
+    "torch_threads": 2,
+    "batch_size": 1,
+    "backbone": "mbnetv3",
+    "max_upload_mb": 100
+  },
+  "warning": "Реконструкция — оценка модели, не физическое измерение и не доказательство изменения личности.",
+  "file_hash": "ef64da3b5efba453e3b0dfdf221f0c5625e63c1d19fab7bfb17264b4e386343f",
+  "feature_key": "a32e4210936076d7",
+  "config": {
+    "backbone": "mbnetv3",
+    "precropped": false
+  }
+}
