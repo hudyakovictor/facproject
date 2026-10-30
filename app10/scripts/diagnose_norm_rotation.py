@@ -3,7 +3,7 @@ import argparse, json
 from pathlib import Path
 import numpy as np
 
-from morphing.backend.aligner import normalize_ldm106, align_identity_mesh
+from src.pose_bins import classify_pose
 
 
 def load_meshes(mesh_dir: Path):
@@ -27,7 +27,7 @@ def pairwise_dists(a: np.ndarray, b: np.ndarray):
 
 
 def main():
-    p = argparse.ArgumentParser(description="Диагностика нормировки/канонического поворота на одном человеке")
+    p = argparse.ArgumentParser(description="Диагностика внутри бина: сравнение с медианным представителем")
     p.add_argument("--meshes", required=True)
     p.add_argument("--out", required=True)
     args = p.parse_args()
@@ -48,32 +48,27 @@ def main():
     for bname, items in by_bin.items():
         if len(items) < 2:
             continue
-        # берём первый как эталон внутри бина
-        ref = items[0]["v_aligned"]
+        # медианный представитель по среднему расстоянию к остальным
+        best_idx = 0
+        best_score = 1e18
+        for i in range(len(items)):
+            score = 0.0
+            for j in range(len(items)):
+                if i == j: continue
+                mmean, _ = pairwise_dists(items[i]["v_aligned"], items[j]["v_aligned"])
+                score += mmean
+            if score < best_score:
+                best_score = score
+                best_idx = i
+        ref = items[best_idx]["v_aligned"]
         vals = []
-        for m in items[1:]:
+        for k,m in enumerate(items):
+            if k == best_idx: continue
             mmean, mmed = pairwise_dists(ref, m["v_aligned"])
             vals.append(mmean)
-        report["bins"][bname] = {"ref": items[0]["path"], "count_vs_ref": len(vals), "mean_vs_ref": float(np.mean(vals)), "median_vs_ref": float(np.median(vals))}
+        report["bins"][bname] = {"ref": items[best_idx]["path"], "count_vs_ref": len(vals), "mean_vs_ref": float(np.mean(vals)), "median_vs_ref": float(np.median(vals))}
 
-    # сравнение между бинами vs фронтал/близкий
-    # ищем фронтальный бином
-    front_keys = [k for k in by_bin if "front" in k.lower()]
-    if front_keys:
-        ref_bin = front_keys[0]
-        ref_items = by_bin[ref_bin]
-        if ref_items:
-            ref = ref_items[0]["v_aligned"]
-            for bname, items in by_bin.items():
-                if bname == ref_bin: continue
-                vals = []
-                for m in items:
-                    mmean, mmed = pairwise_dists(ref, m["v_aligned"])
-                    vals.append(mmean)
-                if vals:
-                    report["bins"][f"{ref_bin}_vs_{bname}"] = {"ref": ref_items[0]["path"], "count": len(vals), "mean_vs_ref": float(np.mean(vals)), "median_vs_ref": float(np.median(vals))}
-
-    report["notes"].append("Единицы - доли RMS106 (normalize_ldm106). identity_only без двойного поворота.")
+    report["notes"].append("Только внутри бина. Эталон - медианный представитель (не первый по алфавиту). Межгрупповые сравнения исключены.")
     (out / "diagnose_norm_rotation.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
     print("WROTE", out / "diagnose_norm_rotation.json")

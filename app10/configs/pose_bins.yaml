@@ -1,0 +1,39 @@
+# Единый источник групп ракурса для app10 (основан на app8.config.POSE_BINS)
+# Сравнения ТОЛЬКО внутри каждой группы
+bins:
+  - name: left_profile
+    lo: -95.0
+    hi: -50.0
+    canonical_yaw: -70.0
+  - name: left_deep
+    lo: -50.0
+    hi: -40.0
+    canonical_yaw: -45.0
+  - name: left_mid
+    lo: -40.0
+    hi: -25.0
+    canonical_yaw: -32.5
+  - name: left_light
+    lo: -25.0
+    hi: -10.0
+    canonical_yaw: -17.5
+  - name: frontal
+    lo: -10.0
+    hi: 10.0
+    canonical_yaw: 0.0
+  - name: right_light
+    lo: 10.0
+    hi: 25.0
+    canonical_yaw: 17.5
+  - name: right_mid
+    lo: 25.0
+    hi: 40.0
+    canonical_yaw: 32.5
+  - name: right_deep
+    lo: 40.0
+    hi: 50.0
+    canonical_yaw: 45.0
+  - name: right_profile
+    lo: 50.0
+    hi: 95.0
+    canonical_yaw: 70.0
