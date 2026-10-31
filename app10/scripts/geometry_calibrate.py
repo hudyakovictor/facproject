@@ -5,6 +5,7 @@
 угол между нормалями (для пар кадров). Работает на уже извлечённых NPZ (нужен только v_aligned и pose_bin).
 Статистика по кадрам: медиана и MAD. Статистика по парам |a-b|: p80 и p97.5 (как k_same/k_differ в файле метрик);
 пары зависимы, поэтому это описание повторяемости, а не независимая выборка.
+Зоны из NON_FACE_ZONES (`side`) в отчёте есть, но помечены в поле non_face_zones: это не зоны лица.
 """
 import argparse
 import json
@@ -17,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.face_model_io import load_face_model  # noqa: E402
 from src.mesh_geometry import vertex_areas, vertex_normals, weighted_mean, zone_features  # noqa: E402
 from src.zones import load_zones, zones_sha256  # noqa: E402
+from src.zones_annotation import NON_FACE_ZONES  # noqa: E402
 
 MIN_FRAMES = 3
 FEATURES = ["area", "area_frac", "mean_curvature", "gauss_curvature"]
@@ -47,6 +49,8 @@ def main():
     p.add_argument("--face-model", required=True)
     p.add_argument("--zones", required=True)
     p.add_argument("--out", required=True)
+    p.add_argument("--force", action="store_true",
+                   help="перезаписать отчёт, даже если его zones_sha256 отличается (зоны менялись)")
     args = p.parse_args()
 
     tri = load_face_model(args.face_model)["tri"]
@@ -75,6 +79,7 @@ def main():
         "n": len(frames), "skipped": skipped, "zones_file": str(args.zones),
         "zones_sha256": cur_sha,
         "zones_validated": validated,
+        "non_face_zones": [z for z in NON_FACE_ZONES if z in zones],
         "note": "пары кадров зависимы; цифры описывают повторяемость, не независимую выборку",
         "by_bin": {},
     }
@@ -107,14 +112,15 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     report_path = out / "geometry_calibration.json"
-    if report_path.exists():
+    if report_path.exists() and not args.force:
         try:
             prev = json.loads(report_path.read_text())
         except Exception:  # noqa: BLE001
             prev = {}
         if prev.get("zones_sha256") not in (None, cur_sha):
-            sys.exit(f"в существующем отчёте zones_sha256={prev.get('zones_sha256')!r} != {cur_sha!r}; "
-                     "зоны менялись — сравнение с прежним отчётом некорректно")
+            sys.exit(f"в существующем отчёте zones_sha256={prev.get('zones_sha256')!r} != {cur_sha!r}: "
+                     "зоны менялись, сравнение с прежним отчётом некорректно. "
+                     "Укажите другой --out или добавьте --force, чтобы перезаписать отчёт.")
     report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False))
     print("WROTE", report_path, "zones_sha256", cur_sha[:16], "validated", validated)
 
