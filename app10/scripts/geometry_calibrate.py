@@ -15,8 +15,8 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.face_model_io import load_face_model  # noqa: E402
-from src.mesh_geometry import normal_angle_deg, vertex_areas, vertex_normals, weighted_mean, zone_features  # noqa: E402
-from src.zones import load_zones  # noqa: E402
+from src.mesh_geometry import vertex_areas, vertex_normals, weighted_mean, zone_features  # noqa: E402
+from src.zones import load_zones, zones_sha256  # noqa: E402
 
 MIN_FRAMES = 3
 FEATURES = ["area", "area_frac", "mean_curvature", "gauss_curvature"]
@@ -63,6 +63,9 @@ def main():
     if tri.max() >= n_vert:
         sys.exit(f"tri ссылается на вершину {tri.max()}, а в сетке {n_vert} вершин")
     zones, zmeta = load_zones(args.zones, n_vertices=n_vert)
+    cur_sha = zones_sha256(zones)
+    # validated только если флаг стоит И хеш зон совпадает с утверждённым (иначе зоны меняли после approve)
+    validated = bool(zmeta.get("validated", False)) and zmeta.get("zones_sha256") == cur_sha
 
     by_bin = {}
     for f in frames:
@@ -70,7 +73,8 @@ def main():
 
     report = {
         "n": len(frames), "skipped": skipped, "zones_file": str(args.zones),
-        "zones_validated": bool(zmeta.get("validated", False)),
+        "zones_sha256": cur_sha,
+        "zones_validated": validated,
         "note": "пары кадров зависимы; цифры описывают повторяемость, не независимую выборку",
         "by_bin": {},
     }
@@ -102,8 +106,17 @@ def main():
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "geometry_calibration.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
-    print("WROTE", out / "geometry_calibration.json")
+    report_path = out / "geometry_calibration.json"
+    if report_path.exists():
+        try:
+            prev = json.loads(report_path.read_text())
+        except Exception:  # noqa: BLE001
+            prev = {}
+        if prev.get("zones_sha256") not in (None, cur_sha):
+            sys.exit(f"в существующем отчёте zones_sha256={prev.get('zones_sha256')!r} != {cur_sha!r}; "
+                     "зоны менялись — сравнение с прежним отчётом некорректно")
+    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False))
+    print("WROTE", report_path, "zones_sha256", cur_sha[:16], "validated", validated)
 
 
 if __name__ == "__main__":
