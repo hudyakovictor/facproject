@@ -8,14 +8,18 @@ reports/ldm106_numbering.png). Вершины снаружи контура ли
 Покрытие и непересечение гарантированы по построению: каждая skin-вершина попадает ровно в одну
 зону (фронт -> лоб/щека/челюсть/подбородок, иначе -> side).
 
-Плоскость симметрии: x = mid_x, среднее x по ориентам группы `midline` (спинка носа и низ
-подбородка). ВСЕ x-границы считаются относительно mid_x, поэтому сдвиг всей сетки вдоль x
-не меняет состав зон.
+Система координат правил. Плоскость симметрии оценивается по парам «правая–левая» точка
+(groups["symmetry_pairs"], см. symmetry.py) и делается плоскостью x = 0: сетка сдвигается и
+поворачивается (нормаль плоскости -> ось x). Остаточный поворот головы поэтому превращается в
+наклон плоскости, а не в сдвиг. Нормали для правила `side` считаются в этой же системе.
 
-Симметрия зон: граница лица зеркальна относительно mid_x (|x - mid_x| <= max от полуправой/полулевой
-ширины контура). Побочный эффект: на более узкой стороне лица в «переднюю» область попадает полоса
-шириной порядка асимметрии контура. Симметрия щёк и челюсти по числу вершин достигается по построению,
-поэтому она проверяет код, а не анатомическую точность границ — границы нужно смотреть на рендере.
+Граница лица — многоугольник: контур 0–32, замкнутый сверху полосой |x| <= внешний конец брови.
+Область лица = многоугольник ИЛИ его зеркальное отражение относительно x = 0 (поэтому зоны
+зеркальны). Раньше граница считалась как max двух интерполяций полуширины, и у подбородка,
+где контур сходится, одна точка перескакивала между половинами и дёргала внешнюю границу
+(jaw на симметричной форме прыгал на 14–22% при сдвиге плоскости на 0.005).
+Побочный эффект зеркального «ИЛИ»: на более узкой стороне в область попадает полоса шириной
+порядка асимметрии контура.
 
 Зона `side` — это НЕ зона лица: висок, боковая поверхность, скальп, уши, шея. Она перечислена в
 NON_FACE_ZONES, и отчёты по различиям лица её исключают.
@@ -27,6 +31,7 @@ import numpy as np
 
 from .face_model_io import ANNOTATION_NAMES
 from .landmarks import load_landmark_groups
+from .symmetry import fit_symmetry_plane, points_in_polygon, to_symmetry_frame
 
 SIDE_NORMAL_THRESH = 0.8  # |nx| выше — нормаль смотрит в сторону -> side (подобрано на person_01)
 BROW_TOP_PERCENTILE = 85  # верхний край бровей = этот процентиль y по ориентирам бровей
@@ -35,12 +40,23 @@ EPS = 1e-9  # допуск на равенство: пороги берутся 
 
 
 def zones_from_annotation(annotation, canon_v, ldm106, tri=None, groups=None, min_vertices=10,
-                          side_normal_thresh=SIDE_NORMAL_THRESH):
-    v = np.asarray(canon_v, dtype=np.float64)
-    n = len(v)
+                          side_normal_thresh=SIDE_NORMAL_THRESH, plane_shift=0.0, return_info=False):
+    """Возвращает dict зона -> индексы вершин (и info, если return_info).
+
+    plane_shift — диагностика чувствительности: сдвиг плоскости симметрии вдоль x (в единицах сетки)
+    относительно найденной по парам. В обычной работе 0.
+    """
+    v0 = np.asarray(canon_v, dtype=np.float64)
+    n = len(v0)
     part = dict(zip(ANNOTATION_NAMES, annotation, strict=True))
     groups = groups or load_landmark_groups()
-    lm = v[np.asarray(ldm106, dtype=np.int64)]  # (106,3) координаты ориентов
+    ldm106 = np.asarray(ldm106, dtype=np.int64)
+
+    # 0) система координат: плоскость симметрии -> x = 0
+    plane = fit_symmetry_plane(v0[ldm106], groups["symmetry_pairs"])
+    v = to_symmetry_frame(v0, plane)
+    v[:, 0] -= plane_shift
+    lm = v[ldm106]  # (106,3) координаты ориентов в системе плоскости симметрии
 
     # 1) части из разметки
     assigned = np.zeros(n, dtype=bool)
@@ -53,9 +69,7 @@ def zones_from_annotation(annotation, canon_v, ldm106, tri=None, groups=None, mi
         zones[name] = idx
         assigned[idx] = True
 
-    # 2) плоскость симметрии и скаляры границ от ориентов
-    mid_x = float(lm[np.asarray(groups["midline"], dtype=np.int64), 0].mean())
-
+    # 2) скаляры границ от ориентов
     def pts(names):
         out = []
         for nm in names:
@@ -65,8 +79,7 @@ def zones_from_annotation(annotation, canon_v, ldm106, tri=None, groups=None, mi
 
     brow = pts(["right_eyebrow", "left_eyebrow", "brow_outer_right", "brow_outer_left"])
     brow_top_y = float(np.percentile(brow[:, 1], BROW_TOP_PERCENTILE))
-    outer_brow_x = float(max(abs(lm[groups["brow_outer_right"], 0] - mid_x),
-                             abs(lm[groups["brow_outer_left"], 0] - mid_x)))
+    outer_brow_x = float(max(abs(lm[groups["brow_outer_right"], 0]), abs(lm[groups["brow_outer_left"], 0])))
     cr = lm[groups["mouth_corner_right"]]
     cl = lm[groups["mouth_corner_left"]]
     mouth_y = float((cr[1] + cl[1]) / 2.0)
@@ -74,31 +87,23 @@ def zones_from_annotation(annotation, canon_v, ldm106, tri=None, groups=None, mi
     if brow_top_y <= mouth_y:
         raise ValueError("брови не выше рта: ось Y перевёрнута или нумерация ldm106 не совпадает")
 
-    contour = lm[np.asarray(groups["contour"], dtype=np.int64)]
-    contour_top_y = float(contour[:, 1].max())
-    rc = contour[contour[:, 0] <= mid_x]
-    lc = contour[contour[:, 0] >= mid_x]
-    if len(rc) < 2 or len(lc) < 2:
-        raise ValueError("контур лица не делится плоскостью симметрии на две стороны: проверьте ориентиры")
-    rc = rc[np.argsort(rc[:, 1])]
-    lc = lc[np.argsort(lc[:, 1])]
+    # граница лица: контур 0–32, сверху замкнут полосой |x| <= outer_brow_x
+    contour = lm[np.asarray(groups["contour"], dtype=np.int64)][:, :2]
+    y_big = float(v[:, 1].max()) + 1.0
+    polygon = np.vstack([contour,
+                         [[outer_brow_x, contour[-1, 1]], [outer_brow_x, y_big],
+                          [-outer_brow_x, y_big], [-outer_brow_x, contour[0, 1]]]])
+    mirrored = polygon * np.array([-1.0, 1.0])
 
-    # 3) кожа = skin минус части; все x относительно плоскости симметрии
+    # 3) кожа = skin минус части
     skin = np.unique(part["skin"])
     skin = skin[~assigned[skin]]
-    xs = v[skin, 0] - mid_x
+    xs = v[skin, 0]
     y = v[skin, 1]
+    xy = np.column_stack([xs, y])
+    front = points_in_polygon(xy, polygon, tol=EPS) | points_in_polygon(xy, mirrored, tol=EPS)
 
-    # фронтальная область лица: зеркальная граница = max(полуширин контура справа/слева);
-    # выше вершины контура — до внешнего конца брови
-    below = y <= contour_top_y
-    halfwidth = np.maximum(np.abs(np.interp(y, rc[:, 1], rc[:, 0] - mid_x)),
-                           np.abs(np.interp(y, lc[:, 1], lc[:, 0] - mid_x)))
-    inside_low = below & (np.abs(xs) <= halfwidth + EPS)
-    inside_up = (~below) & (np.abs(xs) <= outer_brow_x + EPS)
-    front = inside_low | inside_up
-
-    # зона side: снаружи контура (везде) либо боковая нормаль ВЫШЕ уровня рта (висок/скула);
+    # зона side: снаружи области лица либо боковая нормаль ВЫШЕ уровня рта (висок/скула);
     # ниже рта боковая нормаль не применяется — челюсть ограничена только контуром
     side = ~front
     if tri is not None:
@@ -128,4 +133,14 @@ def zones_from_annotation(annotation, canon_v, ldm106, tri=None, groups=None, mi
     for name, idx in zones.items():
         if len(idx) < min_vertices:
             raise ValueError(f"зона {name}: {len(idx)} вершин (< {min_vertices})")
-    return zones
+    if not return_info:
+        return zones
+    mid_idx = np.asarray(groups["midline"], dtype=np.int64)
+    info = {
+        "plane": {"normal": [float(t) for t in plane["normal"]], "offset": plane["offset"],
+                  "tilt_deg": plane["tilt_deg"], "rms_reflection": plane["rms_reflection"],
+                  "n_pairs": plane["n_pairs"]},
+        "midline_offset": float(lm[mid_idx, 0].mean() if len(mid_idx) else 0.0),  # диагностика: ~0 при верной плоскости
+        "plane_shift": float(plane_shift),
+    }
+    return zones, info

@@ -3,7 +3,7 @@ import pytest
 from test_within_bin_only import make_base  # noqa: F401  (используется в других тестах модуля)
 
 from src.face_model_io import ANNOTATION_NAMES, load_face_model
-from src.landmarks import EXPECTED_SIZES, SCALAR_KEYS, load_landmark_groups
+from src.landmarks import EXPECTED_PAIRS, EXPECTED_SIZES, SCALAR_KEYS, load_landmark_groups
 from src.mesh_geometry import vertex_normals
 from src.zones import check_disjoint, zones_sha256
 from src.zones_annotation import NON_FACE_ZONES, zones_from_annotation
@@ -132,8 +132,7 @@ def test_zones_invariant_to_rigid_shift_along_x():
     shifted[:, 0] += 0.07
     moved = _as_sets(zones_from_annotation(ann, shifted, ldm106, groups=GROUPS))
     differ = sum(len(base[k] ^ moved[k]) for k in base)
-    # допускаем единичные вершины ровно на границе (на синтетике пороги совпадают с координатами вершин);
-    # прежняя схема с разными системами отсчёта x давала ~6% вершин
+    # допускаем единичные вершины ровно на границе (на синтетике пороги совпадают с координатами вершин)
     assert differ <= 0.005 * len(v), differ
 
 
@@ -176,6 +175,7 @@ def test_landmark_group_sizes_and_scalars():
         assert len(groups[name]) == size, name
     for name in SCALAR_KEYS:
         assert isinstance(groups[name], int) and 0 <= groups[name] <= 105, name
+    assert len(groups["symmetry_pairs"]) == EXPECTED_PAIRS
 
 
 def test_zones_sha256_is_content_hash():
@@ -187,9 +187,11 @@ def test_zones_sha256_is_content_hash():
 def test_load_face_model(tmp_path):
     ann = [np.arange(3) for _ in ANNOTATION_NAMES]
     path = tmp_path / "fm.npy"
-    np.save(path, {"tri": np.array([[0, 1, 2]]), "annotation": ann, "ldm106": np.arange(106)}, allow_pickle=True)
+    np.save(path, {"tri": np.array([[0, 1, 2]]), "annotation": ann, "ldm106": np.arange(106),
+                   "u": np.arange(9.0)}, allow_pickle=True)
     fm = load_face_model(path)
     assert fm["tri"].shape == (1, 3) and len(fm["annotation"]) == 8 and fm["ldm106"].shape == (106,)
+    assert fm["mean_shape"].shape == (3, 3)
     bad = tmp_path / "bad.npy"
     np.save(bad, {"annotation": ann}, allow_pickle=True)
     with pytest.raises(ValueError):
