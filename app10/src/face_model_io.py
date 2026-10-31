@@ -7,7 +7,8 @@ ANNOTATION_NAMES = ["right_eye", "left_eye", "right_eyebrow", "left_eyebrow", "n
 
 
 def load_face_model(path):
-    """Возвращает dict с ключами tri (F,3 int64), annotation (список из 8 массивов), ldm106, ldm134 (если есть)."""
+    """Возвращает dict с ключами tri (F,3 int64), annotation (список из 8 массивов), ldm106, ldm134
+    и mean_shape (N,3, средняя форма BFM из ключа `u`), если они есть в файле."""
     obj = np.load(Path(path), allow_pickle=True)
     if getattr(obj, "shape", None) == ():
         obj = obj.item()
@@ -27,4 +28,9 @@ def load_face_model(path):
     for key in ("ldm106", "ldm134"):
         if key in obj:
             out[key] = np.asarray(obj[key], dtype=np.int64).ravel()
+    if "u" in obj:
+        u = np.asarray(obj["u"], dtype=np.float64).ravel()
+        if u.size % 3 != 0:
+            raise ValueError(f"u (средняя форма): размер {u.size} не делится на 3")
+        out["mean_shape"] = u.reshape(-1, 3)
     return out
