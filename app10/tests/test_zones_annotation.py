@@ -75,8 +75,8 @@ def test_zones_from_landmarks_disjoint_cover_and_side():
     for name in ["right_eye", "left_eye", "nose", "upper_lip", "lower_lip", "forehead", "chin",
                  "cheek_r", "cheek_l", "jaw_r", "jaw_l", "side"]:
         assert name in zones
-    # x<0 = анатомически правая сторона
-    assert np.all(v[zones["cheek_r"], 0] < 0) and np.all(v[zones["cheek_l"], 0] >= 0)
+    # правая щека строго левее левой (чистое разделение по вертикали от средней линии)
+    assert v[zones["cheek_r"], 0].max() < v[zones["cheek_l"], 0].min()
     assert np.all(v[zones["forehead"], 1] > v[zones["cheek_r"], 1].max() - 1.0)  # лоб сверху
     # side содержит внешние (по |x|) вершины
     assert v[zones["side"], 0].min() < v[zones["cheek_r"], 0].min()
@@ -85,10 +85,11 @@ def test_zones_from_landmarks_disjoint_cover_and_side():
 def test_cheek_symmetry_on_symmetric_grid():
     ann, v, ldm106 = synthetic_face()
     zones = zones_from_annotation(ann, v, ldm106, groups=load_landmark_groups())
+    # правило зеркально по средней линии -> на симметричной сетке L/R равны (барьер приёмки 5%)
     r, l = len(zones["cheek_r"]), len(zones["cheek_l"])
-    assert abs(r - l) <= 0.1 * max(r, l)
+    assert abs(r - l) <= 0.05 * max(r, l)
     jr, jl = len(zones["jaw_r"]), len(zones["jaw_l"])
-    assert abs(jr - jl) <= 0.1 * max(jr, jl)
+    assert abs(jr - jl) <= 0.05 * max(jr, jl)
 
 
 def test_flipped_y_axis_is_error():

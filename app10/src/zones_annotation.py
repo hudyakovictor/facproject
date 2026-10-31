@@ -9,6 +9,12 @@
 Покрытие и непересечение гарантированы по построению: каждая skin-вершина попадает ровно в одну
 зону (фронт -> лоб/щека/челюсть/подбородок, иначе -> side).
 
+Симметрия зон: граница лица строится зеркально относительно средней линии (|x| <= max от
+полуправой/полулевой ширины контура), поэтому площади левой/правой щеки и челюсти различаются
+только из-за реальной асимметрии плотности вершин сетки, а не из-за правил разделения.
+Боковое правило нормали (зона `side`) применяется только выше уровня рта (висок/скула) —
+по спецификации челюсть ограничена контуром, а не нормалью.
+
 ВНИМАНИЕ: границы НЕ валидированы. `validated` ставится только вручную через approve_zones.py.
 """
 import numpy as np
@@ -72,37 +78,43 @@ def zones_from_annotation(annotation, canon_v, ldm106, tri=None, groups=None, mi
     # 3) кожа = skin минус части
     skin = np.unique(part["skin"])
     skin = skin[~assigned[skin]]
-    x, y = v[skin, 0], v[skin, 1]
+    # координаты относительно средней линии (mouth_cx): зеркальные границы по |xs|
+    xs = v[skin, 0] - mouth_cx
+    y = v[skin, 1]
 
-    # фронтальная область лица: внутри контура (для y<=вершины контура) либо |x|<=внеш.конец брови выше
+    # фронтальная область лица: зеркальная граница = max(полуширин контура справа/слева),
+    # выше вершины контура — до внешнего конца брови
     below = y <= contour_top_y
-    xr = _interp_boundary(rc[:, 1], rc[:, 0], y)
-    xl = _interp_boundary(lc[:, 1], lc[:, 0], y)
-    inside_low = below & (x >= xr) & (x <= xl)
-    inside_up = (~below) & (np.abs(x) <= outer_brow_x)
+    halfwidth = np.maximum(np.abs(_interp_boundary(rc[:, 1], rc[:, 0], y)),
+                           np.abs(_interp_boundary(lc[:, 1], lc[:, 0], y)))
+    inside_low = below & (np.abs(xs) <= halfwidth)
+    inside_up = (~below) & (np.abs(xs) <= outer_brow_x)
     front = inside_low | inside_up
 
+    # зона side: снаружи контура (везде) либо боковая норма ВЫШЕ уровня рта (висок/скула);
+    # ниже рта боковая норма не применяется — челюсть ограничена только контуром
     side = ~front
     if tri is not None:
         from .mesh_geometry import vertex_normals
         normals = vertex_normals(v, tri)
-        side = side | (np.abs(normals[skin, 0]) > SIDE_NORMAL_THRESH)
+        lateral = np.abs(normals[skin, 0]) > SIDE_NORMAL_THRESH
+        side = side | (front & (y > mouth_y) & lateral)
 
     forehead = front & ~side & (y > brow_top_y)
     mid = front & ~side & (y <= brow_top_y) & (y > mouth_y)
     low = front & ~side & (y <= mouth_y)
-    central = np.abs(x - mouth_cx) <= mouth_x_half
+    central = np.abs(xs) <= mouth_x_half
 
     def sel(mask):
         return skin[mask]
 
     zones.update({
         "forehead": sel(forehead),
-        "cheek_r": sel(mid & (x < 0)),
-        "cheek_l": sel(mid & (x >= 0)),
+        "cheek_r": sel(mid & (xs < 0)),
+        "cheek_l": sel(mid & (xs >= 0)),
         "chin": sel(low & central),
-        "jaw_r": sel(low & ~central & (x < 0)),
-        "jaw_l": sel(low & ~central & (x >= 0)),
+        "jaw_r": sel(low & ~central & (xs < 0)),
+        "jaw_l": sel(low & ~central & (xs >= 0)),
         "side": sel(side),
     })
 

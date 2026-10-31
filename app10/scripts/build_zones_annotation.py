@@ -53,6 +53,13 @@ def main():
         if z in counts:
             print(f"  доля {z}: {100.0 * counts[z] / len(canon):.1f}%")
 
+    def sym(a, b):
+        if counts.get(a) and counts.get(b):
+            d = abs(counts[a] - counts[b]) / min(counts[a], counts[b]) * 100
+            print(f"  симметрия {a}/{b}: {d:.1f}%")
+    sym("cheek_r", "cheek_l")
+    sym("jaw_r", "jaw_l")
+
     try:
         import matplotlib
         matplotlib.use("Agg")
