@@ -8,6 +8,7 @@
 Перед использованием проверь картинку reports/zones_check.png и поправь правила.
 """
 import json
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -65,10 +66,18 @@ def check_disjoint(zones):
     return len(seen) == len(np.unique(seen))
 
 
+def zones_sha256(zones):
+    """Канонический хеш содержимого зон (только индексы вершин). Меняется при правке границ."""
+    canon = {k: sorted(int(i) for i in idx) for k, idx in sorted(zones.items())}
+    blob = json.dumps(canon, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
 def save_zones(path, zones, n_vertices, rules=None, source=None):
     data = {
         "n_vertices": int(n_vertices),
         "validated": False,
+        "zones_sha256": zones_sha256(zones),
         "rules": rules or DEFAULT_RULES,
         "source": source or {},
         "zones": {k: [int(i) for i in v] for k, v in zones.items()},

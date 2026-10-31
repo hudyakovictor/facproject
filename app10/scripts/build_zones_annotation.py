@@ -38,11 +38,27 @@ def main():
         sys.exit(f"мало кадров бина {args.bin}: {len(frames)} < {args.min_frames}")
 
     canon = canonical_mesh(frames)
-    zones = zones_from_annotation(fm["annotation"], canon)
+    if "ldm106" not in fm:
+        sys.exit("в face_model.npy нет ключа ldm106 (нужен для границ от ориентов)")
+    zones = zones_from_annotation(fm["annotation"], canon, fm["ldm106"], tri=fm["tri"])
     assert check_disjoint(zones)
-    save_zones(args.out_json, zones, len(canon), rules={"method": "annotation+centroids"},
+    covered = sum(len(v) for v in zones.values())
+    if covered != len(canon):
+        sys.exit(f"зоны покрывают {covered} из {len(canon)} вершин")
+    save_zones(args.out_json, zones, len(canon), rules={"method": "landmark+contour+normals"},
                source={"bin": args.bin, "n_frames": len(frames), "face_model": str(args.face_model)})
-    print("WROTE", args.out_json, {k: len(v) for k, v in zones.items()})
+    counts = {k: len(v) for k, v in zones.items()}
+    print("WROTE", args.out_json, counts)
+    for z in ("cheek_r", "cheek_l", "side"):
+        if z in counts:
+            print(f"  доля {z}: {100.0 * counts[z] / len(canon):.1f}%")
+
+    def sym(a, b):
+        if counts.get(a) and counts.get(b):
+            d = abs(counts[a] - counts[b]) / min(counts[a], counts[b]) * 100
+            print(f"  симметрия {a}/{b}: {d:.1f}%")
+    sym("cheek_r", "cheek_l")
+    sym("jaw_r", "jaw_l")
 
     try:
         import matplotlib
