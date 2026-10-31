@@ -3,11 +3,12 @@
 Нумерация подтверждена эмпирически (см. reports/ldm106_numbering.png): вершины каждого
 ориента сопоставлены с анатомическими сетами face_model.annotation и координатами.
 Ось Y вверх, x<0 — анатомически правая сторона.
+
+Группа `midline` — точки на средней линии лица (спинка носа 51, 52, 55 и низ подбородка 16);
+по ним оценивается плоскость симметрии, от которой строятся зеркальные границы зон.
 """
 import json
 from pathlib import Path
-
-import numpy as np
 
 DEFAULT_GROUPS_PATH = Path(__file__).resolve().parents[1] / "configs" / "ldm106_groups.json"
 
@@ -18,6 +19,7 @@ EXPECTED_SIZES = {
     "left_eyebrow": 9,
     "nose": 15,
     "nose_ala": 10,
+    "midline": 4,
     "right_eye": 9,
     "left_eye": 9,
     "upper_lip": 8,
@@ -43,17 +45,3 @@ def load_landmark_groups(path=DEFAULT_GROUPS_PATH):
     if min(all_idx) < 0 or max(all_idx) > 105:
         raise ValueError(f"индексы ldm106 вне диапазона 0..105: min={min(all_idx)} max={max(all_idx)}")
     return groups
-
-
-def landmark_coords(canon_v, ldm106, groups):
-    """Координаты (idx -> (x,y,z)) ориентиров на канонической сетке."""
-    lm = np.asarray(canon_v)[np.asarray(ldm106, dtype=np.int64)]
-
-    def one(i):
-        return tuple(float(x) for x in lm[int(i)])
-
-    def many(idxs):
-        pts = lm[np.asarray(idxs, dtype=np.int64)]
-        return pts
-
-    return {"one": one, "many": many, "lm": lm}
